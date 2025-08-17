@@ -1,0 +1,43 @@
+{
+  "general": {
+    "storeName": "OLIVOMARKET",
+    "storeEmail": "contacto@olivomarket.cl",
+    "storePhone": "+56 9 1234 5678",
+    "storeAddress": "Avenida Principal 1234, Santiago, Chile",
+    "storeCurrency": "CLP",
+    "storeLanguage": "es",
+    "storeTimeZone": "America/Santiago"
+  },
+  "appearance": {
+    "primaryColor": "#101b2d",
+    "secondaryColor": "#2d715a",
+    "logoUrl": "/logo.png",
+    "faviconUrl": "/favicon.ico",
+    "bannerUrl": "/uploads/banner-1755285864340-5dwcys.jpg",
+    "enableDarkMode": true
+  },
+  "shipping": {
+    "enableShipping": true,
+    "freeShippingMinimum": 50000,
+    "freeShippingEnabled": true,
+    "localDeliveryEnabled": true,
+    "localDeliveryFee": 5000,
+    "internationalShippingEnabled": false,
+    "internationalShippingFee": 15000
+  },
+  "payment": {
+    "acceptCreditCards": true,
+    "acceptDebitCards": true,
+    "acceptPaypal": false,
+    "acceptTransferencia": true,
+    "acceptMercadoPago": true,
+    "testMode": true
+  },
+  "email": {
+    "orderConfirmationEnabled": true,
+    "shippingConfirmationEnabled": true,
+    "orderCancellationEnabled": true,
+    "customerSignupEnabled": true,
+    "marketingEnabled": false
+  }
+}

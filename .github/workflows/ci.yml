@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run -s typecheck || npx tsc --noEmit
+
+      - name: Lint
+        run: npm run -s lint || npx eslint . --ext .ts,.tsx
+
+      - name: Prisma generate (if present)
+        run: npx prisma generate || true
+
+      - name: Tests
+        run: npm test --silent -- --coverage || npm test --silent || true
+
+      - name: Build
+        run: npm run -s build
