@@ -12,6 +12,7 @@ import {
 import Button from "@/components/ui/Button";
 import SingleImageUpload from "@/components/ui/SingleImageUpload";
 import { getImageUrlWithRandomTimestamp } from "@/utils/image";
+import ImageWithFallback from '@/components/ui/ImageWithFallback';
 
 type Category = {
   id: string;
@@ -471,11 +472,11 @@ export default function CategoriesPage() {
                 <tr key={category.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {category.image ? (
-                      <img 
+                      <ImageWithFallback
                         key={`${category.id}-${imageRefreshMap.get(category.id) || 0}`}
-                        src={getImageUrlForCategory(category.id, category.image)} 
-                        alt={category.name} 
-                        className="h-10 w-10 rounded-md object-cover" 
+                        src={getImageUrlForCategory(category.id, category.image)}
+                        alt={category.name}
+                        className="h-10 w-10 rounded-md object-cover"
                       />
                     ) : (
                       <div className="h-10 w-10 rounded-md bg-gray-100 flex items-center justify-center text-xs text-gray-400">Sin</div>

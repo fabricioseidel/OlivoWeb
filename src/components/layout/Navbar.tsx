@@ -1,15 +1,14 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useMemo, useState, Fragment } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingCartIcon, UserIcon } from "@heroicons/react/24/outline";
+import { ShoppingCartIcon } from "@heroicons/react/24/outline";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/solid";
-import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
+import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
-import { Fragment } from "react";
-import { useCart } from "../../contexts/CartContext";
+import { useCart } from "@/contexts/CartContext";
 
 const navigation = [
   { name: "Inicio", href: "/" },
@@ -19,34 +18,59 @@ const navigation = [
   { name: "Contacto", href: "/contacto" },
 ];
 
+// Rutas donde NO quieres mostrar el navbar (opcional)
+const HIDE_ON = new Set<string>([
+  // "/login",
+  // "/registro",
+]);
+
 export default function Navbar() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const pathname = usePathname();
+  const { itemCount } = useCart();
+
+  // Lee el rol desde session.role (como lo pusimos en NextAuth callbacks) o desde session.user.role si existiera
+  const role = useMemo(
+    () => ((session as any)?.role || (session?.user as any)?.role || "").toString(),
+    [session]
+  );
+
+  // Mostrar/ocultar según ruta
+  if (HIDE_ON.has(pathname)) return null;
+
+  // Activo por ruta
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+
+  // Nombre y correo para avatar/letras
   const [displayName, setDisplayName] = useState<string>("");
   const [profileEmail, setProfileEmail] = useState<string>("");
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = JSON.parse(localStorage.getItem('profile') || '{}');
-        const fullName = [saved?.nombre, saved?.apellidos].filter(Boolean).join(' ').trim();
+    const emailFromSession = session?.user?.email || "";
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem("profile") : null;
+      if (raw) {
+        const saved = JSON.parse(raw || "{}");
+        const fullName = [saved?.nombre, saved?.apellidos].filter(Boolean).join(" ").trim();
         if (fullName) setDisplayName(fullName);
-        setProfileEmail(saved?.email || session?.user?.email || "");
-      } catch {
-        setProfileEmail(session?.user?.email || "");
+        setProfileEmail(saved?.email || emailFromSession);
+      } else {
+        setProfileEmail(emailFromSession);
       }
-    } else {
-      setProfileEmail(session?.user?.email || "");
+    } catch {
+      setProfileEmail(emailFromSession);
     }
   }, [session]);
 
-  const initial = displayName ? displayName.charAt(0) : (profileEmail ? profileEmail.charAt(0).toUpperCase() : (session?.user?.name?.[0] || 'U'));
-  const { itemCount } = useCart();
-  const pathname = usePathname();
-
-  const isActive = (href: string) => {
-    if (href === "/") return pathname === "/";
-    return pathname.startsWith(href);
-  };
+  // Inicial del avatar
+  const initial = useMemo(() => {
+    const base =
+      displayName?.trim()?.[0] ||
+      profileEmail?.trim()?.[0] ||
+      session?.user?.name?.trim()?.[0] ||
+      "U";
+    return base.toUpperCase();
+  }, [displayName, profileEmail, session?.user?.name]);
 
   return (
     <Disclosure as="nav" className="bg-white shadow relative z-50">
@@ -54,6 +78,7 @@ export default function Navbar() {
         <>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
+              {/* Izquierda: logo + navegación */}
               <div className="flex">
                 <div className="flex-shrink-0 flex items-center">
                   <Link href="/" className="text-xl font-bold text-blue-600">
@@ -80,6 +105,8 @@ export default function Navbar() {
                   })}
                 </div>
               </div>
+
+              {/* Derecha: carrito + usuario */}
               <div className="hidden sm:ml-6 sm:flex sm:items-center">
                 <Link
                   href="/carrito"
@@ -94,18 +121,21 @@ export default function Navbar() {
                   )}
                 </Link>
 
-                {/* Profile dropdown */}
-                {session ? (
+                {/* Perfil */}
+                {status === "loading" ? (
+                  <div className="ml-3 h-8 w-24 bg-gray-200 rounded animate-pulse" />
+                ) : session ? (
                   <Menu as="div" className="ml-3 relative">
                     <div>
                       <Menu.Button className="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         <span className="sr-only">Abrir menú de usuario</span>
-                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
                           {session.user?.image ? (
-                            <img
-                              className="h-8 w-8 rounded-full"
+                            <ImageWithFallback
+                              className="h-8 w-8 rounded-full object-cover"
                               src={session.user.image}
-                              alt=""
+                              alt="Foto de perfil"
+                              fallback="/uploads/fallback.png"
                             />
                           ) : (
                             <span className="text-blue-700 font-medium">
@@ -129,9 +159,7 @@ export default function Navbar() {
                           {({ active }) => (
                             <Link
                               href="/mi-cuenta"
-                              className={`${
-                                active ? "bg-gray-100" : ""
-                              } block px-4 py-2 text-sm text-gray-700`}
+                              className={`${active ? "bg-gray-100" : ""} block px-4 py-2 text-sm text-gray-700`}
                             >
                               Mi Perfil
                             </Link>
@@ -141,35 +169,32 @@ export default function Navbar() {
                           {({ active }) => (
                             <Link
                               href="/mi-cuenta/pedidos"
-                              className={`${
-                                active ? "bg-gray-100" : ""
-                              } block px-4 py-2 text-sm text-gray-700`}
+                              className={`${active ? "bg-gray-100" : ""} block px-4 py-2 text-sm text-gray-700`}
                             >
                               Mis Pedidos
                             </Link>
                           )}
                         </Menu.Item>
-                        {session.user?.role === "ADMIN" && (
+
+                        {/* Admin solo si role=admin (acepta "ADMIN" o "admin") */}
+                        {(role || "").toLowerCase() === "admin" && (
                           <Menu.Item>
                             {({ active }) => (
                               <Link
                                 href="/admin"
-                                className={`${
-                                  active ? "bg-gray-100" : ""
-                                } block px-4 py-2 text-sm text-gray-700`}
+                                className={`${active ? "bg-gray-100" : ""} block px-4 py-2 text-sm text-gray-700`}
                               >
                                 Panel de Administración
                               </Link>
                             )}
                           </Menu.Item>
                         )}
+
                         <Menu.Item>
                           {({ active }) => (
                             <button
-                              onClick={() => signOut({ callbackUrl: '/' })}
-                              className={`${
-                                active ? "bg-gray-100" : ""
-                              } block w-full text-left px-4 py-2 text-sm text-gray-700`}
+                              onClick={() => signOut({ callbackUrl: "/" })}
+                              className={`${active ? "bg-gray-100" : ""} block w-full text-left px-4 py-2 text-sm text-gray-700`}
                             >
                               Cerrar Sesión
                             </button>
@@ -195,8 +220,9 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
+
+              {/* Botón menú móvil */}
               <div className="-mr-2 flex items-center sm:hidden">
-                {/* Mobile menu button */}
                 <Disclosure.Button className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
                   <span className="sr-only">Abrir menú principal</span>
                   {open ? (
@@ -209,7 +235,7 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Mobile menu */}
+          {/* Menú móvil */}
           <Disclosure.Panel className="sm:hidden">
             <div className="pt-2 pb-3 space-y-1">
               {navigation.map((item) => {
@@ -230,17 +256,19 @@ export default function Navbar() {
                 );
               })}
             </div>
+
             <div className="pt-4 pb-3 border-t border-gray-200">
               <div className="flex items-center px-4">
                 {session ? (
                   <>
                     <div className="flex-shrink-0">
-                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
                         {session.user?.image ? (
-                          <img
-                            className="h-10 w-10 rounded-full"
+                          <ImageWithFallback
+                            className="h-10 w-10 rounded-full object-cover"
                             src={session.user.image}
-                            alt=""
+                            alt="Foto de perfil"
+                            fallback="/uploads/fallback.png"
                           />
                         ) : (
                           <span className="text-blue-700 font-medium">
@@ -250,8 +278,12 @@ export default function Navbar() {
                       </div>
                     </div>
                     <div className="ml-3">
-                      <div className="text-base font-medium text-gray-800">{displayName || profileEmail || 'Usuario'}</div>
-                      <div className="text-sm font-medium text-gray-500">{profileEmail}</div>
+                      <div className="text-base font-medium text-gray-800">
+                        {displayName || profileEmail || "Usuario"}
+                      </div>
+                      <div className="text-sm font-medium text-gray-500">
+                        {profileEmail}
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -270,6 +302,7 @@ export default function Navbar() {
                     </Link>
                   </div>
                 )}
+
                 <Link
                   href="/carrito"
                   className="ml-auto p-2 text-gray-400 hover:text-gray-500 relative"
@@ -283,6 +316,7 @@ export default function Navbar() {
                   )}
                 </Link>
               </div>
+
               {session && (
                 <div className="mt-3 space-y-1">
                   <Link
@@ -297,7 +331,8 @@ export default function Navbar() {
                   >
                     Mis Pedidos
                   </Link>
-                  {session.user?.role === "ADMIN" && (
+
+                  {(role || "").toLowerCase() === "admin" && (
                     <Link
                       href="/admin"
                       className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
@@ -305,8 +340,9 @@ export default function Navbar() {
                       Panel de Administración
                     </Link>
                   )}
+
                   <button
-                    onClick={() => signOut({ callbackUrl: '/' })}
+                    onClick={() => signOut({ callbackUrl: "/" })}
                     className="block w-full text-left px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
                   >
                     Cerrar Sesión

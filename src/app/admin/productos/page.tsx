@@ -15,6 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import { useProducts } from "@/contexts/ProductContext";
+import ImageWithFallback from '@/components/ui/ImageWithFallback';
 import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
 
@@ -56,7 +57,9 @@ export default function AdminProductsPage() {
       const bCat = Array.isArray(b.categories) && b.categories.length > 0 ? b.categories[0] : "";
       comparison = aCat.localeCompare(bCat);
     } else if (sortField === "createdAt") {
-      comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      comparison = aTime - bTime;
     }
     return sortDirection === "asc" ? comparison : -comparison;
   });
@@ -288,11 +291,7 @@ export default function AdminProductsPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 flex-shrink-0">
-                        <img
-                          className="h-10 w-10 rounded-md object-cover"
-                          src={product.image}
-                          alt={product.name}
-                        />
+                        <ImageWithFallback className="h-10 w-10 rounded-md object-cover" src={product.image} alt={product.name} />
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">{product.name}</div>

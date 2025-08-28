@@ -7,6 +7,7 @@ import Input from "@/components/ui/Input";
 import { useCart } from "@/contexts/CartContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { useCategoryNames } from "@/hooks/useCategories";
+import ImageWithFallback from '@/components/ui/ImageWithFallback';
 
 export default function ProductsPage() {
   const { products, loading: productsLoading } = useProducts();
@@ -114,11 +115,10 @@ export default function ProductsPage() {
             <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
               <div className="h-48 overflow-hidden relative">
                 <Link href={`/productos/${product.slug}`} className="block h-full">
-                  <img
+                  <ImageWithFallback
                     src={product.image}
                     alt={product.name}
                     className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                    loading="lazy"
                   />
                 </Link>
               </div>

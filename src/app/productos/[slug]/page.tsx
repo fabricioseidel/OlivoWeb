@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use, useRef } from "react";
 import Link from "next/link";
+import ImageWithFallback from '@/components/ui/ImageWithFallback';
 import { ArrowLeftIcon, MinusIcon, PlusIcon } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import { useCart } from "@/contexts/CartContext";
@@ -109,12 +110,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
           {/* Galería de imágenes */}
           <div>
-            <div className="rounded-lg overflow-hidden mb-4 h-96 bg-gray-50 flex items-center justify-center">
-              <img
+              <div className="rounded-lg overflow-hidden mb-4 h-96 bg-gray-50 flex items-center justify-center">
+              <ImageWithFallback
                 src={(product.gallery && product.gallery.length > 0 ? product.gallery[selectedImage] : product.image) || product.image}
                 alt={product.name}
                 className="w-full h-full object-cover"
-                loading="eager"
               />
             </div>
             {product.gallery && product.gallery.length > 1 && (
@@ -240,8 +240,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             {relatedProducts.map((relatedProduct) => (
               <div key={relatedProduct?.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                 <Link href={`/productos/${relatedProduct?.slug}`}>
-                  <div className="h-48 overflow-hidden">
-                    <img
+                    <div className="h-48 overflow-hidden">
+                    <ImageWithFallback
                       src={relatedProduct?.image}
                       alt={relatedProduct?.name}
                       className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"

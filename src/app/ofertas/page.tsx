@@ -6,6 +6,7 @@ import { useCart } from "@/contexts/CartContext";
 import Button from "@/components/ui/Button";
 import { useMemo, useState } from "react";
 import { useCategoryNames } from "@/hooks/useCategories";
+import ImageWithFallback from '@/components/ui/ImageWithFallback';
 
 export default function OfertasPage() {
   const { products, loading: productsLoading } = useProducts();
@@ -67,8 +68,8 @@ export default function OfertasPage() {
             {filtered.map(product => (
               <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                 <Link href={`/productos/${product.slug}`}>
-                  <div className="relative h-48 overflow-hidden">
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" />
+                    <div className="relative h-48 overflow-hidden">
+                    <ImageWithFallback src={product.image} alt={product.name} className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" />
                     <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded">Oferta</span>
                   </div>
                 </Link>

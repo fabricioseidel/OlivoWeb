@@ -1,21 +1,20 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  // Configuración de imágenes externas (remotePatterns reemplaza a domains)
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: '/placeholder.jpg',
+        destination: '/uploads/upload-1755295276091-ywcxpk.png',
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
-      { protocol: 'https', hostname: 'via.placeholder.com' },
-      { protocol: 'https', hostname: 'placehold.co' },
-      { protocol: 'https', hostname: 'res.cloudinary.com' },
-      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
-      { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'https', hostname: '**.supabase.co' },
     ],
   },
-  // Asegurar que el entorno tiene acceso a las variables de entorno
-  env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-  }
 };
 
-export default nextConfig;
+module.exports = nextConfig;
+

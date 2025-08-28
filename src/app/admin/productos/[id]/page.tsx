@@ -43,7 +43,7 @@ export default function EditProductPage() {
         description: product.description,
         categories: product.categories || [], // Usar categories del producto
         stock: product.stock.toString(),
-        featured: product.featured,
+  featured: Boolean(product.featured),
         gallery: product.gallery || [],
         features: (product.features || []).join("\n"),
         slug: product.slug,
