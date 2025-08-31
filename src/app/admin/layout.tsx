@@ -24,6 +24,11 @@ export default function AdminLayout({
 
   // Verificar si el usuario es administrador
   useEffect(() => {
+    console.log("[ADMIN-LAYOUT] Session status:", status);
+    console.log("[ADMIN-LAYOUT] Session data:", session);
+    console.log("[ADMIN-LAYOUT] User role:", session?.user?.role);
+    console.log("[ADMIN-LAYOUT] Full session object:", JSON.stringify(session, null, 2));
+    
     if (status === "authenticated" && session?.user?.role !== "ADMIN") {
       console.log("Usuario sin permisos de administrador. Redirigiendo...");
       router.push("/");

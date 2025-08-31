@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 // GET /api/categories -> { categories: string[] }
 export async function GET() {
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "name required" }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("categories")
     .upsert([{ name: clean }], { onConflict: "name" });
 
@@ -57,7 +58,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "name required" }, { status: 400 });
   }
 
-  const { error } = await supabase.from("categories").delete().eq("name", name);
+  const { error } = await supabaseAdmin.from("categories").delete().eq("name", name);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

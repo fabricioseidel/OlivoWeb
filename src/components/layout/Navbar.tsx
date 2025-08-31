@@ -35,12 +35,6 @@ export default function Navbar() {
     [session]
   );
 
-  // Mostrar/ocultar según ruta
-  if (HIDE_ON.has(pathname)) return null;
-
-  // Activo por ruta
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
-
   // Nombre y correo para avatar/letras
   const [displayName, setDisplayName] = useState<string>("");
   const [profileEmail, setProfileEmail] = useState<string>("");
@@ -72,8 +66,14 @@ export default function Navbar() {
     return base.toUpperCase();
   }, [displayName, profileEmail, session?.user?.name]);
 
+  // Mostrar/ocultar según ruta
+  if (HIDE_ON.has(pathname)) return null;
+
+  // Activo por ruta
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+
   return (
-    <Disclosure as="nav" className="bg-white shadow relative z-50">
+    <Disclosure as="nav" className="bg-white border-b border-gray-200 relative">
       {({ open }) => (
         <>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -110,10 +110,10 @@ export default function Navbar() {
               <div className="hidden sm:ml-6 sm:flex sm:items-center">
                 <Link
                   href="/carrito"
-                  className="p-2 text-gray-400 hover:text-gray-500 relative"
+                  className="p-2 text-gray-400 hover:text-gray-500 relative flex items-center justify-center"
                 >
                   <span className="sr-only">Carrito</span>
-                  <ShoppingCartIcon className="h-6 w-6" aria-hidden="true" />
+                  <ShoppingCartIcon className="h-6 w-6 flex-shrink-0" aria-hidden="true" />
                   {itemCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                       {itemCount}
@@ -226,9 +226,9 @@ export default function Navbar() {
                 <Disclosure.Button className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
                   <span className="sr-only">Abrir menú principal</span>
                   {open ? (
-                    <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
+                    <XMarkIcon className="block h-6 w-6 flex-shrink-0" aria-hidden="true" />
                   ) : (
-                    <Bars3Icon className="block h-6 w-6" aria-hidden="true" />
+                    <Bars3Icon className="block h-6 w-6 flex-shrink-0" aria-hidden="true" />
                   )}
                 </Disclosure.Button>
               </div>
@@ -305,10 +305,10 @@ export default function Navbar() {
 
                 <Link
                   href="/carrito"
-                  className="ml-auto p-2 text-gray-400 hover:text-gray-500 relative"
+                  className="ml-auto p-2 text-gray-400 hover:text-gray-500 relative flex items-center justify-center"
                 >
                   <span className="sr-only">Carrito</span>
-                  <ShoppingCartIcon className="h-6 w-6" aria-hidden="true" />
+                  <ShoppingCartIcon className="h-6 w-6 flex-shrink-0" aria-hidden="true" />
                   {itemCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                       {itemCount}

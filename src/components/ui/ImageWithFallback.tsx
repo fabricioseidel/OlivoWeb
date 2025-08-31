@@ -11,7 +11,7 @@ interface Props extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
   src?: MaybeStatic;
 }
 
-const DEFAULT_FALLBACK = "/uploads/upload-1755295276091-ywcxpk.png";
+const DEFAULT_FALLBACK = "/file.svg";
 
 function normalizeSrc(s?: MaybeStatic) {
   if (!s) return undefined;
@@ -24,10 +24,12 @@ const ImageWithFallback: React.FC<Props> = ({
   fallback = DEFAULT_FALLBACK,
   src,
   alt,
+  className = "",
   ...rest
 }) => {
   const initial = normalizeSrc(src) || fallback;
   const [imgSrc, setImgSrc] = useState(initial);
+  const [hasError, setHasError] = useState(false);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -35,8 +37,16 @@ const ImageWithFallback: React.FC<Props> = ({
       {...rest}
       src={imgSrc}
       alt={alt || "Imagen"}
+      className={`max-w-full ${hasError ? 'object-contain' : 'object-cover'} ${className}`}
       onError={() => {
-        if (imgSrc !== fallback) setImgSrc(fallback);
+        if (imgSrc !== fallback) {
+          setImgSrc(fallback);
+          setHasError(true);
+        }
+      }}
+      style={{
+        maxHeight: hasError ? '100%' : undefined,
+        ...rest.style
       }}
     />
   );

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
-import { normalizeImageUrl } from '@/utils/image';
+import { normalizeImageUrl, getBannerImageUrl } from '@/utils/image';
 import { useProducts } from "@/contexts/ProductContext";
 
 export default function Home() {
@@ -52,19 +52,24 @@ export default function Home() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-emerald-800 via-emerald-700 to-amber-800 text-white overflow-hidden">
+      <section className="relative bg-gradient-to-br from-emerald-800 via-emerald-700 to-amber-800 text-white banner-container">
         {/* Imagen de fondo (usa la imagen personalizada si existe). Si es personalizada usamos background-image para evitar restricciones de next/image */}
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 overflow-hidden">
           {bannerImage ? (
             <div
               className="absolute inset-0 w-full h-full bg-center bg-cover"
-              style={{ backgroundImage: `url(${bannerImage})` }}
+              style={{ 
+                backgroundImage: `url(${getBannerImageUrl(bannerImage, 'large')})`,
+                backgroundPosition: 'center 30%',
+                backgroundSize: 'cover'
+              }}
             />
           ) : (
             <Image
               src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=1920&auto=format&fit=crop"
               alt="Minimarket venezolano con productos tradicionales"
               fill
+              sizes="100vw"
               className="object-cover object-center"
               priority
             />
@@ -73,15 +78,15 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/80 via-emerald-800/75 to-amber-900/70"></div>
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20 h-full flex items-center">
           <div className="md:w-2/3">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6 drop-shadow-lg">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 drop-shadow-lg">
               OLIVOMARKET
             </h1>
-            <p className="text-xl mb-4 font-medium tracking-wide text-emerald-50 drop-shadow">
+            <p className="text-lg md:text-xl mb-3 font-medium tracking-wide text-emerald-50 drop-shadow">
               &quot;como en casa pero más cerquita&quot;
             </p>
-            <p className="text-lg mb-8 max-w-xl text-emerald-50/95 drop-shadow">
+            <p className="text-base md:text-lg mb-6 md:mb-8 max-w-xl text-emerald-50/95 drop-shadow">
               Minimarket venezolano en Chile: víveres, quesos, cecinas, panes, helados y más sabores que te conectan con tu tierra.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -94,8 +99,6 @@ export default function Home() {
                 </Button>
               </Link>
             </div>
-
-            {/* Personalización disponible únicamente desde el panel de administrador (Apariencia) */}
           </div>
         </div>
 
@@ -106,27 +109,27 @@ export default function Home() {
       </section>
 
       {/* Categorías Destacadas */}
-      <section className="py-16 bg-emerald-50">
+      <section className="py-12 md:py-16 bg-emerald-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Categorías</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8">Categorías</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {featuredCategories.map((category) => (
               <Link 
                 key={category.id} 
                 href={`/categorias/${category.slug}`}
                 className="group overflow-hidden rounded-lg shadow-md transition-all hover:shadow-lg"
               >
-                <div className="relative h-48 overflow-hidden">
+                <div className="img-container wide">
                   <div className="absolute inset-0 bg-emerald-900/40 group-hover:bg-emerald-900/25 transition-all z-10"></div>
                   <Image
-                      src={normalizeImageUrl(category.image)}
+                    src={normalizeImageUrl(category.image)}
                     alt={category.name}
                     fill
-                    sizes="(max-width: 640px) 100vw, 25vw"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 flex items-center justify-center z-20">
-                    <h3 className="text-white text-xl font-bold drop-shadow">{category.name}</h3>
+                    <h3 className="text-white text-lg md:text-xl font-bold drop-shadow bg-black/20 px-3 py-1 rounded-md">{category.name}</h3>
                   </div>
                 </div>
               </Link>
@@ -136,36 +139,34 @@ export default function Home() {
       </section>
 
       {/* Productos Destacados */}
-  <section className="py-16">
+      <section className="py-12 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h2 className="text-3xl font-bold text-gray-900 mb-8">Productos Destacados</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8">Productos Destacados</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {featuredProducts.map((product) => (
               <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                 <Link href={`/productos/${product.slug}`}>
-                  <div className="h-48 overflow-hidden">
-                    <div className="relative w-full h-full">
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        sizes="(max-width: 640px) 100vw, 25vw"
-                        className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                      />
-                    </div>
+                  <div className="img-container square">
+                    <Image
+                      src={normalizeImageUrl(product.image)}
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="w-full h-full object-cover object-center hover:scale-110 transition-transform duration-500"
+                    />
                   </div>
                   <div className="p-4">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">{product.name}</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2 line-clamp-1">{product.name}</h3>
                     <p className="text-gray-500 mb-4">$ {product.price.toFixed(2)}</p>
-        <Button fullWidth className="bg-emerald-600 hover:bg-emerald-500">Ver detalle</Button>
+                    <Button fullWidth className="bg-emerald-600 hover:bg-emerald-500">Ver detalle</Button>
                   </div>
                 </Link>
               </div>
             ))}
           </div>
-          <div className="mt-10 text-center">
+          <div className="mt-8 md:mt-10 text-center">
             <Link href="/productos">
-      <Button variant="outline" size="lg" className="border-emerald-600 text-emerald-700 hover:bg-emerald-50">Ver Todos</Button>
+              <Button variant="outline" size="lg" className="border-emerald-600 text-emerald-700 hover:bg-emerald-50">Ver Todos</Button>
             </Link>
           </div>
         </div>

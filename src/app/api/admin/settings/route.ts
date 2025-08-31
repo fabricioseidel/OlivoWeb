@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET() {
   const { data, error } = await supabase
@@ -35,7 +36,7 @@ export async function PATCH(req: Request) {
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("settings")
     .upsert([payload], { onConflict: "id" });
 

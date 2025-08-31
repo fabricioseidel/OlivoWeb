@@ -17,7 +17,8 @@ import {
   deleteProductFromCloud,
 } from '@/services/products';
 
-export interface Product extends ProductUI {}
+// Type alias for ProductUI to maintain consistency
+export type Product = ProductUI;
 
 interface ProductContextType {
   products: Product[];
@@ -28,6 +29,8 @@ interface ProductContextType {
   getProductById: (id: string) => Product | undefined;
   trackProductView: (id: string) => void;
   trackOrderIntent: (id: string) => void;
+  // Back-compat alias expected by some admin pages
+  addProduct: (productData: Partial<Product>) => Promise<void>;
   createProduct: (productData: Partial<Product>) => Promise<void>;
   updateProduct: (id: string, productData: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -157,6 +160,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     getProductById,
   trackProductView,
   trackOrderIntent,
+  // Alias for compatibility
+  addProduct: createProduct,
     createProduct,
     updateProduct,
     deleteProduct,

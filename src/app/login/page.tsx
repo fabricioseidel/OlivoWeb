@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -22,7 +22,7 @@ function mapNextAuthError(code?: string) {
   }
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const oauthErr = params.get("error"); // p.ej. ?error=OAuthAccountNotLinked
@@ -53,17 +53,21 @@ export default function LoginPage() {
         redirect: false,
         email: formData.email,
         password: formData.password,
-        // callbackUrl: "/admin" // si quieres forzar destino
+        callbackUrl: "/",
       });
 
       if (result?.error) {
+        console.error("Sign in error:", result.error);
         setError(mapNextAuthError(result.error));
-      } else {
-        // Si usas callbackUrl dinámico, puedes leer ?callbackUrl de la URL
+      } else if (result?.ok) {
+        // Éxito - redirigir
         router.push("/");
         router.refresh();
+      } else {
+        setError("No se pudo iniciar sesión. Intenta de nuevo.");
       }
-    } catch {
+    } catch (err) {
+      console.error("Sign in exception:", err);
       setError("Ocurrió un error al iniciar sesión. Intenta de nuevo.");
     } finally {
       setLoading(false);
@@ -193,5 +197,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando…</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

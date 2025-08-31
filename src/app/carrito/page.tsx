@@ -44,8 +44,8 @@ export default function CartPage() {
   // Teléfono destino (configurable futuramente vía env o admin)
   const handleWhatsAppOrder = () => {
     if (cartItems.length === 0) return;
-    // Track order intent para todos los productos del carrito
-    trackOrderIntent(cartItems.map(i => i.id));
+  // Track order intent para todos los productos del carrito
+  cartItems.forEach(i => trackOrderIntent(i.id));
     const link = buildWhatsAppOrderLink({
       phone: WHATSAPP_PHONE,
       items: cartItems.map(ci => ({ name: ci.name, quantity: ci.quantity, price: ci.price })),

@@ -1,38 +1,48 @@
-export function normalizeImageUrl(url?: string | null, fallback = '/file.svg') {
-  if (!url) return fallback;
-  try {
-    const s = String(url).trim();
-    if (!s) return fallback;
-    // If it's a data URL keep as-is (should be uploaded before save), if absolute URL keep as-is
-    if (s.startsWith('data:') || s.startsWith('http://') || s.startsWith('https://') || s.startsWith('/')) return s;
-    // Otherwise treat as relative path
-    return s;
-  } catch {
-    return fallback;
+export function normalizeImage(src?: string | null) {
+  if (!src || typeof src !== "string") return "/file.svg";
+  if (src.startsWith("http") || src.startsWith("/")) return src;
+  // Permite usar rutas guardadas como "uploads/..." desde BD
+  return `/${src.replace(/^\/+/, "")}`;
+}
+
+/**
+ * Legacy alias for normalizeImage - for backward compatibility
+ */
+export const normalizeImageUrl = normalizeImage;
+
+/**
+ * Adds a random timestamp to an image URL to prevent caching
+ * @param url The image URL to add a timestamp to
+ * @returns The URL with a random timestamp parameter
+ */
+export function getImageUrlWithRandomTimestamp(url?: string | null) {
+  if (!url) return "/file.svg";
+  // Normalizar primero para asegurar que la URL es válida
+  const normalizedUrl = normalizeImage(url);
+  // Añadir parámetros para evitar caché
+  const separator = normalizedUrl.includes('?') ? '&' : '?';
+  return `${normalizedUrl}${separator}t=${Date.now()}&r=${Math.floor(Math.random() * 1000000)}`;
+}
+
+/**
+ * Gets a properly sized banner image URL
+ * @param url The banner image URL
+ * @param size The size of the banner (small, medium, or large)
+ * @returns The URL with appropriate size parameters
+ */
+export function getBannerImageUrl(url?: string | null, size: 'small' | 'medium' | 'large' = 'medium') {
+  if (!url) return "/file.svg";
+  const normalizedUrl = normalizeImage(url);
+  
+  // Determinar dimensiones basadas en tamaño
+  let dimensions = '';
+  switch(size) {
+    case 'small': dimensions = 'w=800&h=400'; break;
+    case 'medium': dimensions = 'w=1200&h=600'; break;
+    case 'large': dimensions = 'w=1920&h=800'; break;
   }
-}
-
-/**
- * Obtiene una URL de imagen con timestamp para evitar caché
- */
-export function getImageUrlWithTimestamp(imageUrl: string | null | undefined): string | null {
-  const normalizedUrl = normalizeImageUrl(imageUrl);
-  if (!normalizedUrl || normalizedUrl === '/file.svg') return normalizedUrl;
   
-  // Si la imagen ya tiene parámetros, agregar timestamp con &, si no con ?
+  // Add size parameter for future responsive image support
   const separator = normalizedUrl.includes('?') ? '&' : '?';
-  return `${normalizedUrl}${separator}t=${Date.now()}`;
-}
-
-/**
- * Obtiene una URL de imagen con timestamp aleatorio para evitar caché de forma persistente
- */
-export function getImageUrlWithRandomTimestamp(imageUrl: string | null | undefined): string | null {
-  const normalizedUrl = normalizeImageUrl(imageUrl);
-  if (!normalizedUrl || normalizedUrl === '/file.svg') return normalizedUrl;
-  
-  // Usar timestamp + número aleatorio para mayor aleatoriedad
-  const timestamp = Date.now() + Math.floor(Math.random() * 1000);
-  const separator = normalizedUrl.includes('?') ? '&' : '?';
-  return `${normalizedUrl}${separator}t=${timestamp}`;
+  return `${normalizedUrl}${separator}${dimensions}&t=${Date.now()}&r=${Math.floor(Math.random() * 1000000)}`;
 }
