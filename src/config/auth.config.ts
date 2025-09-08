@@ -18,26 +18,27 @@ function buildProviders() {
       async authorize(credentials) {
         const email = credentials?.email?.toLowerCase().trim();
         const password = credentials?.password;
-        console.log("[AUTH] Login attempt for:", email);
+        const __dev = process.env.NODE_ENV !== 'production';
+        if (__dev) console.log("[AUTH] Login attempt for:", email);
         if (!email || !password) {
-          console.log("[AUTH] Missing email or password");
+          if (__dev) console.log("[AUTH] Missing email or password");
           return null;
         }
 
         const user = await getUserByEmail(email);
-        console.log("[AUTH] User found:", !!user, user ? { id: user.id, email: user.email, role: user.role } : null);
+        if (__dev) console.log("[AUTH] User found:", !!user, user ? { id: user.id, email: user.email, role: user.role } : null);
         if (!user) return null;
 
         const hash = (user as any).password_hash;
         if (!hash || typeof hash !== 'string' || hash.length < 20) {
-          console.log("[AUTH] Invalid hash:", { hasHash: !!hash, hashType: typeof hash, hashLength: hash?.length });
+          if (__dev) console.log("[AUTH] Invalid hash:", { hasHash: !!hash, hashType: typeof hash, hashLength: (hash as any)?.length });
           return null;
         }
         const ok = await bcrypt.compare(password, hash);
-        console.log("[AUTH] Password valid:", ok);
+        if (__dev) console.log("[AUTH] Password valid:", ok);
         if (!ok) return null;
 
-        console.log("[AUTH] Login successful for:", email);
+        if (__dev) console.log("[AUTH] Login successful for:", email);
         return {
           id: user.id,
           email: user.email,

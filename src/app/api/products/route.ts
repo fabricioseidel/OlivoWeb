@@ -4,14 +4,14 @@ import { fetchAllProducts, mapSupaToUI, type ProductUI } from "@/services/produc
 export async function GET() {
   try {
     const items = await fetchAllProducts();
-    // For compatibility with components that expect image_url instead of image, map shape
+    // Using fallback images since products table doesn't have image_url column
     const result = (items || []).map((p) => ({
       id: p.id,
       name: p.name,
       slug: p.slug,
       price: p.price,
       sale_price: undefined,
-      image_url: (p as any).image,
+      image: (p as any).image, // Use image field for consistency
       categories: p.categories,
       stock: p.stock,
       featured: p.featured,

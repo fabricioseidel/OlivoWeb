@@ -10,40 +10,40 @@ interface ToastContextType {
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [queue, setQueue] = useState<Array<{ message: string; type: ToastType; duration: number }>>([]);
-  const [current, setCurrent] = useState<{ message: string; type: ToastType; duration: number } | null>(null);
-  const [show, setShow] = useState(false);
+  const [toasts, setToasts] = useState<Array<{ id: number; message: string; type: ToastType; duration: number }>>([]);
 
-  const showToast = (message: string, type: ToastType = "info", duration: number = 3000) => {
-    setQueue(prev => [...prev, { message, type, duration }]);
-  };
-
-  const handleClose = () => {
-    setShow(false);
-    setCurrent(null);
-  };
-
-  // Show next toast when current is closed
-  useEffect(() => {
-    if (!show && queue.length > 0 && !current) {
-      setCurrent(queue[0]);
-      setQueue(prev => prev.slice(1));
-      setShow(true);
+  const showToast = (message: string, type: ToastType = "info", duration: number = 10000) => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts(prev => [...prev, { id, message, type, duration }]);
+    // Auto-remove after duration
+    if (duration > 0) {
+      setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+      }, duration);
     }
-  }, [show, queue, current]);
+  };
+
+  const handleClose = (id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  // No central queue animation needed; we render stacked toasts concurrently.
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {current && (
-        <Toast
-          show={show}
-          message={current.message}
-          type={current.type}
-          onClose={handleClose}
-          duration={current.duration}
-        />
-      )}
+      <div className="space-y-2 w-full flex flex-col items-center sm:items-end">
+        {toasts.map(t => (
+          <Toast
+            key={t.id}
+            show={true}
+            message={t.message}
+            type={t.type}
+            onClose={() => handleClose(t.id)}
+            duration={t.duration}
+          />
+        ))}
+      </div>
     </ToastContext.Provider>
   );
 }

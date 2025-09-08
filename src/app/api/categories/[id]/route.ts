@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { uploadImageToSupabase } from "@/utils/supabaseStorage";
 
 export const dynamic = 'force-dynamic';
 
@@ -31,16 +32,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({
       id: String(data.id ?? name),
       name,
-      slug:
-        data.slug ?? (name ? String(name).toLowerCase().replace(/[^a-z0-9]+/gi, "-") : undefined),
+      slug: data.slug ?? (name ? String(name).toLowerCase().replace(/[^a-z0-9]+/gi, "-") : undefined),
       description: data.description ?? data.desc ?? null,
-      image: data.image ?? data.image_url ?? null,
-      isActive:
-        typeof data.is_active === "boolean"
-          ? data.is_active
-          : typeof data.isActive === "boolean"
-          ? data.isActive
-          : true,
+      image: data.image_url ?? null, // Use correct column name
+      isActive: data.is_active ?? true, // Use correct column name
       createdAt: data.created_at ?? data.createdAt ?? null,
       updatedAt: data.updated_at ?? data.updatedAt ?? null,
       productsCount: count ?? 0,
@@ -66,34 +61,50 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const { id } = await params;
     const body = await req.json();
-    // process body.image if data URL -> save under /public/uploads and set path
+    // process body.image if data URL -> save and set path
     try {
       const img = body?.image;
       if (typeof img === 'string' && img.startsWith('data:image')) {
         const match = img.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
         if (match) {
           const mime = match[1];
-          const base64 = match[2];
-          const extMap: Record<string, string> = {
-            'image/png': 'png',
-            'image/jpeg': 'jpg',
-            'image/jpg': 'jpg',
-            'image/webp': 'webp',
-            'image/gif': 'gif',
-            'image/svg+xml': 'svg'
-          };
-          const ext = extMap[mime] || mime.split('/')[1] || 'png';
-          const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-          await fs.promises.mkdir(uploadsDir, { recursive: true });
-          const filename = `category-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
-          const filePath = path.join(uploadsDir, filename);
-          const buffer = Buffer.from(base64, 'base64');
-          await fs.promises.writeFile(filePath, buffer);
-          body.image = `/uploads/${filename}`;
+          console.log(`Processing image upload with mime type: ${mime}`);
+          
+          // Try Supabase Storage first
+          const uploadResult = await uploadImageToSupabase(img, mime, 'category');
+          
+          if (uploadResult.success && uploadResult.url) {
+            body.image = uploadResult.url;
+            console.log(`Image successfully uploaded to Supabase: ${uploadResult.url}`);
+          } else {
+            console.warn(`Supabase upload failed: ${uploadResult.error}`);
+            console.log('Falling back to local filesystem...');
+            
+            // Fallback to local filesystem
+            const base64 = match[2];
+            const extMap: Record<string, string> = {
+              'image/png': 'png',
+              'image/jpeg': 'jpg',
+              'image/jpg': 'jpg',
+              'image/webp': 'webp',
+              'image/gif': 'gif',
+              'image/svg+xml': 'svg'
+            };
+            const ext = extMap[mime] || mime.split('/')[1] || 'png';
+            const filename = `category-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+            const buffer = Buffer.from(base64, 'base64');
+            
+            const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+            await fs.promises.mkdir(uploadsDir, { recursive: true });
+            const filePath = path.join(uploadsDir, filename);
+            await fs.promises.writeFile(filePath, buffer);
+            body.image = `/uploads/${filename}`;
+            console.log(`Image saved locally: ${body.image}`);
+          }
         }
       }
     } catch (e:any) {
-      console.error('Error saving category image', e?.message || e);
+      console.error('Error saving category image:', e?.message || e);
     }
     const { name, slug, description, isActive, image } = body;
     const normalizeSlug = (value: string) => value
@@ -105,22 +116,36 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "");
 
-    const payload: any = {
-      ...(name !== undefined ? { name: String(name).trim() } : {}),
-      ...(slug !== undefined ? { slug: normalizeSlug(String(slug)) } : {}),
-      ...(description !== undefined ? { description: description ? String(description) : null } : {}),
-      ...(isActive !== undefined ? { is_active: Boolean(isActive) } : {}),
-      ...(image !== undefined ? { image: image || null } : {}),
-      updated_at: new Date().toISOString(),
-    };
+    // Build update payload using only existing columns (based on schema check: id, name, is_active, image_url)
+    const updatePayload: any = {};
+    
+    if (name !== undefined) {
+      updatePayload.name = String(name).trim();
+    }
+    
+    if (image !== undefined) {
+      updatePayload.image_url = image || null; // Use correct column name
+    }
+    
+    if (isActive !== undefined) {
+      updatePayload.is_active = Boolean(isActive); // Use correct column name  
+    }
 
-  const { data: updated, error } = await supabaseAdmin
+    // Note: slug and description columns don't exist in the actual table schema
+    // Only include them if we confirm they exist
+    console.log("Updating category with payload:", updatePayload);
+
+    const { data: updated, error } = await supabaseAdmin
       .from('categories')
-      .update(payload)
+      .update(updatePayload)
       .eq('id', id)
       .select('*')
       .maybeSingle();
-    if (error) throw error;
+
+    if (error) {
+      console.error("Update error:", error);
+      throw error;
+    }
 
     const catName = updated?.name ?? '';
     const { count } = await supabase
@@ -130,14 +155,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     return NextResponse.json({
       id: String(updated?.id ?? id),
-      name: updated?.name,
-      slug: updated?.slug,
+      name: updated?.name ?? '',
+      slug: updated?.slug ?? (updated?.name ? String(updated.name).toLowerCase().replace(/[^a-z0-9]+/gi, "-") : ''),
       description: updated?.description ?? null,
-      image: updated?.image ?? updated?.image_url ?? null,
-      isActive:
-        typeof updated?.is_active === 'boolean' ? updated?.is_active : true,
-      createdAt: updated?.created_at ?? null,
-      updatedAt: updated?.updated_at ?? null,
+      image: updated?.image_url ?? null, // Map from image_url to image for API response
+      isActive: updated?.is_active ?? true, // Map from is_active to isActive for API response
+      createdAt: updated?.created_at ?? updated?.createdAt ?? null,
+      updatedAt: updated?.updated_at ?? updated?.updatedAt ?? null,
       productsCount: count ?? 0,
     });
   } catch (e: any) {

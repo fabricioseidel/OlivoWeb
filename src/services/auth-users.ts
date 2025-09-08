@@ -10,13 +10,14 @@ export type DbUser = {
 };
 
 export async function getUserByEmail(email: string): Promise<DbUser | null> {
-  console.log("[AUTH-SERVICE] Looking up email:", email);
+  const __dev = process.env.NODE_ENV !== 'production';
+  if (__dev) console.log("[AUTH-SERVICE] Looking up email:", email);
   
   // First, let's check if there are any users in the table at all
   const { data: allUsers, error: countError } = await supabaseAdmin
     .from("users")
     .select("email", { count: 'exact', head: true });
-  console.log("[AUTH-SERVICE] Total users in table:", { count: allUsers, error: countError?.message });
+  if (__dev) console.log("[AUTH-SERVICE] Total users in table:", { count: allUsers, error: countError?.message });
   
   // Also check recent users to see the actual email format
   const { data: recentUsers } = await supabaseAdmin
@@ -24,7 +25,7 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
     .select("email,id")
     .order("created_at", { ascending: false })
     .limit(3);
-  console.log("[AUTH-SERVICE] Recent users:", recentUsers);
+  if (__dev) console.log("[AUTH-SERVICE] Recent users:", recentUsers);
   
   // Try different column combinations to match any schema
   const queries = [
@@ -35,7 +36,7 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
   
   for (let i = 0; i < queries.length; i++) {
     const sel = queries[i];
-    console.log(`[AUTH-SERVICE] Trying query ${i + 1}:`, sel);
+    if (__dev) console.log(`[AUTH-SERVICE] Trying query ${i + 1}:`, sel);
     
     // Use admin client to bypass RLS
     const { data, error } = await supabaseAdmin
@@ -44,7 +45,7 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
       .eq("email", email)
       .maybeSingle();
     
-    console.log(`[AUTH-SERVICE] Query ${i + 1} result:`, { 
+    if (__dev) console.log(`[AUTH-SERVICE] Query ${i + 1} result:`, { 
       data: data ? Object.keys(data) : null, 
       error: error?.message,
       fullData: data
@@ -60,7 +61,7 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
         role: (data as any).role
       };
       
-      console.log("[AUTH-SERVICE] Normalized result:", {
+      if (__dev) console.log("[AUTH-SERVICE] Normalized result:", {
         id: normalized.id,
         email: normalized.email,
         hasHash: !!normalized.password_hash,
@@ -72,6 +73,6 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
     }
   }
   
-  console.log("[AUTH-SERVICE] No user found for email:", email);
+  if (__dev) console.log("[AUTH-SERVICE] No user found for email:", email);
   return null;
 }

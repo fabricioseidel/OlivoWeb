@@ -1,6 +1,4 @@
-import { vi, describe, it, expect } from "vitest";
-
-vi.mock('@prisma/client', () => ({ PrismaClient: class {} }));
+import { describe, it, expect } from "vitest";
 
 import * as handler from '../app/api/categories/route';
 

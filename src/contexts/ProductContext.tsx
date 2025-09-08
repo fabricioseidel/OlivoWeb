@@ -36,7 +36,7 @@ interface ProductContextType {
   deleteProduct: (id: string) => Promise<void>;
 }
 
-const ProductContext = createContext<ProductContextType | undefined>(undefined);
+export const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export function ProductProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
@@ -46,7 +46,6 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   const normalize = (list: ProductUI[]): Product[] =>
     list.map((p) => ({
       ...p,
-      // asegura boolean para evitar error en admin/productos/[id]
       featured: !!p.featured,
     }));
 
@@ -54,8 +53,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       setError(undefined);
-      const data = await fetchAllProducts();
-      setProducts(normalize(data));
+  const data = await fetchAllProducts();
+  setProducts(normalize(data));
     } catch (e: any) {
       setError(e?.message || 'Error cargando productos');
     } finally {
@@ -117,9 +116,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       sale_price: Number(productData.price ?? 0),
       expiry_date: null,
       stock: Number(productData.stock ?? 0),
-      // evita mezcla || con ?? — usa solo ?? con paréntesis
-      image_url:
-        ((productData as any).image ?? (productData as any).image_url) ?? null,
+    image_url: (productData as any).image ?? null,
+    gallery: (productData as any).gallery ?? null,
     } as any);
 
     await load();
@@ -129,6 +127,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   const updateProduct = async (id: string, productData: Partial<Product>) => {
     const barcode = String(id).trim();
 
+    // Update product data in Supabase (includes optional image_url/gallery)
     await upsertProductToCloud({
       barcode,
       name: productData.name ?? '',
@@ -139,8 +138,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       sale_price: Number(productData.price ?? 0),
       expiry_date: null,
       stock: Number(productData.stock ?? 0),
-      image_url:
-        ((productData as any).image ?? (productData as any).image_url) ?? null,
+      image_url: (productData as any).image ?? null,
+      gallery: (productData as any).gallery ?? null,
     } as any);
 
     await load();

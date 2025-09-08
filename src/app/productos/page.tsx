@@ -12,7 +12,7 @@ function mapToCardUI(products: ReturnType<typeof useProducts>["products"]) {
     slug: p.slug,
     price: p.price,
     sale_price: undefined,
-    image_url: (p as any).image || (p as any).image_url || undefined,
+    image: (p as any).image || undefined, // Using fallback images
     category: p.categories?.length ? { name: p.categories[0] } : undefined,
     featured: p.featured,
   }));

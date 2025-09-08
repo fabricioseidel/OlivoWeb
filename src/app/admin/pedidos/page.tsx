@@ -33,6 +33,8 @@ export default function AdminOrdersPage() {
   const [dateTo, setDateTo] = useState<string>("");
   const itemsPerPage = 10;
 
+  const [loaded, setLoaded] = useState(false);
+
   useEffect(() => {
     try {
       const raw = typeof window !== "undefined" ? localStorage.getItem("orders") : null;
@@ -58,7 +60,8 @@ export default function AdminOrdersPage() {
           setOrders(normalized);
         }
       }
-    } catch {}
+  } catch {}
+  setLoaded(true);
   }, []);
   // Memo para evitar recalcular en cada render
   const filteredOrders = useMemo(() => {
@@ -84,12 +87,13 @@ export default function AdminOrdersPage() {
     });
   }, [orders, searchTerm, statusFilter, dateFrom, dateTo]);
 
-  // Mostrar toast si no hay resultados
+  // Mostrar aviso "sin resultados" solo cuando hay filtros activos o ya cargamos datos
   useEffect(() => {
-    if (filteredOrders.length === 0) {
-      showToast('No se encontraron pedidos', 'warning');
+    const filtersActive = Boolean(searchTerm || dateFrom || dateTo || (statusFilter && statusFilter !== 'Todos'));
+    if (loaded && filtersActive && filteredOrders.length === 0) {
+      showToast('No se encontraron pedidos', 'warning', 5000);
     }
-  }, [filteredOrders.length, showToast]);
+  }, [loaded, filteredOrders.length, searchTerm, dateFrom, dateTo, statusFilter, showToast]);
 
   const sortedOrders = useMemo(() => {
     const arr = [...filteredOrders];
@@ -203,7 +207,27 @@ export default function AdminOrdersPage() {
                     <StatusBadge status={o.status} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link href={`/admin/pedidos/${o.id}`} className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1">
+                    <Link
+                      href={`/admin/pedidos/${o.id}`}
+                      className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
+                      onClick={() => {
+                        try {
+                          // Guardar una copia ligera del pedido seleccionado para el detalle
+                          const lightweight = {
+                            id: o.id,
+                            date: o.date,
+                            customer: o.customer,
+                            email: o.email,
+                            total: o.total,
+                            status: o.status,
+                            // items no está en la tabla; el detalle manejará fallback a [] si no existen
+                          };
+                          localStorage.setItem('selectedOrder', JSON.stringify(lightweight));
+                          // Guardar también una copia por clave de pedido en sessionStorage (para abrir en nueva pestaña)
+                          try { sessionStorage.setItem(`order:${o.id}`, JSON.stringify(lightweight)); } catch {}
+                        } catch {}
+                      }}
+                    >
                       <EyeIcon className="h-5 w-5" /> Ver
                     </Link>
                   </td>

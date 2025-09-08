@@ -9,7 +9,8 @@ export type SupaProduct = {
   expiry_date: string | null;
   stock: number | null;
   updated_at?: string; // timestamptz
-  image_url?: string | null;
+  image_url?: string | null; // requires products.image_url column
+  gallery?: any | null; // optional JSONB array of strings
 };
 
 export type ProductUI = {
@@ -51,15 +52,18 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
   const cats = category
     ? category.split(/[,/|]/).map((c) => c.trim()).filter(Boolean)
     : [];
+  const img = (p as any).image_url as string | null | undefined;
+  const gallery = Array.isArray((p as any).gallery) ? (p as any).gallery as string[] : undefined;
   return {
     id: String(p.barcode),
     name,
     price: Number(p.sale_price ?? 0),
     priceOriginal: undefined,
-    image: p.image_url || imgFallback(category),
+    image: img || imgFallback(category),
     slug: slug(name),
     description: '',
     categories: cats,
+    gallery,
     stock: Number(p.stock ?? 0),
     featured: false,
     createdAt: p.updated_at ?? undefined,
@@ -104,7 +108,8 @@ export async function upsertProductToCloud(p: SupaProduct) {
       expiry_date: p.expiry_date ?? null,
       stock: p.stock ?? 0,
       updated_at: new Date().toISOString(),
-      image_url: p.image_url ?? null,
+  image_url: (p as any).image_url ?? (p as any).image ?? null,
+  gallery: Array.isArray((p as any).gallery) ? (p as any).gallery : null,
     }],
     { onConflict: 'barcode' }
   );

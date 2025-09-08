@@ -123,10 +123,22 @@ export default function UserForm({ userId }: UserFormProps) {
     setIsSubmitting(true);
     
     try {
-      // En una aplicación real, aquí enviaríamos los datos a la API
-      // Por ahora, simularemos un retraso para mostrar el estado de carga
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+      // Enviar los datos a la API real
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+          role: formData.role,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = (data && (data.message || data.detail)) || 'No se pudo crear el usuario';
+        throw new Error(msg);
+      }
       // Redirigir a la lista de usuarios después de guardar
       router.push("/admin/usuarios");
     } catch (error) {

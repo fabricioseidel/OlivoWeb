@@ -1,10 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+// Prisma has been removed from the project.
+// This stub remains only to satisfy any legacy imports (e.g. in tests).
+// Do NOT use at runtime.
 
-declare global {
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
-}
-
-export const prisma = globalThis.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;
+export const prisma: any = new Proxy({}, {
+  get() {
+    throw new Error('Prisma has been removed from this project. No runtime usage allowed.');
+  }
+});

@@ -25,8 +25,7 @@ jobs:
       - name: Lint
         run: npm run -s lint || npx eslint . --ext .ts,.tsx
 
-      - name: Prisma generate (if present)
-        run: npx prisma generate || true
+  # Prisma removed
 
       - name: Tests
         run: npm test --silent -- --coverage || npm test --silent || true

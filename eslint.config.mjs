@@ -10,7 +10,7 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  // Ignore generated files (Prisma wasm/runtime) which are not meant to be linted
+  // Ignore generated files which are not meant to be linted
   { ignores: ["src/generated/**"] },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   // Project overrides: allow explicit any for now to keep the build green.

@@ -42,11 +42,44 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('orders');
-      if (!raw) { setLoading(false); return; }
-      const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) { setLoading(false); return; }
-      const found = arr.find((o: any) => o.id === id);
+      let found: any = null;
+      const idNorm = decodeURIComponent(String(id || '')).trim().toLowerCase();
+      const raw = typeof window !== 'undefined' ? localStorage.getItem('orders') : null;
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+          const byId = arr.find((o: any) => String(o?.id ?? '').trim().toLowerCase() === idNorm);
+          const byAlt = arr.find((o: any) => {
+            const alt = o?.code ?? o?.codigo ?? o?.numero ?? o?.number ?? o?.orderId ?? o?.order_id;
+            return alt && String(alt).trim().toLowerCase() === idNorm;
+          });
+          const byIncludes = arr.find((o: any) => {
+            const oid = String(o?.id ?? '').trim().toLowerCase();
+            return oid.includes(idNorm) || idNorm.includes(oid);
+          });
+          found = byId || byAlt || byIncludes || null;
+        }
+      }
+      // Fallback 1: sesión por clave específica del pedido (navegación directa en nueva pestaña)
+      if (!found && typeof window !== 'undefined') {
+        try {
+          const ss = sessionStorage.getItem(`order:${id}`);
+          if (ss) found = JSON.parse(ss);
+        } catch {}
+      }
+      // Fallback 2: 'selectedOrder' si existe (relajar igualdad estricta)
+      if (!found && typeof window !== 'undefined') {
+        const sel = localStorage.getItem('selectedOrder');
+        if (sel) {
+          const obj = JSON.parse(sel);
+          if (obj) {
+            const selId = String(obj.id || '').trim().toLowerCase();
+            if (selId === idNorm || selId.includes(idNorm) || idNorm.includes(selId)) {
+              found = obj;
+            }
+          }
+        }
+      }
       if (!found) { setLoading(false); return; }
       const date = (found.date || found.fecha || new Date().toISOString()).toString();
       const itemsArray = Array.isArray(found.items) ? found.items : [];

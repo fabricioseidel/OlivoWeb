@@ -107,7 +107,7 @@ export default function SettingsPage() {
   const saveSettings = async (dataToSave: any) => {
     setIsSaving(true);
     try {
-      const res = await fetch('/api/admin/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dataToSave) });
+      const res = await fetch('/api/admin/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dataToSave) });
       if (res.ok) {
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);

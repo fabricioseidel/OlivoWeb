@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
+import { useErrorHandler, safeFetch, safeJsonParse } from "@/hooks/useErrorHandler";
 import { 
   MagnifyingGlassIcon, 
   PencilIcon, 
@@ -35,6 +36,12 @@ type CategoryForm = {
 // Los datos ahora provienen de la API (/api/categories)
 
 export default function CategoriesPage() {
+  // Usar el hook de manejo de errores globales
+  useErrorHandler();
+  
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
+  
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showInactiveCategories, setShowInactiveCategories] = useState(false);
@@ -42,8 +49,6 @@ export default function CategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [imageRefreshMap, setImageRefreshMap] = useState<Map<string, number>>(new Map());
-  const { showToast } = useToast();
-  const { confirm } = useConfirm();
   
   // Función para obtener URL de imagen con timestamp único por categoría
   const getImageUrlForCategory = (categoryId: string, imageUrl: string | undefined) => {
@@ -70,23 +75,26 @@ export default function CategoriesPage() {
   const [formData, setFormData] = useState<CategoryForm>(initialFormData);
   const [formErrors, setFormErrors] = useState<{ name?: string; slug?: string }>({});
 
-  // Función para cargar categorías
+  // Función para cargar categorías con mejor manejo de errores
   const loadCategories = async () => {
     setLoading(true);
     setGlobalError(null);
     try {
-      const res = await fetch('/api/categories', { cache: 'no-store' });
-      if (!res.ok) throw new Error('No se pudieron cargar las categorías');
-      const maybe = await res.json().catch((err) => {
-        console.error('Error parsing /api/categories response', err);
-        return null;
-      });
-      console.debug('Fetched /api/categories response:', maybe);
-      if (!Array.isArray(maybe)) throw new Error('Respuesta inválida de /api/categories');
-      const data: Category[] = maybe;
+      const res = await safeFetch('/api/categories', { cache: 'no-store' });
+      const data = await safeJsonParse<Category[]>(res);
+      
+      console.debug('Fetched /api/categories response:', data);
+      
+      if (!Array.isArray(data)) {
+        throw new Error('Respuesta inválida de /api/categories - esperaba un array');
+      }
+      
       setCategories(data);
     } catch (e: any) {
-      setGlobalError(e.message || 'Error desconocido');
+      const errorMessage = e.message || 'Error desconocido al cargar categorías';
+      console.error('Error loading categories:', e);
+      setGlobalError(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
@@ -211,27 +219,24 @@ export default function CategoriesPage() {
     setSaving(true);
     setGlobalError(null);
     try {
-      // Subir imagen si es data-URL (nueva imagen)
+      // Subir imagen si es data-URL (nueva imagen) con mejor manejo de errores
       let finalImageUrl = formData.image;
       if (formData.image && formData.image.startsWith('data:')) {
         try {
-          const uploadRes = await fetch('/api/admin/upload-image', {
+          const uploadRes = await safeFetch('/api/admin/upload-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: formData.image })
           });
           
-          if (!uploadRes.ok) {
-            const errorData = await uploadRes.json().catch(() => ({}));
-            console.error('Error subiendo imagen:', errorData);
-            throw new Error(errorData.error || 'Error subiendo imagen');
-          }
-          
-          const uploadData = await uploadRes.json();
+          const uploadData = await safeJsonParse(uploadRes);
           finalImageUrl = uploadData.url;
+          console.log('Image uploaded successfully:', finalImageUrl);
         } catch (uploadError: any) {
           console.error('Error en la subida de imagen:', uploadError);
-          setGlobalError(`Error subiendo la imagen: ${uploadError.message}`);
+          const errorMessage = `Error subiendo la imagen: ${uploadError.message}`;
+          setGlobalError(errorMessage);
+          showToast(errorMessage, 'error');
           return;
         }
       }
@@ -271,8 +276,8 @@ export default function CategoriesPage() {
           loadCategories();
         }, 200);
       } else {
-        // Crear nueva categoría vía API
-        const res = await fetch('/api/categories', {
+        // Crear nueva categoría vía API con mejor manejo de errores
+        const res = await safeFetch('/api/categories', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -283,12 +288,10 @@ export default function CategoriesPage() {
             isActive: formData.isActive,
           }),
         });
-        const data = await res.json().catch(() => ({} as any));
-        if (!res.ok) {
-          if (res.status === 409) setFormErrors(prev => ({ ...prev, slug: data.error || 'Slug o nombre ya existe' }));
-          else setGlobalError(data.error || 'No se pudo crear la categoría');
-          return;
-        }
+        
+        const data = await safeJsonParse(res);
+        console.log('Category created successfully:', data);
+        
         setCategories(prev => [data, ...prev]);
         
         // Forzar carga de imagen para la nueva categoría
@@ -303,7 +306,10 @@ export default function CategoriesPage() {
       // Cerrar modal y limpiar estado
       closeModal();
     } catch (err: any) {
-      setGlobalError(err.message || 'Error de red');
+      const errorMessage = err.message || 'Error de red al guardar categoría';
+      console.error('Error saving category:', err);
+      setGlobalError(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setSaving(false);
     }
@@ -326,16 +332,16 @@ export default function CategoriesPage() {
 
     setGlobalError(null);
     try {
-      const res = await fetch(`/api/categories/${categoryId}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        showToast(data.error || 'No se pudo eliminar la categoría', "error");
-        return;
-      }
+      const res = await safeFetch(`/api/categories/${categoryId}`, { method: 'DELETE' });
+      console.log('Category deleted successfully');
+      
       setCategories(prev => prev.filter((cat) => cat.id !== categoryId));
       showToast(`Categoría "${category.name}" eliminada correctamente`, "success");
     } catch (e: any) {
-      setGlobalError(e.message || 'Error eliminando la categoría');
+      const errorMessage = e.message || 'No se pudo eliminar la categoría';
+      console.error('Error deleting category:', e);
+      setGlobalError(errorMessage);
+      showToast(errorMessage, "error");
     }
   };
 
@@ -356,20 +362,22 @@ export default function CategoriesPage() {
 
     setGlobalError(null);
     try {
-      const res = await fetch(`/api/categories/${categoryId}`, {
+      const res = await safeFetch(`/api/categories/${categoryId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !category.isActive }),
       });
-      const data = await res.json().catch(() => ({} as any));
-      if (!res.ok) {
-        showToast(data.error || 'No se pudo actualizar el estado', "error");
-        return;
-      }
+      
+      const data = await safeJsonParse(res);
+      console.log('Category status updated successfully:', data);
+      
       setCategories(prev => prev.map(c => c.id === categoryId ? data : c));
       showToast(`Categoría "${category.name}" ${category.isActive ? "desactivada" : "activada"} correctamente`, "success");
     } catch (e: any) {
-      setGlobalError(e.message || 'Error actualizando estado');
+      const errorMessage = e.message || 'Error actualizando estado';
+      console.error('Error updating category status:', e);
+      setGlobalError(errorMessage);
+      showToast(errorMessage, "error");
     }
   };
 

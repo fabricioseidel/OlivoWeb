@@ -1,6 +1,6 @@
 # 🛒 OLIVOMARKET - E-commerce Platform
 
-Una plataforma de comercio electrónico completa construida con Next.js 15, TypeScript y Prisma. Incluye panel administrativo, autenticación de usuarios, carrito de compras y sistema de gestión de productos.
+Una plataforma de comercio electrónico completa construida con Next.js 15, TypeScript y Supabase. Incluye panel administrativo, autenticación de usuarios, carrito de compras y sistema de gestión de productos.
 
 ## 🚀 Características Principales
 
@@ -23,8 +23,8 @@ Una plataforma de comercio electrónico completa construida con Next.js 15, Type
 ## 🛠️ Stack Tecnológico
 
 - **Frontend:** Next.js 15, React, TypeScript, Tailwind CSS
-- **Backend:** Next.js API Routes, Prisma ORM
-- **Base de Datos:** SQLite (desarrollo), compatible con PostgreSQL/MySQL
+- **Backend:** Next.js API Routes, Supabase (PostgreSQL + Storage)
+- **Base de Datos:** Supabase (PostgreSQL gestionado)
 - **Autenticación:** NextAuth.js
 - **Testing:** Vitest + Testing Library
 - **Deployment:** Vercel (recomendado)
@@ -57,17 +57,14 @@ pnpm install
 # Crea un archivo .env.local con:
 NEXTAUTH_SECRET=tu_secret_key_aqui
 NEXTAUTH_URL=http://localhost:3000
-DATABASE_URL="file:./dev.db"
+NEXT_PUBLIC_SUPABASE_URL=tu_url_supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key
+SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
 ```
 
-### 4. Configurar la base de datos
-```bash
-# Ejecutar migraciones
-npx prisma db push
-
-# (Opcional) Seed con datos de ejemplo
-npx prisma db seed
-```
+### 4. Configurar la base de datos (Supabase)
+- Ejecuta los scripts SQL en `scripts/` para crear/ajustar columnas (por ejemplo, `products.image_url` y `products.gallery`).
+- Crea un bucket público `uploads` en Supabase Storage (o usa el endpoint admin de subida que lo crea si no existe).
 
 ### 5. Ejecutar en desarrollo
 ```bash
@@ -110,7 +107,7 @@ src/
 │   ├── ui/               # Componentes UI (Button, Input, etc)
 │   └── admin/            # Componentes del admin
 ├── contexts/             # React Contexts (Cart, Products, etc)
-├── lib/                  # Configuraciones (Prisma, Auth)
+├── lib/                  # Configuraciones (Auth, Supabase)
 ├── hooks/                # Custom hooks
 ├── utils/                # Utilidades
 └── __tests__/            # Tests unitarios
@@ -158,8 +155,7 @@ npm run start        # Servidor de producción
 npm run test         # Ejecutar tests
 npm run test:coverage # Tests con coverage
 npm run lint         # ESLint
-npm run db:push      # Sincronizar schema DB
-npm run db:seed      # Poblar DB con datos
+# Sin pasos de Prisma; usa Supabase
 ```
 
 ## 📈 Métricas de Calidad

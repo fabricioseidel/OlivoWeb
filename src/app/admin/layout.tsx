@@ -13,6 +13,7 @@ import {
   Cog6ToothIcon,
   BugAntIcon
 } from "@heroicons/react/24/outline";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function AdminLayout({
   children,
@@ -120,7 +121,9 @@ export default function AdminLayout({
         <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none">
           <div className="py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-              {children}
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
             </div>
           </div>
         </main>

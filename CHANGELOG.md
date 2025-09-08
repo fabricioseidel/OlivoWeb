@@ -10,7 +10,7 @@ Todos los cambios importantes de este proyecto serán documentados en este archi
 - **Sistema de autenticación** con NextAuth.js
 - **Panel administrativo** completo para gestión
 - **API RESTful** con Next.js API Routes
-- **Base de datos** con Prisma ORM y SQLite
+- **Base de datos** migrada a Supabase (PostgreSQL + Storage)
 - **Testing automatizado** con Vitest y Testing Library
 - **Diseño responsive** con Tailwind CSS
 - **TypeScript** implementado en todo el proyecto

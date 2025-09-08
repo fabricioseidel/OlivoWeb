@@ -2,17 +2,6 @@ import { POST } from '../app/api/auth/register/route';
 import { NextRequest } from 'next/server';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock Prisma
-vi.mock('../lib/prisma', () => ({
-  default: {
-    user: {
-      findMany: vi.fn(),
-      create: vi.fn(),
-      findUnique: vi.fn(),
-    },
-  },
-}));
-
 // Mock bcryptjs
 vi.mock('bcryptjs', () => ({
   hash: vi.fn().mockResolvedValue('hashedpassword'),

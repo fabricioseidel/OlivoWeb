@@ -16,8 +16,9 @@ cd tienda-web
 # Instalar dependencias
 npm install
 
-# Configurar base de datos
-npx prisma db push
+# Configurar Supabase
+# 1) Configura .env.local con claves de Supabase
+# 2) Ejecuta scripts SQL en /scripts si aplica (p.ej. products.image_url)
 
 # Ejecutar tests
 npm run test

@@ -6,6 +6,7 @@ import { Card, CardBody, CardFooter, CardMedia, CardTitle, CardSubtitle } from "
 import { formatCurrency } from "@/utils/currency";
 import { normalizeImage } from "@/utils/image";
 import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/contexts/ToastContext";
 
 export type ProductUI = {
   id: string;
@@ -13,7 +14,7 @@ export type ProductUI = {
   slug: string;
   price: number;
   sale_price?: number | null;
-  image_url?: string | null;
+  image?: string | null; // Using fallback images since products table doesn't have image_url
   category?: { name: string } | null;
   featured?: boolean;
 };
@@ -21,9 +22,13 @@ export type ProductUI = {
 type Props = { product: ProductUI };
 
 export default function ProductCard({ product }: Props) {
-  const { addToCart } = useCart();
+  const { addToCart, removeFromCart, cartItems, updateQuantity } = useCart();
+  const { showToast } = useToast();
   const price = product.sale_price ?? product.price;
-  const image = normalizeImage(product.image_url);
+  const image = normalizeImage(product.image);
+  const [qty, setQty] = React.useState<number>(1);
+
+  const inCart = cartItems.find((i) => i.id === product.id);
 
   const handleAdd = () => {
     addToCart(
@@ -33,8 +38,15 @@ export default function ProductCard({ product }: Props) {
         price: price || 0,
         image: image,
         slug: product.slug,
-      }
+      },
+      qty
     );
+    showToast(`${product.name} agregado (${qty})`, 'success');
+  };
+
+  const handleRemove = () => {
+    removeFromCart(product.id);
+    showToast(`${product.name} eliminado del carrito`, 'info');
   };
 
   return (
@@ -71,12 +83,50 @@ export default function ProductCard({ product }: Props) {
       </CardBody>
 
       <CardFooter>
-        <button
-          onClick={handleAdd}
-          className="w-full inline-flex items-center justify-center rounded-xl bg-blue-600 text-white font-medium py-2.5 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition"
-        >
-          Añadir al carrito
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-lg border border-gray-200">
+            <button
+              type="button"
+              className="px-3 py-2 text-gray-700 hover:bg-gray-50 rounded-l-lg"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              aria-label="Disminuir"
+            >
+              −
+            </button>
+            <input
+              type="number"
+              min={1}
+              value={qty}
+              onChange={(e) => setQty(Math.max(1, parseInt(e.target.value || '1', 10)))}
+              className="w-12 text-center py-2 outline-none"
+            />
+            <button
+              type="button"
+              className="px-3 py-2 text-gray-700 hover:bg-gray-50 rounded-r-lg"
+              onClick={() => setQty((q) => q + 1)}
+              aria-label="Aumentar"
+            >
+              +
+            </button>
+          </div>
+
+          <button
+            onClick={handleAdd}
+            className="flex-1 inline-flex items-center justify-center rounded-xl bg-blue-600 text-white font-medium py-2.5 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition"
+          >
+            Añadir
+          </button>
+
+          {inCart && (
+            <button
+              onClick={handleRemove}
+              className="inline-flex items-center justify-center rounded-xl bg-red-50 text-red-700 font-medium py-2.5 px-3 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition"
+              title="Eliminar del carrito"
+            >
+              Quitar
+            </button>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );
