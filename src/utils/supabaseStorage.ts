@@ -1,7 +1,4 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-// Optional: dynamic import of sharp only on server to avoid bundling in client
-let sharp: any = null;
-try { sharp = require('sharp'); } catch {}
 
 export async function ensureUploadsBucket() {
   try {
@@ -70,11 +67,17 @@ export async function uploadImageToSupabase(
     const ext = extMap[mimeType] || mimeType.split('/')[1] || 'png';
 
     // Resize/compress if sharp is available and it's a raster image
-    if (sharp && ['png','jpg','jpeg','webp'].includes(ext)) {
+    // Load sharp dynamically to avoid bundling on client and satisfy ESLint
+    let sharpInstance: any = null;
+    try {
+      const mod: any = await import('sharp');
+      sharpInstance = mod?.default || mod;
+    } catch {}
+    if (sharpInstance && ['png','jpg','jpeg','webp'].includes(ext)) {
       try {
         const maxWidth = options?.maxWidth ?? 1200;
         const quality = options?.quality ?? 80;
-        const pipeline = sharp(buffer).rotate();
+        const pipeline = sharpInstance(buffer).rotate();
         const meta = await pipeline.metadata();
         if ((meta.width || 0) > maxWidth) pipeline.resize({ width: maxWidth });
         if (ext === 'png') buffer = await pipeline.png({ quality }).toBuffer();
