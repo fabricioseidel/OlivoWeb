@@ -32,17 +32,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="space-y-2 w-full flex flex-col items-center sm:items-end">
-        {toasts.map(t => (
-          <Toast
-            key={t.id}
-            show={true}
-            message={t.message}
-            type={t.type}
-            onClose={() => handleClose(t.id)}
-            duration={t.duration}
-          />
-        ))}
+      {/* Toast stack: fixed, below navbar, cascading top-down */}
+      <div className="fixed top-20 sm:top-24 right-4 sm:right-6 left-4 sm:left-auto z-[60] pointer-events-none">
+        <div className="w-full flex flex-col items-center sm:items-end space-y-3">
+          {toasts.map((t) => (
+            <Toast
+              key={t.id}
+              show={true}
+              message={t.message}
+              type={t.type}
+              onClose={() => handleClose(t.id)}
+              duration={t.duration}
+            />
+          ))}
+        </div>
       </div>
     </ToastContext.Provider>
   );

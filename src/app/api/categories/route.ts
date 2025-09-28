@@ -27,6 +27,7 @@ export async function GET() {
         : typeof c.isActive === "boolean"
         ? c.isActive
         : true,
+    productsCount: typeof c.productsCount === 'number' ? c.productsCount : 0,
   }));
 
   return NextResponse.json(mapped);
@@ -34,20 +35,41 @@ export async function GET() {
 
 // POST /api/categories { name }
 export async function POST(req: Request) {
-  const { name } = await req.json().catch(() => ({}));
-  const clean = String(name || "").trim();
-  if (!clean) {
+  const body = await req.json().catch(() => ({} as any));
+  const cleanName = String(body?.name || "").trim();
+  if (!cleanName) {
     return NextResponse.json({ error: "name required" }, { status: 400 });
   }
 
-  const { error } = await supabaseAdmin
-    .from("categories")
-    .upsert([{ name: clean }], { onConflict: "name" });
+  // Build insert/upsert payload using columns we know exist
+  const payload: any = { name: cleanName };
+  if (typeof body?.isActive === 'boolean') payload.is_active = body.isActive;
+  if (typeof body?.image === 'string' && body.image) payload.image_url = body.image;
+  // Slug / description are optional across environments; include if present
+  if (typeof body?.slug === 'string' && body.slug) payload.slug = body.slug;
+  if (typeof body?.description === 'string') payload.description = body.description;
+
+  const { data, error } = await supabaseAdmin
+    .from('categories')
+    .upsert(payload, { onConflict: 'name' })
+    .select('*')
+    .maybeSingle();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ ok: true });
+
+  const c: any = data || payload;
+  const mapped = {
+    id: String(c.id ?? c.name ?? ''),
+    name: c.name ?? '',
+    slug: c.slug ?? (c.name ? String(c.name).toLowerCase().replace(/[^a-z0-9]+/gi, '-') : ''),
+    description: c.description ?? undefined,
+    image: c.image ?? c.img ?? c.image_url ?? undefined,
+    isActive: typeof c.is_active === 'boolean' ? c.is_active : true,
+    productsCount: 0,
+  };
+  return NextResponse.json(mapped);
 }
 
 // DELETE /api/categories?name=...

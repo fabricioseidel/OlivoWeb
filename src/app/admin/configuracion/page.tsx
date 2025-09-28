@@ -63,7 +63,31 @@ export default function SettingsPage() {
         const res = await fetch('/api/admin/settings');
         if (res.ok) {
           const data = await res.json();
-          setStoreData((prev) => ({ ...prev, ...data } as any));
+          // Deep-merge server data into local structure to keep nested sections (like appearance)
+          setStoreData((prev) => ({
+            ...prev,
+            ...data,
+            appearance: {
+              ...prev.appearance,
+              ...(data.appearance || {}),
+            },
+            general: {
+              ...prev.general,
+              ...(data.general || {}),
+            },
+            shipping: {
+              ...prev.shipping,
+              ...(data.shipping || {}),
+            },
+            payment: {
+              ...prev.payment,
+              ...(data.payment || {}),
+            },
+            email: {
+              ...prev.email,
+              ...(data.email || {}),
+            },
+          } as any));
         }
       } catch (e) {
         // ignore
@@ -100,7 +124,7 @@ export default function SettingsPage() {
   // Guardar configuración
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    saveSettings(storeData);
+  saveSettings(storeData);
   };
 
   // Reusable save function (can be called for partial or full storeData)
@@ -220,7 +244,7 @@ export default function SettingsPage() {
                       type="text"
                       name="storeName"
                       id="storeName"
-                      value={storeData.general.storeName}
+                      value={storeData.general.storeName || ""}
                       onChange={(e) => handleInputChange(e, "general")}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -234,7 +258,7 @@ export default function SettingsPage() {
                       type="email"
                       name="storeEmail"
                       id="storeEmail"
-                      value={storeData.general.storeEmail}
+                      value={storeData.general.storeEmail || ""}
                       onChange={(e) => handleInputChange(e, "general")}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -248,7 +272,7 @@ export default function SettingsPage() {
                       type="text"
                       name="storePhone"
                       id="storePhone"
-                      value={storeData.general.storePhone}
+                      value={storeData.general.storePhone || ""}
                       onChange={(e) => handleInputChange(e, "general")}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -262,7 +286,7 @@ export default function SettingsPage() {
                       type="text"
                       name="storeAddress"
                       id="storeAddress"
-                      value={storeData.general.storeAddress}
+                      value={storeData.general.storeAddress || ""}
                       onChange={(e) => handleInputChange(e, "general")}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -384,7 +408,7 @@ export default function SettingsPage() {
                       type="text"
                       name="logoUrl"
                       id="logoUrl"
-                      value={storeData.appearance.logoUrl}
+                      value={storeData.appearance.logoUrl || ""}
                       onChange={(e) => handleInputChange(e, "appearance")}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -398,7 +422,7 @@ export default function SettingsPage() {
                       type="text"
                       name="faviconUrl"
                       id="faviconUrl"
-                      value={storeData.appearance.faviconUrl}
+                      value={storeData.appearance.faviconUrl || ""}
                       onChange={(e) => handleInputChange(e, "appearance")}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
@@ -412,7 +436,7 @@ export default function SettingsPage() {
                       type="text"
                       name="bannerUrl"
                       id="bannerUrl"
-                      value={storeData.appearance.bannerUrl}
+                      value={storeData.appearance.bannerUrl || ""}
                       onChange={(e) => handleInputChange(e, "appearance")}
                       onBlur={() => saveSettings(storeData)}
                       placeholder="https://... o pegar una imagen"
@@ -423,9 +447,25 @@ export default function SettingsPage() {
                         label="Subir banner"
                         value={storeData.appearance.bannerUrl || ""}
                         onChange={async (dataUrl) => {
-                          const updated = { ...storeData, appearance: { ...storeData.appearance, bannerUrl: dataUrl } };
-                          setStoreData(updated);
-                          await saveSettings(updated);
+                          try {
+                            let bannerUrl = dataUrl;
+                            if (dataUrl && dataUrl.startsWith('data:image')) {
+                              const resp = await fetch('/api/admin/upload-image', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ image: dataUrl, oldUrl: storeData.appearance.bannerUrl })
+                              });
+                              if (resp.ok) {
+                                const json = await resp.json();
+                                if (json?.url) bannerUrl = json.url;
+                              }
+                            }
+                            const updated = { ...storeData, appearance: { ...storeData.appearance, bannerUrl } };
+                            setStoreData(updated);
+                            await saveSettings(updated);
+                          } catch (e) {
+                            // ignore upload/save errors here; UI will keep preview and manual save can be attempted
+                          }
                         }}
                       />
 

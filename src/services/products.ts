@@ -11,6 +11,7 @@ export type SupaProduct = {
   updated_at?: string; // timestamptz
   image_url?: string | null; // requires products.image_url column
   gallery?: any | null; // optional JSONB array of strings
+  featured?: boolean | null; // optional featured flag
 };
 
 export type ProductUI = {
@@ -63,9 +64,9 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     slug: slug(name),
     description: '',
     categories: cats,
-    gallery,
+  gallery,
     stock: Number(p.stock ?? 0),
-    featured: false,
+  featured: Boolean((p as any).featured),
     createdAt: p.updated_at ?? undefined,
     views: 0,
     viewCount: 0,
@@ -110,6 +111,7 @@ export async function upsertProductToCloud(p: SupaProduct) {
       updated_at: new Date().toISOString(),
   image_url: (p as any).image_url ?? (p as any).image ?? null,
   gallery: Array.isArray((p as any).gallery) ? (p as any).gallery : null,
+  featured: typeof (p as any).featured === 'boolean' ? (p as any).featured : undefined,
     }],
     { onConflict: 'barcode' }
   );

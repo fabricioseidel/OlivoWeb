@@ -6,28 +6,22 @@ import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import { normalizeImageUrl, getBannerImageUrl } from '@/utils/image';
 import { useProducts } from "@/contexts/ProductContext";
+import { useCategories as useCategoryHook } from "@/hooks/useCategories";
 
 export default function Home() {
   const { products } = useProducts();
+  const { categories } = useCategoryHook();
 
-  const categoriesMap: Record<string, { image: string; count: number }> = {};
-  products.forEach(p => {
-    if (Array.isArray(p.categories)) {
-      p.categories.forEach(cat => {
-        if (!categoriesMap[cat]) {
-          categoriesMap[cat] = {
-            image: p.image || p.gallery?.[0] || "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800&auto=format&fit=crop",
-            count: 0
-          };
-        }
-        categoriesMap[cat].count += 1;
-      });
-    }
-  });
-  const featuredCategories = Object.entries(categoriesMap)
-    .sort((a, b) => b[1].count - a[1].count)
+  // Use real categories from API (with their own images)
+  const featuredCategories = (categories || [])
+    .filter((c: any) => c.isActive !== false)
     .slice(0, 8)
-    .map(([name, data], idx) => ({ id: String(idx + 1), name, image: data.image, slug: name.toLowerCase() }));
+    .map((c: any, idx: number) => ({
+      id: String(c.id ?? idx + 1),
+      name: c.name,
+      image: c.image,
+      slug: c.slug || (c.name ? String(c.name).toLowerCase().replace(/[^a-z0-9]+/gi, '-') : String(idx + 1)),
+    }));
 
   const featuredProducts = products.filter(p => p.featured).slice(0, 8);
 
@@ -40,7 +34,8 @@ export default function Home() {
         const res = await fetch('/api/admin/settings');
         if (res.ok) {
           const settings = await res.json();
-          const serverBanner = settings?.appearance?.bannerUrl;
+          // Prefer nested appearance.bannerUrl; fall back to legacy flat key
+          const serverBanner = settings?.appearance?.bannerUrl || settings?.bannerUrl;
           if (serverBanner) setBannerImage(serverBanner);
         }
       } catch (e) {
@@ -128,9 +123,6 @@ export default function Home() {
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center z-20">
-                    <h3 className="text-white text-lg md:text-xl font-bold drop-shadow bg-black/20 px-3 py-1 rounded-md">{category.name}</h3>
-                  </div>
                 </div>
               </Link>
             ))}

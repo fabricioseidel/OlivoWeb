@@ -135,6 +135,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // Only include them if we confirm they exist
     console.log("Updating category with payload:", updatePayload);
 
+    // Attempt to set updated_at if column exists; harmless if ignored by schema
+    (updatePayload as any).updated_at = new Date().toISOString();
+
     const { data: updated, error } = await supabaseAdmin
       .from('categories')
       .update(updatePayload)
@@ -144,6 +147,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     if (error) {
       console.error("Update error:", error);
+      // Surface a clearer message for missing updated_at trigger issue
+      const msg = (error as any)?.message || '';
+      if (msg.includes('record "new" has no field "updated_at"') || msg.includes('updated_at')) {
+        return NextResponse.json({
+          error: 'La tabla categories tiene un trigger que requiere la columna updated_at. Agrega updated_at (y created_at opcionalmente) o elimina/ajusta el trigger.'
+        }, { status: 500 });
+      }
       throw error;
     }
 

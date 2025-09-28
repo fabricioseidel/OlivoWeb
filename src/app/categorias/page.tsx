@@ -35,11 +35,6 @@ export default function CategoriesPage() {
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 flex items-center justify-center z-20">
-                  <h3 className="text-white text-lg md:text-xl font-bold drop-shadow bg-black/20 px-3 py-1 rounded-md">
-                    {category.name}
-                  </h3>
-                </div>
               </div>
             </Link>
           );

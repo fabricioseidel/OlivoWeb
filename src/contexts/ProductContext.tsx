@@ -34,6 +34,7 @@ interface ProductContextType {
   createProduct: (productData: Partial<Product>) => Promise<void>;
   updateProduct: (id: string, productData: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  toggleFeatured: (id: string, value: boolean) => Promise<void>;
 }
 
 export const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -150,6 +151,31 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     await load();
   };
 
+  const toggleFeatured = async (id: string, value: boolean) => {
+    // optimistic update
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, featured: value } : p));
+    try {
+      await upsertProductToCloud({
+        barcode: id,
+        name: getProductById(id)?.name ?? null,
+        category: Array.isArray(getProductById(id)?.categories)
+          ? getProductById(id)!.categories.join(', ')
+          : (getProductById(id) as any)?.category ?? null,
+        purchase_price: 0,
+        sale_price: Number(getProductById(id)?.price ?? 0),
+        expiry_date: null,
+        stock: Number(getProductById(id)?.stock ?? 0),
+        image_url: (getProductById(id) as any)?.image ?? null,
+        gallery: (getProductById(id) as any)?.gallery ?? null,
+        featured: value,
+      } as any);
+    } catch (e) {
+      // rollback on error
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, featured: !value } : p));
+      throw e;
+    }
+  };
+
   const contextValue: ProductContextType = {
     products,
     loading,
@@ -164,6 +190,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     createProduct,
     updateProduct,
     deleteProduct,
+  toggleFeatured,
   };
 
   return (

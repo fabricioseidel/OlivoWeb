@@ -23,7 +23,7 @@ import { useConfirm } from "@/contexts/ConfirmContext";
 import { useCategories } from "@/hooks/useCategories";
 
 export default function AdminProductsPage() {
-  const { products, deleteProduct } = useProducts();
+  const { products, deleteProduct, toggleFeatured } = useProducts();
   const { showToast } = useToast();
   const { confirm } = useConfirm();
   const { categories, loading: categoriesLoading } = useCategories();
@@ -315,17 +315,28 @@ export default function AdminProductsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {product.featured ? (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          Sí
-                        </span>
-                      ) : (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                          No
-                        </span>
-                      )}
-                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await toggleFeatured(product.id, !product.featured);
+                          showToast(
+                            !product.featured ? 'Marcado como destacado' : 'Marcado como NO destacado',
+                            'success'
+                          );
+                        } catch (e: any) {
+                          showToast(e?.message || 'No se pudo actualizar', 'error');
+                        }
+                      }}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors border ${
+                        product.featured
+                          ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
+                          : 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200'
+                      }`}
+                      aria-pressed={product.featured}
+                      aria-label={product.featured ? 'Destacado' : 'No destacado'}
+                    >
+                      {product.featured ? 'Sí' : 'No'}
+                    </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {product.createdAt}
