@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 b2e5bc88e32776cbce888033721e76dc18ac1067 FabricioSeidel <seidelfabriciove@gmail.com> 1755450239 -0400	commit (initial): chore: initial clean import
+b2e5bc88e32776cbce888033721e76dc18ac1067 885852406c6616dee1573135536c473809a5309f FabricioSeidel <seidelfabriciove@gmail.com> 1755451108 -0400	commit: chore: fix prisma client imports and stabilize tests
+885852406c6616dee1573135536c473809a5309f b489bf1b484478840444ea66aeb2773ee14a8d17 FabricioSeidel <seidelfabriciove@gmail.com> 1756417856 -0400	commit: autorizacion de rutas
+b489bf1b484478840444ea66aeb2773ee14a8d17 fabae3c3c5af612243191a6618f7089356452ec1 FabricioSeidel <seidelfabriciove@gmail.com> 1756599390 -0400	commit: full supabase
+fabae3c3c5af612243191a6618f7089356452ec1 02ba6338389c61975f0327449d97cf0c6efac04e FabricioSeidel <seidelfabriciove@gmail.com> 1757294792 -0300	commit: web lista para versel
+02ba6338389c61975f0327449d97cf0c6efac04e e75706e0ccd07343ad6b6bfb9094a8ef032bcfbf FabricioSeidel <seidelfabriciove@gmail.com> 1757295730 -0300	commit: segundo intento vercel
+e75706e0ccd07343ad6b6bfb9094a8ef032bcfbf 792ff26d898162c0616aa11b83ebc408216218fb Fabricio seidel <seidelfabriciove@gmail.com> 1759079288 -0300	commit: app semi funcional validasiones de datos

@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+/* Restricciones específicas para SVG e iconos */
+svg {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Restricciones específicas para iconos de Heroicons para evitar que ocupen toda la pantalla */
+svg[aria-hidden="true"] {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/* Fix para el icono del carrito específicamente */
+.h-6 svg, .w-6 svg {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
+
+/* Fix para iconos pequeños */
+.h-4 svg, .w-4 svg {
+  width: 1rem !important;
+  height: 1rem !important;
+}
+
+.h-5 svg, .w-5 svg {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+}
+
+/* Fix para imágenes en general */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* line-clamp util si no tienes el plugin (Tailwind 3.3+ ya trae truncation básica) */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1; /* Standard property for compatibility */
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2; /* Standard property for compatibility */
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
+
+/* Estilos para imágenes responsivas */
+.img-container {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 75%; /* Proporción 4:3 por defecto */
+  overflow: hidden;
+}
+
+.img-container.square {
+  padding-bottom: 100%; /* Proporción 1:1 (cuadrada) */
+}
+
+.img-container.wide {
+  padding-bottom: 56.25%; /* Proporción 16:9 */
+}
+
+.img-container img,
+.img-container > div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Mejoras para banners */
+.banner-container {
+  position: relative;
+  height: 450px;
+  max-height: 50vh;
+  overflow: hidden;
+  z-index: 10;
+}
+
+@media (max-width: 768px) {
+  .banner-container {
+    height: 350px;
+  }
+}
+
+/* Fix para contenedores de imágenes en móvil */
+@media (max-width: 640px) {
+  .img-container {
+    padding-bottom: 66.67%; /* 2:3 en móvil para mejor visualización */
+  }
+}
+
+/* Asegurar que el navbar esté visible */
+nav {
+  z-index: 1000;
+  position: relative;
+}
