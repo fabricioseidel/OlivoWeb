@@ -79,8 +79,10 @@ export default function ShippingForm({
         </div>
         
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+          <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
           <AddressAutocomplete
+            id="address"
+            name="address"
             value={shippingInfo.address}
             onChange={onAddressSelect}
             placeholder="Calle, número, comuna..."

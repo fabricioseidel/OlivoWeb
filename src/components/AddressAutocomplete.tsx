@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { MapPinIcon } from "@heroicons/react/24/outline";
 
 export type AddressResult = {
@@ -17,6 +17,8 @@ export type AddressResult = {
 };
 
 type Props = {
+  id?: string;
+  name?: string;
   value?: string;
   onChange: (val: AddressResult | string) => void;
   placeholder?: string;
@@ -37,7 +39,7 @@ function loadScript(src: string) {
   });
 }
 
-export default function AddressAutocomplete({ value = "", onChange, placeholder = "Calle, número, comuna...", country = "cl", required = false }: Props) {
+export default function AddressAutocomplete({ id, name, value = "", onChange, placeholder = "Calle, número, comuna...", country = "cl", required = false }: Props) {
   const ref = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<any>(null);
   const [fallback, setFallback] = useState(false);
@@ -296,6 +298,8 @@ export default function AddressAutocomplete({ value = "", onChange, placeholder 
       {provider === "nominatim" ? (
         <div className="relative">
           <input
+            id={id}
+            name={name || id}
             value={typeof value === "string" ? value : (value && (value as AddressResult).formattedAddress) || ""}
             onChange={(e) => {
               const v = e.target.value;
@@ -350,6 +354,8 @@ export default function AddressAutocomplete({ value = "", onChange, placeholder 
       ) : !fallback ? (
         <div className="relative">
           <input
+            id={id}
+            name={name || id}
             ref={ref}
             value={typeof value === "string" ? value : (value && (value as AddressResult).formattedAddress) || ""}
             onChange={(e) => onChange(e.target.value)}
@@ -373,6 +379,8 @@ export default function AddressAutocomplete({ value = "", onChange, placeholder 
       ) : (
         <div className="relative">
           <input
+            id={id}
+            name={name || id}
             value={typeof value === "string" ? value : (value && (value as AddressResult).formattedAddress) || ""}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder + " (autocomplete no disponible)"}

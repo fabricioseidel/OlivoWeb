@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { 
   PencilIcon, 
@@ -35,12 +35,14 @@ export default function AdminProductsPage() {
   const itemsPerPage = 5;
 
   // Filtrar productos por término de búsqueda y categoría
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "Todas" || (Array.isArray(product.categories) && product.categories.includes(selectedCategory));
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = useMemo(() => (
+    products.filter((product) => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           product.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === "Todas" || (Array.isArray(product.categories) && product.categories.includes(selectedCategory));
+      return matchesSearch && matchesCategory;
+    })
+  ), [products, searchTerm, selectedCategory]);
 
   // Ordenar productos
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -65,10 +67,10 @@ export default function AdminProductsPage() {
   });
 
   // Paginación
+  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / itemsPerPage));
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = sortedProducts.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
 
   // Cambiar página
   const paginate = (pageNumber: number) => {
@@ -76,6 +78,11 @@ export default function AdminProductsPage() {
       setCurrentPage(pageNumber);
     }
   };
+
+  // Resetear a la primera página cuando cambian los filtros para evitar páginas vacías
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory]);
 
   // Cambiar ordenamiento
   const handleSort = (field: string) => {
@@ -86,17 +93,6 @@ export default function AdminProductsPage() {
       setSortDirection("asc");
     }
   };
-
-  // Estado para diálogo de confirmación
-  const [confirmDelete, setConfirmDelete] = useState<{
-    isOpen: boolean;
-    productId: string;
-    productName: string;
-  }>({
-    isOpen: false,
-    productId: "",
-    productName: ""
-  });
 
   // Manejar eliminación de producto
   const handleDeleteProduct = async (id: string, name: string) => {
@@ -188,9 +184,11 @@ export default function AdminProductsPage() {
             >Limpiar</Button>
           </div>
           
-          <div className="text-right">
+          <div className="text-right" aria-live="polite">
             <span className="text-sm text-gray-500">
-              {filteredProducts.length === 0 ? (showToast('No se encontraron productos', 'warning'), 'Sin resultados') : `Mostrando ${currentItems.length} de ${filteredProducts.length} productos`}
+              {filteredProducts.length === 0
+                ? "Sin resultados con los filtros actuales"
+                : `Mostrando ${currentItems.length} de ${filteredProducts.length} productos`}
             </span>
           </div>
         </div>
@@ -388,6 +386,25 @@ export default function AdminProductsPage() {
                   </td>
                 </tr>
               ))}
+              {currentItems.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-6 py-10 text-center text-sm text-gray-500">
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="font-medium text-gray-700">No se encontraron productos</span>
+                      <span className="text-xs text-gray-500">Ajusta la búsqueda, cambia la categoría o crea un nuevo producto.</span>
+                      <div className="flex gap-2">
+                        <Button onClick={() => { setSearchTerm(""); setSelectedCategory("Todas"); }} variant="secondary">Limpiar filtros</Button>
+                        <Link href="/admin/productos/nuevo" className="inline-flex">
+                          <Button>
+                            <PlusIcon className="h-4 w-4 mr-1" />
+                            Crear producto
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
