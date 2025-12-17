@@ -59,7 +59,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const supplierId = String(body?.supplierId ?? "").trim();
-    const items = Array.isArray(body?.items) ? body.items : [];
+    const items = Array.isArray(body?.items) ? body.items : [] as unknown[];
     const notes = body?.notes ? String(body.notes).trim() : null;
 
     if (!supplierId) {
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     }
 
     const itemList = items
-      .map((raw) => ({
+      .map((raw: { productId?: unknown; name?: unknown; quantity?: unknown; sku?: unknown }) => ({
         productId: String(raw.productId ?? "").trim(),
         name: String(raw.name ?? "").trim(),
         quantity: Number(raw.quantity ?? 0),

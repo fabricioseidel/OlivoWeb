@@ -167,14 +167,16 @@ export default function Home() {
                       className="bg-emerald-600 hover:bg-emerald-500 flex-1 text-sm px-2"
                       onClick={(e) => {
                         e.preventDefault();
-                        addToCart({
-                          id: product.id,
-                          name: product.name,
-                          price: product.price,
-                          image: product.image,
-                          slug: product.slug,
-                          quantity: 1
-                        });
+                        addToCart(
+                          {
+                            id: product.id,
+                            name: product.name,
+                            price: product.price,
+                            image: product.image,
+                            slug: product.slug,
+                          },
+                          1,
+                        );
                         showToast(`¡${product.name} añadido al carrito!`, "success");
                       }}
                     >
