@@ -1,0 +1,38 @@
+"Instrucciones para rellenar la plantilla","","",""
+"","","",""
+"Solicitar cambios por correo electrónico: mercados@uber.com","","",""
+"","","",""
+"Color del campo","Nombre de la Columna","Traducción al español","Ejemplo"
+"Obligatorio","UPC/EAN","Código Universal de Producto","8003340098920"
+"Opcional","External ID","ID Externo","34343323"
+"Obligatorio","Category","Categoría","Chocolate"
+"Obligatorio","Product Name (+ brand + size / weight) ","Nombre del producto (+ marca + tamaño / peso) ","Lindt Lindor Salted Caramel 200g"
+"Obligatorio sólo para bebidas, tabaco o vapes","Product Type","Tipo de producto","Alcohol
+Tobacco
+Vapes"
+"Opcional","Total Alcohol Units","Unidades de Alcohol Total","2"
+"Obligatorio","HFSS Item","Artículo HFSS:
+HFSS Food -> HFSS Comida
+HFSS Drink -> HFSS Bebida","HFSS Food"
+"Obligatorio","Price (incl VAT) Standard","Precio (IVA incluido) Estándar","5"
+"Obligatorio","VAT percentage","Porcentaje de IVA","20.00%"
+"Opcional","Description","Descripción","Paquete de dos botellas"
+"Altamente recomendado","Item Image URL ","URL de la imagen del artículo. Importante: Los formatos aceptados son JPG o PNG","https://i.ibb.co/rFP7Vp6/Agua-Pura-salvavidas-600ml.jpg"
+"Opcional","Quantity Restriction","Restricción de cantidad","2"
+"Opcional","Out of Stock? (0 or 1)","¿No hay stock? 
+0 si no hay stock
+1 si hay stock","1"
+"Opcional","External Data","Datos externos","3443"
+"","","",""
+"Importante: 
+
+-> Utilice la pestaña ""Template"" para añadir las actualizaciones deseadas. Si es necesario, revise los siguientes escenarios específicos:
+
+-> La pestaña ""Template_VariosMenús (Search & Browse)"" son sólo para los casos en los que es necesario añadir más de un menú en la misma tienda. En este caso, las categorías aparecerán como menús y las subcategorías como categorías.
+
+-> Utilice la pestaña ""Lista_uuids"" si desea la misma actualización para más de una tienda.
+
+-> Utilice la pestaña ""Stock_VariasTiendas"" si tiene los mismos artículos para varias tiendas y desea cambiar sólo el stock de cada una de ellas (rellene el stock a partir de la columna N).
+
+","","",""
+"","","",""

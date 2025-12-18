@@ -18,16 +18,20 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
   const rawSalePrice = Number(p.sale_price ?? 0);
   const rawOfferPrice = p.offer_price ? Number(p.offer_price) : undefined;
 
+  // NOTE: En esta tienda, `products.sale_price` se interpreta como precio FINAL (con IVA incluido).
+  // No se debe volver a multiplicar por IVA aquí, porque produciría “doble IVA”.
+
   // Determine effective price and original price
   // If offer_price exists and is lower than sale_price, then:
   // - price (current) = offer_price
   // - priceOriginal (was) = sale_price
-  let finalPrice = rawSalePrice;
+  let finalPrice = Math.round(rawSalePrice);
   let originalPrice: number | undefined = undefined;
 
-  if (rawOfferPrice !== undefined && rawOfferPrice > 0 && rawOfferPrice < rawSalePrice) {
-    finalPrice = rawOfferPrice;
-    originalPrice = rawSalePrice;
+  const offerPriceFinal = rawOfferPrice !== undefined ? Math.round(rawOfferPrice) : undefined;
+  if (offerPriceFinal !== undefined && offerPriceFinal > 0 && offerPriceFinal < finalPrice) {
+    originalPrice = finalPrice;
+    finalPrice = offerPriceFinal;
   }
 
   return {
@@ -52,7 +56,9 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     measurementValue: p.measurement_value ?? undefined,
     suggestedPrice: p.suggested_price ?? undefined,
     offerPrice: p.offer_price ?? undefined,
-    isActive: p.is_active ?? false,
+    // Back-compat: si is_active es null/undefined en registros antiguos,
+    // considerarlo activo para que aparezcan en la tienda pública.
+    isActive: p.is_active ?? true,
   };
 }
 
@@ -106,6 +112,7 @@ export async function saveProduct(p: Partial<SupaProduct> & { barcode: string })
     suggested_price: p.suggested_price ?? null,
     offer_price: p.offer_price ?? null,
     is_active: p.is_active ?? false,
+    tax_rate: p.tax_rate ?? 19,
   };
 
   const res = await fetch('/api/products', {

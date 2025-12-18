@@ -18,6 +18,7 @@ export type SupaProduct = {
   suggested_price?: number | null;
   offer_price?: number | null;
   is_active?: boolean | null;
+  tax_rate?: number | null;
 };
 
 export type ProductUI = {
