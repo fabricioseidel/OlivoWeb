@@ -173,8 +173,7 @@ export default function Home() {
                           price: product.price,
                           image: product.image,
                           slug: product.slug,
-                          quantity: 1
-                        });
+                        }, 1);
                         showToast(`¡${product.name} añadido al carrito!`, "success");
                       }}
                     >

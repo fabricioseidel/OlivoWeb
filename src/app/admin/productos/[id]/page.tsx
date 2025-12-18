@@ -263,11 +263,13 @@ export default function EditProductPage() {
         gallery: galleryUrls,
         features: form.features.split('\n').map(f => f.trim()).filter(Boolean),
         slug: form.slug.trim(),
-        measurement_unit: form.measurementUnit,
-        measurement_value: parseFloat(form.measurementValue) || 0,
-        suggested_price: parseFloat(form.suggestedPrice) || 0,
-        offer_price: parseFloat(form.offerPrice) || null,
-        is_active: form.isActive,
+        measurementUnit: form.measurementUnit,
+        measurementValue: parseFloat(form.measurementValue) || 0,
+        suggestedPrice: parseFloat(form.suggestedPrice) || 0,
+        offerPrice: String(form.offerPrice || '').trim()
+          ? (parseFloat(form.offerPrice) || undefined)
+          : undefined,
+        isActive: form.isActive,
       });
 
       // Sincronizar proveedores

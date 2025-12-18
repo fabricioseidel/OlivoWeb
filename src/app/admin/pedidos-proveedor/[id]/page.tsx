@@ -337,7 +337,7 @@ export default function SupplierOrderDetailPage({
           </button>
         </div>
         <p className="text-xs text-gray-500 mt-2">
-          * Compra Presencial y App marcan el pedido como "Gestionado". WhatsApp marca como "Enviado por WhatsApp" y luego permite marcar como "Gestionado".
+          * Compra Presencial y App marcan el pedido como &quot;Gestionado&quot;. WhatsApp marca como &quot;Enviado por WhatsApp&quot; y luego permite marcar como &quot;Gestionado&quot;.
         </p>
       </div>
 

@@ -66,7 +66,7 @@ export default function BulkEditProductsPage() {
 
     const headers = ["barcode", "name", "price", "stock", "description", "category", "is_active"];
     const rows = products.map(p => [
-      p.barcode || "",
+      p.id || "",
       p.name || "",
       p.price || "",
       p.stock || "",
@@ -152,7 +152,7 @@ export default function BulkEditProductsPage() {
       try {
         // Buscar producto por barcode o nombre
         const product = products.find(
-          p => (row.barcode && p.barcode === row.barcode) || 
+          p => (row.barcode && p.id === row.barcode) || 
                (row.name && p.name.toLowerCase() === row.name.toLowerCase())
         );
 
