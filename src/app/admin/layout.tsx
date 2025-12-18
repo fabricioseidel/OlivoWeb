@@ -15,6 +15,7 @@ import {
   TruckIcon,
   ArrowPathIcon,
   CurrencyDollarIcon,
+  ArrowUpTrayIcon,
 } from "@heroicons/react/24/outline";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -73,6 +74,7 @@ export default function AdminLayout({
     { name: "Productos", href: "/admin/productos", icon: ShoppingBagIcon },
     { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
     { name: "Ventas", href: "/admin/ventas", icon: CurrencyDollarIcon },
+    { name: "Uber Eats Export", href: "/admin/uber-eats", icon: ArrowUpTrayIcon },
     { name: "Reabastecimiento", href: "/admin/reabastecimiento", icon: ArrowPathIcon },
     { name: "Pedidos Proveedores", href: "/admin/pedidos-proveedor", icon: TruckIcon },
     { name: "Proveedores", href: "/admin/proveedores", icon: TruckIcon },

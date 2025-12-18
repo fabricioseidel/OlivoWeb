@@ -32,7 +32,7 @@ export default function AdminProductsPage() {
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 50;
 
   // Filtrar productos por término de búsqueda y categoría
   const filteredProducts = useMemo(() => (
@@ -135,12 +135,19 @@ export default function AdminProductsPage() {
             Gestiona todos los productos de tu tienda
           </p>
         </div>
-        <Link href="/admin/productos/nuevo">
-          <Button>
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Nuevo Producto
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/admin/productos/edicion-masiva">
+            <Button variant="outline">
+              📋 Edición Masiva
+            </Button>
+          </Link>
+          <Link href="/admin/productos/nuevo">
+            <Button>
+              <PlusIcon className="h-5 w-5 mr-2" />
+              Nuevo Producto
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filtros y búsqueda */}
