@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import OlivoButton from '@/app/components/OlivoButton';
-import OlivoInput from '@/app/components/OlivoInput';
+import OlivoButton from '../components/OlivoButton';
+import OlivoInput from '../components/OlivoInput';
 import { 
   MessageCircle, 
   Mail, 

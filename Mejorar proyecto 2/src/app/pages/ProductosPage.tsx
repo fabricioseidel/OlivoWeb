@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import ProductCard, { ProductUI } from '@/app/components/ProductCard';
-import OlivoInput from '@/app/components/OlivoInput';
+import ProductCard, { ProductUI } from '../components/ProductCard';
+import OlivoInput from '../components/OlivoInput';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
-import Badge from '@/app/components/Badge';
+import Badge from '../components/Badge';
 
 // Mock data - en tu proyecto real esto vendría de la API
 const MOCK_PRODUCTS: ProductUI[] = [

@@ -1,9 +1,7 @@
 import { useState } from "react";
-import CategoryCard, {
-  CategoryUI,
-} from "@/app/components/CategoryCard";
+import CategoryCard, { CategoryUI } from "../components/CategoryCard";
 import { Grid3x3, List } from "lucide-react";
-import OlivoButton from "@/app/components/OlivoButton";
+import OlivoButton from "../components/OlivoButton";
 
 // Mock data - en tu proyecto real esto vendría de la API
 const MOCK_CATEGORIES: CategoryUI[] = [
