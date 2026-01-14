@@ -25,9 +25,15 @@ export function buildWhatsAppOrderLink(params: {
   return `https://wa.me/${phone}?text=${message}`;
 }
 
-export function buildSingleProductLink(phone: string, product: { name: string; price: number }, quantity = 1, currency = "$") {
+export function buildSingleProductLink(
+  phone: string,
+  product: { name: string; price: number },
+  quantity = 1,
+  currency = "$"
+) {
   return buildWhatsAppOrderLink({
     phone,
     items: [{ name: product.name, price: product.price, quantity }],
+    currency,
   });
 }
