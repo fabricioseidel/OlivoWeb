@@ -1,46 +1,67 @@
 "use client";
 
-import React, { ButtonHTMLAttributes, FC } from "react";
+import React, { ButtonHTMLAttributes, forwardRef } from 'react';
+import { Loader2 } from 'lucide-react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "danger";
-  size?: "sm" | "md" | "lg";
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
+  loading?: boolean;
 }
 
-const Button: FC<ButtonProps> = ({
-  children,
-  variant = "primary",
-  size = "md",
-  fullWidth = false,
-  className = "",
-  ...props
-}) => {
-  const baseStyles = "rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50";
-  
-  const sizeStyles = {
-    sm: "py-1 px-3 text-sm",
-    md: "py-2 px-4 text-base",
-    lg: "py-3 px-6 text-lg",
-  };
-  
-  const variantStyles = {
-    primary: "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500",
-    secondary: "bg-gray-600 hover:bg-gray-700 text-white focus:ring-gray-500",
-    outline: "bg-transparent border border-blue-600 text-blue-600 hover:bg-blue-50 focus:ring-blue-500",
-    danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
-  };
-  
-  const widthStyles = fullWidth ? "w-full" : "";
-  
-  return (
-    <button
-      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${widthStyles} ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-};
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      children,
+      variant = 'primary',
+      size = 'md',
+      fullWidth = false,
+      loading = false,
+      className = '',
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
+    const baseStyles =
+      'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95';
+
+    const sizeStyles = {
+      sm: 'px-3 py-1.5 text-sm',
+      md: 'px-5 py-2.5 text-base',
+      lg: 'px-7 py-3.5 text-lg',
+    };
+
+    const variantStyles = {
+      primary:
+        'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-sm hover:shadow-md',
+      secondary:
+        'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 shadow-sm hover:shadow-md',
+      outline:
+        'bg-transparent border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 focus:ring-emerald-500',
+      danger:
+        'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm hover:shadow-md',
+      ghost:
+        'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500',
+    };
+
+    const widthStyles = fullWidth ? 'w-full' : '';
+
+    return (
+      <button
+        ref={ref}
+        className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${widthStyles} ${className}`}
+        disabled={disabled || loading}
+        {...props}
+      >
+        {loading && <Loader2 className="size-4 animate-spin" />}
+        {children}
+      </button>
+    );
+  }
+);
+
+Button.displayName = 'Button';
 
 export default Button;

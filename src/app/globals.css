@@ -56,6 +56,25 @@ img {
   overflow: hidden;
 }
 
+:root {
+  /* Brand Colors - Emerald */
+  --color-primary: #10B981;    /* emerald-600 */
+  --color-secondary: #047857;  /* emerald-800 */
+  --color-accent: #059669;     /* emerald-700 */
+  
+  /* UI Colors */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  
+  /* Layout */
+  --color-footer-bg: #1F2937;
+  --color-footer-text: #F3F4F6;
+  
+  --background: #ffffff;
+  --foreground: #111827;
+}
+
 /* Estilos para imágenes responsivas */
 .img-container {
   position: relative;

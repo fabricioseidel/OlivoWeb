@@ -30,10 +30,10 @@ const initialCartItems = [
 ];
 
 export default function CartPage() {
-  const { 
-    cartItems, 
-    updateQuantity, 
-    removeFromCart, 
+  const {
+    cartItems,
+    updateQuantity,
+    removeFromCart,
     clearCart,
     subtotal,
     total,
@@ -44,8 +44,8 @@ export default function CartPage() {
   // Teléfono destino (configurable futuramente vía env o admin)
   const handleWhatsAppOrder = () => {
     if (cartItems.length === 0) return;
-  // Track order intent para todos los productos del carrito
-  cartItems.forEach(i => trackOrderIntent(i.id));
+    // Track order intent para todos los productos del carrito
+    cartItems.forEach(i => trackOrderIntent(i.id));
     const link = buildWhatsAppOrderLink({
       phone: WHATSAPP_PHONE,
       items: cartItems.map(ci => ({ name: ci.name, quantity: ci.quantity, price: ci.price })),
@@ -56,7 +56,7 @@ export default function CartPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Carrito de Compras</h1>
-      
+
       {cartItems.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Lista de productos */}
@@ -74,44 +74,47 @@ export default function CartPage() {
                           className="w-full h-full object-cover rounded-md"
                         />
                       </div>
-                      
+
                       {/* Información */}
                       <div className="flex-1 ml-0 sm:ml-6 text-center sm:text-left">
-                        <Link href={`/productos/${item.slug}`} className="text-lg font-medium text-gray-900 hover:text-blue-600">
+                        <Link href={`/productos/${item.slug}`} className="text-lg font-bold text-gray-900 hover:text-emerald-600 transition-colors">
                           {item.name}
                         </Link>
-                        <p className="mt-1 text-blue-600 font-semibold">$ {item.price.toFixed(2)}</p>
+                        <p className="mt-1 text-emerald-600 font-bold">$ {item.price.toFixed(2)}</p>
                       </div>
-                      
+
                       {/* Controles de cantidad */}
-                      <div className="flex items-center mt-4 sm:mt-0">
-                        <button
-                          type="button"
-                          className="p-1 border border-gray-300 rounded-l-md bg-gray-50 hover:bg-gray-100"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        >
-                          <MinusIcon className="h-4 w-4" />
-                        </button>
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
-                          className="p-1 w-12 text-center border-t border-b border-gray-300 focus:outline-none focus:ring-0"
-                        />
-                        <button
-                          type="button"
-                          className="p-1 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        >
-                          <PlusIcon className="h-4 w-4" />
-                        </button>
-                        
+                      <div className="flex items-center mt-4 sm:mt-0 gap-4">
+                        <div className="flex items-center border border-gray-200 rounded-xl">
+                          <button
+                            type="button"
+                            className="p-2 hover:bg-gray-50 rounded-l-xl text-gray-500 transition-colors"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          >
+                            <MinusIcon className="h-4 w-4" />
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
+                            className="w-12 text-center border-none focus:ring-0 text-gray-900 font-semibold bg-transparent"
+                          />
+                          <button
+                            type="button"
+                            className="p-2 hover:bg-gray-50 rounded-r-xl text-gray-500 transition-colors"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          >
+                            <PlusIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+
                         {/* Botón eliminar */}
                         <button
                           type="button"
-                          className="ml-4 p-2 text-red-500 hover:text-red-700"
+                          className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 hover:bg-red-50 rounded-lg"
                           onClick={() => removeFromCart(item.id)}
+                          title="Eliminar producto"
                         >
                           <TrashIcon className="h-5 w-5" />
                         </button>
@@ -120,10 +123,10 @@ export default function CartPage() {
                   </li>
                 ))}
               </ul>
-              
+
               {/* Botones de acción */}
-              <div className="bg-gray-50 p-6 flex justify-between">
-                <Button variant="outline" onClick={clearCart}>
+              <div className="bg-gray-50 p-6 flex justify-between rounded-b-xl border-t border-gray-100">
+                <Button variant="ghost" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={clearCart}>
                   Vaciar Carrito
                 </Button>
                 <Link href="/productos">
@@ -134,29 +137,29 @@ export default function CartPage() {
               </div>
             </div>
           </div>
-          
+
           {/* Resumen */}
           <div>
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-6">Resumen del Pedido</h2>
-              
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 sticky top-24">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Resumen del Pedido</h2>
+
               <div className="space-y-4">
-                <div className="flex justify-between">
-                  <p className="text-gray-600">Subtotal</p>
-                  <p className="text-gray-900 font-medium">$ {subtotal.toFixed(2)}</p>
+                <div className="flex justify-between text-gray-600">
+                  <p>Subtotal</p>
+                  <p className="font-medium text-gray-900">$ {subtotal.toFixed(2)}</p>
                 </div>
-                
-                <div className="flex justify-between">
-                  <p className="text-gray-600">Envío</p>
-                  <p className="text-gray-900 font-medium">$ {shippingCost.toFixed(2)}</p>
+
+                <div className="flex justify-between text-gray-600">
+                  <p>Envío estimado</p>
+                  <p className="font-medium text-gray-900">$ {shippingCost.toFixed(2)}</p>
                 </div>
-                
-                <div className="border-t border-gray-200 pt-4 flex justify-between">
-                  <p className="text-lg font-medium text-gray-900">Total</p>
-                  <p className="text-lg font-bold text-blue-600">$ {total.toFixed(2)}</p>
+
+                <div className="border-t border-gray-100 pt-4 flex justify-between items-end">
+                  <p className="text-lg font-bold text-gray-900">Total</p>
+                  <p className="text-2xl font-bold text-emerald-600">$ {total.toFixed(2)}</p>
                 </div>
               </div>
-              
+
               <div className="mt-6 space-y-3">
                 <Link href="/checkout">
                   <Button fullWidth size="lg">
@@ -167,7 +170,7 @@ export default function CartPage() {
                   Pedir por WhatsApp
                 </Button>
               </div>
-              
+
               <div className="mt-4 text-center text-sm text-gray-500">
                 <p>Aceptamos MercadoPago, tarjetas de crédito/débito y transferencias bancarias</p>
               </div>

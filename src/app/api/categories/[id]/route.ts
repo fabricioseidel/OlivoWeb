@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import fs from 'fs';
-import path from 'path';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -61,7 +59,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const { id } = await params;
     const body = await req.json();
-    // process body.image if data URL -> save and set path
+    // process body.image if data URL -> upload to Supabase and set public URL
     try {
       const img = body?.image;
       if (typeof img === 'string' && img.startsWith('data:image')) {
@@ -70,36 +68,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           const mime = match[1];
           console.log(`Processing image upload with mime type: ${mime}`);
           
-          // Try Supabase Storage first
+          // Always use Supabase Storage. Local filesystem uploads are gitignored and
+          // not reliable on Vercel (ephemeral filesystem), resulting in broken /uploads URLs.
           const uploadResult = await uploadImageToSupabase(img, mime, 'category');
           
           if (uploadResult.success && uploadResult.url) {
             body.image = uploadResult.url;
             console.log(`Image successfully uploaded to Supabase: ${uploadResult.url}`);
           } else {
-            console.warn(`Supabase upload failed: ${uploadResult.error}`);
-            console.log('Falling back to local filesystem...');
-            
-            // Fallback to local filesystem
-            const base64 = match[2];
-            const extMap: Record<string, string> = {
-              'image/png': 'png',
-              'image/jpeg': 'jpg',
-              'image/jpg': 'jpg',
-              'image/webp': 'webp',
-              'image/gif': 'gif',
-              'image/svg+xml': 'svg'
-            };
-            const ext = extMap[mime] || mime.split('/')[1] || 'png';
-            const filename = `category-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
-            const buffer = Buffer.from(base64, 'base64');
-            
-            const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-            await fs.promises.mkdir(uploadsDir, { recursive: true });
-            const filePath = path.join(uploadsDir, filename);
-            await fs.promises.writeFile(filePath, buffer);
-            body.image = `/uploads/${filename}`;
-            console.log(`Image saved locally: ${body.image}`);
+            console.error(`Supabase upload failed: ${uploadResult.error}`);
+            return NextResponse.json(
+              { error: uploadResult.error || 'No se pudo subir la imagen a Supabase' },
+              { status: 500 }
+            );
           }
         }
       }

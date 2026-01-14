@@ -1,42 +1,59 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import Image from "next/image";
 import { useCategories as useCategoryHook } from "@/hooks/useCategories";
-import { normalizeImageUrl } from "@/utils/image";
+import CategoryCard from "@/components/CategoryCard";
+import { useCategoryNames } from "@/hooks/useCategories"; // Assuming useCategories returns raw data, checking imports
+import { useRouter } from "next/navigation";
 
 export default function CategoriesPage() {
   const { categories, loading, error } = useCategoryHook();
+  const router = useRouter();
 
-  if (loading) return <div className="p-6">Cargando categorías…</div>;
-  if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
-  if (!categories.length) return <div className="p-6">No se encontraron categorías.</div>;
+  if (loading) return (
+    <div className="max-w-7xl mx-auto px-4 py-12 flex justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-600"></div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200">
+        Error: {error}
+      </div>
+    </div>
+  );
+
+  if (!categories.length) return (
+    <div className="max-w-7xl mx-auto px-4 py-12 text-center text-gray-500">
+      No se encontraron categorías.
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <h1 className="text-2xl font-bold mb-6">Categorías</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Explora Nuestras Categorías</h1>
+        <p className="text-gray-500">
+          Encuentra todo lo que necesitas, organizado para ti.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {categories.map((category) => {
           const slug = category.slug || category.name.toLowerCase().replace(/[^a-z0-9]+/gi, "-");
-          const img = normalizeImageUrl(category.image);
           return (
-            <Link
+            <CategoryCard
               key={category.id}
-              href={`/categorias/${encodeURIComponent(slug)}`}
-              className="group overflow-hidden rounded-lg shadow-md transition-all hover:shadow-lg"
-            >
-              <div className="img-container wide">
-                <div className="absolute inset-0 bg-emerald-900/30 group-hover:bg-emerald-900/20 transition-all z-10"></div>
-                <Image
-                  src={img}
-                  alt={category.name}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500"
-                />
-              </div>
-            </Link>
+              category={{
+                id: category.id,
+                name: category.name,
+                slug: slug,
+                image: category.image,
+                productsCount: undefined // API might not return this yet, optional in type
+              }}
+              onClick={() => router.push(`/categorias/${encodeURIComponent(slug)}`)}
+            />
           );
         })}
       </div>

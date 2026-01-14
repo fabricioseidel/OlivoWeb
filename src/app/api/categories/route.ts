@@ -11,6 +11,7 @@ export async function GET() {
     .order("name", { ascending: true });
 
   if (error) {
+    console.error("Supabase Error in categories:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
@@ -25,8 +26,8 @@ export async function GET() {
       typeof c.is_active === "boolean"
         ? c.is_active
         : typeof c.isActive === "boolean"
-        ? c.isActive
-        : true,
+          ? c.isActive
+          : true,
     productsCount: typeof c.productsCount === 'number' ? c.productsCount : 0,
   }));
 
