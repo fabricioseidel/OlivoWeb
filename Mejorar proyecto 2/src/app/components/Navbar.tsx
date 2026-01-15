@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ShoppingBag, Menu, X, User, LogOut, Settings, Package } from 'lucide-react';
-import OlivoButton from '@/app/components/OlivoButton';
+import OlivoButton from './OlivoButton';
 
 const navigation = [
   { name: 'Inicio', href: '/' },

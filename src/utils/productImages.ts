@@ -36,7 +36,7 @@ export async function loadProductImages(): Promise<ProductImageData> {
     await ensureDataDirectory();
     const data = await fs.readFile(IMAGES_DATA_FILE, 'utf-8');
     return JSON.parse(data);
-  } catch (error) {
+  } catch {
     // File doesn't exist or is invalid, return empty object
     return {};
   }

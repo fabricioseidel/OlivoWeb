@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShoppingCart, Plus, Minus, Tag } from 'lucide-react';
-import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
+import { ImageWithFallback } from './figma/ImageWithFallback';
 
 export type ProductUI = {
   id: string;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import ProductCard, { ProductUI } from '@/app/components/ProductCard';
-import OlivoButton from '@/app/components/OlivoButton';
-import OlivoInput from '@/app/components/OlivoInput';
+import ProductCard, { ProductUI } from './components/ProductCard';
+import OlivoButton from './components/OlivoButton';
+import OlivoInput from './components/OlivoInput';
 import { 
   ShoppingBag, 
   Truck, 
