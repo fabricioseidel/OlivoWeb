@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* ───── Tailwind v4 Theme: register custom color tokens ───── */
+@theme {
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-footer-bg: var(--color-footer-bg);
+  --color-footer-text: var(--color-footer-text);
+}
+
 /* Restricciones específicas para SVG e iconos */
 svg {
   display: inline-block;
@@ -17,18 +29,21 @@ svg[aria-hidden="true"] {
 }
 
 /* Fix para el icono del carrito específicamente */
-.h-6 svg, .w-6 svg {
+.h-6 svg,
+.w-6 svg {
   width: 1.5rem !important;
   height: 1.5rem !important;
 }
 
 /* Fix para iconos pequeños */
-.h-4 svg, .w-4 svg {
+.h-4 svg,
+.w-4 svg {
   width: 1rem !important;
   height: 1rem !important;
 }
 
-.h-5 svg, .w-5 svg {
+.h-5 svg,
+.w-5 svg {
   width: 1.25rem !important;
   height: 1.25rem !important;
 }
@@ -43,34 +58,44 @@ img {
 .line-clamp-1 {
   display: -webkit-box;
   -webkit-line-clamp: 1;
-  line-clamp: 1; /* Standard property for compatibility */
-  -webkit-box-orient: vertical;  
+  line-clamp: 1;
+  /* Standard property for compatibility */
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
-  line-clamp: 2; /* Standard property for compatibility */
-  -webkit-box-orient: vertical;  
+  line-clamp: 2;
+  /* Standard property for compatibility */
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
 :root {
   /* Brand Colors - Emerald */
-  --color-primary: #10B981;    /* emerald-600 */
-  --color-secondary: #047857;  /* emerald-800 */
-  --color-accent: #059669;     /* emerald-700 */
-  
+  --color-primary: #10B981;
+  /* emerald-600 */
+  --color-primary-rgb: 16 185 129;
+  --color-secondary: #047857;
+  /* emerald-800 */
+  --color-secondary-rgb: 4 120 87;
+  --color-accent: #059669;
+  /* emerald-700 */
+  --color-accent-rgb: 5 150 105;
+
   /* UI Colors */
   --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-error: #EF4444;
-  
+
   /* Layout */
   --color-footer-bg: #1F2937;
+  --color-footer-bg-rgb: 31 41 55;
   --color-footer-text: #F3F4F6;
-  
+  --color-footer-text-rgb: 243 244 246;
+
   --background: #ffffff;
   --foreground: #111827;
 }
@@ -80,20 +105,23 @@ img {
   position: relative;
   width: 100%;
   height: 0;
-  padding-bottom: 75%; /* Proporción 4:3 por defecto */
+  padding-bottom: 75%;
+  /* Proporción 4:3 por defecto */
   overflow: hidden;
 }
 
 .img-container.square {
-  padding-bottom: 100%; /* Proporción 1:1 (cuadrada) */
+  padding-bottom: 100%;
+  /* Proporción 1:1 (cuadrada) */
 }
 
 .img-container.wide {
-  padding-bottom: 56.25%; /* Proporción 16:9 */
+  padding-bottom: 56.25%;
+  /* Proporción 16:9 */
 }
 
 .img-container img,
-.img-container > div {
+.img-container>div {
   position: absolute;
   top: 0;
   left: 0;
@@ -120,7 +148,8 @@ img {
 /* Fix para contenedores de imágenes en móvil */
 @media (max-width: 640px) {
   .img-container {
-    padding-bottom: 66.67%; /* 2:3 en móvil para mejor visualización */
+    padding-bottom: 66.67%;
+    /* 2:3 en móvil para mejor visualización */
   }
 }
 
