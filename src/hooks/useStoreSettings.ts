@@ -97,12 +97,25 @@ export function useStoreSettings(): UseStoreSettingsReturn {
   // Escuchar eventos globales para refrescar settings desde otras partes de la app
   useEffect(() => {
     if (typeof window === "undefined") return;
+
     const handler = () => {
+      console.log("[useStoreSettings] Custom event received, refreshing...");
       fetchSettings();
     };
+
+    const storageHandler = (e: StorageEvent) => {
+      if (e.key === "settings:last_update") {
+        console.log("[useStoreSettings] Storage event detected, refreshing from other tab...");
+        fetchSettings();
+      }
+    };
+
     window.addEventListener("settings:updated", handler as EventListener);
+    window.addEventListener("storage", storageHandler);
+
     return () => {
       window.removeEventListener("settings:updated", handler as EventListener);
+      window.removeEventListener("storage", storageHandler);
     };
   }, [fetchSettings]);
 

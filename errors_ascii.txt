@@ -1,0 +1,232 @@
+
+> tienda-web@0.1.0 typecheck
+> tsc --noEmit
+
+.next/types/app/admin/categorias/page.ts(2,24): error TS2307: Cannot find module '../../../../../src/app/admin/categorias/page.js' or its corresponding type declarations.
+.next/types/app/admin/categorias/page.ts(5,29): error TS2307: Cannot find module '../../../../../src/app/admin/categorias/page.js' or its corresponding type declarations.
+.next/types/app/admin/configuracion/page.ts(2,24): error TS2307: Cannot find module '../../../../../src/app/admin/configuracion/page.js' or its corresponding type declarations.
+.next/types/app/admin/configuracion/page.ts(5,29): error TS2307: Cannot find module '../../../../../src/app/admin/configuracion/page.js' or its corresponding type declarations.
+.next/types/app/admin/page.ts(2,24): error TS2307: Cannot find module '../../../../src/app/admin/page.js' or its corresponding type declarations.
+.next/types/app/admin/page.ts(5,29): error TS2307: Cannot find module '../../../../src/app/admin/page.js' or its corresponding type declarations.
+.next/types/app/admin/pedidos-proveedor/[id]/page.ts(2,24): error TS2307: Cannot find module '../../../../../../src/app/admin/pedidos-proveedor/[id]/page.js' or its corresponding type declarations.
+.next/types/app/admin/pedidos-proveedor/[id]/page.ts(5,29): error TS2307: Cannot find module '../../../../../../src/app/admin/pedidos-proveedor/[id]/page.js' or its corresponding type declarations.
+.next/types/app/admin/pedidos-proveedor/nuevo/page.ts(2,24): error TS2307: Cannot find module '../../../../../../src/app/admin/pedidos-proveedor/nuevo/page.js' or its corresponding type declarations.
+.next/types/app/admin/pedidos-proveedor/nuevo/page.ts(5,29): error TS2307: Cannot find module '../../../../../../src/app/admin/pedidos-proveedor/nuevo/page.js' or its corresponding type declarations.
+.next/types/app/admin/pedidos-proveedor/page.ts(2,24): error TS2307: Cannot find module '../../../../../src/app/admin/pedidos-proveedor/page.js' or its corresponding type declarations.
+.next/types/app/admin/pedidos-proveedor/page.ts(5,29): error TS2307: Cannot find module '../../../../../src/app/admin/pedidos-proveedor/page.js' or its corresponding type declarations.
+.next/types/app/admin/pedidos/[id]/page.ts(2,24): error TS2307: Cannot find module '../../../../../../src/app/admin/pedidos/[id]/page.js' or its corresponding type declarations.
+.next/types/app/admin/pedidos/[id]/page.ts(5,29): error TS2307: Cannot find module '../../../../../../src/app/admin/pedidos/[id]/page.js' or its corresponding type declarations.
+.next/types/app/admin/pedidos/page.ts(2,24): error TS2307: Cannot find module '../../../../../src/app/admin/pedidos/page.js' or its corresponding type declarations.
+.next/types/app/admin/pedidos/page.ts(5,29): error TS2307: Cannot find module '../../../../../src/app/admin/pedidos/page.js' or its corresponding type declarations.
+.next/types/app/admin/productos/[id]/page.ts(2,24): error TS2307: Cannot find module '../../../../../../src/app/admin/productos/[id]/page.js' or its corresponding type declarations.
+.next/types/app/admin/productos/[id]/page.ts(5,29): error TS2307: Cannot find module '../../../../../../src/app/admin/productos/[id]/page.js' or its corresponding type declarations.
+.next/types/app/admin/productos/edicion-masiva/page.ts(2,24): error TS2307: Cannot find module '../../../../../../src/app/admin/productos/edicion-masiva/page.js' or its corresponding type declarations.
+.next/types/app/admin/productos/edicion-masiva/page.ts(5,29): error TS2307: Cannot find module '../../../../../../src/app/admin/productos/edicion-masiva/page.js' or its corresponding type declarations.
+.next/types/app/admin/productos/nuevo/page.ts(2,24): error TS2307: Cannot find module '../../../../../../src/app/admin/productos/nuevo/page.js' or its corresponding type declarations.
+.next/types/app/admin/productos/nuevo/page.ts(5,29): error TS2307: Cannot find module '../../../../../../src/app/admin/productos/nuevo/page.js' or its corresponding type declarations.
+.next/types/app/admin/productos/page.ts(2,24): error TS2307: Cannot find module '../../../../../src/app/admin/productos/page.js' or its corresponding type declarations.
+.next/types/app/admin/productos/page.ts(5,29): error TS2307: Cannot find module '../../../../../src/app/admin/productos/page.js' or its corresponding type declarations.
+.next/types/app/admin/proveedores/page.ts(2,24): error TS2307: Cannot find module '../../../../../src/app/admin/proveedores/page.js' or its corresponding type declarations.
+.next/types/app/admin/proveedores/page.ts(5,29): error TS2307: Cannot find module '../../../../../src/app/admin/proveedores/page.js' or its corresponding type declarations.
+.next/types/app/admin/reabastecimiento/page.ts(2,24): error TS2307: Cannot find module '../../../../../src/app/admin/reabastecimiento/page.js' or its corresponding type declarations.
+.next/types/app/admin/reabastecimiento/page.ts(5,29): error TS2307: Cannot find module '../../../../../src/app/admin/reabastecimiento/page.js' or its corresponding type declarations.
+.next/types/app/admin/test-upload/page.ts(2,24): error TS2307: Cannot find module '../../../../../src/app/admin/test-upload/page.js' or its corresponding type declarations.
+.next/types/app/admin/test-upload/page.ts(5,29): error TS2307: Cannot find module '../../../../../src/app/admin/test-upload/page.js' or its corresponding type declarations.
+.next/types/app/admin/usuarios/[id]/editar/page.ts(2,24): error TS2307: Cannot find module '../../../../../../../src/app/admin/usuarios/[id]/editar/page.js' or its corresponding type declarations.
+.next/types/app/admin/usuarios/[id]/editar/page.ts(5,29): error TS2307: Cannot find module '../../../../../../../src/app/admin/usuarios/[id]/editar/page.js' or its corresponding type declarations.
+.next/types/app/admin/usuarios/nuevo/page.ts(2,24): error TS2307: Cannot find module '../../../../../../src/app/admin/usuarios/nuevo/page.js' or its corresponding type declarations.
+.next/types/app/admin/usuarios/nuevo/page.ts(5,29): error TS2307: Cannot find module '../../../../../../src/app/admin/usuarios/nuevo/page.js' or its corresponding type declarations.
+.next/types/app/admin/usuarios/page.ts(2,24): error TS2307: Cannot find module '../../../../../src/app/admin/usuarios/page.js' or its corresponding type declarations.
+.next/types/app/admin/usuarios/page.ts(5,29): error TS2307: Cannot find module '../../../../../src/app/admin/usuarios/page.js' or its corresponding type declarations.
+.next/types/app/admin/ventas/page.ts(2,24): error TS2307: Cannot find module '../../../../../src/app/admin/ventas/page.js' or its corresponding type declarations.
+.next/types/app/admin/ventas/page.ts(5,29): error TS2307: Cannot find module '../../../../../src/app/admin/ventas/page.js' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/App.tsx(2,40): error TS2307: Cannot find module '@/app/components/ProductCard' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/App.tsx(3,20): error TS2307: Cannot find module '@/app/components/Navbar' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/App.tsx(4,25): error TS2307: Cannot find module '@/app/components/OlivoButton' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/App.tsx(5,24): error TS2307: Cannot find module '@/app/components/OlivoInput' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/App.tsx(6,42): error TS2307: Cannot find module '@/app/components/CategoryCard' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/CategoryCard.tsx(3,35): error TS2307: Cannot find module '@/app/components/figma/ImageWithFallback' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/Navbar.tsx(3,25): error TS2307: Cannot find module '@/app/components/OlivoButton' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ProductCard.tsx(3,35): error TS2307: Cannot find module '@/app/components/figma/ImageWithFallback' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/accordion.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-accordion' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/alert-dialog.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-alert-dialog' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/alert.tsx(2,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/aspect-ratio.tsx(3,39): error TS2307: Cannot find module '@radix-ui/react-aspect-ratio' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/avatar.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-avatar' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/badge.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/badge.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/breadcrumb.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/button.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/button.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/calendar.tsx(5,27): error TS2307: Cannot find module 'react-day-picker' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/calendar.tsx(63,22): error TS7031: Binding element 'className' implicitly has an 'any' type.
+Mejorar proyecto 2/src/app/components/ui/calendar.tsx(66,23): error TS7031: Binding element 'className' implicitly has an 'any' type.
+Mejorar proyecto 2/src/app/components/ui/carousel.tsx(6,8): error TS2307: Cannot find module 'embla-carousel-react' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/chart.tsx(4,36): error TS2307: Cannot find module 'recharts' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/chart.tsx(182,23): error TS7006: Parameter 'item' implicitly has an 'any' type.
+Mejorar proyecto 2/src/app/components/ui/chart.tsx(182,29): error TS7006: Parameter 'index' implicitly has an 'any' type.
+Mejorar proyecto 2/src/app/components/ui/chart.tsx(278,21): error TS7006: Parameter 'item' implicitly has an 'any' type.
+Mejorar proyecto 2/src/app/components/ui/checkbox.tsx(4,36): error TS2307: Cannot find module '@radix-ui/react-checkbox' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/collapsible.tsx(3,39): error TS2307: Cannot find module '@radix-ui/react-collapsible' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/command.tsx(4,45): error TS2307: Cannot find module 'cmdk' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/context-menu.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-context-menu' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/dialog.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-dialog' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/drawer.tsx(4,43): error TS2307: Cannot find module 'vaul' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/dropdown-menu.tsx(4,40): error TS2307: Cannot find module '@radix-ui/react-dropdown-menu' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/form.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-label' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/form.tsx(5,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/hover-card.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-hover-card' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/input-otp.tsx(4,43): error TS2307: Cannot find module 'input-otp' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/input-otp.tsx(47,61): error TS2339: Property 'slots' does not exist on type '{}'.
+Mejorar proyecto 2/src/app/components/ui/label.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-label' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/menubar.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-menubar' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/navigation-menu.tsx(2,42): error TS2307: Cannot find module '@radix-ui/react-navigation-menu' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/navigation-menu.tsx(3,21): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/pagination.tsx(75,7): error TS2783: 'size' is specified more than once, so this usage will be overwritten.
+Mejorar proyecto 2/src/app/components/ui/pagination.tsx(92,7): error TS2783: 'size' is specified more than once, so this usage will be overwritten.
+Mejorar proyecto 2/src/app/components/ui/popover.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-popover' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/progress.tsx(4,36): error TS2307: Cannot find module '@radix-ui/react-progress' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/radio-group.tsx(4,38): error TS2307: Cannot find module '@radix-ui/react-radio-group' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/resizable.tsx(5,37): error TS2307: Cannot find module 'react-resizable-panels' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/scroll-area.tsx(4,38): error TS2307: Cannot find module '@radix-ui/react-scroll-area' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/select.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-select' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/separator.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-separator' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/sheet.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-dialog' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/sidebar.tsx(4,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/sidebar.tsx(5,35): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/sidebar.tsx(270,17): error TS7006: Parameter 'event' implicitly has an 'any' type.
+Mejorar proyecto 2/src/app/components/ui/slider.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-slider' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/sonner.tsx(3,26): error TS2307: Cannot find module 'next-themes' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/sonner.tsx(4,49): error TS2307: Cannot find module 'sonner' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/switch.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-switch' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/tabs.tsx(4,32): error TS2307: Cannot find module '@radix-ui/react-tabs' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/toggle-group.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-toggle-group' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/toggle-group.tsx(5,35): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/toggle.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-toggle' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/toggle.tsx(5,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/tooltip.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-tooltip' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/components/ui/utils.ts(2,25): error TS2307: Cannot find module 'tailwind-merge' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/pages/CategoriasPage.tsx(4,8): error TS2307: Cannot find module '@/app/components/CategoryCard' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/pages/CategoriasPage.tsx(6,25): error TS2307: Cannot find module '@/app/components/OlivoButton' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/pages/ContactoPage.tsx(2,25): error TS2307: Cannot find module '@/app/components/OlivoButton' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/pages/ContactoPage.tsx(3,24): error TS2307: Cannot find module '@/app/components/OlivoInput' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/pages/ProductosPage.tsx(2,40): error TS2307: Cannot find module '@/app/components/ProductCard' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/pages/ProductosPage.tsx(3,24): error TS2307: Cannot find module '@/app/components/OlivoInput' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/pages/ProductosPage.tsx(5,19): error TS2307: Cannot find module '@/app/components/Badge' or its corresponding type declarations.
+Mejorar proyecto 2/src/app/pages/ProductosPage.tsx(134,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+Mejorar proyecto 2/src/main.tsx(3,19): error TS5097: An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.
+Mejorar proyecto 2/vite.config.ts(3,25): error TS2307: Cannot find module '@tailwindcss/vite' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/App.tsx(2,40): error TS2307: Cannot find module '@/app/components/ProductCard' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/App.tsx(3,25): error TS2307: Cannot find module '@/app/components/OlivoButton' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/App.tsx(4,24): error TS2307: Cannot find module '@/app/components/OlivoInput' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/CategoryCard.tsx(3,35): error TS2307: Cannot find module '@/app/components/figma/ImageWithFallback' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ProductCard.tsx(3,35): error TS2307: Cannot find module '@/app/components/figma/ImageWithFallback' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/accordion.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-accordion' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/alert-dialog.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-alert-dialog' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/alert.tsx(2,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/aspect-ratio.tsx(3,39): error TS2307: Cannot find module '@radix-ui/react-aspect-ratio' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/avatar.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-avatar' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/badge.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/badge.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/breadcrumb.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/button.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/button.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/calendar.tsx(5,27): error TS2307: Cannot find module 'react-day-picker' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/calendar.tsx(63,22): error TS7031: Binding element 'className' implicitly has an 'any' type.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/calendar.tsx(66,23): error TS7031: Binding element 'className' implicitly has an 'any' type.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/carousel.tsx(6,8): error TS2307: Cannot find module 'embla-carousel-react' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/chart.tsx(4,36): error TS2307: Cannot find module 'recharts' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/chart.tsx(182,23): error TS7006: Parameter 'item' implicitly has an 'any' type.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/chart.tsx(182,29): error TS7006: Parameter 'index' implicitly has an 'any' type.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/chart.tsx(278,21): error TS7006: Parameter 'item' implicitly has an 'any' type.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/checkbox.tsx(4,36): error TS2307: Cannot find module '@radix-ui/react-checkbox' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/collapsible.tsx(3,39): error TS2307: Cannot find module '@radix-ui/react-collapsible' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/command.tsx(4,45): error TS2307: Cannot find module 'cmdk' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/context-menu.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-context-menu' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/dialog.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-dialog' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/drawer.tsx(4,43): error TS2307: Cannot find module 'vaul' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/dropdown-menu.tsx(4,40): error TS2307: Cannot find module '@radix-ui/react-dropdown-menu' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/form.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-label' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/form.tsx(5,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/hover-card.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-hover-card' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/input-otp.tsx(4,43): error TS2307: Cannot find module 'input-otp' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/input-otp.tsx(47,61): error TS2339: Property 'slots' does not exist on type '{}'.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/label.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-label' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/menubar.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-menubar' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/navigation-menu.tsx(2,42): error TS2307: Cannot find module '@radix-ui/react-navigation-menu' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/navigation-menu.tsx(3,21): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/pagination.tsx(75,7): error TS2783: 'size' is specified more than once, so this usage will be overwritten.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/pagination.tsx(92,7): error TS2783: 'size' is specified more than once, so this usage will be overwritten.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/popover.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-popover' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/progress.tsx(4,36): error TS2307: Cannot find module '@radix-ui/react-progress' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/radio-group.tsx(4,38): error TS2307: Cannot find module '@radix-ui/react-radio-group' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/resizable.tsx(5,37): error TS2307: Cannot find module 'react-resizable-panels' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/scroll-area.tsx(4,38): error TS2307: Cannot find module '@radix-ui/react-scroll-area' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/select.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-select' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/separator.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-separator' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/sheet.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-dialog' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/sidebar.tsx(4,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/sidebar.tsx(5,35): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/sidebar.tsx(270,17): error TS7006: Parameter 'event' implicitly has an 'any' type.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/slider.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-slider' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/sonner.tsx(3,26): error TS2307: Cannot find module 'next-themes' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/sonner.tsx(4,49): error TS2307: Cannot find module 'sonner' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/switch.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-switch' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/tabs.tsx(4,32): error TS2307: Cannot find module '@radix-ui/react-tabs' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/toggle-group.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-toggle-group' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/toggle-group.tsx(5,35): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/toggle.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-toggle' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/toggle.tsx(5,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/tooltip.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-tooltip' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/app/components/ui/utils.ts(2,25): error TS2307: Cannot find module 'tailwind-merge' or its corresponding type declarations.
+Mejorar proyecto OLIVOMARKET/src/main.tsx(3,19): error TS5097: An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.
+Mejorar proyecto OLIVOMARKET/vite.config.ts(3,25): error TS2307: Cannot find module '@tailwindcss/vite' or its corresponding type declarations.
+src/app/(dashboard)/layout.tsx(14,13): error TS2741: Property 'title' is missing in type '{ children: ReactNode; }' but required in type '{ children: ReactNode; title: string; subtitle?: string | undefined; }'.
+src/app/categorias/[categoria]/page.tsx(45,20): error TS2322: Type '{ id: string; name: string; slug: string; price: number; sale_price: undefined; image: any; category: { name: string; } | undefined; featured: boolean | undefined; }[]' is not assignable to type 'ProductUI[]'.
+  Property 'stock' is missing in type '{ id: string; name: string; slug: string; price: number; sale_price: undefined; image: any; category: { name: string; } | undefined; featured: boolean | undefined; }' but required in type 'ProductUI'.
+src/app/uber-eats-editor/page.tsx(1,25): error TS2307: Cannot find module '../admin/uber-eats/page' or its corresponding type declarations.
+src/components/clientes/AddCustomerForm.tsx(33,5): error TS2322: Type 'Resolver<{ nombre: string; email?: string | undefined; telefono?: string | undefined; tipo?: "regular" | "vip" | "mayorista" | undefined; notas?: string | undefined; }, any, { nombre: string; tipo: "regular" | ... 1 more ... | "mayorista"; email?: string | undefined; telefono?: string | undefined; notas?: string | u...' is not assignable to type 'Resolver<{ nombre: string; tipo: "regular" | "vip" | "mayorista"; email?: string | undefined; telefono?: string | undefined; notas?: string | undefined; }, any, { nombre: string; tipo: "regular" | "vip" | "mayorista"; email?: string | undefined; telefono?: string | undefined; notas?: string | undefined; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ nombre: string; tipo: "regular" | "vip" | "mayorista"; email?: string | undefined; telefono?: string | undefined; notas?: string | undefined; }>' is not assignable to type 'ResolverOptions<{ nombre: string; email?: string | undefined; telefono?: string | undefined; tipo?: "regular" | "vip" | "mayorista" | undefined; notas?: string | undefined; }>'.
+      Type '"regular" | "vip" | "mayorista" | undefined' is not assignable to type '"regular" | "vip" | "mayorista"'.
+        Type 'undefined' is not assignable to type '"regular" | "vip" | "mayorista"'.
+src/components/clientes/AddCustomerForm.tsx(53,49): error TS2345: Argument of type 'TFieldValues' is not assignable to parameter of type '{ nombre: string; tipo: "regular" | "vip" | "mayorista"; email?: string | undefined; telefono?: string | undefined; notas?: string | undefined; }'.
+  Type 'FieldValues' is missing the following properties from type '{ nombre: string; tipo: "regular" | "vip" | "mayorista"; email?: string | undefined; telefono?: string | undefined; notas?: string | undefined; }': nombre, tipo
+src/components/ProductCard.tsx(50,7): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/productos/forms/AddProductForm.tsx(36,5): error TS2322: Type 'Resolver<{ nombre: string; categoria: string; precio: unknown; stock: unknown; descripcion?: string | undefined; }, any, { nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; }>' is not assignable to type 'Resolver<{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; }, any, { nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; }>' is not assignable to type 'ResolverOptions<{ nombre: string; categoria: string; precio: unknown; stock: unknown; descripcion?: string | undefined; }>'.
+      Type 'unknown' is not assignable to type 'number'.
+src/components/productos/forms/AddProductForm.tsx(58,48): error TS2345: Argument of type 'TFieldValues' is not assignable to parameter of type '{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; }'.
+  Type 'FieldValues' is missing the following properties from type '{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; }': nombre, categoria, precio, stock
+src/components/productos/forms/EditProductForm.tsx(47,5): error TS2322: Type 'Resolver<{ nombre: string; categoria: string; precio: unknown; stock: unknown; descripcion?: string | undefined; }, any, { nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; }>' is not assignable to type 'Resolver<{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; }, any, { nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; }>' is not assignable to type 'ResolverOptions<{ nombre: string; categoria: string; precio: unknown; stock: unknown; descripcion?: string | undefined; }>'.
+      Type 'unknown' is not assignable to type 'number'.
+src/components/productos/forms/EditProductForm.tsx(73,59): error TS2345: Argument of type 'TFieldValues' is not assignable to parameter of type '{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; }'.
+  Type 'FieldValues' is missing the following properties from type '{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; }': nombre, categoria, precio, stock
+src/components/ventas/QuickSaleForm.tsx(39,5): error TS2322: Type 'Resolver<{ total: unknown; paymentMethod: "mixed" | "cash" | "card" | "transfer"; customerId?: string | undefined; notas?: string | undefined; }, any, { total: number; paymentMethod: "mixed" | "cash" | "card" | "transfer"; customerId?: string | undefined; notas?: string | undefined; }>' is not assignable to type 'Resolver<{ total: number; paymentMethod: "mixed" | "cash" | "card" | "transfer"; customerId?: string | undefined; notas?: string | undefined; }, any, { total: number; paymentMethod: "mixed" | "cash" | "card" | "transfer"; customerId?: string | undefined; notas?: string | undefined; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ total: number; paymentMethod: "mixed" | "cash" | "card" | "transfer"; customerId?: string | undefined; notas?: string | undefined; }>' is not assignable to type 'ResolverOptions<{ total: unknown; paymentMethod: "mixed" | "cash" | "card" | "transfer"; customerId?: string | undefined; notas?: string | undefined; }>'.
+      Type 'unknown' is not assignable to type 'number'.
+src/components/ventas/QuickSaleForm.tsx(58,45): error TS2345: Argument of type 'TFieldValues' is not assignable to parameter of type '{ total: number; paymentMethod: "mixed" | "cash" | "card" | "transfer"; customerId?: string | undefined; notas?: string | undefined; }'.
+  Type 'FieldValues' is missing the following properties from type '{ total: number; paymentMethod: "mixed" | "cash" | "card" | "transfer"; customerId?: string | undefined; notas?: string | undefined; }': total, paymentMethod
+src/schemas/customer.schema.ts(5,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; } | undefined): ZodString', gave the following error.
+    Object literal may only specify known properties, and 'required_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.
+  Overload 2 of 2, '(params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; } | undefined): $ZodType<...>', gave the following error.
+    Object literal may only specify known properties, and 'required_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.
+src/schemas/product.schema.ts(5,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; } | undefined): ZodString', gave the following error.
+    Object literal may only specify known properties, and 'required_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.
+  Overload 2 of 2, '(params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; } | undefined): $ZodType<...>', gave the following error.
+    Object literal may only specify known properties, and 'required_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.
+src/schemas/product.schema.ts(9,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; } | undefined): ZodString', gave the following error.
+    Object literal may only specify known properties, and 'required_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.
+  Overload 2 of 2, '(params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; } | undefined): $ZodType<...>', gave the following error.
+    Object literal may only specify known properties, and 'required_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.
+src/schemas/product.schema.ts(17,15): error TS2353: Object literal may only specify known properties, and 'invalid_type_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.
+src/schemas/product.schema.ts(20,15): error TS2353: Object literal may only specify known properties, and 'invalid_type_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.
+src/schemas/sale.schema.ts(5,28): error TS2353: Object literal may only specify known properties, and 'invalid_type_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.

@@ -35,11 +35,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantStyles = {
       primary:
-        'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-sm hover:shadow-md',
+        'bg-primary text-white hover:bg-emerald-700 focus:ring-primary shadow-sm hover:shadow-md',
       secondary:
-        'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 shadow-sm hover:shadow-md',
+        'bg-secondary text-white hover:bg-emerald-900 focus:ring-secondary shadow-sm hover:shadow-md',
       outline:
-        'bg-transparent border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 focus:ring-emerald-500',
+        'bg-transparent border-2 border-primary text-primary hover:bg-primary/10 focus:ring-primary',
       danger:
         'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm hover:shadow-md',
       ghost:

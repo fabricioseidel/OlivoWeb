@@ -35,6 +35,7 @@ export default function CategoryDetailPage() {
     image: (p as any).image || undefined, // Using fallback images
     category: p.categories?.length ? { name: p.categories[0] } : undefined,
     featured: p.featured,
+    stock: p.stock,
   }));
 
   return (

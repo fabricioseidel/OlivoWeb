@@ -1,0 +1,47 @@
+
+> tienda-web@0.1.0 typecheck
+> tsc --noEmit
+
+src/actions/sales.ts(5,10): error TS2724: '"@/schemas/sale.schema"' has no exported member named 'QuickSaleFormData'. Did you mean 'SaleFormData'?
+src/app/(dashboard)/layout.tsx(14,13): error TS2741: Property 'title' is missing in type '{ children: ReactNode; }' but required in type '{ children: ReactNode; title: string; subtitle?: string | undefined; }'.
+src/app/categorias/[categoria]/page.tsx(45,20): error TS2322: Type '{ id: string; name: string; slug: string; price: number; sale_price: undefined; image: any; category: { name: string; } | undefined; featured: boolean | undefined; }[]' is not assignable to type 'ProductUI[]'.
+  Property 'stock' is missing in type '{ id: string; name: string; slug: string; price: number; sale_price: undefined; image: any; category: { name: string; } | undefined; featured: boolean | undefined; }' but required in type 'ProductUI'.
+src/app/uber-eats-editor/page.tsx(1,25): error TS2307: Cannot find module '../admin/uber-eats/page' or its corresponding type declarations.
+src/components/clientes/AddCustomerForm.tsx(33,5): error TS2322: Type 'Resolver<{ nombre: string; email?: string | undefined; telefono?: string | undefined; tipo?: "regular" | "vip" | "mayorista" | undefined; notas?: string | undefined; }, any, { nombre: string; tipo: "regular" | ... 1 more ... | "mayorista"; email?: string | undefined; telefono?: string | undefined; notas?: string | u...' is not assignable to type 'Resolver<{ nombre: string; tipo: "regular" | "vip" | "mayorista"; email?: string | undefined; telefono?: string | undefined; notas?: string | undefined; }, any, { nombre: string; tipo: "regular" | "vip" | "mayorista"; email?: string | undefined; telefono?: string | undefined; notas?: string | undefined; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ nombre: string; tipo: "regular" | "vip" | "mayorista"; email?: string | undefined; telefono?: string | undefined; notas?: string | undefined; }>' is not assignable to type 'ResolverOptions<{ nombre: string; email?: string | undefined; telefono?: string | undefined; tipo?: "regular" | "vip" | "mayorista" | undefined; notas?: string | undefined; }>'.
+      Type '"regular" | "vip" | "mayorista" | undefined' is not assignable to type '"regular" | "vip" | "mayorista"'.
+        Type 'undefined' is not assignable to type '"regular" | "vip" | "mayorista"'.
+src/components/clientes/AddCustomerForm.tsx(53,49): error TS2345: Argument of type 'TFieldValues' is not assignable to parameter of type '{ nombre: string; tipo: "regular" | "vip" | "mayorista"; email?: string | undefined; telefono?: string | undefined; notas?: string | undefined; }'.
+  Type 'FieldValues' is missing the following properties from type '{ nombre: string; tipo: "regular" | "vip" | "mayorista"; email?: string | undefined; telefono?: string | undefined; notas?: string | undefined; }': nombre, tipo
+src/components/ProductCard.tsx(50,7): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/productos/forms/AddProductForm.tsx(36,5): error TS2322: Type 'Resolver<{ nombre: string; categoria: string; precio: unknown; stock: unknown; descripcion?: string | undefined; image?: any; }, any, { nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; image?: any; }>' is not assignable to type 'Resolver<{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; image?: any; }, any, { nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; image?: any; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; image?: any; }>' is not assignable to type 'ResolverOptions<{ nombre: string; categoria: string; precio: unknown; stock: unknown; descripcion?: string | undefined; image?: any; }>'.
+      Type 'unknown' is not assignable to type 'number'.
+src/components/productos/forms/AddProductForm.tsx(58,48): error TS2345: Argument of type 'TFieldValues' is not assignable to parameter of type '{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; image?: any; }'.
+  Type 'FieldValues' is missing the following properties from type '{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; image?: any; }': nombre, categoria, precio, stock
+src/components/productos/forms/EditProductForm.tsx(47,5): error TS2322: Type 'Resolver<{ nombre: string; categoria: string; precio: unknown; stock: unknown; descripcion?: string | undefined; image?: any; }, any, { nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; image?: any; }>' is not assignable to type 'Resolver<{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; image?: any; }, any, { nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; image?: any; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; image?: any; }>' is not assignable to type 'ResolverOptions<{ nombre: string; categoria: string; precio: unknown; stock: unknown; descripcion?: string | undefined; image?: any; }>'.
+      Type 'unknown' is not assignable to type 'number'.
+src/components/productos/forms/EditProductForm.tsx(73,59): error TS2345: Argument of type 'TFieldValues' is not assignable to parameter of type '{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; image?: any; }'.
+  Type 'FieldValues' is missing the following properties from type '{ nombre: string; categoria: string; precio: number; stock: number; descripcion?: string | undefined; image?: any; }': nombre, categoria, precio, stock
+src/components/ventas/QuickSaleForm.tsx(12,10): error TS2724: '"@/schemas/sale.schema"' has no exported member named 'QuickSaleFormData'. Did you mean 'SaleFormData'?
+src/schemas/customer.schema.ts(7,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: readonly ["regular", "vip", "mayorista"], params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; } | undefined): ZodEnum<...>', gave the following error.
+    Object literal may only specify known properties, and 'errorMap' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; }'.
+  Overload 2 of 2, '(entries: Readonly<Record<string, EnumValue>>, params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; } | undefined): ZodEnum<...>', gave the following error.
+    Argument of type 'string[]' is not assignable to parameter of type 'Readonly<Record<string, EnumValue>>'.
+      Index signature for type 'string' is missing in type 'string[]'.
+src/schemas/product.schema.ts(8,15): error TS2353: Object literal may only specify known properties, and 'invalid_type_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.
+src/schemas/product.schema.ts(11,15): error TS2353: Object literal may only specify known properties, and 'invalid_type_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.
+src/schemas/sale.schema.ts(5,15): error TS2353: Object literal may only specify known properties, and 'invalid_type_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.
+src/schemas/sale.schema.ts(7,20): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: readonly ["cash", "card", "transfer", "mixed"], params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; } | undefined): ZodEnum<...>', gave the following error.
+    Object literal may only specify known properties, and 'errorMap' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; }'.
+  Overload 2 of 2, '(entries: Readonly<Record<string, EnumValue>>, params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; } | undefined): ZodEnum<...>', gave the following error.
+    Argument of type 'string[]' is not assignable to parameter of type 'Readonly<Record<string, EnumValue>>'.
+      Index signature for type 'string' is missing in type 'string[]'.
+src/server/sales.service.ts(2,10): error TS2724: '"@/schemas/sale.schema"' has no exported member named 'QuickSaleFormData'. Did you mean 'SaleFormData'?

@@ -7,10 +7,11 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   helperText?: string;
   icon?: React.ReactNode;
+  prefix?: string;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, icon, className = '', ...props }, ref) => {
+  ({ label, error, helperText, icon, prefix, className = '', ...props }, ref) => {
     return (
       <div className="space-y-2">
         {label && (
@@ -21,10 +22,15 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <div className="relative">
+        <div className="relative flex items-center">
           {icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
               {icon}
+            </div>
+          )}
+          {prefix && (
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium pointer-events-none select-none">
+              {prefix}
             </div>
           )}
           <input
@@ -39,6 +45,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               focus:ring-2 
               focus:ring-offset-1
               ${icon ? 'pl-10' : ''}
+              ${prefix ? 'pl-8' : ''}
               ${error
                 ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                 : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-500'

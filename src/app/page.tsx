@@ -26,21 +26,21 @@ export default function Home() {
   return (
     <div className="bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-emerald-800 via-emerald-700 to-green-900 text-white overflow-hidden">
+      <section className="relative bg-gradient-to-br from-secondary via-primary to-accent text-white overflow-hidden">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE0QzMyLjY5IDE0IDMwIDE2LjY5IDMwIDIwczIuNjkgNiA2IDYgNi0yLjY5IDYtNi0yLjY5LTYtNi02ek0zNiA0QzMyLjY5IDQgMzAgNi42OSAzMCAxMHMyLjY5IDYgNiA2IDYtMi42OSA2LTYtMi42OS02LTYtNnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 py-16 md:py-24">
           <div className="max-w-2xl">
             <h2 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">
               Bienvenido a <br />
-              <span className="text-emerald-300">OLIVOMARKET</span>
+              <span className="text-white/90">OLIVOMARKET</span>
             </h2>
-            <p className="text-xl md:text-2xl mb-8 text-emerald-50">
+            <p className="text-xl md:text-2xl mb-8 text-white/80">
               Los mejores productos venezolanos <br className="hidden sm:block" />
               al alcance de tu hogar
             </p>
             <div className="flex flex-wrap gap-4">
               <Link href="/productos">
-                <Button size="lg" className="bg-white text-emerald-700 hover:bg-emerald-50 shadow-xl border-none">
+                <Button size="lg" className="bg-white text-primary hover:bg-gray-100 shadow-xl border-none">
                   Ver Productos
                   <ChevronRight className="size-5 ml-2" />
                 </Button>
@@ -61,7 +61,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors">
-              <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600">
+              <div className="p-3 rounded-xl bg-primary/10 text-primary">
                 <Truck className="size-6" />
               </div>
               <div>
@@ -72,7 +72,7 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors">
-              <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600">
+              <div className="p-3 rounded-xl bg-primary/10 text-primary">
                 <Shield className="size-6" />
               </div>
               <div>
@@ -83,7 +83,7 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors">
-              <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600">
+              <div className="p-3 rounded-xl bg-primary/10 text-primary">
                 <Clock className="size-6" />
               </div>
               <div>
@@ -119,7 +119,7 @@ export default function Home() {
 
           {loading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -153,7 +153,7 @@ export default function Home() {
       {/* Newsletter Section */}
       <section className="py-16 bg-gradient-to-br from-gray-900 to-gray-800 text-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <Heart className="size-12 mx-auto mb-4 text-emerald-400 animate-pulse" />
+          <Heart className="size-12 mx-auto mb-4 text-primary animate-pulse" />
           <h2 className="text-3xl font-bold mb-3">
             Suscríbete a Nuestro Newsletter
           </h2>
@@ -164,9 +164,9 @@ export default function Home() {
             <Input
               type="email"
               placeholder="tu@email.com"
-              className="flex-1 bg-white/10 border-white/20 text-white placeholder-gray-400 focus:ring-emerald-500 focus:border-emerald-500 rounded-xl"
+              className="flex-1 bg-white/10 border-white/20 text-white placeholder-gray-400 focus:ring-primary focus:border-primary rounded-xl"
             />
-            <Button size="lg" className="sm:w-auto bg-emerald-600 hover:bg-emerald-500 border-none">
+            <Button size="lg" className="sm:w-auto bg-primary hover:bg-primary/90 border-none text-white">
               Suscribirse
             </Button>
           </div>

@@ -47,7 +47,7 @@ export default function ProductCard({ product }: Props) {
       id: product.id,
       name: product.name,
       price: price || 0,
-      image: product.image || undefined, // adapter for CartItem
+      image: product.image || '/file.svg', // adapter for CartItem
       slug: product.slug,
     }, qty);
 
@@ -57,7 +57,7 @@ export default function ProductCard({ product }: Props) {
   };
 
   return (
-    <div className="group relative h-full flex flex-col rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 hover:shadow-xl hover:ring-emerald-500/20 transition-all duration-300">
+    <div className="group relative h-full flex flex-col rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 hover:shadow-xl hover:ring-primary/40 transition-all duration-300">
       <Link href={`/productos/${product.slug}`} className="block relative aspect-square rounded-t-2xl overflow-hidden bg-gray-50">
         <ImageWithFallback
           src={product.image ?? '/file.svg'}
@@ -69,7 +69,7 @@ export default function ProductCard({ product }: Props) {
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           {product.featured && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-600 text-white shadow-lg">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-accent text-white shadow-lg">
               ⭐ Destacado
             </span>
           )}
@@ -98,13 +98,13 @@ export default function ProductCard({ product }: Props) {
       <div className="flex flex-col flex-1 p-4 gap-2">
         {/* Category */}
         {product.category?.name && (
-          <p className="text-xs font-medium text-emerald-600 uppercase tracking-wide">
+          <p className="text-xs font-medium text-primary uppercase tracking-wide">
             {product.category.name}
           </p>
         )}
 
         {/* Product Name */}
-        <Link href={`/productos/${product.slug}`} className="hover:text-emerald-600 transition-colors">
+        <Link href={`/productos/${product.slug}`} className="hover:text-primary transition-colors">
           <h3 className="text-base font-semibold text-gray-900 line-clamp-2 min-h-[3rem]">
             {product.name}
           </h3>
@@ -114,7 +114,7 @@ export default function ProductCard({ product }: Props) {
         <div className="mt-auto pt-2">
           {hasDiscount ? (
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-emerald-600">
+              <span className="text-2xl font-bold text-primary">
                 {formatCurrency(product.sale_price!)}
               </span>
               <span className="text-sm text-gray-400 line-through">
@@ -160,7 +160,7 @@ export default function ProductCard({ product }: Props) {
             ? 'bg-green-600 text-white scale-95'
             : product.stock === 0
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg active:scale-95'
+              : 'bg-primary text-white hover:bg-emerald-700 hover:shadow-lg active:scale-95'
             }`}
         >
           {isAdding ? (

@@ -1,1 +1,3 @@
-export { default } from "../admin/uber-eats/page";
+import UberEatsPage from "../_legacy_admin/uber-eats/page";
+
+export default UberEatsPage;
