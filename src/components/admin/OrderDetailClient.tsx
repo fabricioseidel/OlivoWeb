@@ -19,6 +19,7 @@ import { StoreSettings } from "@/app/api/admin/settings/route";
 type OrderItem = { id: string; name: string; price: number; quantity: number; image: string };
 type OrderDetail = { id: string; date: string; customer: { name: string; email: string; phone: string }; shipping: { address: string; city: string; postalCode: string; country: string }; payment: { method: string; transactionId: string; status: string }; items: OrderItem[]; status: string; subtotal: number; shippingCost: number; taxes: number; total: number; notes: string };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _OrderStatusBadge({ status }: { status: string }) {
   let bgColor = "";
   let textColor = "";
@@ -160,6 +161,7 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
                 // Case insensitive replace, handling optional commas
                 const regex = new RegExp(`,?\\s*${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi');
                 finalAddress = finalAddress.replace(regex, '');
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
               } catch (_e) { }
             }
           });

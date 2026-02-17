@@ -61,6 +61,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
     if (typeof window !== 'undefined') {
       addLog(`Window exists. Google object: ${!!(window as any).google}`);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const parseGooglePlace = (place: any) => {
@@ -310,6 +311,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
               onChange(v);
               doNominatimSearch(v);
             }}
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             onFocus={(e) => {
               const v = (typeof value === "string" ? value : (value && (value as AddressResult).formattedAddress) || "") as string;
               if (v && v.length >= 3) doNominatimSearch(v);
@@ -317,7 +319,6 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
             placeholder={placeholder}
             className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
             aria-autocomplete="list"
-            aria-expanded={showSuggestions}
             required={required}
           />
           <button

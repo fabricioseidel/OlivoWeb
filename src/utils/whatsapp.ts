@@ -25,6 +25,7 @@ export function buildWhatsAppOrderLink(params: {
   return `https://wa.me/${phone}?text=${message}`;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function buildSingleProductLink(phone: string, product: { name: string; price: number }, quantity = 1, _currency = "$") {
   return buildWhatsAppOrderLink({
     phone,

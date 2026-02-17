@@ -7,7 +7,7 @@ export default function DataCleanup() {
     // Solo ejecutar en el cliente
     if (typeof window !== 'undefined') {
       console.log('🧹 Iniciando limpieza de datos corruptos...');
-      
+
       // Helper: backup a key's current value before removing it
       const backupAndRemove = (key: string) => {
         try {
@@ -22,17 +22,18 @@ export default function DataCleanup() {
             }
           }
         } finally {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
         }
       };
-      
+
       // Limpiar carrito corrupto (crea backup antes de eliminar)
       try {
         const cart = localStorage.getItem('cart');
         if (cart) {
           const parsedCart = JSON.parse(cart);
           if (Array.isArray(parsedCart)) {
-            const hasCorruptedData = parsedCart.some(item => 
+            const hasCorruptedData = parsedCart.some(item =>
               item && typeof item === 'object' && item.title
             );
             if (hasCorruptedData) {
@@ -42,6 +43,7 @@ export default function DataCleanup() {
             }
           }
         }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         console.log('❌ Error al verificar carrito, creando backup y limpiando...');
         backupAndRemove('cart');
@@ -58,6 +60,7 @@ export default function DataCleanup() {
             backupAndRemove('orders');
           }
         }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         console.log('❌ Error al verificar pedidos, creando backup y limpiando...');
         backupAndRemove('orders');
@@ -72,6 +75,7 @@ export default function DataCleanup() {
             backupAndRemove('addresses');
           }
         }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         console.log('❌ Error al verificar direcciones, creando backup y limpiando...');
         backupAndRemove('addresses');

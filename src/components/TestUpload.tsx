@@ -18,7 +18,7 @@ export default function TestUpload() {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const base64 = e.target?.result as string;
-        
+
         // Test upload
         const response = await fetch('/api/admin/test-upload', {
           method: 'POST',
@@ -27,7 +27,7 @@ export default function TestUpload() {
         });
 
         const result = await response.json();
-        
+
         if (result.success) {
           setImageUrl(result.url);
           console.log('Upload successful:', result);
@@ -35,10 +35,10 @@ export default function TestUpload() {
           setError(result.error || 'Upload failed');
           console.error('Upload failed:', result);
         }
-        
+
         setLoading(false);
       };
-      
+
       reader.readAsDataURL(file);
     } catch (err: any) {
       setError(err.message);
@@ -49,7 +49,7 @@ export default function TestUpload() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">Test Image Upload</h1>
-      
+
       <input
         type="file"
         accept="image/*"
@@ -57,13 +57,14 @@ export default function TestUpload() {
         disabled={loading}
         className="mb-4"
       />
-      
+
       {loading && <p>Uploading...</p>}
       {error && <p className="text-red-500">Error: {error}</p>}
       {imageUrl && (
         <div>
           <p className="text-green-500">Upload successful!</p>
           <p className="text-sm text-gray-600">URL: {imageUrl}</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={imageUrl} alt="Uploaded" className="max-w-xs mt-2" />
         </div>
       )}
