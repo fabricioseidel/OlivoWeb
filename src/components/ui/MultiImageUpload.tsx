@@ -16,8 +16,8 @@ export default function MultiImageUpload({ label = "Galería", values, onChange,
     if (!fileList) return;
     const files = Array.from(fileList).slice(0, maxImages - values.length);
     const readers: Promise<string>[] = files.map(file => new Promise((resolve, reject) => {
-  if (!file.type.startsWith("image/")) return reject("Formato no válido");
-  if (file.size > maxSizeKB * 1024) return reject(`Archivo supera ${(maxSizeKB/1024).toFixed(2)}MB`);
+      if (!file.type.startsWith("image/")) return reject("Formato no válido");
+      if (file.size > maxSizeKB * 1024) return reject(`Archivo supera ${(maxSizeKB / 1024).toFixed(2)}MB`);
       const fr = new FileReader();
       fr.onload = e => resolve(e.target?.result as string);
       fr.onerror = () => reject("Error de lectura");
@@ -43,6 +43,7 @@ export default function MultiImageUpload({ label = "Galería", values, onChange,
       <div className="grid grid-cols-3 gap-3 mb-3">
         {values.map((src, idx) => (
           <div key={idx} className="relative group border rounded-md overflow-hidden bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={src} alt={`img-${idx}`} className="h-28 w-full object-cover" />
             <button type="button" onClick={() => removeAt(idx)} className="absolute top-1 right-1 bg-white/80 hover:bg-white text-red-600 text-xs px-1.5 py-0.5 rounded shadow">x</button>
           </div>
@@ -63,7 +64,7 @@ export default function MultiImageUpload({ label = "Galería", values, onChange,
         onChange={onInputChange}
         className="hidden"
       />
-  <p className="text-xs text-gray-500">Máx {maxImages} imágenes. Cada una hasta {(maxSizeKB/1024).toFixed(2)}MB.</p>
+      <p className="text-xs text-gray-500">Máx {maxImages} imágenes. Cada una hasta {(maxSizeKB / 1024).toFixed(2)}MB.</p>
     </div>
   );
 }

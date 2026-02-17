@@ -2,12 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
-  ArrowLeftIcon, 
+import {
+  ArrowLeftIcon,
   CheckIcon,
   TruckIcon,
-  XMarkIcon,
-  ClockIcon,
   CreditCardIcon,
   DocumentDuplicateIcon,
   PrinterIcon
@@ -21,7 +19,7 @@ import { StoreSettings } from "@/app/api/admin/settings/route";
 type OrderItem = { id: string; name: string; price: number; quantity: number; image: string };
 type OrderDetail = { id: string; date: string; customer: { name: string; email: string; phone: string }; shipping: { address: string; city: string; postalCode: string; country: string }; payment: { method: string; transactionId: string; status: string }; items: OrderItem[]; status: string; subtotal: number; shippingCost: number; taxes: number; total: number; notes: string };
 
-function OrderStatusBadge({ status }: { status: string }) {
+function _OrderStatusBadge({ status }: { status: string }) {
   let bgColor = "";
   let textColor = "";
   switch (status) {
@@ -50,13 +48,13 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
       if (!id) return; // Wait for id
       try {
         const [orderRes, settingsRes] = await Promise.all([
-            fetch(`/api/admin/orders/${id}`),
-            fetch(`/api/admin/settings`)
+          fetch(`/api/admin/orders/${id}`),
+          fetch(`/api/admin/settings`)
         ]);
 
         if (settingsRes.ok) {
-            const settingsData = await settingsRes.json();
-            setSettings(settingsData);
+          const settingsData = await settingsRes.json();
+          setSettings(settingsData);
         }
 
         if (!orderRes.ok) {
@@ -64,11 +62,11 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
           return;
         }
         const found = await orderRes.json();
-        
+
         const date = (found.created_at || found.date || new Date().toISOString()).toString();
         const itemsArray = Array.isArray(found.order_items) ? found.order_items : (Array.isArray(found.items) ? found.items : []);
         const addr = found.shipping_address || found.shippingAddress || {};
-        
+
         // normalize shipping address
         const shippingAddressNormalized: any = (() => {
           if (!addr) return {};
@@ -76,7 +74,7 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
             return { formattedAddress: addr };
           }
           if (addr.formattedAddress) return addr;
-          
+
           // Case: Structured address with calle/numero
           if (addr.calle || addr.ciudad || addr.codigoPostal) {
             const parts = [];
@@ -84,130 +82,130 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
             if (addr.numero) parts.push(addr.numero);
             if (addr.interior) parts.push(`Int. ${addr.interior}`);
             const formatted = parts.join(' ').trim();
-            
-            return { 
-                formattedAddress: formatted || addr.address || '', 
-                city: addr.ciudad || addr.city || null, 
-                postalCode: addr.codigoPostal || addr.postalCode || null, 
-                country: addr.estado || addr.country || null 
+
+            return {
+              formattedAddress: formatted || addr.address || '',
+              city: addr.ciudad || addr.city || null,
+              postalCode: addr.codigoPostal || addr.postalCode || null,
+              country: addr.estado || addr.country || null
             };
           }
-          
+
           // Fallback for ShippingInfo structure from checkout
           // Ensure we don't return "undefined" string
           return {
-                 formattedAddress: addr.address || '',
-                 city: addr.city,
-                 state: addr.state, // Capture state/comuna
-                 postalCode: addr.zipCode,
-                 country: addr.country,
-                 phone: addr.phone,
-                 email: addr.email,
-                 fullName: addr.fullName
+            formattedAddress: addr.address || '',
+            city: addr.city,
+            state: addr.state, // Capture state/comuna
+            postalCode: addr.zipCode,
+            country: addr.country,
+            phone: addr.phone,
+            email: addr.email,
+            fullName: addr.fullName
           };
         })();
 
-        const items: OrderItem[] = itemsArray.map((it: any, idx: number) => ({ 
-            id: it.product_id || it.id || `ITEM-${idx}`, 
-            name: it.name || it.title || `Producto ${idx+1}`, 
-            price: Number(it.price) || 0, 
-            quantity: Number(it.quantity) || 1, 
-            image: it.image || '/file.svg' 
+        const items: OrderItem[] = itemsArray.map((it: any, idx: number) => ({
+          id: it.product_id || it.id || `ITEM-${idx}`,
+          name: it.name || it.title || `Producto ${idx + 1}`,
+          price: Number(it.price) || 0,
+          quantity: Number(it.quantity) || 1,
+          image: it.image || '/file.svg'
         }));
-        
+
         const subtotal = Number(found.subtotal) || items.reduce((s, it) => s + it.price * it.quantity, 0);
         const shippingCost = Number(found.shipping_cost) || Number(found.shippingCost) || 0;
         // If taxes are not stored, calculate them or assume included. Let's assume included or 0 for now if not in DB.
-        const taxes = subtotal * 0.19; 
+        const taxes = subtotal * 0.19;
         const total = Number(found.total) || (subtotal + shippingCost);
-        
+
         // Construct city string with state/comuna if available
-        const cityDisplay = shippingAddressNormalized.state 
-            ? `${shippingAddressNormalized.state}, ${shippingAddressNormalized.city || ''}`
-            : (shippingAddressNormalized.city || addr.ciudad || found.city || '-');
+        const cityDisplay = shippingAddressNormalized.state
+          ? `${shippingAddressNormalized.state}, ${shippingAddressNormalized.city || ''}`
+          : (shippingAddressNormalized.city || addr.ciudad || found.city || '-');
 
         // Determine final address string, avoiding "undefined"
         let finalAddress = shippingAddressNormalized.formattedAddress;
         const isInvalidAddress = !finalAddress || String(finalAddress).trim() === 'undefined' || String(finalAddress).trim() === 'null' || String(finalAddress).trim() === '';
 
         if (isInvalidAddress) {
-            // Try to construct from calle/numero if available in raw addr
-            if (addr.calle) {
-                finalAddress = `${addr.calle} ${addr.numero || ''} ${addr.interior ? 'Int. '+addr.interior : ''}`.trim();
+          // Try to construct from calle/numero if available in raw addr
+          if (addr.calle) {
+            finalAddress = `${addr.calle} ${addr.numero || ''} ${addr.interior ? 'Int. ' + addr.interior : ''}`.trim();
+          } else {
+            // Check if found.address exists and is valid
+            const fallback = found.address;
+            if (fallback && String(fallback).trim() !== 'undefined' && String(fallback).trim() !== 'null') {
+              finalAddress = fallback;
             } else {
-                // Check if found.address exists and is valid
-                const fallback = found.address;
-                if (fallback && String(fallback).trim() !== 'undefined' && String(fallback).trim() !== 'null') {
-                    finalAddress = fallback;
-                } else {
-                    finalAddress = 'Dirección no especificada';
-                }
+              finalAddress = 'Dirección no especificada';
             }
+          }
         }
 
         // Clean up address: remove redundant city, state, country, zip if present in the address string
         // This fixes the issue where Google Autocomplete returns the full string and it looks duplicated
         if (finalAddress && typeof finalAddress === 'string') {
-            const termsToRemove = [
-                shippingAddressNormalized.country,
-                shippingAddressNormalized.postalCode,
-                shippingAddressNormalized.state,
-                shippingAddressNormalized.city,
-                'Chile' // Always try to remove country name if hardcoded
-            ].filter(Boolean);
+          const termsToRemove = [
+            shippingAddressNormalized.country,
+            shippingAddressNormalized.postalCode,
+            shippingAddressNormalized.state,
+            shippingAddressNormalized.city,
+            'Chile' // Always try to remove country name if hardcoded
+          ].filter(Boolean);
 
-            termsToRemove.forEach(term => {
-                if (term && term.length > 2) { // Only remove terms longer than 2 chars to avoid removing "RM" or similar if risky
-                    try {
-                        // Case insensitive replace, handling optional commas
-                        const regex = new RegExp(`,?\\s*${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi');
-                        finalAddress = finalAddress.replace(regex, '');
-                    } catch (e) {}
-                }
-            });
-            
-            // Clean up messy commas left behind
-            finalAddress = finalAddress
-                .replace(/,(\s*,)+/g, ',') // Multiple commas to one
-                .replace(/^,\s*/, '')       // Leading comma
-                .replace(/,\s*$/, '')       // Trailing comma
-                .trim();
+          termsToRemove.forEach(term => {
+            if (term && term.length > 2) { // Only remove terms longer than 2 chars to avoid removing "RM" or similar if risky
+              try {
+                // Case insensitive replace, handling optional commas
+                const regex = new RegExp(`,?\\s*${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi');
+                finalAddress = finalAddress.replace(regex, '');
+              } catch (_e) { }
+            }
+          });
+
+          // Clean up messy commas left behind
+          finalAddress = finalAddress
+            .replace(/,(\s*,)+/g, ',') // Multiple commas to one
+            .replace(/^,\s*/, '')       // Leading comma
+            .replace(/,\s*$/, '')       // Trailing comma
+            .trim();
         }
 
-        const detail: OrderDetail = { 
-            id: found.id, 
-            date: date, 
-            customer: { 
-                name: addr.fullName || found.customer || found.cliente || addr.nombre || '-', 
-                email: addr.email || found.email || found.correo || '-', 
-                phone: addr.phone || addr.telefono || found.phone || '+00 000 0000' 
-            }, 
-            shipping: { 
-                address: finalAddress, 
-                city: cityDisplay,
-                postalCode: shippingAddressNormalized.postalCode || addr.codigoPostal || found.postalCode || '-', 
-                country: shippingAddressNormalized.country || addr.estado || found.country || '-' 
-            }, 
-            payment: { 
-                method: found.payment_method || found.paymentMethod || 'No especificado', 
-                transactionId: found.transactionId || 'LOCAL-' + found.id, 
-                status: found.payment_status || 'pending' 
-            }, 
-            status: found.status || found.estado || 'En proceso', 
-            items, 
-            subtotal, 
-            shippingCost, 
-            taxes, 
-            total, 
-            notes: found.notes || '' 
+        const detail: OrderDetail = {
+          id: found.id,
+          date: date,
+          customer: {
+            name: addr.fullName || found.customer || found.cliente || addr.nombre || '-',
+            email: addr.email || found.email || found.correo || '-',
+            phone: addr.phone || addr.telefono || found.phone || '+00 000 0000'
+          },
+          shipping: {
+            address: finalAddress,
+            city: cityDisplay,
+            postalCode: shippingAddressNormalized.postalCode || addr.codigoPostal || found.postalCode || '-',
+            country: shippingAddressNormalized.country || addr.estado || found.country || '-'
+          },
+          payment: {
+            method: found.payment_method || found.paymentMethod || 'No especificado',
+            transactionId: found.transactionId || 'LOCAL-' + found.id,
+            status: found.payment_status || 'pending'
+          },
+          status: found.status || found.estado || 'En proceso',
+          items,
+          subtotal,
+          shippingCost,
+          taxes,
+          total,
+          notes: found.notes || ''
         };
-        setOrder(detail); 
+        setOrder(detail);
         setNewStatus(detail.status);
         setNewPaymentStatus(detail.payment.status);
-      } catch (e) { 
-        console.error('Error cargando pedido', e); 
-      } finally { 
-        setLoading(false); 
+      } catch (e) {
+        console.error('Error cargando pedido', e);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -219,16 +217,16 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
       try {
         setSaving(true);
         const res = await fetch(`/api/admin/orders/${order.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: newStatus, payment_status: newPaymentStatus })
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus, payment_status: newPaymentStatus })
         });
-        
+
         if (res.ok) {
-            setOrder({ ...order, status: newStatus, payment: { ...order.payment, status: newPaymentStatus } });
-            showToast('Estado actualizado correctamente', 'success');
+          setOrder({ ...order, status: newStatus, payment: { ...order.payment, status: newPaymentStatus } });
+          showToast('Estado actualizado correctamente', 'success');
         } else {
-            showToast('Error al actualizar el estado', 'error');
+          showToast('Error al actualizar el estado', 'error');
         }
       } catch (error) {
         console.error("Error al actualizar el estado:", error);
@@ -293,9 +291,10 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-md overflow-hidden">
-                              <img 
-                                src={item.image} 
-                                alt={item.name} 
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={item.image}
+                                alt={item.name}
                                 className="h-full w-full object-cover"
                                 onError={(e) => {
                                   const img = e.currentTarget as HTMLImageElement;
@@ -346,13 +345,13 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
                   </div>
                   <div className="flex items-start">
                     <div className="h-5 w-5 flex justify-center items-center mr-2">
-                        <span className="text-gray-400 text-xs">@</span>
+                      <span className="text-gray-400 text-xs">@</span>
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-gray-900">Contacto</p>
-                        <p className="text-sm text-gray-500 mt-1">{order.customer.name}</p>
-                        <p className="text-sm text-gray-500">{order.customer.email}</p>
-                        <p className="text-sm text-gray-500">{order.customer.phone}</p>
+                      <p className="text-sm font-medium text-gray-900">Contacto</p>
+                      <p className="text-sm text-gray-500 mt-1">{order.customer.name}</p>
+                      <p className="text-sm text-gray-500">{order.customer.email}</p>
+                      <p className="text-sm text-gray-500">{order.customer.phone}</p>
                     </div>
                   </div>
                 </div>
@@ -421,14 +420,14 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
                   </select>
                 </div>
 
-                <Button 
-                  onClick={handleStatusChange} 
+                <Button
+                  onClick={handleStatusChange}
                   disabled={saving || (newStatus === order.status && newPaymentStatus === order.payment.status)}
                   className="w-full justify-center"
                 >
                   {saving ? 'Guardando...' : 'Actualizar estado'}
                 </Button>
-                
+
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">Historial</h3>
                   <div className="relative pl-4 border-l-2 border-gray-200 space-y-4">

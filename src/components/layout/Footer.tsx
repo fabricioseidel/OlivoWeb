@@ -16,13 +16,13 @@ const Footer = () => {
 
   useEffect(() => {
     if (settings) {
-      setContactInfo({
-        storeName: settings.storeName || contactInfo.storeName,
-        storeEmail: settings.storeEmail || contactInfo.storeEmail,
-        storePhone: settings.storePhone || contactInfo.storePhone,
-        storeAddress: settings.storeAddress || contactInfo.storeAddress,
+      setContactInfo(prev => ({
+        storeName: settings.storeName || prev.storeName,
+        storeEmail: settings.storeEmail || prev.storeEmail,
+        storePhone: settings.storePhone || prev.storePhone,
+        storeAddress: settings.storeAddress || prev.storeAddress,
         socialMedia: settings.socialMedia || {},
-      });
+      }));
     }
   }, [settings]);
 

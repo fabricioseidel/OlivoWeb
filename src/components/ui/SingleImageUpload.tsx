@@ -11,12 +11,12 @@ interface SingleImageUploadProps {
   className?: string;
 }
 
-export default function SingleImageUpload({ 
-  label = "Imagen", 
-  value, 
-  onChange, 
-  error, 
-  required, 
+export default function SingleImageUpload({
+  label = "Imagen",
+  value,
+  onChange,
+  error,
+  required,
   maxSizeKB = 2048,
   className = ""
 }: SingleImageUploadProps) {
@@ -50,7 +50,7 @@ export default function SingleImageUpload({
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFile(e.dataTransfer.files[0]);
     }
@@ -68,17 +68,17 @@ export default function SingleImageUpload({
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
-      <div 
-        className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-3 ${
-          error ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-gray-100'
-        } transition-colors cursor-pointer`}
+      <div
+        className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-3 ${error ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-gray-100'
+          } transition-colors cursor-pointer`}
         onClick={() => inputRef.current?.click()}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-      >        
+      >
         {value ? (
           <div className="w-full">
             <div className="relative group">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={value} alt="preview" className="max-h-48 mx-auto rounded-lg object-contain" />
               <button
                 type="button"
@@ -103,7 +103,7 @@ export default function SingleImageUpload({
               Arrastra una imagen o haz clic para seleccionar
             </p>
             <p className="text-xs text-gray-500 text-center">
-              Formatos aceptados: JPG, PNG, WebP. Máx { (maxSizeKB/1024).toFixed(1) }MB
+              Formatos aceptados: JPG, PNG, WebP. Máx {(maxSizeKB / 1024).toFixed(1)}MB
             </p>
           </>
         )}
