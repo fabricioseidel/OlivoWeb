@@ -88,7 +88,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     } catch (e: any) {
       console.error('Error saving category image:', e?.message || e);
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { name, slug, description, isActive, image } = body;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const normalizeSlug = (value: string) => value
       .toLowerCase()
       .normalize("NFD")
@@ -171,7 +173,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     if (!session || !String(role).toUpperCase().includes('ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-  } catch (e) {
+  } catch (_e) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 

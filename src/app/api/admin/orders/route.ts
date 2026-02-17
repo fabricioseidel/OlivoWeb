@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Fetch orders ordered by created_at desc
     // We also want the count of items.
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       ...order,
       items_count: order.order_items ? order.order_items.length : 0,
       // Remove the full items array to save bandwidth if it was large, though here we just selected IDs
-      order_items: undefined 
+      order_items: undefined
     }));
 
     return NextResponse.json(transformedOrders);

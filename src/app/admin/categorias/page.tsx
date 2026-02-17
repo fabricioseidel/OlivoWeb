@@ -105,6 +105,7 @@ export default function CategoriesPage() {
       await loadCategories();
     };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const normalizeSlug = (value: string) => value
@@ -171,6 +172,7 @@ export default function CategoriesPage() {
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isModalOpen]);
 
   // Manejar cambios en los campos del formulario
@@ -549,8 +551,8 @@ export default function CategoriesPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-3 py-1.5 inline-flex text-xs font-semibold rounded-full ${category.isActive
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
                         }`}
                     >
                       {category.isActive ? "Activa" : "Inactiva"}
@@ -568,8 +570,8 @@ export default function CategoriesPage() {
                       <button
                         onClick={() => toggleCategoryStatus(category.id)}
                         className={`text-sm py-2 px-3 rounded-lg font-medium transition-colors ${category.isActive
-                            ? "bg-red-100 text-red-700 hover:bg-red-200"
-                            : "bg-green-100 text-green-700 hover:bg-green-200"
+                          ? "bg-red-100 text-red-700 hover:bg-red-200"
+                          : "bg-green-100 text-green-700 hover:bg-green-200"
                           }`}
                         title={category.isActive ? "Desactivar categoría" : "Activar categoría"}
                       >
@@ -732,6 +734,7 @@ export default function CategoriesPage() {
                             {/* Imagen actual (data URL) */}
                             {formData.image && formData.image.startsWith('data:') && (
                               <div className="w-24 h-24 relative border border-gray-200 rounded-lg overflow-hidden shadow-sm flex-shrink-0">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                   src={formData.image}
                                   alt="Vista previa"

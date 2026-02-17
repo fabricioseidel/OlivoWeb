@@ -110,12 +110,13 @@ export default function DireccionesPage() {
       ]);
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
     const checked = type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value
@@ -129,44 +130,44 @@ export default function DireccionesPage() {
       // Extract street and number if available, otherwise fallback to formatted address
       let street = val.street || "";
       let streetNumber = val.streetNumber || "";
-      
+
       // Fallback if components are missing
       if (!street) {
-          const parts = val.formattedAddress.split(',').map(p => p.trim());
-          if (parts.length > 0) {
-              const first = parts[0];
-              // Check if first part is just a number (e.g. "2456, Los Olmos...")
-              if (/^\d+$/.test(first)) {
-                  if (!streetNumber) streetNumber = first;
-                  if (parts.length > 1) street = parts[1]; 
-              } else {
-                  // Check for "Street 123" or "Street #123"
-                  const matchSuffix = first.match(/^(.+?)\s+(?:#|No\.?)?\s*(\d+)$/i);
-                  // Check for "123 Street" or "#123 Street"
-                  const matchPrefix = first.match(/^(?:#|No\.?)?\s*(\d+)\s+(.+)$/i);
-                  
-                  if (matchSuffix) {
-                      street = matchSuffix[1];
-                      if (!streetNumber) streetNumber = matchSuffix[2];
-                  } else if (matchPrefix) {
-                      if (!streetNumber) streetNumber = matchPrefix[1];
-                      street = matchPrefix[2];
-                  } else {
-                      street = first;
-                      // Try to extract number from street if we still don't have one
-                      if (!streetNumber) {
-                          const matchAnyNumber = first.match(/(\d+)/);
-                          if (matchAnyNumber) {
-                              streetNumber = matchAnyNumber[1];
-                              // Remove the number and common prefixes from the street name
-                              street = first.replace(streetNumber, '').replace(/#|No\.|Num\./i, '').trim();
-                              // Clean up any trailing/leading non-alphanumeric chars (like commas if they were missed)
-                              street = street.replace(/^[\s,.-]+|[\s,.-]+$/g, '');
-                          }
-                      }
-                  }
+        const parts = val.formattedAddress.split(',').map(p => p.trim());
+        if (parts.length > 0) {
+          const first = parts[0];
+          // Check if first part is just a number (e.g. "2456, Los Olmos...")
+          if (/^\d+$/.test(first)) {
+            if (!streetNumber) streetNumber = first;
+            if (parts.length > 1) street = parts[1];
+          } else {
+            // Check for "Street 123" or "Street #123"
+            const matchSuffix = first.match(/^(.+?)\s+(?:#|No\.?)?\s*(\d+)$/i);
+            // Check for "123 Street" or "#123 Street"
+            const matchPrefix = first.match(/^(?:#|No\.?)?\s*(\d+)\s+(.+)$/i);
+
+            if (matchSuffix) {
+              street = matchSuffix[1];
+              if (!streetNumber) streetNumber = matchSuffix[2];
+            } else if (matchPrefix) {
+              if (!streetNumber) streetNumber = matchPrefix[1];
+              street = matchPrefix[2];
+            } else {
+              street = first;
+              // Try to extract number from street if we still don't have one
+              if (!streetNumber) {
+                const matchAnyNumber = first.match(/(\d+)/);
+                if (matchAnyNumber) {
+                  streetNumber = matchAnyNumber[1];
+                  // Remove the number and common prefixes from the street name
+                  street = first.replace(streetNumber, '').replace(/#|No\.|Num\./i, '').trim();
+                  // Clean up any trailing/leading non-alphanumeric chars (like commas if they were missed)
+                  street = street.replace(/^[\s,.-]+|[\s,.-]+$/g, '');
+                }
               }
+            }
           }
+        }
       }
 
       // In Chile:
@@ -174,7 +175,7 @@ export default function DireccionesPage() {
       // val.state (admin_area_1) -> Region (e.g. RM)
       // We need to find "Ciudad" (Province or just Santiago). 
       // Often Google returns "Santiago" as admin_area_2 or locality.
-      
+
       setFormData(prev => ({
         ...prev,
         calle: street,
@@ -185,16 +186,16 @@ export default function DireccionesPage() {
         estado: val.state || prev.estado, // Region
         codigoPostal: val.postalCode || prev.codigoPostal
       }));
-      
+
       // Refine mapping if we have more info
       if (val.state && val.state.includes("Metropolitana")) {
-          setFormData(prev => ({ ...prev, ciudad: "Santiago" }));
+        setFormData(prev => ({ ...prev, ciudad: "Santiago" }));
       } else if (val.city && val.city !== val.district) {
-          // If city is different from district (e.g. City=Concepcion, District=Concepcion), use city
-          // If City=Provincia de Santiago, ignore it
-          if (!val.city.includes("Provincia")) {
-             setFormData(prev => ({ ...prev, ciudad: val.city || "" }));
-          }
+        // If city is different from district (e.g. City=Concepcion, District=Concepcion), use city
+        // If City=Provincia de Santiago, ignore it
+        if (!val.city.includes("Provincia")) {
+          setFormData(prev => ({ ...prev, ciudad: val.city || "" }));
+        }
       }
     }
   }, []);
@@ -220,23 +221,23 @@ export default function DireccionesPage() {
     if (!confirm("¿Estás seguro de que deseas eliminar esta dirección?")) {
       return;
     }
-    
+
     try {
       // Simulación de eliminación
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       setDirecciones(prev => prev.filter(dir => dir.id !== id));
-      
+
       setMensaje({
         tipo: "exito",
         texto: "Dirección eliminada correctamente"
       });
-      
+
       // Auto-limpiar mensaje después de 5 segundos
       setTimeout(() => {
         setMensaje({ tipo: "", texto: "" });
       }, 5000);
-    } catch (error) {
+    } catch (_error) {
       setMensaje({
         tipo: "error",
         texto: "Error al eliminar la dirección"
@@ -248,7 +249,7 @@ export default function DireccionesPage() {
     try {
       // Simulación de actualización
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       setDirecciones(prev => {
         const updated = prev.map(dir => ({
           ...dir,
@@ -268,7 +269,7 @@ export default function DireccionesPage() {
       setTimeout(() => {
         setMensaje({ tipo: "", texto: "" });
       }, 5000);
-    } catch (error) {
+    } catch (_error) {
       setMensaje({
         tipo: "error",
         texto: "Error al actualizar la dirección predeterminada"
@@ -279,11 +280,11 @@ export default function DireccionesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       // Simulación de guardado
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       if (direccionActual) {
         // Actualizar dirección existente
         setDirecciones(prev => {
@@ -294,12 +295,12 @@ export default function DireccionesPage() {
               predeterminada: false
             }));
           }
-          
-          return prev.map(dir => 
+
+          return prev.map(dir =>
             dir.id === direccionActual.id ? formData : dir
           );
         });
-        
+
         setMensaje({
           tipo: "exito",
           texto: "Dirección actualizada correctamente"
@@ -310,7 +311,7 @@ export default function DireccionesPage() {
           ...formData,
           id: `dir-${Date.now()}`
         };
-        
+
         setDirecciones(prev => {
           // Si la nueva dirección es predeterminada, actualizar las demás
           if (nuevaDireccion.predeterminada) {
@@ -319,16 +320,16 @@ export default function DireccionesPage() {
               predeterminada: false
             }));
           }
-          
+
           return [...prev, nuevaDireccion];
         });
-        
+
         setMensaje({
           tipo: "exito",
           texto: "Dirección agregada correctamente"
         });
       }
-      
+
       // Cerrar formulario
       setMostrarFormulario(false);
       setDireccionActual(null);
@@ -340,16 +341,16 @@ export default function DireccionesPage() {
 
       // Guardar todas las direcciones en localStorage
       if (typeof window !== 'undefined') {
-        const updatedAddresses = direccionActual 
+        const updatedAddresses = direccionActual
           ? direcciones.map(dir => dir.id === direccionActual.id ? formData : dir)
           : [...direcciones, { ...formData, id: `dir-${Date.now()}` }];
         localStorage.setItem('addresses', JSON.stringify(updatedAddresses));
       }
-      
+
       // Redirigir de vuelta a mi cuenta
       router.push("/mi-cuenta");
-      
-    } catch (error) {
+
+    } catch (_error) {
       setMensaje({
         tipo: "error",
         texto: "Ha ocurrido un error al guardar la dirección"
@@ -400,7 +401,7 @@ export default function DireccionesPage() {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             {direccionActual ? "Editar dirección" : "Agregar dirección"}
           </h2>
-          
+
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
@@ -418,7 +419,7 @@ export default function DireccionesPage() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-1">
                   Teléfono de contacto
@@ -433,7 +434,7 @@ export default function DireccionesPage() {
                   required
                 />
               </div>
-              
+
               <div className="md:col-span-2">
                 <label htmlFor="calle" className="block text-sm font-medium text-gray-700 mb-1">
                   Calle
@@ -446,7 +447,7 @@ export default function DireccionesPage() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="numero" className="block text-sm font-medium text-gray-700 mb-1">
                   Número exterior
@@ -461,7 +462,7 @@ export default function DireccionesPage() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="interior" className="block text-sm font-medium text-gray-700 mb-1">
                   Número interior (opcional)
@@ -475,7 +476,7 @@ export default function DireccionesPage() {
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="colonia" className="block text-sm font-medium text-gray-700 mb-1">
                   Comuna
@@ -490,7 +491,7 @@ export default function DireccionesPage() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="codigoPostal" className="block text-sm font-medium text-gray-700 mb-1">
                   Código Postal
@@ -505,7 +506,7 @@ export default function DireccionesPage() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="ciudad" className="block text-sm font-medium text-gray-700 mb-1">
                   Ciudad
@@ -520,7 +521,7 @@ export default function DireccionesPage() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="estado" className="block text-sm font-medium text-gray-700 mb-1">
                   Región
@@ -535,7 +536,7 @@ export default function DireccionesPage() {
                   required
                 />
               </div>
-              
+
               <div className="md:col-span-2">
                 <div className="flex items-center">
                   <input
@@ -552,7 +553,7 @@ export default function DireccionesPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex justify-end space-x-3">
               <button
                 type="button"
@@ -628,7 +629,7 @@ export default function DireccionesPage() {
                       </button>
                     </div>
                   </div>
-                  
+
                   {!direccion.predeterminada && (
                     <div className="mt-4 pt-4 border-t border-gray-200">
                       <button

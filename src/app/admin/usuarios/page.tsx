@@ -4,14 +4,12 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
-import { 
-  MagnifyingGlassIcon, 
-  ArrowUpIcon, 
+import {
+  MagnifyingGlassIcon,
+  ArrowUpIcon,
   ArrowDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  PencilIcon,
-  TrashIcon,
   UserPlusIcon
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
@@ -37,7 +35,7 @@ function StatusBadge({ status }: { status: string }) {
   let bgColor = "";
   let textColor = "";
   let statusText = "";
-  
+
   switch (status) {
     case "ACTIVE":
       bgColor = "bg-green-100";
@@ -54,7 +52,7 @@ function StatusBadge({ status }: { status: string }) {
       textColor = "text-gray-800";
       statusText = status;
   }
-  
+
   return (
     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
       {statusText}
@@ -67,7 +65,7 @@ function RoleBadge({ role }: { role: string }) {
   let bgColor = "";
   let textColor = "";
   let roleText = "";
-  
+
   switch (role) {
     case "ADMIN":
       bgColor = "bg-purple-100";
@@ -84,7 +82,7 @@ function RoleBadge({ role }: { role: string }) {
       textColor = "text-gray-800";
       roleText = role;
   }
-  
+
   return (
     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
       {roleText}
@@ -96,6 +94,7 @@ export default function UsersPage() {
   const { data: session } = useSession();
   const [users, setUsers] = useState<RealUser[]>([]);
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -118,7 +117,7 @@ export default function UsersPage() {
   // Ordenar usuarios
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     let comparison = 0;
-    
+
     if (sortField === "name") {
       comparison = (a.name || '').localeCompare(b.name || '');
     } else if (sortField === "email") {
@@ -126,7 +125,7 @@ export default function UsersPage() {
     } else if (sortField === "createdAt") {
       comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     }
-    
+
     return sortDirection === "asc" ? comparison : -comparison;
   });
 
@@ -157,7 +156,7 @@ export default function UsersPage() {
   const toggleUserRole = async (userId: string, currentRole: string) => {
     if (session?.user?.role !== 'ADMIN') return;
     const newRole = currentRole === 'ADMIN' ? 'USER' : 'ADMIN';
-    const user = users.find(u=>u.id===userId);
+    const user = users.find(u => u.id === userId);
     const confirmed = await confirm({
       title: `Cambiar rol`,
       message: `¿Confirmas cambiar el rol de ${user?.name || user?.email} a ${newRole}?`,
@@ -167,14 +166,14 @@ export default function UsersPage() {
     });
     if (!confirmed) return;
     try {
-      const res = await fetch('/api/admin/users', { method: 'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId, role: newRole }) });
+      const res = await fetch('/api/admin/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, role: newRole }) });
       if (!res.ok) throw new Error('Error actualizando rol');
-      setUsers(prev => prev.map(u => u.id===userId ? { ...u, role: newRole } : u));
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
       showToast('Rol actualizado', 'success');
-    } catch(e:any){ showToast(e.message,'error'); }
+    } catch (e: any) { showToast(e.message, 'error'); }
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     const load = async () => {
       try {
         setLoading(true); setError(null);
@@ -184,17 +183,18 @@ export default function UsersPage() {
         }
         const data = await res.json();
         setUsers(data);
-      } catch(e:any) { setError(e.message); }
+      } catch (e: any) { setError(e.message); }
       finally { setLoading(false); }
     };
     load();
   }, []);
 
   // Eliminar usuario
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const deleteUser = async (userId: string) => {
     const user = users.find(u => u.id === userId);
     if (!user) return;
-    
+
     const confirmed = await confirm({
       title: "Eliminar usuario",
       message: `¿Estás seguro de que deseas eliminar a ${user.name}? Esta acción no se puede deshacer.`,
@@ -202,9 +202,9 @@ export default function UsersPage() {
       cancelText: "Cancelar",
       confirmButtonClass: "bg-red-600 hover:bg-red-700"
     });
-    
+
     if (!confirmed) return;
-    
+
     const updatedUsers = users.filter((u) => u.id !== userId);
     setUsers(updatedUsers);
     showToast(`Usuario ${user.name} eliminado correctamente`, "success");
@@ -220,8 +220,8 @@ export default function UsersPage() {
           </p>
         </div>
         {session?.user?.role === 'ADMIN' && (
-          <Link 
-            href="/admin/usuarios/nuevo" 
+          <Link
+            href="/admin/usuarios/nuevo"
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <UserPlusIcon className="h-5 w-5 mr-2" />
@@ -245,7 +245,7 @@ export default function UsersPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           <div>
             <select
               className="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -259,7 +259,7 @@ export default function UsersPage() {
               ))}
             </select>
           </div>
-          
+
           <div>
             <select
               className="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -273,7 +273,7 @@ export default function UsersPage() {
               ))}
             </select>
           </div>
-          
+
           <div className="text-right flex items-center justify-end">
             <span className="text-sm text-gray-500">
               {loading ? 'Cargando usuarios...' : `Mostrando ${currentItems.length} de ${filteredUsers.length} usuarios`}
@@ -341,8 +341,8 @@ export default function UsersPage() {
                     <div className="text-sm text-gray-900">{user.email}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <RoleBadge role={user.role} /> {session?.user?.role==='ADMIN' && user.id!==session.user.id && (
-                      <button onClick={()=>toggleUserRole(user.id, user.role)} className="ml-2 text-xs text-indigo-600 hover:text-indigo-800 underline">Cambiar</button>
+                    <RoleBadge role={user.role} /> {session?.user?.role === 'ADMIN' && user.id !== session.user.id && (
+                      <button onClick={() => toggleUserRole(user.id, user.role)} className="ml-2 text-xs text-indigo-600 hover:text-indigo-800 underline">Cambiar</button>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -362,14 +362,14 @@ export default function UsersPage() {
             </tbody>
           </table>
         </div>
-        
+
         {/* Sin resultados */}
-  {!loading && currentItems.length === 0 && (
+        {!loading && currentItems.length === 0 && (
           <div className="text-center py-8">
             <p className="text-gray-500">No se encontraron usuarios con los criterios de búsqueda.</p>
           </div>
         )}
-        
+
         {/* Paginación */}
         {totalPages > 1 && (
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
@@ -388,38 +388,35 @@ export default function UsersPage() {
                   <button
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                      currentPage === 1
+                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${currentPage === 1
                         ? "text-gray-300 cursor-not-allowed"
                         : "text-gray-500 hover:bg-gray-50"
-                    }`}
+                      }`}
                   >
                     <span className="sr-only">Anterior</span>
                     <ChevronLeftIcon className="h-5 w-5" />
                   </button>
-                  
+
                   {Array.from({ length: totalPages }).map((_, index) => (
                     <button
                       key={index}
                       onClick={() => paginate(index + 1)}
-                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium ${
-                        currentPage === index + 1
+                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium ${currentPage === index + 1
                           ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
                           : "text-gray-500 hover:bg-gray-50"
-                      }`}
+                        }`}
                     >
                       {index + 1}
                     </button>
                   ))}
-                  
+
                   <button
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                      currentPage === totalPages
+                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${currentPage === totalPages
                         ? "text-gray-300 cursor-not-allowed"
                         : "text-gray-500 hover:bg-gray-50"
-                    }`}
+                      }`}
                   >
                     <span className="sr-only">Siguiente</span>
                     <ChevronRightIcon className="h-5 w-5" />
@@ -430,19 +427,19 @@ export default function UsersPage() {
           </div>
         )}
       </div>
-      
+
       {/* Resumen de usuarios */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="text-sm font-medium text-gray-500 mb-1">Total usuarios</div>
           <div className="text-3xl font-semibold text-gray-900">{users.length}</div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="text-sm font-medium text-gray-500 mb-1">Solo lectura</div>
           <div className="text-sm text-gray-400">Gestión básica (roles)</div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="text-sm font-medium text-gray-500 mb-1">Administradores</div>
           <div className="text-3xl font-semibold text-purple-600">{users.filter(u => u.role === 'ADMIN').length}</div>

@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { normalizeImageUrl } from '@/utils/image';
+
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useCategories } from "@/hooks/useCategories";
@@ -10,7 +10,7 @@ import Button from "@/components/ui/Button";
 import SingleImageUpload from "@/components/ui/SingleImageUpload";
 import MultiImageUpload from "@/components/ui/MultiImageUpload";
 import { TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
-import Input from "@/components/ui/Input";
+
 
 interface FormState {
   name: string;

@@ -45,7 +45,7 @@ export default function AdminOrdersPage() {
               const shipping = o.shipping_address || {};
               const customerName = shipping.fullName || shipping.name || o.user_id || 'Cliente';
               const date = (o.created_at || o.date || new Date().toISOString()).split('T')[0];
-              
+
               return {
                 id: o.id,
                 customer: customerName,
@@ -68,6 +68,7 @@ export default function AdminOrdersPage() {
     };
 
     fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Memo para evitar recalcular en cada render
   const filteredOrders = useMemo(() => {

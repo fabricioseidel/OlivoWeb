@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 export default function CambiarContrasenaPage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +39,7 @@ export default function CambiarContrasenaPage() {
       ...prev,
       [name]: value
     }));
-    
+
     // Limpiar errores al escribir
     if (errors[name as keyof typeof errors]) {
       setErrors(prev => ({
@@ -55,12 +56,12 @@ export default function CambiarContrasenaPage() {
       nuevaContrasena: "",
       confirmarContrasena: ""
     };
-    
+
     if (!formData.contrasenaActual) {
       newErrors.contrasenaActual = "La contraseña actual es requerida";
       isValid = false;
     }
-    
+
     if (!formData.nuevaContrasena) {
       newErrors.nuevaContrasena = "La nueva contraseña es requerida";
       isValid = false;
@@ -68,7 +69,7 @@ export default function CambiarContrasenaPage() {
       newErrors.nuevaContrasena = "La contraseña debe tener al menos 8 caracteres";
       isValid = false;
     }
-    
+
     if (!formData.confirmarContrasena) {
       newErrors.confirmarContrasena = "Debe confirmar la nueva contraseña";
       isValid = false;
@@ -76,44 +77,44 @@ export default function CambiarContrasenaPage() {
       newErrors.confirmarContrasena = "Las contraseñas no coinciden";
       isValid = false;
     }
-    
+
     setErrors(newErrors);
     return isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Simulación de actualización (en una app real, enviaríamos a la API)
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Simulamos una validación exitosa
       setMensaje({
         tipo: "exito",
         texto: "Contraseña actualizada correctamente"
       });
-      
+
       // Limpiar formulario
       setFormData({
         contrasenaActual: "",
         nuevaContrasena: "",
         confirmarContrasena: ""
       });
-    } catch (error) {
+    } catch (_error) {
       setMensaje({
         tipo: "error",
         texto: "Ha ocurrido un error al actualizar la contraseña"
       });
     } finally {
       setIsSubmitting(false);
-      
+
       // Auto-limpiar mensaje después de 5 segundos
       setTimeout(() => {
         setMensaje({ tipo: "", texto: "" });
@@ -165,7 +166,7 @@ export default function CambiarContrasenaPage() {
                 <p className="mt-1 text-sm text-red-600">{errors.contrasenaActual}</p>
               )}
             </div>
-            
+
             <div>
               <label htmlFor="nuevaContrasena" className="block text-sm font-medium text-gray-700 mb-1">
                 Nueva contraseña
@@ -186,7 +187,7 @@ export default function CambiarContrasenaPage() {
                 </p>
               )}
             </div>
-            
+
             <div>
               <label htmlFor="confirmarContrasena" className="block text-sm font-medium text-gray-700 mb-1">
                 Confirmar nueva contraseña

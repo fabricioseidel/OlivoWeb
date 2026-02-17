@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     await new Promise(r => setTimeout(r, 300));
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
+  } catch (_e: any) {
     return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }

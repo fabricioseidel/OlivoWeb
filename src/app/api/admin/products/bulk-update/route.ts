@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface ProductUpdate {
   barcode?: string;
   name?: string;
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
   try {
     const session: any = await getServerSession(authOptions as any);
     const role = (session as any)?.role || (session?.user as any)?.role || '';
-    
+
     if (!session || !String(role).toUpperCase().includes('ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
 
         // Construir payload de actualización
         const updatePayload: any = {};
-        
+
         if (data.name !== undefined) updatePayload.name = data.name;
         if (data.price !== undefined) updatePayload.price = data.price;
         if (data.stock !== undefined) updatePayload.stock = data.stock;
@@ -105,7 +106,7 @@ export async function GET(req: Request) {
   try {
     const session: any = await getServerSession(authOptions as any);
     const role = (session as any)?.role || (session?.user as any)?.role || '';
-    
+
     if (!session || !String(role).toUpperCase().includes('ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }

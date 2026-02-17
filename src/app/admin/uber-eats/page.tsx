@@ -215,7 +215,7 @@ export default function UberEatsExportPage() {
   const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
-  
+
   // ====== ESTADOS PARA SINCRONIZACIÓN Y SUBIDA DE IMÁGENES ======
   const [syncing, setSyncing] = useState(false);
   const [uploadingImage, setUploadingImage] = useState<string | null>(null); // barcode del producto subiendo
@@ -290,7 +290,7 @@ export default function UberEatsExportPage() {
     if (typeof window === 'undefined') return;
     localStorage.setItem(EXPORTED_PRODUCTS_KEY, JSON.stringify(Array.from(exportedProducts)));
   }, [exportedProducts]);
-  
+
   // ====== INICIALIZACIÓN DESDE LOCALSTORAGE CON LOGGING ======
   const [excludedProducts, setExcludedProducts] = useState<Set<string>>(() => {
     log.load("Iniciando carga de productos excluidos desde localStorage...");
@@ -311,7 +311,7 @@ export default function UberEatsExportPage() {
     log.info("No hay productos excluidos guardados");
     return new Set();
   });
-  
+
   const [productModifications, setProductModifications] = useState<Record<string, Partial<UberEatsProduct>>>(() => {
     log.load("Iniciando carga de modificaciones desde localStorage...");
     if (typeof window !== 'undefined') {
@@ -331,7 +331,7 @@ export default function UberEatsExportPage() {
     log.info("No hay modificaciones guardadas");
     return {};
   });
-  
+
   const [hasChanges, setHasChanges] = useState(false);
 
   // ====== GUARDAR EN LOCALSTORAGE CON LOGGING ======
@@ -346,7 +346,7 @@ export default function UberEatsExportPage() {
       log.info("Sin productos excluidos, limpiado localStorage");
     }
   }, [excludedProducts]);
-  
+
   // Guardar modificaciones
   useEffect(() => {
     const keys = Object.keys(productModifications);
@@ -360,7 +360,7 @@ export default function UberEatsExportPage() {
       log.info("Sin modificaciones, limpiado localStorage");
     }
   }, [productModifications]);
-  
+
   // Guardar categorías personalizadas
   useEffect(() => {
     log.save("Guardando categorías personalizadas...", "Count:", customCategories.length);
@@ -373,7 +373,7 @@ export default function UberEatsExportPage() {
       log.info("Sin categorías personalizadas, limpiado localStorage");
     }
   }, [customCategories]);
-  
+
   // Cargar categorías personalizadas al inicio
   useEffect(() => {
     log.load("Cargando categorías personalizadas desde localStorage...");
@@ -479,7 +479,7 @@ export default function UberEatsExportPage() {
       }
       const json = await res.json();
       log.success("API response recibida");
-      
+
       // La API devuelve { items: [...] }
       const data = json.items || json.data || json || [];
       log.info("Productos del API:", data.length);
@@ -546,7 +546,7 @@ export default function UberEatsExportPage() {
         const productTypeRaw = String(p.product_type ?? '').trim() || detectProductType(p.category || "", p.name || "");
         const productType = productTypeRaw ? productTypeRaw : "null";
         const hfss = p.hfss || detectHFSS(p.category || "", p.name || "");
-        
+
         // `sale_price` lo tratamos como precio FINAL con IVA incluido
         const priceWithVat = Number(p.sale_price || 0);
         const vatPct = 19;
@@ -633,7 +633,7 @@ export default function UberEatsExportPage() {
       // Filtrar productos excluidos
       const filteredByExclusion = uberProducts.filter(p => !excludedSet.has(p.id));
       log.info("Productos tras filtrar excluidos:", filteredByExclusion.length, "(excluidos:", excludedSet.size, ")");
-      
+
       setProducts(filteredByExclusion);
       log.success("loadProducts() completado!");
     } catch (err) {
@@ -763,7 +763,7 @@ export default function UberEatsExportPage() {
     setExcludedProducts(new Set());
     loadProducts();
   }, []);
-  
+
   // Resetear todos los cambios guardados
   const resetAllChanges = useCallback(() => {
     log.action("resetAllChanges() - Limpiando todo localStorage");
@@ -785,7 +785,7 @@ export default function UberEatsExportPage() {
   const updateProduct = useCallback((id: string, field: keyof UberEatsProduct, value: any) => {
     log.action("updateProduct():", id, field, "=", value);
     setHasChanges(true);
-    
+
     // Guardar la modificación en localStorage
     setProductModifications(prev => {
       const updated = { ...prev };
@@ -794,7 +794,7 @@ export default function UberEatsExportPage() {
       log.save("Guardando modificación para producto:", id, updated[id]);
       return updated;
     });
-    
+
     setProducts((prev) =>
       prev.map((p) => {
         if (p.id !== id) return p;
@@ -812,7 +812,7 @@ export default function UberEatsExportPage() {
           const vat = Number(updated.vatPercentage || 19);
           updated.price = Math.round(Number(updated.priceWithVat || 0) / (1 + vat / 100));
         }
-        
+
         // Re-validar
         updated.validationErrors = validateProduct(updated);
         updated.isValid = updated.validationErrors.length === 0;
@@ -908,7 +908,7 @@ export default function UberEatsExportPage() {
         }
         throw new Error(`Error guardando productos (${res.status} ${res.statusText})${details}`);
       }
-      
+
       setHasChanges(false);
 
       // Limpiar modificaciones guardadas para que al recargar tome el valor real de la BD
@@ -1031,10 +1031,10 @@ export default function UberEatsExportPage() {
     }
 
     log.action("applyNamePattern:", pattern, "→", replacement, "a", selectedProducts.length, "productos");
-    
+
     let count = 0;
     const regex = new RegExp(pattern, 'gi');
-    
+
     setProductModifications(prev => {
       const updated = { ...prev };
       selectedProducts.forEach(p => {
@@ -1047,7 +1047,7 @@ export default function UberEatsExportPage() {
       });
       return updated;
     });
-    
+
     setProducts(prev => prev.map(p => {
       if (!p.editSelected) return p;
       const newName = p.name.replace(regex, replacement);
@@ -1056,7 +1056,7 @@ export default function UberEatsExportPage() {
       }
       return p;
     }));
-    
+
     log.success("Patrón aplicado a", count, "productos");
     alert(`Patrón aplicado a ${count} productos`);
   }, [products]);
@@ -1064,7 +1064,7 @@ export default function UberEatsExportPage() {
   // NUEVA FUNCIÓN: Normalizar unidades de medida en nombres
   const addMeasurementUnits = useCallback(() => {
     let count = 0;
-    
+
     setProductModifications(prev => {
       const updated = { ...prev };
       products.forEach(p => {
@@ -1076,7 +1076,7 @@ export default function UberEatsExportPage() {
         newName = newName.replace(/(\d+)\s*gr\b/gi, '$1 G');
         newName = newName.replace(/(\d+)\s*kg\b/gi, '$1 KG');
         newName = newName.replace(/(\d+)\s*cc\b/gi, '$1 ML');
-        
+
         if (newName !== p.name) {
           if (!updated[p.id]) updated[p.id] = {};
           updated[p.id].name = newName;
@@ -1086,7 +1086,7 @@ export default function UberEatsExportPage() {
       log.save("Normalizando unidades en", count, "productos");
       return updated;
     });
-    
+
     setProducts(prev => prev.map(p => {
       let newName = p.name;
       newName = newName.replace(/(\d+)\s*ml\b/gi, '$1 ML');
@@ -1095,13 +1095,13 @@ export default function UberEatsExportPage() {
       newName = newName.replace(/(\d+)\s*gr\b/gi, '$1 G');
       newName = newName.replace(/(\d+)\s*kg\b/gi, '$1 KG');
       newName = newName.replace(/(\d+)\s*cc\b/gi, '$1 ML');
-      
+
       if (newName !== p.name) {
         return { ...p, name: newName };
       }
       return p;
     }));
-    
+
     log.success("Unidades normalizadas en", count, "productos");
     alert(`Unidades de medida normalizadas en ${count} productos`);
   }, [products]);
@@ -1220,14 +1220,14 @@ export default function UberEatsExportPage() {
     ];
 
     const rows: string[][] = [];
-    
+
     // Necesitamos obtener datos originales del API para comparar
     products.forEach(p => {
       const mods = productModifications[p.id];
       if (!mods) return;
-      
+
       const fieldsChanged = Object.keys(mods).join(", ");
-      
+
       rows.push([
         p.barcode,
         p.name, // Este ya es el modificado, no tenemos el original aquí
@@ -1287,7 +1287,7 @@ export default function UberEatsExportPage() {
   // NUEVA: Exportar lista ORIGINAL sin modificaciones (datos del API)
   const exportOriginalList = useCallback(async () => {
     log.action("Exportando lista original desde API...");
-    
+
     try {
       const res = await fetch("/api/admin/uber-eats/products");
       if (!res.ok) throw new Error("Error cargando productos");
@@ -1308,7 +1308,7 @@ export default function UberEatsExportPage() {
         // `sale_price` ya viene como precio final con IVA incluido.
         const priceWithVat = Math.round(Number(p.sale_price || 0));
         const netPrice = Math.round(priceWithVat / 1.19);
-        
+
         return [
           p.barcode || "",
           p.name || "",
@@ -1413,7 +1413,7 @@ export default function UberEatsExportPage() {
   const syncToSupabase = useCallback(async (mode: 'all' | 'selected' | 'from_main' = 'all') => {
     log.action("syncToSupabase() - modo:", mode);
     setSyncing(true);
-    
+
     try {
       if (mode === 'from_main') {
         // Sincronizar desde la tabla products principal
@@ -1422,25 +1422,25 @@ export default function UberEatsExportPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: 'sync_from_main' }),
         });
-        
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Error sincronizando");
-        
+
         log.success("Sincronizado desde products:", data.synced);
         alert(`✅ Sincronizados ${data.synced || 0} productos desde la tabla principal`);
         return;
       }
-      
+
       // Preparar productos para sincronizar
-      const productsToSync = mode === 'selected' 
+      const productsToSync = mode === 'selected'
         ? products.filter(p => p.exportSelected)
         : products;
-      
+
       if (productsToSync.length === 0) {
         alert("No hay productos para sincronizar");
         return;
       }
-      
+
       // Mapear al formato esperado por la API
       const payload = productsToSync.map(p => ({
         barcode: p.barcode,
@@ -1465,18 +1465,18 @@ export default function UberEatsExportPage() {
         modified: !!productModifications[p.id],
         excluded: false,
       }));
-      
+
       const res = await fetch("/api/admin/uber-eats/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ products: payload, action: 'upsert' }),
       });
-      
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error sincronizando");
-      
+
       log.success("Sincronizados:", data.synced);
-      
+
       if (data.errors && data.errors.length > 0) {
         console.warn("Errores de sincronización:", data.errors);
         alert(`⚠️ Sincronización parcial: ${data.synced} productos. Errores: ${data.errors.length}`);
@@ -1494,44 +1494,44 @@ export default function UberEatsExportPage() {
   // ====== SUBIR IMAGEN CON LÍMITE DE 2MB ======
   const handleImageUpload = useCallback(async (barcode: string, file: File) => {
     log.action("handleImageUpload() para producto:", barcode);
-    
+
     // Validar tamaño
     if (file.size > MAX_IMAGE_SIZE) {
       const sizeMB = (file.size / 1024 / 1024).toFixed(2);
       alert(`❌ El archivo es muy grande (${sizeMB}MB). Máximo permitido: 2MB`);
       return;
     }
-    
+
     // Validar tipo
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
       alert(`❌ Tipo de archivo no permitido: ${file.type}. Use: PNG, JPG, WEBP o GIF`);
       return;
     }
-    
+
     setUploadingImage(barcode);
-    
+
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('barcode', barcode);
-      
+
       const res = await fetch("/api/admin/uber-eats/upload-image", {
         method: "POST",
         body: formData,
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.error || "Error subiendo imagen");
       }
-      
+
       log.success("Imagen subida:", data.url);
-      
+
       // Actualizar el producto con la nueva URL
       updateProduct(barcode, "imageUrl", data.url);
-      
+
       // Guardar en modificaciones
       setProductModifications(prev => ({
         ...prev,
@@ -1540,7 +1540,7 @@ export default function UberEatsExportPage() {
           imageUrl: data.url
         }
       }));
-      
+
       log.success("Producto actualizado con nueva imagen");
     } catch (err: any) {
       log.error("Error subiendo imagen:", err);
@@ -1619,7 +1619,7 @@ export default function UberEatsExportPage() {
               accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
               className="hidden"
             />
-            
+
             {/* Botón de resetear todos los cambios */}
             <button
               onClick={resetAllChanges}
@@ -1628,7 +1628,7 @@ export default function UberEatsExportPage() {
             >
               🗑️ Reset Todo
             </button>
-            
+
             {/* Menú de Sincronización con Supabase */}
             <div className="relative group">
               <button
@@ -1674,7 +1674,7 @@ export default function UberEatsExportPage() {
                 </button>
               </div>
             </div>
-            
+
             {excludedProducts.size > 0 && (
               <button
                 onClick={restoreExcluded}
@@ -1828,7 +1828,7 @@ export default function UberEatsExportPage() {
           </div>
           <ChevronDownIcon className={`w-5 h-5 text-gray-500 transition-transform ${showCategoryManager ? "rotate-180" : ""}`} />
         </button>
-        
+
         {showCategoryManager && (
           <div className="p-4 space-y-4">
             <p className="text-sm text-gray-600">
@@ -1855,7 +1855,7 @@ export default function UberEatsExportPage() {
                 Agregar
               </button>
             </div>
-            
+
             {/* Lista de categorías */}
             <div className="grid gap-2 max-h-[300px] overflow-y-auto">
               {uniqueCategories.map((cat) => (
@@ -2092,7 +2092,7 @@ export default function UberEatsExportPage() {
         {/* NUEVA SECCIÓN: Herramientas de edición masiva de nombres */}
         <div className="flex flex-wrap items-center gap-4 pt-4 border-t">
           <span className="text-sm font-medium text-gray-700">🔧 Edición masiva de nombres:</span>
-          
+
           <button
             onClick={addMeasurementUnits}
             className="px-3 py-1.5 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition"
@@ -2100,7 +2100,7 @@ export default function UberEatsExportPage() {
           >
             📏 Normalizar unidades
           </button>
-          
+
           <button
             onClick={() => {
               const pattern = prompt("Buscar (regex o texto):", "");
@@ -2114,7 +2114,7 @@ export default function UberEatsExportPage() {
           >
             🔍 Buscar/Reemplazar
           </button>
-          
+
           <button
             onClick={() => {
               const suffix = prompt("Agregar al final de cada nombre (ej: ' LT'):", "");
@@ -2144,7 +2144,7 @@ export default function UberEatsExportPage() {
           >
             ➕ Agregar sufijo ({stats.editSelected})
           </button>
-          
+
           <button
             onClick={() => {
               const prefix = prompt("Agregar al inicio de cada nombre (ej: 'NUEVO '):", "");
@@ -2224,84 +2224,83 @@ export default function UberEatsExportPage() {
               {filteredProducts
                 .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
                 .map((product) => (
-                <tr
-                  key={product.id}
-                  className={`hover:bg-gray-50 transition cursor-pointer ${product.exportSelected ? "bg-emerald-50" : ""} ${
-                    !product.isValid ? "bg-red-50" : ""
-                  }`}
-                  onClick={() => setSelectedProductForUpload(product.id)}
-                >
-                  <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={product.exportSelected}
-                      onChange={() => toggleExportSelected(product.id)}
-                      className="rounded text-emerald-600"
-                    />
-                  </td>
-                  <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={product.editSelected}
-                      onChange={() => toggleEditSelected(product.id)}
-                      className="rounded text-blue-600"
-                    />
-                  </td>
-                  <td className="px-3 py-4">
-                    {product.isValid ? (
-                      <div className="flex items-center gap-1">
-                        <CheckCircleIcon className="w-5 h-5 text-green-500" title="Válido" />
-                        {exportedProducts.has(product.id) && (
-                          <span className="text-[10px] px-1 py-0.5 rounded bg-blue-100 text-blue-700">EXP</span>
+                  <tr
+                    key={product.id}
+                    className={`hover:bg-gray-50 transition cursor-pointer ${product.exportSelected ? "bg-emerald-50" : ""} ${!product.isValid ? "bg-red-50" : ""
+                      }`}
+                    onClick={() => setSelectedProductForUpload(product.id)}
+                  >
+                    <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={product.exportSelected}
+                        onChange={() => toggleExportSelected(product.id)}
+                        className="rounded text-emerald-600"
+                      />
+                    </td>
+                    <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={product.editSelected}
+                        onChange={() => toggleEditSelected(product.id)}
+                        className="rounded text-blue-600"
+                      />
+                    </td>
+                    <td className="px-3 py-4">
+                      {product.isValid ? (
+                        <div className="flex items-center gap-1">
+                          <CheckCircleIcon className="w-5 h-5 text-green-500" title="Válido" />
+                          {exportedProducts.has(product.id) && (
+                            <span className="text-[10px] px-1 py-0.5 rounded bg-blue-100 text-blue-700">EXP</span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="relative group">
+                          <ExclamationTriangleIcon className="w-5 h-5 text-red-500" />
+                          <div className="absolute z-10 hidden group-hover:block w-64 p-2 bg-red-100 text-red-800 text-xs rounded shadow-lg left-6 top-0">
+                            {product.validationErrors.map((e, i) => (
+                              <div key={i}>• {e}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-4">
+                      <div className="max-w-md">
+                        <div className="font-medium text-gray-900 truncate">{product.name}</div>
+                        <div className="text-xs text-gray-500 font-mono truncate">{product.barcode}</div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-4">
+                      <div className="text-sm text-gray-900">
+                        {product.uberCategories.length > 0 ? (
+                          product.uberCategories.length === 1 ? (
+                            <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">{product.uberCategories[0]}</span>
+                          ) : (
+                            <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md text-xs font-medium">
+                              {product.uberCategories.length} categorías
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-gray-400 text-xs italic">Sin categoría</span>
                         )}
                       </div>
-                    ) : (
-                      <div className="relative group">
-                        <ExclamationTriangleIcon className="w-5 h-5 text-red-500" />
-                        <div className="absolute z-10 hidden group-hover:block w-64 p-2 bg-red-100 text-red-800 text-xs rounded shadow-lg left-6 top-0">
-                          {product.validationErrors.map((e, i) => (
-                            <div key={i}>• {e}</div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-3 py-4">
-                    <div className="max-w-md">
-                      <div className="font-medium text-gray-900 truncate">{product.name}</div>
-                      <div className="text-xs text-gray-500 font-mono truncate">{product.barcode}</div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-4">
-                    <div className="text-sm text-gray-900">
-                      {product.uberCategories.length > 0 ? (
-                        product.uberCategories.length === 1 ? (
-                          <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">{product.uberCategories[0]}</span>
-                        ) : (
-                          <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md text-xs font-medium">
-                            {product.uberCategories.length} categorías
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-gray-400 text-xs italic">Sin categoría</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-3 py-4">
-                    <div className="font-semibold text-gray-900">${product.priceWithVat.toLocaleString()}</div>
-                    <div className="text-xs text-gray-500">IVA {product.vatPercentage}%</div>
-                  </td>
-                  <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => setSelectedProductForUpload(product.id)}
-                      className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center gap-1.5 whitespace-nowrap"
-                    >
-                      <PencilIcon className="w-4 h-4" />
-                      Editar
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-3 py-4">
+                      <div className="font-semibold text-gray-900">${product.priceWithVat.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500">IVA {product.vatPercentage}%</div>
+                    </td>
+                    <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => setSelectedProductForUpload(product.id)}
+                        className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center gap-1.5 whitespace-nowrap"
+                      >
+                        <PencilIcon className="w-4 h-4" />
+                        Editar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -2391,6 +2390,7 @@ export default function UberEatsExportPage() {
                     <button type="button" onClick={() => openImageUploadDialog(product.id)} disabled={uploadingImage === product.id} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"><ArrowUpTrayIcon className="w-4 h-4" />{uploadingImage === product.id ? "..." : "Subir"}</button>
                   </div>
                   {product.imageUrl && product.imageUrl !== "null" && (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <div className="p-4 bg-gray-50 rounded-lg border"><img src={product.imageUrl} alt={product.name} className="h-40 w-auto object-contain mx-auto" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /></div>
                   )}
                 </div>
@@ -2424,78 +2424,80 @@ export default function UberEatsExportPage() {
       })()}
 
       {/* Selector flotante de categorías */}
-      {categoryPopover && (() => {
-        const p = products.find((x) => x.id === categoryPopover.productId);
-        if (!p) return null;
+      {
+        categoryPopover && (() => {
+          const p = products.find((x) => x.id === categoryPopover.productId);
+          if (!p) return null;
 
-        return (
-          <div
-            className="fixed inset-0 z-50"
-            onMouseDown={() => closeCategoryPopover()}
-            onTouchStart={() => closeCategoryPopover()}
-          >
+          return (
             <div
-              ref={categoryPopoverPanelRef}
-              tabIndex={-1}
-              onMouseDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-              onKeyDown={handleCategoryPopoverKeyDown}
-              className="fixed z-50 w-80 max-w-[calc(100vw-16px)] bg-white border rounded-lg shadow-lg"
-              style={{
-                left: categoryPopover.left,
-                top: categoryPopover.top,
-                transform: categoryPopover.openUp ? 'translateY(-100%)' : undefined,
-              }}
+              className="fixed inset-0 z-50"
+              onMouseDown={() => closeCategoryPopover()}
+              onTouchStart={() => closeCategoryPopover()}
             >
-              <div className="flex items-center justify-between px-3 py-2 border-b bg-gray-50 rounded-t-lg">
-                <div className="text-sm font-semibold text-gray-800">Categorías</div>
-                <button
-                  type="button"
-                  onClick={() => closeCategoryPopover()}
-                  className="px-2 py-1 text-sm border rounded hover:bg-gray-100"
-                  title="Cerrar"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="px-3 py-2 text-xs text-gray-600 border-b">
-                Escribe una letra para saltar a esa categoría.
-              </div>
-
-              <div ref={categoryPopoverListRef} className="max-h-60 overflow-y-auto">
-                {uniqueCategories.map((cat) => (
-                  <label
-                    key={cat}
-                    data-cat-lower={String(cat).toLowerCase()}
-                    className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm"
+              <div
+                ref={categoryPopoverPanelRef}
+                tabIndex={-1}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onKeyDown={handleCategoryPopoverKeyDown}
+                className="fixed z-50 w-80 max-w-[calc(100vw-16px)] bg-white border rounded-lg shadow-lg"
+                style={{
+                  left: categoryPopover.left,
+                  top: categoryPopover.top,
+                  transform: categoryPopover.openUp ? 'translateY(-100%)' : undefined,
+                }}
+              >
+                <div className="flex items-center justify-between px-3 py-2 border-b bg-gray-50 rounded-t-lg">
+                  <div className="text-sm font-semibold text-gray-800">Categorías</div>
+                  <button
+                    type="button"
+                    onClick={() => closeCategoryPopover()}
+                    className="px-2 py-1 text-sm border rounded hover:bg-gray-100"
+                    title="Cerrar"
                   >
-                    <input
-                      type="checkbox"
-                      checked={p.uberCategories.includes(cat)}
-                      onChange={(e) => {
-                        const newCategories = e.target.checked
-                          ? [...p.uberCategories, cat]
-                          : p.uberCategories.filter((c) => c !== cat);
-                        updateProduct(p.id, 'uberCategories', newCategories);
-                        updateProduct(p.id, 'uberCategory', newCategories[0] || '');
-                      }}
-                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <span className={p.uberCategories.includes(cat) ? 'font-medium text-emerald-700' : ''}>
-                      {cat}
-                    </span>
-                  </label>
-                ))}
+                    ×
+                  </button>
+                </div>
 
-                {uniqueCategories.length === 0 && (
-                  <div className="px-3 py-2 text-sm text-gray-500">No hay categorías</div>
-                )}
+                <div className="px-3 py-2 text-xs text-gray-600 border-b">
+                  Escribe una letra para saltar a esa categoría.
+                </div>
+
+                <div ref={categoryPopoverListRef} className="max-h-60 overflow-y-auto">
+                  {uniqueCategories.map((cat) => (
+                    <label
+                      key={cat}
+                      data-cat-lower={String(cat).toLowerCase()}
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={p.uberCategories.includes(cat)}
+                        onChange={(e) => {
+                          const newCategories = e.target.checked
+                            ? [...p.uberCategories, cat]
+                            : p.uberCategories.filter((c) => c !== cat);
+                          updateProduct(p.id, 'uberCategories', newCategories);
+                          updateProduct(p.id, 'uberCategory', newCategories[0] || '');
+                        }}
+                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span className={p.uberCategories.includes(cat) ? 'font-medium text-emerald-700' : ''}>
+                        {cat}
+                      </span>
+                    </label>
+                  ))}
+
+                  {uniqueCategories.length === 0 && (
+                    <div className="px-3 py-2 text-sm text-gray-500">No hay categorías</div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()
+      }
 
       {/* Instrucciones */}
       <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
@@ -2514,6 +2516,6 @@ export default function UberEatsExportPage() {
           </li>
         </ol>
       </div>
-    </div>
+    </div >
   );
 }

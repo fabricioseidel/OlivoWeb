@@ -47,3 +47,6 @@ next-env.d.ts
 
 # local uploads (generated at runtime)
 public/uploads
+
+# old project files
+Mejorar proyecto 2/
