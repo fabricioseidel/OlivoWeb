@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useProducts } from "@/contexts/ProductContext";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
-import { normalizeImageUrl } from "@/utils/imageUtils";
+import { normalizeImageUrl } from "@/utils/image";
 import ProductCard from "@/components/ProductCard";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
