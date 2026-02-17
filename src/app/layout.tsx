@@ -18,17 +18,6 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className="h-full">
-      <head>
-        <style>{`
-          :root {
-            --color-primary: #10B981;
-            --color-secondary: #059669;
-            --color-accent: #047857;
-            --color-footer-bg: #1F2937;
-            --color-footer-text: #F3F4F6;
-          }
-        `}</style>
-      </head>
       <body className="h-full bg-gray-50">
         <Providers>
           <SettingsInjector />

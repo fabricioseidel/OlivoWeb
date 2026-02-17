@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { fetchAllProducts } from "@/services/products";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";

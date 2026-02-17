@@ -82,7 +82,7 @@ export async function POST(req: Request) {
         quantity: Number(raw.quantity ?? 0),
         sku: raw.sku ? String(raw.sku).trim() : null,
       }))
-      .filter((item) => item.productId && item.name && item.quantity > 0);
+      .filter((item: any) => item.productId && item.name && item.quantity > 0);
 
     if (!itemList.length) {
       return NextResponse.json(

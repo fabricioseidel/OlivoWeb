@@ -2,7 +2,9 @@ import { supabase } from '@/lib/supabase';
 import { slugify } from '@/utils/string-utils';
 import { SupaProduct, ProductUI } from '@/types';
 
-const DEFAULT_IMAGE = "/uploads/upload-1755295276091-ywcxpk.png";
+// Use a repo-shipped placeholder. Files under /public/uploads may exist locally but
+// won't be present in Vercel unless committed, causing 404/next-image 400.
+const DEFAULT_IMAGE = "/file.svg";
 
 export function mapSupaToUI(p: SupaProduct): ProductUI {
   const name = p.name ?? '(Sin nombre)';

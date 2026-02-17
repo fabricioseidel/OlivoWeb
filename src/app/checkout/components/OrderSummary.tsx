@@ -14,19 +14,19 @@ export default function OrderSummary({ cartItems, subtotal, shippingCost, total 
       <h2 className="text-xl font-semibold text-gray-900 mb-4 pb-4 border-b border-gray-200">
         Resumen del Pedido
       </h2>
-      
+
       {/* Items del carrito */}
       <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
         {cartItems.map((item) => (
           <div key={item.id} className="flex items-center gap-3">
             <div className="relative w-12 h-12 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src={item.image} 
+              <img
+                src={item.image}
                 alt={item.name}
                 className="w-full h-full object-cover"
               />
-              <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
+              <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
                 {item.quantity}
               </span>
             </div>
@@ -40,14 +40,14 @@ export default function OrderSummary({ cartItems, subtotal, shippingCost, total 
           </div>
         ))}
       </div>
-      
+
       {/* Totales */}
       <div className="space-y-3 pt-4 border-t border-gray-200">
         <div className="flex justify-between text-sm">
           <p className="text-gray-600">Subtotal</p>
           <p className="font-medium text-gray-900">${subtotal.toFixed(2)}</p>
         </div>
-        
+
         <div className="flex justify-between text-sm">
           <p className="text-gray-600">Envío</p>
           <p className="font-medium text-gray-900">
@@ -58,7 +58,7 @@ export default function OrderSummary({ cartItems, subtotal, shippingCost, total 
             )}
           </p>
         </div>
-        
+
         <div className="pt-3 border-t border-gray-200 flex justify-between">
           <p className="text-lg font-semibold text-gray-900">Total</p>
           <p className="text-2xl font-bold text-blue-600">${total.toFixed(2)}</p>

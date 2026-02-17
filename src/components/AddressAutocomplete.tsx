@@ -57,10 +57,10 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
   };
 
   useEffect(() => {
-      addLog(`MOUNTED. Provider: '${provider}'`);
-      if (typeof window !== 'undefined') {
-          addLog(`Window exists. Google object: ${!!(window as any).google}`);
-      }
+    addLog(`MOUNTED. Provider: '${provider}'`);
+    if (typeof window !== 'undefined') {
+      addLog(`Window exists. Google object: ${!!(window as any).google}`);
+    }
   }, []);
 
   const parseGooglePlace = (place: any) => {
@@ -76,7 +76,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
     const city = getComp(["locality"]) || getComp(["sublocality"]) || getComp(["administrative_area_level_2"]) || null;
     // District logic: Try admin_area_3 (Comuna specific) -> locality -> sublocality
     const district = getComp(["administrative_area_level_3"]) || getComp(["locality"]) || getComp(["sublocality"]) || null;
-    
+
     const state = getComp(["administrative_area_level_1"]) || null;
     const postal = getComp(["postal_code"]) || null;
     const countryComp = getComp(["country"]) || null;
@@ -124,63 +124,67 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
       .then(() => {
         if (!mounted) return;
         addLog("Script loaded. Waiting for initialization...");
-        
+
         // Small delay to ensure google object is fully initialized
         setTimeout(() => {
-            try {
-              if (typeof window === "undefined" || !(window as any).google) {
-                addLog("Error: window.google not found");
-                console.warn("AddressAutocomplete: google object not found after script load");
-                setFallback(true);
-                return;
-              }
-
-              const g = (window as any).google;
-              if (!g.maps) {
-                 addLog("Error: google.maps not found");
-                 setFallback(true);
-                 return;
-              }
-              if (!g.maps.places) {
-                 addLog("Error: google.maps.places not found (Check Places API)");
-                 setFallback(true);
-                 return;
-              }
-              if (!g.maps.places.Autocomplete) {
-                addLog("Error: Autocomplete constructor not found");
-                console.warn("AddressAutocomplete: Places API not available.");
-                setFallback(true);
-                return;
-              }
-
-              addLog("Google Maps API ready. Initializing Autocomplete...");
-              autocompleteRef.current = new g.maps.places.Autocomplete(ref.current, {
-                componentRestrictions: { country: country.toUpperCase() },
-                fields: ["formatted_address", "address_components", "geometry"],
-                types: ["geocode"],
-              });
-
-              addLog("Autocomplete initialized successfully");
-
-              autocompleteRef.current.addListener("place_changed", () => {
-                try {
-                  addLog("Place selected");
-                  const place = autocompleteRef.current.getPlace();
-                  const result = parseGooglePlace(place);
-                  if (!result.formattedAddress && ref.current) {
-                      result.formattedAddress = ref.current.value;
-                  }
-                  onChangeRef.current(result);
-                } catch (inner) {
-                  addLog("Error reading place details");
-                  console.warn("AddressAutocomplete: error reading place", inner);
-                }
-              });
-            } catch (e: any) {
-              addLog(`Exception during init: ${e.message}`);
-              console.warn("AddressAutocomplete: google places init failed", e);
+          try {
+            if (typeof window === "undefined" || !(window as any).google) {
+              addLog("Error: window.google not found");
+              console.warn("AddressAutocomplete: google object not found after script load");
               setFallback(true);
+              return;
             }
+
+            const g = (window as any).google;
+            if (!g.maps) {
+              addLog("Error: google.maps not found");
+              setFallback(true);
+              return;
+            }
+            if (!g.maps.places) {
+              addLog("Error: google.maps.places not found (Check Places API)");
+              setFallback(true);
+              return;
+            }
+            if (!g.maps.places.Autocomplete) {
+              addLog("Error: Autocomplete constructor not found");
+              console.warn("AddressAutocomplete: Places API not available.");
+              setFallback(true);
+              return;
+            }
+
+            addLog("Google Maps API ready. Initializing Autocomplete...");
+            if (!ref.current || !(ref.current instanceof HTMLInputElement)) {
+              addLog("Error: ref.current is not an HTMLInputElement (component may have unmounted)");
+              return;
+            }
+            autocompleteRef.current = new g.maps.places.Autocomplete(ref.current, {
+              componentRestrictions: { country: country.toUpperCase() },
+              fields: ["formatted_address", "address_components", "geometry"],
+              types: ["geocode"],
+            });
+
+            addLog("Autocomplete initialized successfully");
+
+            autocompleteRef.current.addListener("place_changed", () => {
+              try {
+                addLog("Place selected");
+                const place = autocompleteRef.current.getPlace();
+                const result = parseGooglePlace(place);
+                if (!result.formattedAddress && ref.current) {
+                  result.formattedAddress = ref.current.value;
+                }
+                onChangeRef.current(result);
+              } catch (inner) {
+                addLog("Error reading place details");
+                console.warn("AddressAutocomplete: error reading place", inner);
+              }
+            });
+          } catch (e: any) {
+            addLog(`Exception during init: ${e.message}`);
+            console.warn("AddressAutocomplete: google places init failed", e);
+            setFallback(true);
+          }
         }, 1000); // Increased delay to 1s for debugging
       })
       .catch((err) => {
@@ -205,22 +209,22 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        
+
         if (typeof window !== "undefined" && (window as any).google && (window as any).google.maps) {
-             const geocoder = new (window as any).google.maps.Geocoder();
-             geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results: any, status: any) => {
-                 if (status === "OK" && results[0]) {
-                     const result = parseGooglePlace(results[0]);
-                     onChange(result);
-                 } else {
-                     console.error("Geocoder failed: " + status);
-                     alert("No se pudo encontrar la dirección para tu ubicación actual.");
-                 }
-                 setIsLocating(false);
-             });
-        } else {
-            alert("Google Maps no está listo todavía. Intenta de nuevo en unos segundos.");
+          const geocoder = new (window as any).google.maps.Geocoder();
+          geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results: any, status: any) => {
+            if (status === "OK" && results[0]) {
+              const result = parseGooglePlace(results[0]);
+              onChange(result);
+            } else {
+              console.error("Geocoder failed: " + status);
+              alert("No se pudo encontrar la dirección para tu ubicación actual.");
+            }
             setIsLocating(false);
+          });
+        } else {
+          alert("Google Maps no está listo todavía. Intenta de nuevo en unos segundos.");
+          setIsLocating(false);
         }
       },
       (error) => {

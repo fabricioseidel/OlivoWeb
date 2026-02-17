@@ -2195,13 +2195,13 @@ export default function UberEatsExportPage() {
         </div>
       </div>
 
-      {/* Tabla de productos */}
+      {/* Tabla de productos - COMPACTA */}
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        <div className="w-full">
-          <table className="w-full table-fixed divide-y divide-gray-200">
+        <div className="overflow-x-auto">
+          <table className="w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10 sticky left-0 z-30 bg-gray-50" title="Seleccionar para exportar">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-12">
                   <input
                     type="checkbox"
                     checked={filteredProducts.length > 0 && filteredProducts.every((p) => p.exportSelected)}
@@ -2215,9 +2215,10 @@ export default function UberEatsExportPage() {
                       });
                     }}
                     className="rounded text-emerald-600"
+                    title="Exportar todos"
                   />
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10 sticky left-10 z-30 bg-gray-50" title="Seleccionar para editar/eliminar">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-12">
                   <input
                     type="checkbox"
                     checked={filteredProducts.length > 0 && filteredProducts.every((p) => p.editSelected)}
@@ -2227,60 +2228,14 @@ export default function UberEatsExportPage() {
                       setProducts((prev) => prev.map((p) => (filteredIds.has(p.id) ? { ...p, editSelected: checked } : p)));
                     }}
                     className="rounded text-blue-600"
+                    title="Seleccionar todos"
                   />
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-14">
-                  Estado
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[52%]">
-                  Producto
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">
-                  Precio / Stock
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">
-                  Imagen
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[8%]">
-                  Extra
-                </th>
-              </tr>
-
-              {/* Guía de campos (alineada con los inputs de la fila) */}
-              <tr className="bg-gray-50">
-                <th className="px-3 pb-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider sticky left-0 z-30 bg-gray-50">Export</th>
-                <th className="px-3 pb-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider sticky left-10 z-30 bg-gray-50">Editar</th>
-                <th className="px-3 pb-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                <th className="px-3 pb-2">
-                  <div className="flex items-center gap-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider">
-                    <span className="w-28 shrink-0">Código</span>
-                    <span className="min-w-0 flex-1">Nombre</span>
-                    <span className="w-56 shrink-0">Categoría</span>
-                    <span className="w-56 shrink-0">Descripción</span>
-                    <span className="w-44 shrink-0">External</span>
-                  </div>
-                </th>
-                <th className="px-3 pb-2">
-                  <div className="flex items-center gap-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider">
-                    <span className="w-28 shrink-0">Precio</span>
-                    <span className="w-16 shrink-0">IVA%</span>
-                    <span className="w-16 shrink-0">Qty</span>
-                    <span className="shrink-0">Stock</span>
-                  </div>
-                </th>
-                <th className="px-3 pb-2">
-                  <div className="flex items-center gap-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider">
-                    <span className="min-w-0 flex-1">URL imagen</span>
-                    <span className="shrink-0">Subir</span>
-                  </div>
-                </th>
-                <th className="px-3 pb-2">
-                  <div className="flex items-center gap-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider">
-                    <span className="min-w-0 flex-1">Tipo</span>
-                    <span className="min-w-0 flex-1">HFSS</span>
-                    <span className="w-14 shrink-0">Alc</span>
-                  </div>
-                </th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-16">Estado</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Precio</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">Acción</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -2289,15 +2244,12 @@ export default function UberEatsExportPage() {
                 .map((product) => (
                 <tr
                   key={product.id}
-                  className={`hover:bg-gray-50 ${product.exportSelected ? "bg-emerald-50" : ""} ${
+                  className={`hover:bg-gray-50 transition cursor-pointer ${product.exportSelected ? "bg-emerald-50" : ""} ${
                     !product.isValid ? "bg-red-50" : ""
                   }`}
+                  onClick={() => setSelectedProductForUpload(product.id)}
                 >
-                  <td
-                    className={`px-3 py-2 sticky left-0 z-20 ${
-                      product.exportSelected ? "bg-emerald-50" : !product.isValid ? "bg-red-50" : "bg-white"
-                    }`}
-                  >
+                  <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={product.exportSelected}
@@ -2305,11 +2257,7 @@ export default function UberEatsExportPage() {
                       className="rounded text-emerald-600"
                     />
                   </td>
-                  <td
-                    className={`px-3 py-2 sticky left-10 z-20 ${
-                      product.exportSelected ? "bg-emerald-50" : !product.isValid ? "bg-red-50" : "bg-white"
-                    }`}
-                  >
+                  <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={product.editSelected}
@@ -2317,12 +2265,12 @@ export default function UberEatsExportPage() {
                       className="rounded text-blue-600"
                     />
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-4">
                     {product.isValid ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <CheckCircleIcon className="w-5 h-5 text-green-500" title="Válido" />
                         {exportedProducts.has(product.id) && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700" title="Ya fue exportado">EXP</span>
+                          <span className="text-[10px] px-1 py-0.5 rounded bg-blue-100 text-blue-700">EXP</span>
                         )}
                       </div>
                     ) : (
@@ -2336,184 +2284,39 @@ export default function UberEatsExportPage() {
                       </div>
                     )}
                   </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <input
-                        type="text"
-                        value={product.barcode}
-                        onChange={(e) => updateProduct(product.id, "barcode", e.target.value)}
-                        className="w-28 shrink-0 px-2 py-1 text-xs font-mono border rounded focus:ring-1 focus:ring-emerald-500"
-                        title="UPC/EAN"
-                      />
-
-                      <input
-                        type="text"
-                        value={product.name}
-                        onChange={(e) => updateProduct(product.id, "name", e.target.value)}
-                        className="min-w-0 flex-1 px-2 py-1 text-sm border rounded focus:ring-1 focus:ring-emerald-500"
-                        title={`Producto · Original: ${product.originalCategory || ""}`}
-                        placeholder="Product Name (+ brand + size / weight)"
-                      />
-
-                      {/* Categorías (multi-select) */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          openCategoryPopover(product.id, e.currentTarget);
-                        }}
-                        className="w-56 shrink-0 px-2 py-1 text-sm border rounded focus:ring-1 focus:ring-emerald-500 text-left bg-white flex items-center justify-between"
-                        title="Category"
-                      >
-                        <span className="truncate">
-                          {product.uberCategories.length === 0
-                            ? "Categoría..."
-                            : product.uberCategories.length === 1
-                              ? product.uberCategories[0]
-                              : `${product.uberCategories.length} cats`}
-                        </span>
-                        <ChevronDownIcon className="w-4 h-4 text-gray-400" />
-                      </button>
-
-                      <input
-                        type="text"
-                        value={product.description}
-                        onChange={(e) => updateProduct(product.id, "description", e.target.value)}
-                        className="min-w-0 w-56 px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-emerald-500"
-                        title="Description"
-                        placeholder="Description"
-                      />
-
-                      <input
-                        type="text"
-                        value={product.externalData || "null"}
-                        onChange={(e) => updateProduct(product.id, "externalData", e.target.value)}
-                        className="min-w-0 w-44 px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-emerald-500"
-                        title="External Data"
-                        placeholder="External Data"
-                      />
+                  <td className="px-3 py-4">
+                    <div className="max-w-md">
+                      <div className="font-medium text-gray-900 truncate">{product.name}</div>
+                      <div className="text-xs text-gray-500 font-mono truncate">{product.barcode}</div>
                     </div>
                   </td>
-
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-400 text-sm">$</span>
-                        <input
-                          type="number"
-                          value={product.priceWithVat}
-                          onChange={(e) => updateProduct(product.id, "priceWithVat", Number(e.target.value))}
-                          className="w-24 px-2 py-1 text-sm border rounded focus:ring-1 focus:ring-emerald-500 font-semibold"
-                          title="Price (incl VAT)"
-                        />
-                      </div>
-
-                      <input
-                        type="number"
-                        step="1"
-                        value={product.vatPercentage}
-                        onChange={(e) => updateProduct(product.id, "vatPercentage", Number(e.target.value))}
-                        className="w-16 px-2 py-1 text-sm border rounded focus:ring-1 focus:ring-emerald-500"
-                        title="VAT %"
-                      />
-
-                      <input
-                        type="number"
-                        step="1"
-                        value={product.quantityRestriction ?? 5}
-                        onChange={(e) => updateProduct(product.id, "quantityRestriction", Number(e.target.value))}
-                        className="w-16 px-2 py-1 text-sm border rounded focus:ring-1 focus:ring-emerald-500"
-                        title="Quantity Restriction"
-                      />
-
-                      <label className="flex items-center gap-2 cursor-pointer select-none" title="Out of Stock? (0/1)">
-                        <input
-                          type="checkbox"
-                          checked={!product.inStock}
-                          onChange={(e) => updateProduct(product.id, "inStock", !e.target.checked)}
-                          className="rounded text-emerald-600"
-                        />
-                        <span className={`text-xs ${product.inStock ? "text-green-600" : "text-red-600"}`}>
-                          {product.inStock ? "0" : "1"}
-                        </span>
-                      </label>
-                    </div>
-                  </td>
-
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <input
-                        type="text"
-                        value={product.imageUrl}
-                        onChange={(e) => updateProduct(product.id, "imageUrl", e.target.value)}
-                        className="min-w-0 flex-1 px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-emerald-500"
-                        title="Item Image URL"
-                        placeholder="Item Image URL"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => openImageUploadDialog(product.id)}
-                        disabled={uploadingImage === product.id}
-                        className="px-2 py-1 text-xs bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 transition disabled:opacity-50 flex items-center gap-1 shrink-0"
-                        title="Subir imagen (máx 2MB) y rellenar URL"
-                      >
-                        <ArrowUpTrayIcon className="w-4 h-4" />
-                        {uploadingImage === product.id ? "..." : "Subir"}
-                      </button>
-
-                      {product.imageUrl && product.imageUrl !== "null" && (
-                        <a
-                          href={product.imageUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs text-emerald-700 hover:underline shrink-0"
-                          title="Abrir imagen"
-                        >
-                          Ver
-                        </a>
+                  <td className="px-3 py-4">
+                    <div className="text-sm text-gray-900">
+                      {product.uberCategories.length > 0 ? (
+                        product.uberCategories.length === 1 ? (
+                          <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">{product.uberCategories[0]}</span>
+                        ) : (
+                          <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md text-xs font-medium">
+                            {product.uberCategories.length} categorías
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-gray-400 text-xs italic">Sin categoría</span>
                       )}
                     </div>
                   </td>
-
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={product.productType}
-                        onChange={(e) => updateProduct(product.id, "productType", e.target.value)}
-                        className="w-full px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-emerald-500"
-                        title="Product Type"
-                      >
-                        {PRODUCT_TYPES.map((t) => (
-                          <option key={t.value} value={t.value}>
-                            {t.label}
-                          </option>
-                        ))}
-                      </select>
-
-                      <select
-                        value={product.hfssItem}
-                        onChange={(e) => updateProduct(product.id, "hfssItem", e.target.value)}
-                        className="w-full px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-emerald-500"
-                        title="HFSS Item"
-                      >
-                        {HFSS_OPTIONS.map((h) => (
-                          <option key={h.value} value={h.value}>
-                            {h.label.split(" ")[0]}
-                          </option>
-                        ))}
-                      </select>
-
-                      <input
-                        type="number"
-                        step="1"
-                        value={product.alcoholUnits ?? 0}
-                        onChange={(e) => updateProduct(product.id, "alcoholUnits", Number(e.target.value))}
-                        className="w-14 px-2 py-1 text-sm border rounded focus:ring-1 focus:ring-emerald-500"
-                        title="Total Alcohol Units"
-                      />
-                    </div>
+                  <td className="px-3 py-4">
+                    <div className="font-semibold text-gray-900">${product.priceWithVat.toLocaleString()}</div>
+                    <div className="text-xs text-gray-500">IVA {product.vatPercentage}%</div>
+                  </td>
+                  <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setSelectedProductForUpload(product.id)}
+                      className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center gap-1.5 whitespace-nowrap"
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                      Editar
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -2523,52 +2326,120 @@ export default function UberEatsExportPage() {
 
         {/* Paginación */}
         {filteredProducts.length > ITEMS_PER_PAGE && (
-          <div className="px-4 py-3 bg-gray-50 border-t flex items-center justify-between">
+          <div className="px-4 py-3 bg-gray-50 border-t flex flex-wrap items-center justify-between gap-4">
             <div className="text-sm text-gray-600">
-              Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredProducts.length)} de {filteredProducts.length} productos
+              Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredProducts.length)} de {filteredProducts.length}
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                ⏮️ Primera
-              </button>
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                ◀️ Anterior
-              </button>
-              <span className="px-3 py-1 text-sm font-semibold bg-emerald-100 text-emerald-800 rounded">
-                Página {currentPage} de {Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)}
-              </span>
-              <button
-                onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredProducts.length / ITEMS_PER_PAGE), p + 1))}
-                disabled={currentPage >= Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)}
-                className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Siguiente ▶️
-              </button>
-              <button
-                onClick={() => setCurrentPage(Math.ceil(filteredProducts.length / ITEMS_PER_PAGE))}
-                disabled={currentPage >= Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)}
-                className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Última ⏭️
-              </button>
+              <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50">⏮️</button>
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50">◀️</button>
+              <span className="px-3 py-1 text-sm font-semibold bg-emerald-100 text-emerald-800 rounded">Pág. {currentPage}/{Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)}</span>
+              <button onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredProducts.length / ITEMS_PER_PAGE), p + 1))} disabled={currentPage >= Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)} className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50">▶️</button>
+              <button onClick={() => setCurrentPage(Math.ceil(filteredProducts.length / ITEMS_PER_PAGE))} disabled={currentPage >= Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)} className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50">⏭️</button>
             </div>
           </div>
         )}
 
         {filteredProducts.length === 0 && (
           <div className="px-4 py-12 text-center text-gray-500">
-            No se encontraron productos con los filtros actuales
+            No se encontraron productos
           </div>
         )}
       </div>
+
+      {/* Panel lateral de edición - Se abre al hacer clic en Editar o en una fila */}
+      {selectedProductForUpload && (() => {
+        const product = products.find(p => p.id === selectedProductForUpload);
+        if (!product) return null;
+
+        return (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-end" onClick={() => setSelectedProductForUpload(null)}>
+            <div className="bg-white h-full w-full max-w-2xl shadow-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="sticky top-0 bg-emerald-600 text-white px-6 py-4 flex items-center justify-between z-10 shadow-md">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl font-bold">Editar Producto</h2>
+                  <p className="text-sm text-emerald-100 truncate">{product.name}</p>
+                </div>
+                <button onClick={() => setSelectedProductForUpload(null)} className="p-2 hover:bg-emerald-700 rounded-lg transition ml-4 flex-shrink-0">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              {/* Contenido */}
+              <div className="p-6 space-y-6">
+                {/* Información básica */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Información Básica</h3>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Código de Barras</label><input type="text" value={product.barcode} onChange={(e) => updateProduct(product.id, "barcode", e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label><input type="text" value={product.name} onChange={(e) => updateProduct(product.id, "name", e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" placeholder="Nombre + marca + tamaño" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label><textarea value={product.description} onChange={(e) => updateProduct(product.id, "description", e.target.value)} rows={3} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">External Data</label><input type="text" value={product.externalData || ""} onChange={(e) => updateProduct(product.id, "externalData", e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" /></div>
+                </div>
+
+                {/* Categorías */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Categorías</h3>
+                  <div className="max-h-48 overflow-y-auto border rounded-lg p-2 space-y-1 bg-gray-50">
+                    {uniqueCategories.map((cat) => (
+                      <label key={cat} className="flex items-center gap-2 px-2 py-1.5 hover:bg-white rounded cursor-pointer">
+                        <input type="checkbox" checked={product.uberCategories.includes(cat)} onChange={(e) => { const newCats = e.target.checked ? [...product.uberCategories, cat] : product.uberCategories.filter((c) => c !== cat); updateProduct(product.id, 'uberCategories', newCats); updateProduct(product.id, 'uberCategory', newCats[0] || ''); }} className="rounded text-emerald-600" />
+                        <span className={product.uberCategories.includes(cat) ? 'font-medium text-emerald-700' : ''}>{cat}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Precios */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Precios e Inventario</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Precio *</label><div className="flex"><span className="px-3 py-2 bg-gray-100 border border-r-0 rounded-l-lg">$</span><input type="number" step="0.01" value={product.priceWithVat} onChange={(e) => updateProduct(product.id, "priceWithVat", Number(e.target.value))} className="flex-1 px-3 py-2 border rounded-r-lg focus:ring-2 focus:ring-emerald-500" /></div></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">IVA %</label><input type="number" value={product.vatPercentage} onChange={(e) => updateProduct(product.id, "vatPercentage", Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Cantidad máx</label><input type="number" value={product.quantityRestriction ?? 5} onChange={(e) => updateProduct(product.id, "quantityRestriction", Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Stock</label><label className="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-gray-50"><input type="checkbox" checked={!product.inStock} onChange={(e) => updateProduct(product.id, "inStock", !e.target.checked)} className="rounded text-emerald-600" /><span className={`text-sm font-medium ${product.inStock ? "text-green-600" : "text-red-600"}`}>{product.inStock ? "✓ En stock" : "✗ Sin stock"}</span></label></div>
+                  </div>
+                </div>
+
+                {/* Imagen */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Imagen</h3>
+                  <div className="flex gap-2">
+                    <input type="text" value={product.imageUrl} onChange={(e) => updateProduct(product.id, "imageUrl", e.target.value)} className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" placeholder="URL de imagen" />
+                    <button type="button" onClick={() => openImageUploadDialog(product.id)} disabled={uploadingImage === product.id} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"><ArrowUpTrayIcon className="w-4 h-4" />{uploadingImage === product.id ? "..." : "Subir"}</button>
+                  </div>
+                  {product.imageUrl && product.imageUrl !== "null" && (
+                    <div className="p-4 bg-gray-50 rounded-lg border"><img src={product.imageUrl} alt={product.name} className="h-40 w-auto object-contain mx-auto" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /></div>
+                  )}
+                </div>
+
+                {/* Tipos */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Tipos y Restricciones</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label><select value={product.productType} onChange={(e) => updateProduct(product.id, "productType", e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500">{PRODUCT_TYPES.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}</select></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">HFSS</label><select value={product.hfssItem} onChange={(e) => updateProduct(product.id, "hfssItem", e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500">{HFSS_OPTIONS.map((h) => (<option key={h.value} value={h.value}>{h.label}</option>))}</select></div>
+                    {product.productType === "Alcohol" && (<div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Unidades alcohol</label><input type="number" step="0.1" value={product.alcoholUnits ?? 0} onChange={(e) => updateProduct(product.id, "alcoholUnits", Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" /></div>)}
+                  </div>
+                </div>
+
+                {/* Errores */}
+                {!product.isValid && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex gap-2"><ExclamationTriangleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" /><div><h4 className="text-sm font-semibold text-red-800 mb-1">Errores:</h4><ul className="text-sm text-red-700 space-y-1">{product.validationErrors.map((e, i) => (<li key={i}>• {e}</li>))}</ul></div></div>
+                  </div>
+                )}
+
+                {/* Botones */}
+                <div className="flex gap-3 pt-6 border-t">
+                  <button onClick={() => setSelectedProductForUpload(null)} className="flex-1 px-4 py-3 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium">Cerrar</button>
+                  <button onClick={() => setSelectedProductForUpload(null)} className="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">✓ Guardar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Selector flotante de categorías */}
       {categoryPopover && (() => {

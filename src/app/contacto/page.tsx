@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useSession } from "next-auth/react";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Mail, Phone, MapPin, User, FileText, Send } from "lucide-react";
+import OlivoButton from "@/components/OlivoButton";
+import OlivoInput from "@/components/OlivoInput";
 
 interface FormState {
   name: string;
@@ -75,100 +77,118 @@ export default function ContactoPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Contacto</h1>
-      <p className="text-gray-600 mb-10">Envíanos un mensaje y te responderemos lo antes posible.</p>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">Contáctanos</h1>
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          ¿Tienes alguna duda o sugerencia? Estamos aquí para ayudarte. Escríbenos y te responderemos a la brevedad.
+        </p>
+      </div>
 
-      <div className="mb-10 text-center">
-        <button 
-          onClick={handleWhatsApp} 
-          className="bg-emerald-600 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center mx-auto hover:bg-emerald-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+      <div className="mb-12 text-center">
+        <button
+          onClick={handleWhatsApp}
+          className="bg-[#25D366] text-white px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center mx-auto hover:bg-[#20bd5a] transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:scale-95 duration-200"
         >
           <MessageCircle className="w-6 h-6 mr-2" />
           Chat directo por WhatsApp
         </button>
-        <p className="text-sm text-gray-500 mt-3">Respuesta automática inmediata</p>
+        <p className="text-sm text-gray-500 mt-3">Tiempo de respuesta promedio: 5 minutos</p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6 mb-12">
-        <div className="bg-white rounded-lg shadow p-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600">
+            <Mail className="size-6" />
+          </div>
           <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
-          <p className="text-sm text-gray-600">{settings.emailFromAddress || settings.storeEmail || 'contacto@olivomarket.cl'}</p>
+          <p className="text-sm text-gray-600 break-all">{settings.emailFromAddress || settings.storeEmail || 'contacto@olivomarket.cl'}</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600">
+            <Phone className="size-6" />
+          </div>
           <h3 className="font-semibold text-gray-900 mb-1">Teléfono</h3>
           <p className="text-sm text-gray-600">{settings.storePhone || '+56 9 1234 5678'}</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600">
+            <MapPin className="size-6" />
+          </div>
           <h3 className="font-semibold text-gray-900 mb-1">Dirección</h3>
           <p className="text-sm text-gray-600">{settings.storeAddress || 'Av. Principal 123, Santiago'}</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
-        <div className="grid md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-            <input
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 md:p-8">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Envíanos un mensaje</h2>
+          <p className="text-gray-500 text-sm">Rellena el formulario y te contactaremos por email.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <OlivoInput
+              label="Nombre"
               name="name"
+              placeholder="Tu nombre completo"
               value={form.name}
               onChange={handleChange}
-              className={`w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="Tu nombre"
+              error={errors.name}
+              icon={<User className="size-5" />}
               disabled={sending}
             />
-            {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-            <input
+            <OlivoInput
+              label="Email"
               name="email"
               type="email"
+              placeholder="tu@correo.com"
               value={form.email}
               onChange={handleChange}
-              className={`w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="tu@correo.com"
+              error={errors.email}
+              icon={<Mail className="size-5" />}
               disabled={sending}
             />
-            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
           </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Asunto *</label>
-          <input
+
+          <OlivoInput
+            label="Asunto"
             name="subject"
+            placeholder="¿En qué podemos ayudarte?"
             value={form.subject}
             onChange={handleChange}
-            className={`w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${errors.subject ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Motivo del mensaje"
+            error={errors.subject}
+            icon={<FileText className="size-5" />}
             disabled={sending}
           />
-          {errors.subject && <p className="mt-1 text-xs text-red-600">{errors.subject}</p>}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje *</label>
-          <textarea
-            name="message"
-            rows={5}
-            value={form.message}
-            onChange={handleChange}
-            className={`w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 resize-y ${errors.message ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Escribe tu mensaje..."
-            disabled={sending}
-          />
-          {errors.message && <p className="mt-1 text-xs text-red-600">{errors.message}</p>}
-        </div>
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-400">Campos marcados con * son obligatorios.</p>
-          <button
-            type="submit"
-            disabled={sending}
-            className="inline-flex items-center px-5 py-2.5 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-60"
-          >
-            {sending ? 'Enviando...' : sent ? 'Enviar otro mensaje' : 'Enviar mensaje'}
-          </button>
-        </div>
-      </form>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700">Mensaje</label>
+            <textarea
+              name="message"
+              rows={5}
+              value={form.message}
+              onChange={handleChange}
+              className={`w-full p-4 rounded-xl border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 resize-y ${errors.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-500'}`}
+              placeholder="Escribe tu mensaje aquí..."
+              disabled={sending}
+            />
+            {errors.message && <p className="text-sm font-medium text-red-600 flex items-center gap-1"><span>⚠️</span>{errors.message}</p>}
+          </div>
+
+          <div className="flex items-center justify-end">
+            <OlivoButton
+              type="submit"
+              size="lg"
+              loading={sending}
+              disabled={sending || sent}
+            >
+              <Send className="size-5" />
+              {sent ? 'Mensaje Enviado' : 'Enviar Mensaje'}
+            </OlivoButton>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
