@@ -4,9 +4,9 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
 import { useErrorHandler, safeFetch, safeJsonParse } from "@/hooks/useErrorHandler";
-import { 
-  MagnifyingGlassIcon, 
-  PencilIcon, 
+import {
+  MagnifyingGlassIcon,
+  PencilIcon,
   TrashIcon,
   PlusIcon
 } from "@heroicons/react/24/outline";
@@ -38,10 +38,10 @@ type CategoryForm = {
 export default function CategoriesPage() {
   // Usar el hook de manejo de errores globales
   useErrorHandler();
-  
+
   const { showToast } = useToast();
   const { confirm } = useConfirm();
-  
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showInactiveCategories, setShowInactiveCategories] = useState(false);
@@ -49,19 +49,19 @@ export default function CategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [imageRefreshMap, setImageRefreshMap] = useState<Map<string, number>>(new Map());
-  
+
   // Función para obtener URL de imagen con timestamp único por categoría
   const getImageUrlForCategory = (categoryId: string, imageUrl: string | undefined) => {
     if (!imageUrl) return '/file.svg';
     // Usar la función de utilidad normalizada
     return getImageUrlWithRandomTimestamp(imageUrl);
   };
-  
+
   // Modal para crear/editar categoría
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
-  
+
   // Estado para el formulario de categoría
   const initialFormData: CategoryForm = {
     name: "",
@@ -81,13 +81,13 @@ export default function CategoriesPage() {
     try {
       const res = await safeFetch('/api/categories', { cache: 'no-store' });
       const data = await safeJsonParse<Category[]>(res);
-      
+
       console.debug('Fetched /api/categories response:', data);
-      
+
       if (!Array.isArray(data)) {
         throw new Error('Respuesta inválida de /api/categories - esperaba un array');
       }
-      
+
       setCategories(data);
     } catch (e: any) {
       const errorMessage = e.message || 'Error desconocido al cargar categorías';
@@ -115,7 +115,7 @@ export default function CategoriesPage() {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
-  
+
   // Filtrar categorías (proteger description nulo)
   const filteredCategories = useMemo(() => {
     const q = searchTerm.toLowerCase();
@@ -130,10 +130,10 @@ export default function CategoriesPage() {
 
   // Abrir modal para crear nueva categoría
   const handleCreateCategory = () => {
-  console.debug('Opening create category modal');
+    console.debug('Opening create category modal');
     setEditingCategory(null);
-  setFormData(initialFormData);
-  setIsModalOpen(true);
+    setFormData(initialFormData);
+    setIsModalOpen(true);
   };
 
   // Abrir modal para editar categoría
@@ -142,16 +142,16 @@ export default function CategoriesPage() {
     setFormData({
       name: category.name,
       slug: category.slug,
-  description: category.description,
-  image: (category as any).image || "",
-  isActive: category.isActive
+      description: category.description,
+      image: (category as any).image || "",
+      isActive: category.isActive
     });
     setIsModalOpen(true);
   };
 
   // Cerrar modal y resetear estado del formulario
   const closeModal = () => {
-  console.debug('Closing category modal');
+    console.debug('Closing category modal');
     setIsModalOpen(false);
     setEditingCategory(null);
     setFormErrors({});
@@ -176,14 +176,14 @@ export default function CategoriesPage() {
   // Manejar cambios en los campos del formulario
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" 
-        ? (e.target as HTMLInputElement).checked 
+      [name]: type === "checkbox"
+        ? (e.target as HTMLInputElement).checked
         : value,
     }));
-    
+
     // Generar slug automáticamente desde el nombre
     if (name === "name") {
       const slug = normalizeSlug(value);
@@ -225,7 +225,7 @@ export default function CategoriesPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: formData.image })
           });
-          
+
           const uploadData = await safeJsonParse(uploadRes);
           finalImageUrl = uploadData.url;
           console.log('Image uploaded successfully:', finalImageUrl);
@@ -258,16 +258,16 @@ export default function CategoriesPage() {
           return;
         }
         setCategories(prev => prev.map(c => c.id === data.id ? data : c));
-        
+
         // Forzar actualización de imagen para esta categoría específica
         setImageRefreshMap(prev => {
           const newMap = new Map(prev);
           newMap.set(editingCategory.id, Date.now());
           return newMap;
         });
-        
+
         showToast(`Categoría "${formData.name}" actualizada correctamente`, "success");
-        
+
         // Recargar la lista después de un breve delay
         setTimeout(() => {
           loadCategories();
@@ -285,19 +285,19 @@ export default function CategoriesPage() {
             isActive: formData.isActive,
           }),
         });
-        
+
         const data = await safeJsonParse(res);
         console.log('Category created successfully:', data);
-        
+
         setCategories(prev => [data, ...prev]);
-        
+
         // Forzar carga de imagen para la nueva categoría
         setImageRefreshMap(prev => {
           const newMap = new Map(prev);
           newMap.set(data.id, Date.now());
           return newMap;
         });
-        
+
         showToast(`Categoría "${formData.name}" creada correctamente`, "success");
       }
       // Cerrar modal y limpiar estado
@@ -316,7 +316,7 @@ export default function CategoriesPage() {
   const handleDeleteCategory = async (categoryId: string) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
-    
+
     const confirmed = await confirm({
       title: "Eliminar categoría",
       message: `¿Estás seguro de que deseas eliminar la categoría "${category.name}"? Esta acción no se puede deshacer.`,
@@ -324,14 +324,14 @@ export default function CategoriesPage() {
       cancelText: "Cancelar",
       confirmButtonClass: "bg-red-600 hover:bg-red-700"
     });
-    
+
     if (!confirmed) return;
 
     setGlobalError(null);
     try {
-       = await safeFetch(`/api/categories/${categoryId}`, { method: 'DELETE' });
+      await safeFetch(`/api/categories/${categoryId}`, { method: 'DELETE' });
       console.log('Category deleted successfully');
-      
+
       setCategories(prev => prev.filter((cat) => cat.id !== categoryId));
       showToast(`Categoría "${category.name}" eliminada correctamente`, "success");
     } catch (e: any) {
@@ -346,7 +346,7 @@ export default function CategoriesPage() {
   const toggleCategoryStatus = async (categoryId: string) => {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
-    
+
     const confirmed = await confirm({
       title: category.isActive ? "Desactivar categoría" : "Activar categoría",
       message: `¿Estás seguro de que deseas ${category.isActive ? "desactivar" : "activar"} la categoría "${category.name}"?`,
@@ -354,7 +354,7 @@ export default function CategoriesPage() {
       cancelText: "Cancelar",
       confirmButtonClass: category.isActive ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"
     });
-    
+
     if (!confirmed) return;
 
     setGlobalError(null);
@@ -364,10 +364,10 @@ export default function CategoriesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !category.isActive }),
       });
-      
+
       const data = await safeJsonParse(res);
       console.log('Category status updated successfully:', data);
-      
+
       setCategories(prev => prev.map(c => c.id === categoryId ? data : c));
       showToast(`Categoría "${category.name}" ${category.isActive ? "desactivada" : "activada"} correctamente`, "success");
     } catch (e: any) {
@@ -397,7 +397,7 @@ export default function CategoriesPage() {
             </p>
           </div>
           <div className="flex space-x-3">
-            <Button 
+            <Button
               onClick={() => loadCategories()}
               className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg shadow-sm transition-colors border border-gray-200 flex items-center"
             >
@@ -406,7 +406,7 @@ export default function CategoriesPage() {
               </svg>
               Actualizar
             </Button>
-            <Button 
+            <Button
               onClick={handleCreateCategory}
               className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-colors flex items-center"
             >
@@ -442,7 +442,7 @@ export default function CategoriesPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           <div className="flex items-center">
             <input
               id="showInactive"
@@ -455,13 +455,13 @@ export default function CategoriesPage() {
               Mostrar categorías inactivas
             </label>
           </div>
-          
+
           <div className="text-left md:text-right flex items-center justify-start md:justify-end">
             <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">
               {filteredCategories.length} de {categories.length} categorías
             </span>
             {(searchTerm || !showInactiveCategories) && (
-              <button 
+              <button
                 onClick={() => { setSearchTerm(''); setShowInactiveCategories(true); }}
                 className="ml-3 text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
               >
@@ -475,7 +475,7 @@ export default function CategoriesPage() {
         </div>
       </div>
 
-    {/* Tabla de categorías */}
+      {/* Tabla de categorías */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8 border border-gray-100">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -548,11 +548,10 @@ export default function CategoriesPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
-                      className={`px-3 py-1.5 inline-flex text-xs font-semibold rounded-full ${
-                        category.isActive
+                      className={`px-3 py-1.5 inline-flex text-xs font-semibold rounded-full ${category.isActive
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-800"
-                      }`}
+                        }`}
                     >
                       {category.isActive ? "Activa" : "Inactiva"}
                     </span>
@@ -568,11 +567,10 @@ export default function CategoriesPage() {
                       </button>
                       <button
                         onClick={() => toggleCategoryStatus(category.id)}
-                        className={`text-sm py-2 px-3 rounded-lg font-medium transition-colors ${
-                          category.isActive
+                        className={`text-sm py-2 px-3 rounded-lg font-medium transition-colors ${category.isActive
                             ? "bg-red-100 text-red-700 hover:bg-red-200"
                             : "bg-green-100 text-green-700 hover:bg-green-200"
-                        }`}
+                          }`}
                         title={category.isActive ? "Desactivar categoría" : "Activar categoría"}
                       >
                         {category.isActive ? "Desactivar" : "Activar"}
@@ -592,7 +590,7 @@ export default function CategoriesPage() {
             </tbody>
           </table>
         </div>
-        
+
         {/* Sin resultados */}
         {!loading && filteredCategories.length === 0 && (
           <div className="text-center py-12">
@@ -600,7 +598,7 @@ export default function CategoriesPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-gray-500 text-lg">No se encontraron categorías con los criterios de búsqueda.</p>
-            <button 
+            <button
               onClick={() => { setSearchTerm(''); setShowInactiveCategories(true); }}
               className="mt-3 text-indigo-600 hover:text-indigo-800 text-sm font-medium"
             >
@@ -633,7 +631,7 @@ export default function CategoriesPage() {
                   </svg>
                 </button>
               </div>
-              
+
               <form onSubmit={handleSaveCategory} className="text-gray-700">
                 <div className="bg-white px-5 py-6">
                   <div className="sm:flex sm:items-start">
@@ -734,9 +732,9 @@ export default function CategoriesPage() {
                             {/* Imagen actual (data URL) */}
                             {formData.image && formData.image.startsWith('data:') && (
                               <div className="w-24 h-24 relative border border-gray-200 rounded-lg overflow-hidden shadow-sm flex-shrink-0">
-                                <img 
-                                  src={formData.image} 
-                                  alt="Vista previa" 
+                                <img
+                                  src={formData.image}
+                                  alt="Vista previa"
                                   className="w-full h-full object-cover"
                                 />
                               </div>
