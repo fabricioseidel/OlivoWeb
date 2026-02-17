@@ -3,13 +3,14 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/config/auth.config';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     const userId = (session.user as any).id;
 
     const { data: orders, error } = await supabaseAdmin
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     const transformedOrders = orders.map(order => ({
       ...order,
       items_count: order.order_items ? order.order_items.length : 0,
-      order_items: undefined 
+      order_items: undefined
     }));
 
     return NextResponse.json(transformedOrders);

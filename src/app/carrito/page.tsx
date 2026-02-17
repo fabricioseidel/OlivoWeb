@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { TrashIcon, MinusIcon, PlusIcon } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
@@ -8,26 +7,6 @@ import { useCart } from "@/contexts/CartContext";
 import { buildWhatsAppOrderLink } from "@/utils/whatsapp";
 import { useProducts } from "@/contexts/ProductContext";
 import { WHATSAPP_PHONE } from "@/config/constants";
-
-// Simulación de datos del carrito
-const initialCartItems = [
-  {
-    id: "1",
-    name: "Smartphone XYZ",
-    price: 299.99,
-    image: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=2127&auto=format&fit=crop",
-    slug: "smartphone-xyz",
-    quantity: 1,
-  },
-  {
-    id: "2",
-    name: "Auriculares Bluetooth",
-    price: 89.99,
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2070&auto=format&fit=crop",
-    slug: "auriculares-bluetooth",
-    quantity: 2,
-  }
-];
 
 export default function CartPage() {
   const {
@@ -68,6 +47,7 @@ export default function CartPage() {
                     <div className="flex flex-col sm:flex-row items-center">
                       {/* Imagen */}
                       <div className="w-full sm:w-24 h-24 flex-shrink-0 mb-4 sm:mb-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={item.image}
                           alt={item.name}

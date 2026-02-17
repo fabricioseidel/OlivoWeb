@@ -83,16 +83,16 @@ export default function InformacionPersonalPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       // Simulación de actualización (en una app real, enviaríamos a la API)
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Guardar datos en localStorage para autofill
       if (typeof window !== 'undefined') {
-  const { nombre, apellidos } = formData;
-  const realEmail = session?.user?.email || formData.email; // forzamos email real de la sesión
-  localStorage.setItem('profile', JSON.stringify({ nombre, apellidos, email: realEmail, persisted: true }));
+        const { nombre, apellidos } = formData;
+        const realEmail = session?.user?.email || formData.email; // forzamos email real de la sesión
+        localStorage.setItem('profile', JSON.stringify({ nombre, apellidos, email: realEmail, persisted: true }));
         // Eliminar teléfono antiguo si existía
         try {
           const saved = JSON.parse(localStorage.getItem('profile') || '{}');
@@ -100,12 +100,13 @@ export default function InformacionPersonalPage() {
             delete saved.telefono;
             localStorage.setItem('profile', JSON.stringify(saved));
           }
-        } catch {}
+        } catch { }
       }
-      
+
       // Redirigir de vuelta a mi cuenta después de actualizar
       router.push("/mi-cuenta");
-      
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       setMensaje({
         tipo: "error",

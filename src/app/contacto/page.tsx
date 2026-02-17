@@ -61,6 +61,7 @@ export default function ContactoPage() {
       setSent(true);
       showToast('Mensaje enviado', 'success');
       setForm({ name: "", email: "", subject: "", message: "" });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       showToast('Error de red', 'error');
     } finally {

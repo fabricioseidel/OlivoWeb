@@ -28,6 +28,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
       trackProductView(product.id);
       viewTrackedRef.current = product.id;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, product?.id, trackProductView]);
 
   // Reset selected image when product changes
@@ -134,8 +135,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                   <button
                     key={index}
                     className={`relative rounded-xl overflow-hidden h-24 border-2 transition-all ${selectedImage === index
-                        ? "border-emerald-500 ring-2 ring-emerald-200 ring-offset-1"
-                        : "border-transparent hover:border-emerald-200"
+                      ? "border-emerald-500 ring-2 ring-emerald-200 ring-offset-1"
+                      : "border-transparent hover:border-emerald-200"
                       }`}
                     onClick={() => {
                       setSelectedImage(index);

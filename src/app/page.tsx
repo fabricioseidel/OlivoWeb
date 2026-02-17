@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useProducts } from "@/contexts/ProductContext";
+import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/contexts/ToastContext";
+import { normalizeImageUrl } from "@/utils/imageUtils";
 import ProductCard from "@/components/ProductCard";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -17,6 +20,8 @@ import {
 
 export default function Home() {
   const { products, loading } = useProducts();
+  const { addToCart } = useCart();
+  const { showToast } = useToast();
 
   // Filtrar productos destacados y activos
   const featuredProducts = products
@@ -124,7 +129,7 @@ export default function Home() {
                     <Link href={`/productos/${product.slug}`} className="flex-1">
                       <Button variant="outline" fullWidth className="text-sm px-2">Ver más</Button>
                     </Link>
-                    <Button 
+                    <Button
                       className="bg-emerald-600 hover:bg-emerald-500 flex-1 text-sm px-2"
                       onClick={(e) => {
                         e.preventDefault();

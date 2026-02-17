@@ -47,6 +47,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
   const [suggestions, setSuggestions] = useState<Array<any>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const debounceRef = useRef<number | null>(null);
   const provider = (process.env.NEXT_PUBLIC_ADDRESS_PROVIDER || "google").toLowerCase();
@@ -197,6 +198,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
     return () => {
       mounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [country]); // Removed onChange from dependencies to prevent re-init loops
 
   const handleCurrentLocation = () => {

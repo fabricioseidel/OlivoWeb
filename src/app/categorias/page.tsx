@@ -3,7 +3,7 @@
 import React from "react";
 import { useCategories as useCategoryHook } from "@/hooks/useCategories";
 import CategoryCard from "@/components/CategoryCard";
-import { useCategoryNames } from "@/hooks/useCategories"; // Assuming useCategories returns raw data, checking imports
+
 import { useRouter } from "next/navigation";
 
 export default function CategoriesPage() {

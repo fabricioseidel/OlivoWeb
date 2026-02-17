@@ -53,6 +53,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (!session || !String(role).toUpperCase().includes('ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
@@ -67,11 +68,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (match) {
           const mime = match[1];
           console.log(`Processing image upload with mime type: ${mime}`);
-          
+
           // Always use Supabase Storage. Local filesystem uploads are gitignored and
           // not reliable on Vercel (ephemeral filesystem), resulting in broken /uploads URLs.
           const uploadResult = await uploadImageToSupabase(img, mime, 'category');
-          
+
           if (uploadResult.success && uploadResult.url) {
             body.image = uploadResult.url;
             console.log(`Image successfully uploaded to Supabase: ${uploadResult.url}`);
@@ -84,7 +85,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           }
         }
       }
-    } catch (e:any) {
+    } catch (e: any) {
       console.error('Error saving category image:', e?.message || e);
     }
     const { name, slug, description, isActive, image } = body;
@@ -99,15 +100,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // Build update payload using only existing columns (based on schema check: id, name, is_active, image_url)
     const updatePayload: any = {};
-    
+
     if (name !== undefined) {
       updatePayload.name = String(name).trim();
     }
-    
+
     if (image !== undefined) {
       updatePayload.image_url = image || null; // Use correct column name
     }
-    
+
     if (isActive !== undefined) {
       updatePayload.is_active = Boolean(isActive); // Use correct column name  
     }
@@ -194,7 +195,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     if ((count ?? 0) > 0) {
       return NextResponse.json({ error: "No se puede eliminar una categoría con productos asociados" }, { status: 400 });
     }
-  const { error: delErr } = await supabaseAdmin.from('categories').delete().eq('id', id);
+    const { error: delErr } = await supabaseAdmin.from('categories').delete().eq('id', id);
     if (delErr) throw delErr;
     return NextResponse.json({ ok: true });
   } catch (e) {

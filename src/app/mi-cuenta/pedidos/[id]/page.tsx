@@ -4,7 +4,6 @@ import { useState, useEffect, use } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import PrintableInvoice from "@/components/PrintableInvoice";
 
@@ -46,6 +45,7 @@ type Pedido = {
 
 export default function DetallePedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -66,34 +66,34 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
             return;
           }
           const found = await res.json();
-          
+
           const items = Array.isArray(found.order_items) ? found.order_items : (Array.isArray(found.items) ? found.items : []);
           const productos: ProductoEnPedido[] = items.map((it: any, idx: number) => ({
             id: it.product_id || it.id || `ITEM-${idx}`,
-            nombre: it.name || it.nombre || `Producto ${idx+1}`,
+            nombre: it.name || it.nombre || `Producto ${idx + 1}`,
             precio: Number(it.price) || 0,
             cantidad: Number(it.quantity) || 1,
             imagenUrl: it.image || '/file.svg'
           }));
-          
+
           const subtotal = Number(found.subtotal) || productos.reduce((s, p) => s + p.precio * p.cantidad, 0);
           const envio = Number(found.shipping_cost) || 10;
           const impuestos = subtotal * 0.19;
-          
+
           const direccion = found.shipping_address || {};
           // normalize address
           const normalizedAddr: any = (() => {
             if (!direccion) return {};
             if (typeof direccion === 'string') return { formattedAddress: direccion };
             if (direccion.formattedAddress) return direccion;
-            if (direccion.address) return { 
-                formattedAddress: direccion.address, 
-                city: direccion.city, 
-                postalCode: direccion.zipCode, 
-                country: direccion.country,
-                phone: direccion.phone,
-                email: direccion.email,
-                fullName: direccion.fullName
+            if (direccion.address) return {
+              formattedAddress: direccion.address,
+              city: direccion.city,
+              postalCode: direccion.zipCode,
+              country: direccion.country,
+              phone: direccion.phone,
+              email: direccion.email,
+              fullName: direccion.fullName
             };
             return direccion;
           })();
@@ -110,7 +110,7 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
             codigoPostal: normalizedAddr.postalCode || normalizedAddr.codigoPostal || normalizedAddr.zipCode || '-',
             telefono: normalizedAddr.phone || normalizedAddr.telefono || '+00 000 0000'
           };
-          
+
           const pedidoObj: Pedido = {
             id: found.id,
             fecha: (found.created_at || found.fecha || found.date || '').toString().split('T')[0] || '-',
@@ -125,6 +125,7 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
             numeroSeguimiento: undefined
           };
           setPedido(pedidoObj);
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           setError('Error cargando el pedido');
         } finally {
@@ -192,28 +193,28 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
     id: pedido.id,
     date: pedido.fecha,
     customer: {
-        name: pedido.direccionEnvio.nombre,
-        email: pedido.direccionEnvio.email,
-        phone: pedido.direccionEnvio.telefono
+      name: pedido.direccionEnvio.nombre,
+      email: pedido.direccionEnvio.email,
+      phone: pedido.direccionEnvio.telefono
     },
     shipping: {
-        address: `${pedido.direccionEnvio.calle} ${pedido.direccionEnvio.numero} ${pedido.direccionEnvio.interior ? 'Int. ' + pedido.direccionEnvio.interior : ''}, ${pedido.direccionEnvio.colonia}`,
-        city: pedido.direccionEnvio.ciudad,
-        postalCode: pedido.direccionEnvio.codigoPostal,
-        country: pedido.direccionEnvio.estado
+      address: `${pedido.direccionEnvio.calle} ${pedido.direccionEnvio.numero} ${pedido.direccionEnvio.interior ? 'Int. ' + pedido.direccionEnvio.interior : ''}, ${pedido.direccionEnvio.colonia}`,
+      city: pedido.direccionEnvio.ciudad,
+      postalCode: pedido.direccionEnvio.codigoPostal,
+      country: pedido.direccionEnvio.estado
     },
     items: pedido.productos.map(p => ({
-        id: p.id,
-        name: p.nombre,
-        quantity: p.cantidad,
-        price: p.precio
+      id: p.id,
+      name: p.nombre,
+      quantity: p.cantidad,
+      price: p.precio
     })),
     subtotal: pedido.subtotal,
     shippingCost: pedido.envio,
     total: pedido.total,
     payment: {
-        method: pedido.metodoPago,
-        status: pedido.estado === 'Pendiente' ? 'pending' : 'paid'
+      method: pedido.metodoPago,
+      status: pedido.estado === 'Pendiente' ? 'pending' : 'paid'
     }
   } : null;
 
@@ -222,210 +223,210 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
       {invoiceOrder && <PrintableInvoice order={invoiceOrder} />}
       <div className="container mx-auto px-4 py-8 max-w-6xl print:hidden">
         <div className="mb-6">
-        <Link href="/mi-cuenta/pedidos" className="inline-flex items-center text-blue-600 hover:text-blue-800">
-          <ArrowLeftIcon className="h-4 w-4 mr-1" />
-          Volver a Mis pedidos
-        </Link>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {/* Encabezado del pedido */}
-        <div className="border-b border-gray-200 px-6 py-4">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Pedido {pedido.id}</h1>
-              <p className="text-sm text-gray-500 mt-1">Realizado el {pedido.fecha}</p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getEstadoColor(pedido.estado)}`}>
-                {pedido.estado}
-              </span>
-            </div>
-          </div>
+          <Link href="/mi-cuenta/pedidos" className="inline-flex items-center text-blue-600 hover:text-blue-800">
+            <ArrowLeftIcon className="h-4 w-4 mr-1" />
+            Volver a Mis pedidos
+          </Link>
         </div>
 
-        {/* Información de seguimiento (si está disponible) */}
-        {pedido.numeroSeguimiento && (
-          <div className="bg-blue-50 px-6 py-4 border-b border-blue-100">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          {/* Encabezado del pedido */}
+          <div className="border-b border-gray-200 px-6 py-4">
             <div className="flex flex-col md:flex-row md:justify-between md:items-center">
               <div>
-                <h2 className="text-md font-medium text-blue-800">Información de seguimiento</h2>
-                <p className="text-sm text-blue-700 mt-1">
-                  Número de seguimiento: <span className="font-semibold">{pedido.numeroSeguimiento}</span>
-                </p>
+                <h1 className="text-2xl font-bold text-gray-900">Pedido {pedido.id}</h1>
+                <p className="text-sm text-gray-500 mt-1">Realizado el {pedido.fecha}</p>
               </div>
-              <div className="mt-3 md:mt-0">
-                <a 
-                  href="#" 
-                  className="text-blue-700 hover:text-blue-900 text-sm font-medium"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert("Esta función estaría conectada con el proveedor de logística real");
-                  }}
-                >
-                  Seguir envío →
-                </a>
+              <div className="mt-4 md:mt-0">
+                <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getEstadoColor(pedido.estado)}`}>
+                  {pedido.estado}
+                </span>
               </div>
             </div>
           </div>
-        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
-          {/* Productos */}
-          <div className="md:col-span-2">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Productos</h2>
-            <div className="border rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Producto
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Precio
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cantidad
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {pedido.productos.map((producto) => (
-                    <tr key={producto.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
-                            {/* Imagen del producto (podría ser un placeholder) */}
-                            <div className="h-full w-full bg-gray-200 flex items-center justify-center text-gray-500">
-                              <span className="text-xs">Imagen</span>
+          {/* Información de seguimiento (si está disponible) */}
+          {pedido.numeroSeguimiento && (
+            <div className="bg-blue-50 px-6 py-4 border-b border-blue-100">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                <div>
+                  <h2 className="text-md font-medium text-blue-800">Información de seguimiento</h2>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Número de seguimiento: <span className="font-semibold">{pedido.numeroSeguimiento}</span>
+                  </p>
+                </div>
+                <div className="mt-3 md:mt-0">
+                  <a
+                    href="#"
+                    className="text-blue-700 hover:text-blue-900 text-sm font-medium"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      alert("Esta función estaría conectada con el proveedor de logística real");
+                    }}
+                  >
+                    Seguir envío →
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
+            {/* Productos */}
+            <div className="md:col-span-2">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Productos</h2>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Producto
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Precio
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Cantidad
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {pedido.productos.map((producto) => (
+                      <tr key={producto.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+                              {/* Imagen del producto (podría ser un placeholder) */}
+                              <div className="h-full w-full bg-gray-200 flex items-center justify-center text-gray-500">
+                                <span className="text-xs">Imagen</span>
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{producto.nombre}</div>
+                              <div className="text-sm text-gray-500">SKU: {producto.id}</div>
                             </div>
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{producto.nombre}</div>
-                            <div className="text-sm text-gray-500">SKU: {producto.id}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">${producto.precio.toFixed(2)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{producto.cantidad}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">${(producto.precio * producto.cantidad).toFixed(2)}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            {/* Totales */}
-            <div className="mt-6 bg-gray-50 rounded-lg p-4">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Subtotal</span>
-                  <span className="text-sm text-gray-900">${pedido.subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Envío</span>
-                  <span className="text-sm text-gray-900">${pedido.envio.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Impuestos</span>
-                  <span className="text-sm text-gray-900">${pedido.impuestos.toFixed(2)}</span>
-                </div>
-                <div className="border-t border-gray-200 pt-2 mt-2">
-                  <div className="flex justify-between font-medium">
-                    <span className="text-base text-gray-900">Total</span>
-                    <span className="text-base text-gray-900">${pedido.total.toFixed(2)}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">${producto.precio.toFixed(2)}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{producto.cantidad}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">${(producto.precio * producto.cantidad).toFixed(2)}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Totales */}
+              <div className="mt-6 bg-gray-50 rounded-lg p-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Subtotal</span>
+                    <span className="text-sm text-gray-900">${pedido.subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Envío</span>
+                    <span className="text-sm text-gray-900">${pedido.envio.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Impuestos</span>
+                    <span className="text-sm text-gray-900">${pedido.impuestos.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-gray-200 pt-2 mt-2">
+                    <div className="flex justify-between font-medium">
+                      <span className="text-base text-gray-900">Total</span>
+                      <span className="text-base text-gray-900">${pedido.total.toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Información del pedido */}
-          <div>
-            <div className="space-y-6">
-              {/* Dirección de envío */}
-              <div>
-                <h2 className="text-lg font-medium text-gray-900 mb-2">Dirección de envío</h2>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-800 font-medium">{pedido.direccionEnvio.nombre}</p>
-                  <p className="text-sm text-gray-600">
-                    {pedido.direccionEnvio.calle} {pedido.direccionEnvio.numero}
-                    {pedido.direccionEnvio.interior && `, Int. ${pedido.direccionEnvio.interior}`}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {pedido.direccionEnvio.colonia}, {pedido.direccionEnvio.codigoPostal}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {pedido.direccionEnvio.ciudad}, {pedido.direccionEnvio.estado}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Tel: {pedido.direccionEnvio.telefono}
-                  </p>
+            {/* Información del pedido */}
+            <div>
+              <div className="space-y-6">
+                {/* Dirección de envío */}
+                <div>
+                  <h2 className="text-lg font-medium text-gray-900 mb-2">Dirección de envío</h2>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-800 font-medium">{pedido.direccionEnvio.nombre}</p>
+                    <p className="text-sm text-gray-600">
+                      {pedido.direccionEnvio.calle} {pedido.direccionEnvio.numero}
+                      {pedido.direccionEnvio.interior && `, Int. ${pedido.direccionEnvio.interior}`}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {pedido.direccionEnvio.colonia}, {pedido.direccionEnvio.codigoPostal}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {pedido.direccionEnvio.ciudad}, {pedido.direccionEnvio.estado}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Tel: {pedido.direccionEnvio.telefono}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              
-              {/* Método de pago */}
-              <div>
-                <h2 className="text-lg font-medium text-gray-900 mb-2">Método de pago</h2>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-800">{pedido.metodoPago}</p>
+
+                {/* Método de pago */}
+                <div>
+                  <h2 className="text-lg font-medium text-gray-900 mb-2">Método de pago</h2>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-800">{pedido.metodoPago}</p>
+                  </div>
                 </div>
-              </div>
-              
-              {/* Acciones */}
-              <div className="space-y-3">
-                {(pedido.estado === "Pendiente" || pedido.estado === "En proceso") && (
+
+                {/* Acciones */}
+                <div className="space-y-3">
+                  {(pedido.estado === "Pendiente" || pedido.estado === "En proceso") && (
+                    <button
+                      className="w-full px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      onClick={() => alert("En una aplicación real, esto enviaría una solicitud de cancelación")}
+                    >
+                      Solicitar cancelación
+                    </button>
+                  )}
+
                   <button
-                    className="w-full px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    onClick={() => alert("En una aplicación real, esto enviaría una solicitud de cancelación")}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    onClick={() => window.print()}
                   >
-                    Solicitar cancelación
+                    Imprimir pedido
                   </button>
-                )}
-                
-                <button
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  onClick={() => window.print()}
-                >
-                  Imprimir pedido
-                </button>
-                
-                {(pedido.estado === "Entregado") && (
-                  <button
-                    className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    onClick={() => router.push(`/productos/resenas/nuevo?pedido=${pedido.id}`)}
+
+                  {(pedido.estado === "Entregado") && (
+                    <button
+                      className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      onClick={() => router.push(`/productos/resenas/nuevo?pedido=${pedido.id}`)}
+                    >
+                      Escribir reseña
+                    </button>
+                  )}
+                </div>
+
+                {/* Ayuda */}
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-blue-800 mb-2">¿Necesitas ayuda?</h3>
+                  <p className="text-sm text-blue-700 mb-3">
+                    Si tienes alguna pregunta sobre tu pedido, contáctanos.
+                  </p>
+                  <Link
+                    href="/contacto"
+                    className="text-sm font-medium text-blue-700 hover:text-blue-900"
                   >
-                    Escribir reseña
-                  </button>
-                )}
-              </div>
-              
-              {/* Ayuda */}
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-blue-800 mb-2">¿Necesitas ayuda?</h3>
-                <p className="text-sm text-blue-700 mb-3">
-                  Si tienes alguna pregunta sobre tu pedido, contáctanos.
-                </p>
-                <Link
-                  href="/contacto"
-                  className="text-sm font-medium text-blue-700 hover:text-blue-900"
-                >
-                  Contactar con soporte →
-                </Link>
+                    Contactar con soporte →
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       </div>
     </>
   );

@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import bcrypt from "bcryptjs";
 
 // GET /api/admin/users -> lista usuarios reales (solo admin)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(req: NextRequest) {
   const session: any = await getServerSession(authOptions as any);
   const role = (session as any)?.role || (session?.user as any)?.role || '';
@@ -33,7 +34,7 @@ export async function PATCH(req: NextRequest) {
   }
   try {
     const { userId, role } = await req.json();
-    if (!userId || !['USER','ADMIN'].includes(role)) {
+    if (!userId || !['USER', 'ADMIN'].includes(role)) {
       return NextResponse.json({ message: 'Datos inválidos' }, { status: 400 });
     }
     // Update only role to avoid failures if updated_at column doesn't exist
@@ -48,7 +49,7 @@ export async function PATCH(req: NextRequest) {
       throw error;
     }
     return NextResponse.json({ message: 'Rol actualizado', user: { id: data?.id, role: data?.role } });
-  } catch (e:any) {
+  } catch (e: any) {
     return NextResponse.json({ message: 'Error', detail: e.message }, { status: 500 });
   }
 }
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Datos inválidos' }, { status: 400 });
     }
     const emailNorm = String(email).toLowerCase().trim();
-    const finalRole = ['USER','ADMIN'].includes(role) ? role : 'USER';
+    const finalRole = ['USER', 'ADMIN'].includes(role) ? role : 'USER';
 
     // Check existence
     const existing = await supabaseAdmin
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
     if (error) throw error;
     return NextResponse.json({ message: 'Usuario creado', user: data }, { status: 201 });
-  } catch (e:any) {
+  } catch (e: any) {
     console.error('[ADMIN/USERS][POST] Error:', e?.message || e);
     return NextResponse.json({ message: 'Error', detail: e.message }, { status: 500 });
   }
