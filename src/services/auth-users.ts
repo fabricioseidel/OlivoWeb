@@ -1,4 +1,3 @@
-import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export type DbUser = {

@@ -1,8 +1,6 @@
 // src/lib/auth.ts
 import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
-import { supabase } from "@/lib/supabase";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getUserByEmail as svcGetUserByEmail, type DbUser } from "@/services/auth-users";
 
 // Importar authOptions desde el archivo de configuración
