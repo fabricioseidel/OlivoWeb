@@ -1,4 +1,4 @@
-"use client";
+use client";
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -327,7 +327,7 @@ export default function EditProductPage() {
         <div className="grid md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-            <input name="name" value={form.name} onChange={handleChange} className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500" />
+            <ame="name" value={form.name} onChange={handleChange} className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>

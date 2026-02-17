@@ -11,12 +11,11 @@ import MultiImageUpload from "@/components/ui/MultiImageUpload";
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useCategories } from "@/hooks/useCategories";
-import { normalizeImageUrl } from '@/utils/image';
 
 export default function NewProductPage() {
   const router = useRouter();
   const { addProduct } = useProducts();
-  const { categories, loading: categoriesLoading } = useCategories();
+  const { categories } = useCategories();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
 

@@ -7,14 +7,11 @@ import {
     ArrowDownIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
-    EyeIcon,
     MagnifyingGlassIcon,
     FunnelIcon,
     CheckCircleIcon,
     XCircleIcon,
     ClockIcon,
-    TruckIcon,
-    CreditCardIcon
 } from "@heroicons/react/24/outline";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -412,11 +409,3 @@ function FulfillmentBadge({ status }: { status: string }) {
     return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">No enviado</span>
 }
 
-function SummaryCard({ label, value, color }: { label: string; value: number; color?: string }) {
-    return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="text-sm font-medium text-gray-500 mb-1">{label}</div>
-            <div className={`text-3xl font-bold ${color || 'text-gray-900'}`}>{value}</div>
-        </div>
-    );
-}

@@ -53,7 +53,6 @@ export default function CategoriesPage() {
   // Función para obtener URL de imagen con timestamp único por categoría
   const getImageUrlForCategory = (categoryId: string, imageUrl: string | undefined) => {
     if (!imageUrl) return '/file.svg';
-    const refreshTime = imageRefreshMap.get(categoryId) || Date.now();
     // Usar la función de utilidad normalizada
     return getImageUrlWithRandomTimestamp(imageUrl);
   };
@@ -102,12 +101,10 @@ export default function CategoriesPage() {
 
   // Cargar categorías desde la API al montar
   useEffect(() => {
-    let cancelled = false;
     const load = async () => {
       await loadCategories();
     };
     load();
-    return () => { cancelled = true; };
   }, []);
 
   const normalizeSlug = (value: string) => value
@@ -332,7 +329,7 @@ export default function CategoriesPage() {
 
     setGlobalError(null);
     try {
-      const res = await safeFetch(`/api/categories/${categoryId}`, { method: 'DELETE' });
+       = await safeFetch(`/api/categories/${categoryId}`, { method: 'DELETE' });
       console.log('Category deleted successfully');
       
       setCategories(prev => prev.filter((cat) => cat.id !== categoryId));

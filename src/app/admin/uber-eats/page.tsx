@@ -241,24 +241,6 @@ export default function UberEatsExportPage() {
     setCategoryPopover(null);
   }, []);
 
-  const openCategoryPopover = useCallback((productId: string, anchorEl: HTMLElement) => {
-    const rect = anchorEl.getBoundingClientRect();
-    const panelWidthPx = 320; // aprox w-80
-    const marginPx = 8;
-    const estimatedPanelHeightPx = 320;
-    const openUp = rect.bottom + estimatedPanelHeightPx + marginPx > window.innerHeight;
-
-    const left = Math.max(marginPx, Math.min(rect.left, window.innerWidth - panelWidthPx - marginPx));
-    const top = openUp ? rect.top - marginPx : rect.bottom + marginPx;
-
-    categoryTypeBufferRef.current = { value: '', lastAt: 0 };
-    setCategoryPopover({ productId, top, left, openUp });
-
-    requestAnimationFrame(() => {
-      categoryPopoverPanelRef.current?.focus();
-    });
-  }, []);
-
   const handleCategoryPopoverKeyDown = useCallback(
     (ev: React.KeyboardEvent) => {
       if (ev.key === 'Escape') {

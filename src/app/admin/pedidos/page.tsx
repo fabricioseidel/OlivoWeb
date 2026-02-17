@@ -17,7 +17,6 @@ interface Order {
 }
 
 // Tipo bruto que podría venir de distintos orígenes (checkout usa campos en español)
-type RawOrder = any;
 
 export default function AdminOrdersPage() {
   // ...existing code...

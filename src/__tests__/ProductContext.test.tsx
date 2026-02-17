@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, waitFor } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { useProducts, ProductContext, ProductProvider } from '../contexts/ProductContext';
+import { useProducts, ProductProvider } from '../contexts/ProductContext';
 
 describe('ProductContext', () => {
   it('provides default values', async () => {
