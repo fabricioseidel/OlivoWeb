@@ -107,7 +107,8 @@ export default function CambiarContrasenaPage() {
         nuevaContrasena: "",
         confirmarContrasena: ""
       });
-    } catch (_error) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
       setMensaje({
         tipo: "error",
         texto: "Ha ocurrido un error al actualizar la contraseña"

@@ -237,7 +237,8 @@ export default function DireccionesPage() {
       setTimeout(() => {
         setMensaje({ tipo: "", texto: "" });
       }, 5000);
-    } catch (_error) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
       setMensaje({
         tipo: "error",
         texto: "Error al eliminar la dirección"
@@ -269,7 +270,8 @@ export default function DireccionesPage() {
       setTimeout(() => {
         setMensaje({ tipo: "", texto: "" });
       }, 5000);
-    } catch (_error) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
       setMensaje({
         tipo: "error",
         texto: "Error al actualizar la dirección predeterminada"
@@ -350,7 +352,8 @@ export default function DireccionesPage() {
       // Redirigir de vuelta a mi cuenta
       router.push("/mi-cuenta");
 
-    } catch (_error) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
       setMensaje({
         tipo: "error",
         texto: "Ha ocurrido un error al guardar la dirección"

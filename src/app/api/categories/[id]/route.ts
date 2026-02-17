@@ -173,7 +173,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     if (!session || !String(role).toUpperCase().includes('ADMIN')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-  } catch (_e) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (e) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
