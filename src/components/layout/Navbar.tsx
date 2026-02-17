@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState, Fragment } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Menu, X, User } from "lucide-react"; // Switched to Lucide
+import { ShoppingBag, Menu, X } from "lucide-react"; // Switched to Lucide
 import { useSession, signOut } from "next-auth/react";
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
