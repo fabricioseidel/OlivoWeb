@@ -25,7 +25,7 @@ export function errorResponse(error: unknown, status = 500) {
   if (error instanceof ZodError) {
     const details = (error as any).issues ?? (error as any).errors;
     return NextResponse.json(
-      { error: 'Validation Error', details },
+      { error: 'Validation Error', details: error.issues },
       { status: 400 }
     );
   }

@@ -97,18 +97,58 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Products Section */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Productos Destacados
-              </h2>
-              <p className="text-gray-600">
-                Los favoritos de nuestros clientes
-              </p>
-            </div>
+      {/* Productos Destacados */}
+      <section className="py-12 md:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8">Productos Destacados</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            {featuredProducts.map((product) => (
+              <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <Link href={`/productos/${product.slug}`}>
+                  <div className="img-container square">
+                    <Image
+                      src={normalizeImageUrl(product.image)}
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="w-full h-full object-cover object-center hover:scale-110 transition-transform duration-500"
+                    />
+                  </div>
+                </Link>
+                <div className="p-4">
+                  <Link href={`/productos/${product.slug}`}>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2 line-clamp-1">{product.name}</h3>
+                  </Link>
+                  <p className="text-gray-500 mb-4">$ {product.price.toFixed(2)}</p>
+                  <div className="flex gap-2">
+                    <Link href={`/productos/${product.slug}`} className="flex-1">
+                      <Button variant="outline" fullWidth className="text-sm px-2">Ver más</Button>
+                    </Link>
+                    <Button 
+                      className="bg-emerald-600 hover:bg-emerald-500 flex-1 text-sm px-2"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        addToCart(
+                          {
+                            id: product.id,
+                            name: product.name,
+                            price: product.price,
+                            image: product.image,
+                            slug: product.slug,
+                          },
+                          1,
+                        );
+                        showToast(`¡${product.name} añadido al carrito!`, "success");
+                      }}
+                    >
+                      Comprar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 md:mt-10 text-center">
             <Link href="/productos">
               <Button variant="outline">
                 Ver Todos
