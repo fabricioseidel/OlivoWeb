@@ -27,6 +27,7 @@ interface ShippingFormProps {
   shippingMethods: ShippingMethod[];
   selectedMethod: string;
   onMethodChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isCalculating?: boolean;
 }
 
 export default function ShippingForm({
@@ -35,12 +36,13 @@ export default function ShippingForm({
   onAddressSelect,
   shippingMethods,
   selectedMethod,
-  onMethodChange
+  onMethodChange,
+  isCalculating
 }: ShippingFormProps) {
   return (
     <div className="p-6">
       <h2 className="text-lg font-medium text-gray-900 mb-6">Información de Envío</h2>
-      
+
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <Input
@@ -53,7 +55,7 @@ export default function ShippingForm({
             onChange={onChange}
           />
         </div>
-        
+
         <div>
           <Input
             label="Correo electrónico"
@@ -65,7 +67,7 @@ export default function ShippingForm({
             onChange={onChange}
           />
         </div>
-        
+
         <div>
           <Input
             label="Teléfono"
@@ -77,7 +79,7 @@ export default function ShippingForm({
             onChange={onChange}
           />
         </div>
-        
+
         <div className="sm:col-span-2">
           <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
           <AddressAutocomplete
@@ -90,7 +92,7 @@ export default function ShippingForm({
             required
           />
         </div>
-        
+
         <div>
           <Input
             label="Ciudad"
@@ -102,7 +104,7 @@ export default function ShippingForm({
             onChange={onChange}
           />
         </div>
-        
+
         <div>
           <Input
             label="Región/Provincia"
@@ -114,7 +116,7 @@ export default function ShippingForm({
             onChange={onChange}
           />
         </div>
-        
+
         <div>
           <Input
             label="Código Postal"
@@ -126,7 +128,7 @@ export default function ShippingForm({
             onChange={onChange}
           />
         </div>
-        
+
         <div>
           <Input
             label="País"
@@ -139,15 +141,23 @@ export default function ShippingForm({
           />
         </div>
       </div>
-      
+
       <div className="mt-8">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Método de Envío</h3>
-        
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Método de Envío</h3>
+          {isCalculating && (
+            <div className="flex items-center text-sm text-blue-600">
+              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2" />
+              Calculando distancia...
+            </div>
+          )}
+        </div>
+
         <div className="space-y-3">
           {shippingMethods.map((method) => (
-            <label 
+            <label
               key={method.id}
-              htmlFor={method.id} 
+              htmlFor={method.id}
               className={`flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedMethod === method.id ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
             >
               <div className="flex items-center">
@@ -162,6 +172,12 @@ export default function ShippingForm({
                 />
                 <div className="ml-3">
                   <div className="flex items-center">
+                    {method.id === 'dynamic' && (
+                      <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
                     {method.id === 'flash' && (
                       <svg className="w-5 h-5 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />

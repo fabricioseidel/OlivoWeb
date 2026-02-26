@@ -1,0 +1,18 @@
+﻿
+> tienda-web@0.1.0 typecheck
+> tsc --noEmit
+
+src/__tests__/Footer.test.tsx(2,18): error TS2305: Module '"@testing-library/react"' has no exported member 'screen'.
+src/__tests__/Navbar.test.tsx(2,18): error TS2305: Module '"@testing-library/react"' has no exported member 'screen'.
+src/components/productos/forms/AddProductForm.tsx(8,37): error TS2307: Cannot find module '@/actions/products' or its corresponding type declarations.
+src/components/productos/forms/AddProductForm.tsx(12,48): error TS2307: Cannot find module '@/schemas/product.schema' or its corresponding type declarations.
+src/components/productos/forms/AddProductForm.tsx(13,34): error TS2307: Cannot find module '@/types/forms/productFormState' or its corresponding type declarations.
+src/components/productos/forms/AddProductForm.tsx(45,23): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type '{}'.
+  Property '0' does not exist on type '{}'.
+src/components/productos/forms/EditProductForm.tsx(16,37): error TS2307: Cannot find module '@/actions/products' or its corresponding type declarations.
+src/components/productos/forms/EditProductForm.tsx(22,48): error TS2307: Cannot find module '@/schemas/product.schema' or its corresponding type declarations.
+src/components/productos/forms/EditProductForm.tsx(23,31): error TS2307: Cannot find module '@/server/products.service' or its corresponding type declarations.
+src/components/productos/forms/EditProductForm.tsx(24,34): error TS2307: Cannot find module '@/types/forms/productFormState' or its corresponding type declarations.
+src/components/productos/forms/EditProductForm.tsx(81,23): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type '{}'.
+  Property '0' does not exist on type '{}'.
+src/components/productos/forms/EditProductForm.tsx(83,7): error TS2578: Unused '@ts-expect-error' directive.

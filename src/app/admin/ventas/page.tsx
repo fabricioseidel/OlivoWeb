@@ -106,7 +106,7 @@ export default function VentasPage() {
 
       const response = await fetch(`/api/sales?${params.toString()}`);
       const data = await response.json();
-      
+
       if (data.sales) {
         setSales(data.sales);
       }
@@ -121,7 +121,7 @@ export default function VentasPage() {
     try {
       const response = await fetch('/api/sellers');
       const data = await response.json();
-      
+
       if (data.sellers) {
         setSellers(data.sellers);
       }
@@ -135,7 +135,7 @@ export default function VentasPage() {
       setDetailLoading(true);
       const response = await fetch(`/api/sales/${saleId}`);
       const data = await response.json();
-      
+
       if (data.items) {
         setSaleItems(data.items);
       }
@@ -154,7 +154,7 @@ export default function VentasPage() {
   const handleUploadReceipt = async (saleId: number, file: File) => {
     try {
       setUploadingReceipt(true);
-      
+
       const formData = new FormData();
       formData.append('file', file);
 
@@ -170,7 +170,7 @@ export default function VentasPage() {
       }
 
       alert('Comprobante subido exitosamente');
-      
+
       // Recargar ventas y detalle
       await loadSales();
       if (selectedSale) {
@@ -202,9 +202,9 @@ export default function VentasPage() {
   // Filtrado por búsqueda
   const filteredSales = useMemo(() => {
     if (!searchTerm) return sales;
-    
+
     const term = searchTerm.toLowerCase();
-    return sales.filter(sale => 
+    return sales.filter(sale =>
       sale.id.toString().includes(term) ||
       sale.seller_name?.toLowerCase().includes(term) ||
       sale.seller_email?.toLowerCase().includes(term) ||
@@ -218,7 +218,7 @@ export default function VentasPage() {
     const totalSales = filteredSales.length;
     const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
     const avgSale = totalSales > 0 ? totalRevenue / totalSales : 0;
-    
+
     const byPaymentMethod = filteredSales.reduce((acc, sale) => {
       const method = sale.payment_method || 'desconocido';
       acc[method] = (acc[method] || 0) + sale.total;
@@ -275,12 +275,17 @@ export default function VentasPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Ventas del Minimarket</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Historial completo de ventas sincronizadas desde la app móvil
-        </p>
+      {/* Header e Integraciones */}
+      <div className="mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Ventas del Minimarket</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Historial completo de ventas sincronizadas desde la app móvil y dashboard
+          </p>
+        </div>
+        <div className="w-full md:w-1/3">
+          {/* QuickSaleForm component goes here, assume customers are empty for now to avoid breaking hook */}
+        </div>
       </div>
 
       {/* Estadísticas */}
@@ -504,7 +509,7 @@ export default function VentasPage() {
                   const isTransfer = sale.payment_method === 'transferencia';
                   const hasReceipt = sale.transfer_receipt_uri;
                   let rowBgClass = 'hover:bg-gray-50';
-                  
+
                   if (isTransfer && !hasReceipt) {
                     rowBgClass = 'bg-red-50 hover:bg-red-100'; // Transferencia sin comprobante
                   } else if (isTransfer && hasReceipt) {
@@ -558,9 +563,9 @@ export default function VentasPage() {
       {/* Modal de detalle */}
       {selectedSale && mounted && createPortal(
         <>
-          <div 
-            className="fixed inset-0 bg-gray-900 bg-opacity-60 backdrop-blur-sm" 
-            style={{ 
+          <div
+            className="fixed inset-0 bg-gray-900 bg-opacity-60 backdrop-blur-sm"
+            style={{
               zIndex: 99998,
               position: 'fixed',
               top: 0,
@@ -570,197 +575,197 @@ export default function VentasPage() {
             }}
             onClick={() => setSelectedSale(null)}
           />
-          <div 
-            className="fixed inset-0 flex items-center justify-center p-4 pointer-events-none" 
+          <div
+            className="fixed inset-0 flex items-center justify-center p-4 pointer-events-none"
             style={{ zIndex: 99999 }}
           >
-            <div 
-              className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative pointer-events-auto" 
+            <div
+              className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative pointer-events-auto"
               onClick={(e) => e.stopPropagation()}
             >
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Detalle de Venta #{selectedSale.id}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {new Date(selectedSale.ts).toLocaleString()}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedSale(null)}
-                  className="text-gray-400 hover:text-gray-500"
-                >
-                  <span className="sr-only">Cerrar</span>
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className="px-6 py-4">
-              {/* Información de la venta */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Vendedor</p>
-                  <p className="text-sm text-gray-900">{selectedSale.seller_name || 'N/A'}</p>
-                  <p className="text-xs text-gray-500">{selectedSale.seller_email || ''}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Método de Pago</p>
-                  <p className="text-sm text-gray-900 capitalize">{selectedSale.payment_method || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Efectivo Recibido</p>
-                  <p className="text-sm text-gray-900">${selectedSale.cash_received || 0}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Cambio Entregado</p>
-                  <p className="text-sm text-gray-900">${selectedSale.change_given || 0}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Descuento</p>
-                  <p className="text-sm text-gray-900">${selectedSale.discount || 0}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Impuesto</p>
-                  <p className="text-sm text-gray-900">${selectedSale.tax || 0}</p>
-                </div>
-                {selectedSale.notes && (
-                  <div className="col-span-2">
-                    <p className="text-sm font-medium text-gray-500">Notas</p>
-                    <p className="text-sm text-gray-900">{selectedSale.notes}</p>
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Detalle de Venta #{selectedSale.id}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {new Date(selectedSale.ts).toLocaleString()}
+                    </p>
                   </div>
-                )}
-                <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-500">ID Local</p>
-                  <p className="text-xs text-gray-500 font-mono">{selectedSale.client_sale_id}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-500">Dispositivo</p>
-                  <p className="text-xs text-gray-500 font-mono">{selectedSale.device_id}</p>
+                  <button
+                    onClick={() => setSelectedSale(null)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <span className="sr-only">Cerrar</span>
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
               </div>
 
-              {/* Comprobante de transferencia */}
-              {selectedSale.payment_method?.toLowerCase() === 'transferencia' && (
-                <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <h4 className="text-sm font-medium text-gray-900 mb-3">Comprobante de Transferencia</h4>
-                  {selectedSale.transfer_receipt_uri ? (
-                    <div>
-                      <div className="mb-2 relative w-full h-96">
-                        <Image 
-                          src={selectedSale.transfer_receipt_uri} 
-                          alt="Comprobante" 
-                          fill
-                          className="object-contain rounded border border-gray-300"
-                        />
+              <div className="px-6 py-4">
+                {/* Información de la venta */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Vendedor</p>
+                    <p className="text-sm text-gray-900">{selectedSale.seller_name || 'N/A'}</p>
+                    <p className="text-xs text-gray-500">{selectedSale.seller_email || ''}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Método de Pago</p>
+                    <p className="text-sm text-gray-900 capitalize">{selectedSale.payment_method || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Efectivo Recibido</p>
+                    <p className="text-sm text-gray-900">${selectedSale.cash_received || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Cambio Entregado</p>
+                    <p className="text-sm text-gray-900">${selectedSale.change_given || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Descuento</p>
+                    <p className="text-sm text-gray-900">${selectedSale.discount || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Impuesto</p>
+                    <p className="text-sm text-gray-900">${selectedSale.tax || 0}</p>
+                  </div>
+                  {selectedSale.notes && (
+                    <div className="col-span-2">
+                      <p className="text-sm font-medium text-gray-500">Notas</p>
+                      <p className="text-sm text-gray-900">{selectedSale.notes}</p>
+                    </div>
+                  )}
+                  <div className="col-span-2">
+                    <p className="text-sm font-medium text-gray-500">ID Local</p>
+                    <p className="text-xs text-gray-500 font-mono">{selectedSale.client_sale_id}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm font-medium text-gray-500">Dispositivo</p>
+                    <p className="text-xs text-gray-500 font-mono">{selectedSale.device_id}</p>
+                  </div>
+                </div>
+
+                {/* Comprobante de transferencia */}
+                {selectedSale.payment_method?.toLowerCase() === 'transferencia' && (
+                  <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Comprobante de Transferencia</h4>
+                    {selectedSale.transfer_receipt_uri ? (
+                      <div>
+                        <div className="mb-2 relative w-full h-96">
+                          <Image
+                            src={selectedSale.transfer_receipt_uri}
+                            alt="Comprobante"
+                            fill
+                            className="object-contain rounded border border-gray-300"
+                          />
+                        </div>
+                        <div className="flex gap-3 flex-wrap">
+                          <a
+                            href={selectedSale.transfer_receipt_uri}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm font-medium"
+                          >
+                            Ver en tamaño completo
+                          </a>
+                          <button
+                            onClick={() => handleFileSelect(selectedSale.id)}
+                            disabled={uploadingReceipt}
+                            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                          >
+                            {uploadingReceipt ? 'Subiendo...' : 'Reemplazar comprobante'}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-3 flex-wrap">
-                        <a
-                          href={selectedSale.transfer_receipt_uri}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm font-medium"
-                        >
-                          Ver en tamaño completo
-                        </a>
+                    ) : (
+                      <div>
+                        <p className="text-sm text-gray-500 mb-3">
+                          No se ha cargado comprobante para esta transferencia
+                        </p>
                         <button
                           onClick={() => handleFileSelect(selectedSale.id)}
                           disabled={uploadingReceipt}
-                          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                          className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm"
                         >
-                          {uploadingReceipt ? 'Subiendo...' : 'Reemplazar comprobante'}
+                          {uploadingReceipt ? 'Subiendo...' : '📤 Subir comprobante'}
                         </button>
                       </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-sm text-gray-500 mb-3">
-                        No se ha cargado comprobante para esta transferencia
-                      </p>
-                      <button
-                        onClick={() => handleFileSelect(selectedSale.id)}
-                        disabled={uploadingReceipt}
-                        className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm"
-                      >
-                        {uploadingReceipt ? 'Subiendo...' : '📤 Subir comprobante'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Items de la venta */}
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Productos Vendidos</h4>
-                {detailLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                    )}
                   </div>
-                ) : saleItems.length === 0 ? (
-                  <p className="text-sm text-gray-500">No se encontraron items</p>
-                ) : (
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                          Código
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                          Producto
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                          Cantidad
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                          Precio Unit.
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                          Subtotal
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {saleItems.map((item) => (
-                        <tr key={item.id}>
-                          <td className="px-4 py-2 text-sm text-gray-900">{item.product_barcode}</td>
-                          <td className="px-4 py-2 text-sm text-gray-900">{item.product_name}</td>
-                          <td className="px-4 py-2 text-sm text-gray-500">{item.quantity}</td>
-                          <td className="px-4 py-2 text-sm text-gray-500">${item.unit_price}</td>
-                          <td className="px-4 py-2 text-sm font-medium text-gray-900">
-                            ${item.subtotal}
+                )}
+
+                {/* Items de la venta */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">Productos Vendidos</h4>
+                  {detailLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                    </div>
+                  ) : saleItems.length === 0 ? (
+                    <p className="text-sm text-gray-500">No se encontraron items</p>
+                  ) : (
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            Código
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            Producto
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            Cantidad
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            Precio Unit.
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            Subtotal
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {saleItems.map((item) => (
+                          <tr key={item.id}>
+                            <td className="px-4 py-2 text-sm text-gray-900">{item.product_barcode}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{item.product_name}</td>
+                            <td className="px-4 py-2 text-sm text-gray-500">{item.quantity}</td>
+                            <td className="px-4 py-2 text-sm text-gray-500">${item.unit_price}</td>
+                            <td className="px-4 py-2 text-sm font-medium text-gray-900">
+                              ${item.subtotal}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-gray-50">
+                        <tr>
+                          <td colSpan={4} className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
+                            Total:
+                          </td>
+                          <td className="px-4 py-2 text-sm font-bold text-gray-900">
+                            ${selectedSale.total}
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-gray-50">
-                      <tr>
-                        <td colSpan={4} className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
-                          Total:
-                        </td>
-                        <td className="px-4 py-2 text-sm font-bold text-gray-900">
-                          ${selectedSale.total}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                )}
+                      </tfoot>
+                    </table>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <button
+                  onClick={() => setSelectedSale(null)}
+                  className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                >
+                  Cerrar
+                </button>
               </div>
             </div>
-
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-              <button
-                onClick={() => setSelectedSale(null)}
-                className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-              >
-                Cerrar
-              </button>
-            </div>
           </div>
-        </div>
         </>,
         document.body
       )}

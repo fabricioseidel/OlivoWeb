@@ -20,8 +20,10 @@ export default function OfertasPage() {
   const [category, setCategory] = useState("Todas");
   const [search, setSearch] = useState("");
 
-  // Criterio de oferta: tiene priceOriginal > price
-  const offerProducts = useMemo(() => products.filter(p => (p.priceOriginal || 0) > p.price), [products]);
+  // Criterio de oferta: tiene offerPrice < price
+  const offerProducts = useMemo(() =>
+    products.filter(p => !!(p.offerPrice && p.offerPrice > 0 && p.offerPrice < p.price)),
+    [products]);
 
   // Usar las categorías oficiales de la API en lugar de las derivadas de productos
   const categories = useMemo(() => ["Todas", ...categoryNames], [categoryNames]);
@@ -92,71 +94,76 @@ export default function OfertasPage() {
         <>
           <p className="text-gray-600 mb-6 font-medium">Encontramos {filtered.length} {filtered.length === 1 ? "oferta" : "ofertas"} para ti</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {filtered.map(product => (
-              <div key={product.id} className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
-                <Link href={`/productos/${product.slug}`} className="block relative overflow-hidden aspect-square">
-                  <ImageWithFallback
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
-                  />
-                  <div className="absolute top-3 left-3">
-                    <Badge variant="error" className="shadow-lg">¡Oferta!</Badge>
-                  </div>
-                  {/* Overlay en hover */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
-                </Link>
+            {filtered.map(product => {
+              const basePrice = product.price;
+              const effectivePrice = product.offerPrice || product.price;
+              const discountPercent = Math.round(((basePrice - effectivePrice) / basePrice) * 100);
 
-                <div className="p-5">
-                  <div className="mb-3">
-                    {Array.isArray(product.categories) && product.categories.length > 0 && (
-                      <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-1 block">
-                        {product.categories[0]}
-                      </span>
-                    )}
-                    <Link href={`/productos/${product.slug}`}>
-                      <h3 className="text-lg font-bold text-gray-900 leading-tight group-hover:text-emerald-600 transition-colors line-clamp-1" title={product.name}>
-                        {product.name}
-                      </h3>
-                    </Link>
-                  </div>
+              return (
+                <div key={product.id} className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
+                  <Link href={`/productos/${product.slug}`} className="block relative overflow-hidden aspect-square">
+                    <ImageWithFallback
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
+                    />
+                    <div className="absolute top-3 left-3">
+                      <Badge variant="error" className="shadow-lg">¡Oferta!</Badge>
+                    </div>
+                    {/* Overlay en hover */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+                  </Link>
 
-                  <div className="flex items-center gap-3 mb-4 text-xs text-gray-400">
-                    <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {product.viewCount ?? 0}</span>
-                    <span className="flex items-center gap-1"><ShoppingCart className="h-3 w-3" /> {product.orderClicks ?? 0}</span>
-                  </div>
-
-                  <div className="flex items-end justify-between mb-5">
-                    <div className="flex flex-col">
-                      {product.priceOriginal && product.priceOriginal > product.price && (
-                        <span className="text-sm text-gray-400 line-through decoration-red-400 decoration-1 mb-0.5">
-                          ${product.priceOriginal.toFixed(2)}
+                  <div className="p-5">
+                    <div className="mb-3">
+                      {Array.isArray(product.categories) && product.categories.length > 0 && (
+                        <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-1 block">
+                          {product.categories[0]}
                         </span>
                       )}
-                      <span className="text-2xl font-bold text-emerald-600 tracking-tight">
-                        ${product.price.toFixed(2)}
-                      </span>
+                      <Link href={`/productos/${product.slug}`}>
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight group-hover:text-emerald-600 transition-colors line-clamp-1" title={product.name}>
+                          {product.name}
+                        </h3>
+                      </Link>
                     </div>
-                    {product.priceOriginal && product.priceOriginal > product.price && (
-                      <Badge variant="error" className="mb-1">
-                        -{Math.round(((product.priceOriginal - product.price) / product.priceOriginal) * 100)}%
-                      </Badge>
-                    )}
-                  </div>
 
-                  <OlivoButton
-                    fullWidth
-                    onClick={() => {
-                      addToCart(product);
-                      showToast(`¡${product.name} añadido al carrito!`, 'success');
-                    }}
-                    className="shadow-sm hover:shadow-emerald-200/50"
-                  >
-                    Agregar al Carrito
-                  </OlivoButton>
+                    <div className="flex items-center gap-3 mb-4 text-xs text-gray-400">
+                      <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {product.viewCount ?? 0}</span>
+                      <span className="flex items-center gap-1"><ShoppingCart className="h-3 w-3" /> {product.orderClicks ?? 0}</span>
+                    </div>
+
+                    <div className="flex items-end justify-between mb-5">
+                      <div className="flex flex-col">
+                        <span className="text-sm text-gray-400 line-through decoration-red-400 decoration-1 mb-0.5">
+                          ${basePrice.toLocaleString('es-CL')}
+                        </span>
+                        <span className="text-2xl font-bold text-emerald-600 tracking-tight">
+                          ${effectivePrice.toLocaleString('es-CL')}
+                        </span>
+                      </div>
+                      <Badge variant="error" className="mb-1">
+                        -{discountPercent}%
+                      </Badge>
+                    </div>
+
+                    <OlivoButton
+                      fullWidth
+                      onClick={() => {
+                        addToCart({
+                          ...product,
+                          price: effectivePrice // Ensure cart gets the offer price
+                        });
+                        showToast(`¡${product.name} añadido al carrito!`, 'success');
+                      }}
+                      className="shadow-sm hover:shadow-emerald-200/50"
+                    >
+                      Agregar al Carrito
+                    </OlivoButton>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
@@ -11,6 +11,8 @@ import ShippingForm, { ShippingInfo, ShippingMethod } from "./components/Shippin
 import PaymentForm, { PaymentMethod } from "./components/PaymentForm";
 import OrderSummary from "./components/OrderSummary";
 import { AddressResult } from "@/components/AddressAutocomplete";
+import { calculateDistance, calculateShippingCost } from "@/utils/shipping-calculator";
+import { StoreSettings } from "@/app/api/admin/settings/route";
 
 // Métodos de pago disponibles
 const paymentMethods: PaymentMethod[] = [
@@ -21,11 +23,10 @@ const paymentMethods: PaymentMethod[] = [
   { id: "bank_transfer", name: "Transferencia Bancaria" },
 ];
 
-// Métodos de envío disponibles
-const shippingMethods: ShippingMethod[] = [
+// Métodos de envío estáticos básicos
+const baseShippingMethods: ShippingMethod[] = [
   { id: "flash", name: "Envío Flash (Uber)", price: 3500, days: "Llega en < 1 hora" },
-  { id: "express", name: "Envío Express", price: 2500, days: "Mismo día (Rango horario)" },
-  { id: "standard", name: "Envío Estándar", price: 1500, days: "Siguiente día hábil" },
+  { id: "express", name: "Envío Express", price: 2500, days: "Mismo día" },
   { id: "pickup", name: "Retirar en Tienda", price: 0, days: "Disponible inmediato" },
 ];
 
@@ -35,9 +36,12 @@ export default function CheckoutPage() {
   const { cartItems } = useCart();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [selectedShippingMethod, setSelectedShippingMethod] = useState("standard");
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+  const [dynamicShipping, setDynamicShipping] = useState<ShippingMethod | null>(null);
+  const [selectedShippingMethod, setSelectedShippingMethod] = useState("express");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("credit_card");
-  
+  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+
   // Redirigir si el carrito está vacío
   useEffect(() => {
     if (status !== "loading" && cartItems.length === 0) {
@@ -45,11 +49,21 @@ export default function CheckoutPage() {
     }
   }, [cartItems.length, router, status]);
 
+  // Combinar métodos base con el dinámico si existe
+  const shippingMethods = useMemo(() => {
+    const list = [...baseShippingMethods];
+    if (dynamicShipping) {
+      // Reemplazar o añadir el método dinámico
+      return [dynamicShipping, ...list];
+    }
+    return list;
+  }, [dynamicShipping]);
+
   // Totales dinámicos según carrito y selección
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingCost = shippingMethods.find(method => method.id === selectedShippingMethod)?.price || 0;
+  const shippingCost = shippingMethods.find((method: ShippingMethod) => method.id === selectedShippingMethod)?.price || 0;
   const total = subtotal + shippingCost;
-  
+
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     fullName: "",
     email: "",
@@ -61,7 +75,24 @@ export default function CheckoutPage() {
     country: "Chile",
   });
 
-  // Autofill: nombre/email desde profile; teléfono siempre desde defaultAddress
+  // Cargar configuraciones de la tienda al montar
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/admin/settings');
+        if (res.ok) {
+          const data = await res.json();
+          console.log("[Shipping Debug] Loaded Store Settings:", data);
+          setStoreSettings(data);
+        }
+      } catch (e) {
+        console.error("Error loading settings:", e);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  // Autofill y recuperación de datos guardados
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -70,11 +101,11 @@ export default function CheckoutPage() {
         const { nombre, apellidos, email } = JSON.parse(profileRaw);
         setShippingInfo(prev => ({
           ...prev,
-            fullName: `${nombre || ''} ${apellidos || ''}`.trim() || prev.fullName,
+          fullName: `${nombre || ''} ${apellidos || ''}`.trim() || prev.fullName,
           email: email || prev.email,
         }));
       }
-    } catch {}
+    } catch { }
     try {
       const addrRaw = localStorage.getItem('defaultAddress');
       if (addrRaw) {
@@ -89,7 +120,7 @@ export default function CheckoutPage() {
           phone: addr.telefono || prev.phone, // forzar teléfono de dirección predeterminada
         }));
       }
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -109,7 +140,7 @@ export default function CheckoutPage() {
       email: prev.email || displayEmail,
     }));
   }, [session?.user]);
-  
+
 
   const handleShippingInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -124,9 +155,10 @@ export default function CheckoutPage() {
     setSelectedPaymentMethod(e.target.value);
   };
 
-  const handleAddressSelect = (val: AddressResult | string) => {
+  const handleAddressSelect = async (val: AddressResult | string) => {
     if (typeof val === 'string') {
       setShippingInfo(prev => ({ ...prev, address: val }));
+      setDynamicShipping(null);
     } else {
       setShippingInfo(prev => ({
         ...prev,
@@ -136,6 +168,64 @@ export default function CheckoutPage() {
         zipCode: val.postalCode || prev.zipCode,
         country: val.country || prev.country
       }));
+
+      console.log("[Shipping Debug] Address selected:", val);
+      // Calcular envío dinámico si las coordenadas están presentes y habilitado en settings
+      const shipSettings = storeSettings?.shipping;
+      console.log("[Shipping Debug] Settings:", shipSettings);
+
+      console.log("[Shipping Debug] Checks:", {
+        enableDynamicShipping: shipSettings?.enableDynamicShipping,
+        originLat: shipSettings?.shippingOriginLat,
+        originLng: shipSettings?.shippingOriginLng,
+        destLat: (val as any).lat,
+        destLng: (val as any).lng
+      });
+
+      if (
+        shipSettings?.enableDynamicShipping &&
+        shipSettings.shippingOriginLat &&
+        shipSettings.shippingOriginLng &&
+        (val as any).lat &&
+        (val as any).lng
+      ) {
+        console.log("[Shipping Debug] Calculating distance...");
+        setIsCalculatingDistance(true);
+        try {
+          const result = await calculateDistance(
+            { lat: shipSettings!.shippingOriginLat as number, lng: shipSettings!.shippingOriginLng as number },
+            { lat: (val as any).lat, lng: (val as any).lng }
+          );
+
+          if (result.success) {
+            const cost = calculateShippingCost(
+              result.distanceKm,
+              shipSettings.shippingBaseFee || 0,
+              shipSettings.shippingPricePerKm || 0
+            );
+
+            const dynamicMethod: ShippingMethod = {
+              id: "dynamic",
+              name: `Envío a domicilio (${result.distanceKm.toFixed(1)} km)`,
+              price: Math.round(cost),
+              days: `Llega hoy (${result.durationText} tras despacho)`
+            };
+
+            setDynamicShipping(dynamicMethod);
+            setSelectedShippingMethod("dynamic");
+          } else {
+            console.warn("Distance calculation failed:", result.error);
+            setDynamicShipping(null);
+          }
+        } catch (err) {
+          console.error("Error calculating dynamic shipping:", err);
+          setDynamicShipping(null);
+        } finally {
+          setIsCalculatingDistance(false);
+        }
+      } else {
+        setDynamicShipping(null);
+      }
     }
   };
 
@@ -144,7 +234,7 @@ export default function CheckoutPage() {
       // Validar información de envío
       const { fullName, email, phone, address, city, state, zipCode } = shippingInfo;
       const newErrors: Record<string, string> = {};
-      
+
       if (!fullName.trim()) newErrors.fullName = "El nombre es requerido";
       if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) newErrors.email = "Email inválido";
       if (!phone.trim()) newErrors.phone = "El teléfono es requerido";
@@ -152,13 +242,13 @@ export default function CheckoutPage() {
       if (!city.trim()) newErrors.city = "La ciudad es requerida";
       if (!state.trim()) newErrors.state = "La región/provincia es requerida";
       if (!zipCode.trim()) newErrors.zipCode = "El código postal es requerido";
-      
+
       if (Object.keys(newErrors).length > 0) {
         // TODO: Show inline errors instead of alert
         alert("Por favor complete todos los campos requeridos correctamente.");
         return;
       }
-      
+
       setStep(2);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (step === 2) {
@@ -175,13 +265,13 @@ export default function CheckoutPage() {
 
       try {
         const payload = {
-            items: cartItems,
-            shippingInfo,
-            shippingMethod: selectedShippingMethod,
-            paymentMethod: selectedPaymentMethod,
-            total,
-            subtotal,
-            shippingCost
+          items: cartItems,
+          shippingInfo,
+          shippingMethod: selectedShippingMethod,
+          paymentMethod: selectedPaymentMethod,
+          total,
+          subtotal,
+          shippingCost
         };
         console.log('[Checkout Debug] Sending payload:', payload);
 
@@ -209,7 +299,7 @@ export default function CheckoutPage() {
         // nos mande al carrito vacío antes de cambiar de página.
         // La página de confirmación se encargará de limpiar el carrito.
         router.push(`/checkout/confirmacion?orderId=${data.orderId}`);
-        
+
       } catch (error: any) {
         console.error('[Checkout Debug] Error en checkout:', error);
         alert(error.message || "Hubo un error al procesar tu pedido. Por favor intenta nuevamente.");
@@ -234,9 +324,9 @@ export default function CheckoutPage() {
           {cartItems.length} {cartItems.length === 1 ? 'producto' : 'productos'} en tu carrito
         </p>
       </div>
-      
+
       <CheckoutSteps currentStep={step} />
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Formulario */}
         <div className="lg:col-span-2">
@@ -249,6 +339,7 @@ export default function CheckoutPage() {
                 shippingMethods={shippingMethods}
                 selectedMethod={selectedShippingMethod}
                 onMethodChange={handleShippingMethodChange}
+                isCalculating={isCalculatingDistance}
               />
             ) : (
               <PaymentForm
@@ -257,7 +348,7 @@ export default function CheckoutPage() {
                 onMethodChange={handlePaymentMethodChange}
               />
             )}
-            
+
             {/* Botones de acción */}
             <div className="bg-gray-50 p-6 flex justify-between">
               {step === 1 ? (
@@ -271,14 +362,14 @@ export default function CheckoutPage() {
                   Volver
                 </Button>
               )}
-              
+
               <Button onClick={handleContinue} disabled={loading}>
                 {loading ? "Procesando..." : step === 1 ? "Continuar al Pago" : "Completar Compra"}
               </Button>
             </div>
           </div>
         </div>
-        
+
         {/* Resumen mejorado */}
         <div>
           <OrderSummary

@@ -12,7 +12,7 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
   const cats = category
     ? category.split(/[,/|]/).map((c) => c.trim()).filter(Boolean)
     : [];
-  
+
   // Handle JSONB fields safely
   const gallery = Array.isArray(p.gallery) ? p.gallery : undefined;
   const features = Array.isArray(p.features) ? p.features : undefined;
@@ -20,27 +20,12 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
   const rawSalePrice = Number(p.sale_price ?? 0);
   const rawOfferPrice = p.offer_price ? Number(p.offer_price) : undefined;
 
-  // NOTE: En esta tienda, `products.sale_price` se interpreta como precio FINAL (con IVA incluido).
-  // No se debe volver a multiplicar por IVA aquí, porque produciría “doble IVA”.
-
-  // Determine effective price and original price
-  // If offer_price exists and is lower than sale_price, then:
-  // - price (current) = offer_price
-  // - priceOriginal (was) = sale_price
-  let finalPrice = Math.round(rawSalePrice);
-  let originalPrice: number | undefined = undefined;
-
-  const offerPriceFinal = rawOfferPrice !== undefined ? Math.round(rawOfferPrice) : undefined;
-  if (offerPriceFinal !== undefined && offerPriceFinal > 0 && offerPriceFinal < finalPrice) {
-    originalPrice = finalPrice;
-    finalPrice = offerPriceFinal;
-  }
-
   return {
     id: String(p.barcode),
     name,
-    price: finalPrice,
-    priceOriginal: originalPrice,
+    price: Math.round(rawSalePrice),
+    priceOriginal: undefined,
+    offerPrice: rawOfferPrice ? Math.round(rawOfferPrice) : undefined,
     image: p.image_url || DEFAULT_IMAGE,
     slug: slugify(name),
     description: p.description || '',
@@ -57,7 +42,6 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     measurementUnit: p.measurement_unit ?? undefined,
     measurementValue: p.measurement_value ?? undefined,
     suggestedPrice: p.suggested_price ?? undefined,
-    offerPrice: p.offer_price ?? undefined,
     // Back-compat: si is_active es null/undefined en registros antiguos,
     // considerarlo activo para que aparezcan en la tienda pública.
     isActive: p.is_active ?? true,
@@ -70,9 +54,9 @@ export async function fetchAllProducts(): Promise<ProductUI[]> {
     .select('*')
     .order('updated_at', { ascending: false })
     .limit(1000);
-  
+
   if (error) throw error;
-  
+
   // Supabase returns data as any[], we cast to SupaProduct[] for safety
   return (data as unknown as SupaProduct[]).map(mapSupaToUI);
 }

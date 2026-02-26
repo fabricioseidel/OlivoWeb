@@ -11,6 +11,7 @@ import {
   ArrowDownIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 interface LocalOrder {
   id: string; total?: number; productos?: number; items?: any[]; createdAt?: string; fecha?: string; estado?: string; customer?: string; email?: string;
@@ -28,16 +29,16 @@ export default function AdminDashboard() {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-           const mapped = data.map((o: any) => ({
-             id: o.id,
-             total: Number(o.total),
-             productos: o.items_count,
-             createdAt: o.created_at,
-             fecha: o.created_at,
-             estado: o.status
-           }));
-           setOrders(mapped);
-           setLastSync(new Date().toLocaleTimeString());
+          const mapped = data.map((o: any) => ({
+            id: o.id,
+            total: Number(o.total),
+            productos: o.items_count,
+            createdAt: o.created_at,
+            fecha: o.created_at,
+            estado: o.status
+          }));
+          setOrders(mapped);
+          setLastSync(new Date().toLocaleTimeString());
         }
       }
     } catch (e) { console.error(e); }
@@ -53,7 +54,7 @@ export default function AdminDashboard() {
     const lowStock = products.filter(p => p.stock > 0 && p.stock <= 5).length;
     const totalOrders = orders.length;
     const grossRevenue = orders.reduce((s, o) => s + (Number(o.total) || 0), 0);
-    const itemsSold = orders.reduce((s, o) => s + (o.productos || (Array.isArray(o.items) ? o.items.reduce((acc, it) => acc + (Number(it.quantity)||0), 0) : 0)), 0);
+    const itemsSold = orders.reduce((s, o) => s + (o.productos || (Array.isArray(o.items) ? o.items.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0) : 0)), 0);
     const avgOrder = totalOrders ? grossRevenue / totalOrders : 0;
     // Conversión basada en intentos de pedido -> pedidos confirmados
     const intentConversion = totalOrderIntents ? (totalOrders / totalOrderIntents) * 100 : 0;
@@ -75,7 +76,7 @@ export default function AdminDashboard() {
   }, [products]);
 
   const exportCSV = () => {
-    const header = ["id","name","categories","price","priceOriginal","stock","viewCount","orderClicks"].join(",");
+    const header = ["id", "name", "categories", "price", "priceOriginal", "stock", "viewCount", "orderClicks"].join(",");
     const rows = products.map(p => [
       p.id,
       JSON.stringify(p.name),
@@ -96,6 +97,31 @@ export default function AdminDashboard() {
     URL.revokeObjectURL(url);
   };
 
+  const salesByDay = useMemo(() => {
+    const grouped = orders.reduce((acc, o) => {
+      const d = o.createdAt ? new Date(o.createdAt).toISOString().split('T')[0] : 'N/A';
+      acc[d] = (acc[d] || 0) + (o.total || 0);
+      return acc;
+    }, {} as Record<string, number>);
+    return Object.entries(grouped)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, Ventas]) => ({ date, Ventas }));
+  }, [orders]);
+
+  const topCategories = useMemo(() => {
+    const catMap: Record<string, number> = {};
+    products.forEach(p => {
+      if (p.categories && Array.isArray(p.categories)) {
+        p.categories.forEach(c => {
+          catMap[c] = (catMap[c] || 0) + 1;
+        });
+      }
+    });
+    return Object.entries(catMap)
+      .map(([name, count]) => ({ name, Productos: count }))
+      .sort((a, b) => b.Productos - a.Productos).slice(0, 5);
+  }, [products]);
+
   return (
     <div>
       <div className="mb-6">
@@ -114,7 +140,41 @@ export default function AdminDashboard() {
         <StatCard title="Vistas productos" value={metrics.totalViews} icon={<EyeIcon className="h-6 w-6" />} bgColor="bg-emerald-600" helper="Suma viewCount" />
         <StatCard title="Intentos pedido" value={metrics.totalOrderIntents} icon={<CursorArrowRaysIcon className="h-6 w-6" />} bgColor="bg-blue-600" helper="Clicks compra" />
         <StatCard title="Conv. intentos" value={`${metrics.intentConversion.toFixed(1)}%`} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} bgColor="bg-amber-600" helper="Pedidos / intentos" />
-        <StatCard title="Bajo stock" value={products.filter(p=>p.stock>0&&p.stock<=5).length} icon={<Squares2X2Icon className="h-6 w-6" />} bgColor="bg-rose-600" helper="<=5 unidades" />
+        <StatCard title="Bajo stock" value={products.filter(p => p.stock > 0 && p.stock <= 5).length} icon={<Squares2X2Icon className="h-6 w-6" />} bgColor="bg-rose-600" helper="<=5 unidades" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Gráfico de Ventas en el tiempo */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
+          <h3 className="text-sm font-medium text-gray-900 mb-4">Ventas Diarias</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={salesByDay}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
+                <YAxis tickFormatter={(val) => `$${val}`} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
+                <Tooltip formatter={(val: any) => [`$${Number(val).toFixed(2)}`, "Ventas"]} />
+                <Line type="monotone" dataKey="Ventas" stroke="#10B981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Gráfico de Distribución de Categorías */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
+          <h3 className="text-sm font-medium text-gray-900 mb-4">Top 5 Categorías (Volumen de Productos)</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topCategories} layout="vertical" margin={{ left: 40, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#374151', textAnchor: 'end' }} />
+                <Tooltip />
+                <Bar dataKey="Productos" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={24} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center justify-between mb-6">
@@ -134,7 +194,7 @@ export default function AdminDashboard() {
           rows={topViewed.map(p => ({
             id: p.id,
             nombre: p.name,
-            categoria: Array.isArray(p.categories) ? p.categories.slice(0,2).join(', ') : '',
+            categoria: Array.isArray(p.categories) ? p.categories.slice(0, 2).join(', ') : '',
             valor: p.viewCount || 0,
             extra: p.orderClicks || 0,
           }))}
@@ -146,7 +206,7 @@ export default function AdminDashboard() {
           rows={topOrderIntents.map(p => ({
             id: p.id,
             nombre: p.name,
-            categoria: Array.isArray(p.categories) ? p.categories.slice(0,2).join(', ') : '',
+            categoria: Array.isArray(p.categories) ? p.categories.slice(0, 2).join(', ') : '',
             valor: p.orderClicks || 0,
             extra: p.viewCount || 0,
           }))}
@@ -155,7 +215,7 @@ export default function AdminDashboard() {
         />
       </div>
 
-  <div className="text-xs text-gray-400">* Datos locales: pedidos (localStorage) + métricas de productos. Conversión intentos = pedidos / intentos.</div>
+      <div className="text-xs text-gray-400">* Datos locales: pedidos (localStorage) + métricas de productos. Conversión intentos = pedidos / intentos.</div>
     </div>
   );
 }

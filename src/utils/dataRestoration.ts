@@ -2,6 +2,7 @@
  * Script para restaurar datos de ejemplo en localStorage
  * Ejecutar en la consola del navegador para restaurar datos perdidos
  */
+import { logger } from './logger';
 
 export const restoreDefaultData = () => {
   // Datos de perfil por defecto
@@ -25,7 +26,7 @@ export const restoreDefaultData = () => {
       items: 2
     },
     {
-      id: "ORD-2025-002", 
+      id: "ORD-2025-002",
       fecha: "2025-08-08",
       date: "2025-08-08",
       total: 89.50,
@@ -91,16 +92,16 @@ export const restoreDefaultData = () => {
     localStorage.setItem('profile', JSON.stringify(defaultProfile));
     localStorage.setItem('orders', JSON.stringify(defaultOrders));
     localStorage.setItem('addresses', JSON.stringify(defaultAddresses));
-    
-    console.log('✅ Datos restaurados exitosamente:');
-    console.log('- Perfil de usuario actualizado');
-    console.log('- Pedidos de ejemplo agregados');
-    console.log('- Direcciones de ejemplo agregadas');
-    console.log('Recarga la página para ver los cambios.');
-    
+
+    logger.log('✅ Datos restaurados exitosamente:');
+    logger.log('- Perfil de usuario actualizado');
+    logger.log('- Pedidos de ejemplo agregados');
+    logger.log('- Direcciones de ejemplo agregadas');
+    logger.log('Recarga la página para ver los cambios.');
+
     return true;
   } catch (error) {
-    console.error('❌ Error al restaurar datos:', error);
+    logger.error('❌ Error al restaurar datos:', error);
     return false;
   }
 };
@@ -113,13 +114,13 @@ export const clearAllData = () => {
     localStorage.removeItem('addresses');
     localStorage.removeItem('cart');
     localStorage.removeItem('cartItems');
-    
-    console.log('🧹 Todos los datos han sido limpiados del localStorage');
-    console.log('Recarga la página para ver los cambios.');
-    
+
+    logger.log('🧹 Todos los datos han sido limpiados del localStorage');
+    logger.log('Recarga la página para ver los cambios.');
+
     return true;
   } catch (error) {
-    console.error('❌ Error al limpiar datos:', error);
+    logger.error('❌ Error al limpiar datos:', error);
     return false;
   }
 };
@@ -142,7 +143,7 @@ if (typeof window !== 'undefined') {
 }
 
 // Instrucciones para usar en consola
-console.log(`
+logger.log(`
 🔧 Funciones de utilidad disponibles en la consola:
 
 • restoreDefaultData() - Restaura datos de ejemplo

@@ -76,12 +76,18 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
     }
   };
 
+  // Calculate effective price
+  const basePrice = product.price;
+  const offerPrice = product.offerPrice;
+  const hasDiscount = !!(offerPrice && offerPrice > 0 && offerPrice < basePrice);
+  const effectivePrice = hasDiscount ? offerPrice : basePrice;
+
   // Manejar agregar al carrito
   const handleAddToCart = () => {
-    const { id, name, price, image, slug } = product;
+    const { id, name, image, slug } = product;
 
     // Agregar al carrito la cantidad seleccionada
-    addToCart({ id, name, price, image, slug }, quantity);
+    addToCart({ id, name, price: effectivePrice, image, slug }, quantity);
 
     // Reset quantity
     setQuantity(1);
@@ -124,7 +130,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             <div className="rounded-2xl overflow-hidden mb-4 h-[500px] bg-gray-50 flex items-center justify-center relative">
               <ImageWithFallback
                 key={allImages[selectedImage] || 'main-image'}
-                src={allImages[selectedImage] || product.image}
+                src={allImages[selectedImage] || product.image || "/file.svg"}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -143,7 +149,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                     }}
                   >
                     <ImageWithFallback
-                      src={image}
+                      src={image || "/file.svg"}
                       alt={`${product.name} - vista ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -164,12 +170,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             </div>
 
             <div className="text-3xl font-bold text-emerald-600 mb-6 flex items-center gap-3">
-              <span>$ {product.price.toFixed(2)}</span>
-              {product.priceOriginal && product.priceOriginal > product.price && (
+              <span>$ {effectivePrice.toLocaleString('es-CL')}</span>
+              {hasDiscount && (
                 <>
-                  <span className="text-xl line-through font-normal text-gray-400">$ {product.priceOriginal.toFixed(2)}</span>
+                  <span className="text-xl line-through font-normal text-gray-400">$ {basePrice.toLocaleString('es-CL')}</span>
                   <span className="text-sm bg-red-100 text-red-600 font-bold px-2 py-1 rounded-full">
-                    -{Math.round(((product.priceOriginal - product.price) / product.priceOriginal) * 100)}%
+                    -{Math.round(((basePrice - offerPrice!) / basePrice) * 100)}%
                   </span>
                 </>
               )}

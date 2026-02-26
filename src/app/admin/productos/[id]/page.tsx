@@ -266,7 +266,7 @@ export default function EditProductPage() {
         measurementUnit: form.measurementUnit,
         measurementValue: parseFloat(form.measurementValue) || 0,
         suggestedPrice: parseFloat(form.suggestedPrice) || 0,
-        offerPrice: parseFloat(form.offerPrice) || null,
+        offerPrice: parseFloat(form.offerPrice) || undefined,
         isActive: form.isActive,
       });
 

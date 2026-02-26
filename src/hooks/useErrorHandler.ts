@@ -1,29 +1,30 @@
 import { useEffect } from 'react';
+import { logger } from "@/utils/logger";
 
 // Hook para manejar errores no capturados
 export function useErrorHandler() {
   useEffect(() => {
     // Manejar promesas rechazadas no capturadas
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error('Unhandled promise rejection:', event.reason);
-      
+      logger.error('Unhandled promise rejection:', event.reason);
+
       // Prevenir que el error se propague al navegador
       event.preventDefault();
-      
+
       // Mostrar el error de forma más amigable
-      const errorMessage = typeof event.reason === 'string' 
-        ? event.reason 
+      const errorMessage = typeof event.reason === 'string'
+        ? event.reason
         : event.reason?.message || 'Error desconocido';
-        
-      console.error('Error no manejado:', errorMessage);
-      
+
+      logger.error('Error no manejado:', errorMessage);
+
       // Opcional: mostrar una notificación toast
       // toast.error(errorMessage);
     };
 
     // Manejar errores JavaScript no capturados
     const handleError = (event: ErrorEvent) => {
-      console.error('Unhandled error:', event.error || event.message);
+      logger.error('Unhandled error:', event.error || event.message);
       event.preventDefault();
     };
 
@@ -43,15 +44,15 @@ export function useErrorHandler() {
 export async function safeFetch(url: string, options?: RequestInit) {
   try {
     const response = await fetch(url, options);
-    
+
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
       throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
-    
+
     return response;
   } catch (error) {
-    console.error(`Error fetching ${url}:`, error);
+    logger.error(`Error fetching ${url}:`, error);
     throw error;
   }
 }
@@ -65,7 +66,7 @@ export async function safeJsonParse<T = any>(response: Response): Promise<T> {
     }
     return JSON.parse(text);
   } catch (error) {
-    console.error('Error parsing JSON:', error);
+    logger.error('Error parsing JSON:', error);
     throw new Error('Invalid JSON response');
   }
 }

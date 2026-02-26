@@ -191,11 +191,10 @@ export default function SettingsPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-all ${
-                      activeTab === tab.id
-                        ? "bg-blue-50 text-blue-700 border-l-4 border-blue-500"
-                        : "text-slate-700 hover:bg-slate-50"
-                    }`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-all ${activeTab === tab.id
+                      ? "bg-blue-50 text-blue-700 border-l-4 border-blue-500"
+                      : "text-slate-700 hover:bg-slate-50"
+                      }`}
                   >
                     <Icon className="h-5 w-5" />
                     {tab.label}
@@ -445,6 +444,70 @@ export default function SettingsPage() {
                     checked={settings.shipping?.enableShipping || false}
                     onChange={(val) => handleChange(["shipping", "enableShipping"], val)}
                   />
+
+                  <div className="border-l-4 border-emerald-500 bg-emerald-50 p-4 rounded">
+                    <h3 className="font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+                      <SparklesIcon className="h-5 w-5 text-emerald-600" />
+                      Cálculo por Distancia (Google Maps)
+                    </h3>
+                    <CheckBoxField
+                      label="Habilitar calculadora dinámica de envíos"
+                      checked={settings.shipping?.enableDynamicShipping || false}
+                      onChange={(val) => handleChange(["shipping", "enableDynamicShipping"], val)}
+                    />
+                    {settings.shipping?.enableDynamicShipping && (
+                      <div className="mt-4 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <InputField
+                            label="Tarifa base de despacho"
+                            type="number"
+                            value={settings.shipping?.shippingBaseFee || 0}
+                            onChange={(val) => handleChange(["shipping", "shippingBaseFee"], Number(val))}
+                            prefix="$"
+                            hint="Costo fijo inicial de cada envío"
+                          />
+                          <InputField
+                            label="Precio por Kilómetro"
+                            type="number"
+                            value={settings.shipping?.shippingPricePerKm || 0}
+                            onChange={(val) => handleChange(["shipping", "shippingPricePerKm"], Number(val))}
+                            prefix="$"
+                            hint="Costo adicional por cada KM de distancia"
+                          />
+                        </div>
+
+                        <div className="pt-4 border-t border-emerald-200">
+                          <label className="block text-sm font-medium text-emerald-900 mb-2">
+                            Punto de Origen (Dirección de tu Tienda o Bodega)
+                          </label>
+                          <AddressAutocomplete
+                            value={settings.storeAddress || ""}
+                            onChange={(val) => {
+                              if (typeof val === "string") {
+                                handleChange(["storeAddress"], val);
+                              } else {
+                                handleChange(["storeAddress"], val.formattedAddress || "");
+                                if (val.lat) handleChange(["shipping", "shippingOriginLat"], val.lat);
+                                if (val.lng) handleChange(["shipping", "shippingOriginLng"], val.lng);
+                                if (val.city) handleChange(["storeCity"], val.city);
+                              }
+                            }}
+                            placeholder="Busca la ubicación exacta de tu bodega..."
+                          />
+                          {(settings.shipping?.shippingOriginLat && settings.shipping?.shippingOriginLng) ? (
+                            <p className="mt-2 text-xs text-emerald-600 flex items-center gap-1">
+                              <CheckCircleIcon className="h-4 w-4" />
+                              Coordenadas de origen configuradas satisfactoriamente
+                            </p>
+                          ) : (
+                            <p className="mt-2 text-xs text-amber-600 italic">
+                              * Debes seleccionar una dirección del buscador para guardar las coordenadas necesarias para el cálculo.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="border-l-4 border-blue-500 bg-blue-50 p-4 rounded">
                     <h3 className="font-semibold text-blue-900 mb-4">Envío Gratis</h3>
@@ -865,9 +928,8 @@ function InputField({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           maxLength={maxLength}
-          className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
-            prefix ? "pl-7" : ""
-          } ${suffix ? "pr-12" : ""}`}
+          className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${prefix ? "pl-7" : ""
+            } ${suffix ? "pr-12" : ""}`}
         />
         {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">{suffix}</span>}
       </div>

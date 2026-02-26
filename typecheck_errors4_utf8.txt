@@ -1,0 +1,6 @@
+﻿
+> tienda-web@0.1.0 typecheck
+> tsc --noEmit
+
+src/__tests__/Footer.test.tsx(2,18): error TS2305: Module '"@testing-library/react"' has no exported member 'screen'.
+src/__tests__/Navbar.test.tsx(2,18): error TS2305: Module '"@testing-library/react"' has no exported member 'screen'.

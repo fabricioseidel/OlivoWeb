@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { MapPinIcon } from "@heroicons/react/24/outline";
+import { logger } from "@/utils/logger";
 
 export type AddressResult = {
   formattedAddress: string;
@@ -53,7 +54,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
   const provider = (process.env.NEXT_PUBLIC_ADDRESS_PROVIDER || "google").toLowerCase();
 
   const addLog = (msg: string) => {
-    console.log(`[AddressAutocomplete] ${msg}`);
+    logger.log(`[AddressAutocomplete] ${msg}`);
     setDebugLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
   };
 
@@ -118,7 +119,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
     // Setup global auth failure handler
     (window as any).gm_authFailure = () => {
       addLog("CRITICAL: Google Maps Auth Failure detected!");
-      console.error("Google Maps Auth Failure");
+      logger.error("Google Maps Auth Failure");
       setFallback(true);
     };
 
@@ -132,7 +133,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
           try {
             if (typeof window === "undefined" || !(window as any).google) {
               addLog("Error: window.google not found");
-              console.warn("AddressAutocomplete: google object not found after script load");
+              logger.warn("AddressAutocomplete: google object not found after script load");
               setFallback(true);
               return;
             }
@@ -150,7 +151,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
             }
             if (!g.maps.places.Autocomplete) {
               addLog("Error: Autocomplete constructor not found");
-              console.warn("AddressAutocomplete: Places API not available.");
+              logger.warn("AddressAutocomplete: Places API not available.");
               setFallback(true);
               return;
             }
@@ -179,19 +180,19 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
                 onChangeRef.current(result);
               } catch (inner) {
                 addLog("Error reading place details");
-                console.warn("AddressAutocomplete: error reading place", inner);
+                logger.warn("AddressAutocomplete: error reading place", inner);
               }
             });
           } catch (e: any) {
             addLog(`Exception during init: ${e.message}`);
-            console.warn("AddressAutocomplete: google places init failed", e);
+            logger.warn("AddressAutocomplete: google places init failed", e);
             setFallback(true);
           }
         }, 1000); // Increased delay to 1s for debugging
       })
       .catch((err) => {
         addLog(`Script load error: ${err.message}`);
-        console.warn("AddressAutocomplete load script error", err);
+        logger.warn("AddressAutocomplete load script error", err);
         setFallback(true);
       });
 
@@ -220,7 +221,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
               const result = parseGooglePlace(results[0]);
               onChange(result);
             } else {
-              console.error("Geocoder failed: " + status);
+              logger.error("Geocoder failed: " + status);
               alert("No se pudo encontrar la dirección para tu ubicación actual.");
             }
             setIsLocating(false);
@@ -231,7 +232,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
         }
       },
       (error) => {
-        console.error("Error getting location", error);
+        logger.error("Error getting location", error);
         setIsLocating(false);
         let msg = "No se pudo obtener tu ubicación.";
         if (error.code === 1) msg += " Permiso denegado.";

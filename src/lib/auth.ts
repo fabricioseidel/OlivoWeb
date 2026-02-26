@@ -2,6 +2,7 @@
 import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
 import { getUserByEmail as svcGetUserByEmail, type DbUser } from "@/services/auth-users";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 // Importar authOptions desde el archivo de configuración
 import { authOptions } from "@/config/auth.config";

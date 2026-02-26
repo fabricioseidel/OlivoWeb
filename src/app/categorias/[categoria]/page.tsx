@@ -26,23 +26,12 @@ export default function CategoryDetailPage() {
       </div>
     );
 
-  const gridProducts = filtered.map((p) => ({
-    id: p.id,
-    name: p.name,
-    slug: p.slug,
-    price: p.price,
-    sale_price: undefined,
-    image: (p as any).image || undefined, // Using fallback images
-    category: p.categories?.length ? { name: p.categories[0] } : undefined,
-    featured: p.featured,
-  }));
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Categoría: {decodeURIComponent(categoria)}</h1>
       </div>
-      <ProductGrid products={gridProducts} loading={false} />
+      <ProductGrid products={filtered} loading={false} />
     </div>
   );
 }

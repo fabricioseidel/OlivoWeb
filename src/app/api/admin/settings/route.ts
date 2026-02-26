@@ -43,6 +43,13 @@ export type StoreSettings = {
     localDeliveryTimeDays?: number;
     internationalShippingEnabled?: boolean;
     internationalShippingFee?: number;
+
+    // Configuración Dinámica (Google Maps)
+    enableDynamicShipping?: boolean;
+    shippingBaseFee?: number;
+    shippingPricePerKm?: number;
+    shippingOriginLat?: number;
+    shippingOriginLng?: number;
   };
 
   // Pagos
@@ -181,6 +188,11 @@ export async function GET() {
         localDeliveryTimeDays: data.local_delivery_time_days,
         internationalShippingEnabled: data.international_shipping_enabled,
         internationalShippingFee: data.international_shipping_fee,
+        enableDynamicShipping: data.enable_dynamic_shipping,
+        shippingBaseFee: data.shipping_base_fee,
+        shippingPricePerKm: data.shipping_price_per_km,
+        shippingOriginLat: data.shipping_origin_lat,
+        shippingOriginLng: data.shipping_origin_lng,
       },
       paymentMethods: data.payment_methods || {},
       paymentTestMode: data.payment_test_mode,
@@ -263,6 +275,11 @@ export async function PATCH(req: Request) {
       local_delivery_time_days: body.shipping?.localDeliveryTimeDays ?? 3,
       international_shipping_enabled: body.shipping?.internationalShippingEnabled ?? false,
       international_shipping_fee: body.shipping?.internationalShippingFee ?? null,
+      enable_dynamic_shipping: body.shipping?.enableDynamicShipping ?? false,
+      shipping_base_fee: body.shipping?.shippingBaseFee ?? 0,
+      shipping_price_per_km: body.shipping?.shippingPricePerKm ?? 0,
+      shipping_origin_lat: body.shipping?.shippingOriginLat ?? null,
+      shipping_origin_lng: body.shipping?.shippingOriginLng ?? null,
       payment_methods: body.paymentMethods ?? {},
       payment_test_mode: body.paymentTestMode ?? true,
       email_from_address: body.emailFromAddress ?? null,
@@ -288,69 +305,27 @@ export async function PATCH(req: Request) {
       updated_at: new Date().toISOString(),
     };
 
-    // Intentar upsert normal
+    console.log('[SETTINGS][PATCH] Upserting payload:', payload);
+
+    // Realizar upsert
     try {
       const { error } = await supabaseAdmin
         .from("settings")
         .upsert([payload], { onConflict: "id" });
 
-      if (error) throw error;
-    } catch (err: any) {
-      console.warn('[SETTINGS][PATCH] upsert error, intentando fallback:', err.message || err);
-
-      // Si PostgREST no reconoce alguna columna (PGRST204), intentamos un fallback
-      if (String(err.code || '').toUpperCase() === 'PGRST204' || String(err.message || '').includes('Could not find')) {
-        try {
-          // Intentar obtener una fila existente para conocer las columnas disponibles
-          const { data: existingRow, error: fetchErr } = await supabase
-            .from('settings')
-            .select('*')
-            .limit(1)
-            .maybeSingle();
-
-          if (fetchErr) {
-            console.warn('[SETTINGS][PATCH] no se pudo leer fila existente:', fetchErr.message || fetchErr);
-          }
-
-          // Si tenemos una fila existente, filtrar payload para enviar solo keys existentes
-          let filteredPayload: Record<string, any> = { id: true };
-          if (existingRow && typeof existingRow === 'object') {
-            const allowed = new Set(Object.keys(existingRow));
-            for (const k of Object.keys(payload)) {
-              if (allowed.has(k)) filteredPayload[k] = payload[k];
-            }
-          } else {
-            // Si no hay fila existente, usar un payload mínimo compatible
-            filteredPayload = {
-              id: true,
-              store_name: payload.store_name ?? null,
-              currency: payload.currency ?? null,
-              logo_url: payload.logo_url ?? null,
-              updated_at: payload.updated_at,
-            };
-          }
-
-          const { error: retryErr } = await supabaseAdmin
-            .from('settings')
-            .upsert([filteredPayload], { onConflict: 'id' });
-
-          if (retryErr) {
-            console.error('[SETTINGS][PATCH] fallback upsert failed:', retryErr);
-            return NextResponse.json({
-              error: 'Error guardando configuración. Ejecuta la migración SQL para actualizar la tabla `settings` y reintenta. Detalle: ' + (retryErr.message || retryErr),
-            }, { status: 500 });
-          }
-        } catch (fallbackErr: any) {
-          console.error('[SETTINGS][PATCH] fallback error:', fallbackErr);
-          return NextResponse.json({ error: 'Error guardando configuración en fallback. Ejecuta la migración SQL.' }, { status: 500 });
-        }
-      } else {
-        console.error('[SETTINGS][PATCH]', err);
+      if (error) {
+        console.error('[SETTINGS][PATCH] Error updating settings:', error);
         return NextResponse.json(
-          { error: err.message || 'Error updating settings' },
+          { error: error.message || 'Error updating settings' },
           { status: 500 }
         );
       }
+    } catch (err: any) {
+      console.error('[SETTINGS][PATCH] Unexpected error:', err);
+      return NextResponse.json(
+        { error: err.message || 'Error updating settings' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ ok: true, message: "Configuración actualizada" });

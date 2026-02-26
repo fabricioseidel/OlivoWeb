@@ -1,21 +1,22 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { logger } from './logger';
 
 export async function ensureUploadsBucket() {
   try {
     // Try to list buckets first
     const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
-    
+
     if (listError) {
-      console.error('Error listing buckets:', listError);
+      logger.error('Error listing buckets:', listError);
       return false;
     }
 
     // Check if uploads bucket exists
     const uploadsBucket = buckets?.find(bucket => bucket.name === 'uploads');
-    
+
     if (!uploadsBucket) {
-      console.log('Creating uploads bucket...');
-      
+      logger.log('Creating uploads bucket...');
+
       // Create the uploads bucket
       const { error: createError } = await supabaseAdmin.storage.createBucket('uploads', {
         public: true,
@@ -24,16 +25,16 @@ export async function ensureUploadsBucket() {
       });
 
       if (createError) {
-        console.error('Error creating uploads bucket:', createError);
+        logger.error('Error creating uploads bucket:', createError);
         return false;
       }
-      
-      console.log('Uploads bucket created successfully');
+
+      logger.log('Uploads bucket created successfully');
     }
-    
+
     return true;
   } catch (error) {
-    console.error('Error ensuring uploads bucket:', error);
+    logger.error('Error ensuring uploads bucket:', error);
     return false;
   }
 }
@@ -53,8 +54,8 @@ export async function uploadImageToSupabase(
 
     // Process the image
     const base64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
-  let buffer = Buffer.from(base64, 'base64');
-    
+    let buffer = Buffer.from(base64, 'base64');
+
     const extMap: Record<string, string> = {
       'image/png': 'png',
       'image/jpeg': 'jpg',
@@ -63,7 +64,7 @@ export async function uploadImageToSupabase(
       'image/gif': 'gif',
       'image/svg+xml': 'svg'
     };
-    
+
     const ext = extMap[mimeType] || mimeType.split('/')[1] || 'png';
 
     // Resize/compress if sharp is available and it's a raster image
@@ -72,8 +73,8 @@ export async function uploadImageToSupabase(
     try {
       const mod: any = await import('sharp');
       sharpInstance = mod?.default || mod;
-    } catch {}
-    if (sharpInstance && ['png','jpg','jpeg','webp'].includes(ext)) {
+    } catch { }
+    if (sharpInstance && ['png', 'jpg', 'jpeg', 'webp'].includes(ext)) {
       try {
         const maxWidth = options?.maxWidth ?? 1200;
         const quality = options?.quality ?? 80;
@@ -84,27 +85,27 @@ export async function uploadImageToSupabase(
         else if (ext === 'webp') buffer = await pipeline.webp({ quality }).toBuffer();
         else buffer = await pipeline.jpeg({ quality }).toBuffer();
       } catch (err) {
-        console.warn('sharp processing failed, uploading original buffer:', (err as any)?.message || err);
+        logger.warn('sharp processing failed, uploading original buffer:', (err as any)?.message || err);
       }
     }
-    const filename = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
-    
-    console.log(`Uploading ${filename} to Supabase Storage...`);
-    
+    const filename = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    logger.log(`Uploading ${filename} to Supabase Storage...`);
+
     // Upload to Supabase Storage
-  const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('uploads')
-      .upload(filename, buffer, { 
-        contentType: mimeType, 
-        upsert: true 
+      .upload(filename, buffer, {
+        contentType: mimeType,
+        upsert: true
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
+      logger.error('Upload error:', uploadError);
       throw uploadError;
     }
 
-    console.log('Upload successful:', uploadData);
+    logger.log('Upload successful:', uploadData);
 
     // Get public URL
     const { data: publicUrlData } = supabaseAdmin.storage
@@ -115,7 +116,7 @@ export async function uploadImageToSupabase(
       throw new Error('Could not get public URL');
     }
 
-    console.log('Public URL generated:', publicUrlData.publicUrl);
+    logger.log('Public URL generated:', publicUrlData.publicUrl);
 
     return {
       success: true,
@@ -124,7 +125,7 @@ export async function uploadImageToSupabase(
     };
 
   } catch (error: any) {
-    console.error('Error uploading image to Supabase:', error);
+    logger.error('Error uploading image to Supabase:', error);
     return {
       success: false,
       error: error.message || 'Unknown error'
@@ -141,6 +142,6 @@ export async function deleteFromUploadsByPublicUrl(publicUrl: string) {
     if (!path) return;
     await supabaseAdmin.storage.from('uploads').remove([path]);
   } catch (e) {
-    console.warn('deleteFromUploadsByPublicUrl failed:', (e as any)?.message || e);
+    logger.warn('deleteFromUploadsByPublicUrl failed:', (e as any)?.message || e);
   }
 }

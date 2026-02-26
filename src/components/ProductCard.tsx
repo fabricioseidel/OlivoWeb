@@ -7,17 +7,7 @@ import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
 
-export type ProductUI = {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  sale_price?: number | null;
-  image?: string | null;
-  category?: { name: string } | null;
-  featured?: boolean;
-  stock: number; // made mandatory based on usage, or optional if strictly following spec
-};
+import { ProductUI } from '@/types';
 
 type Props = { product: ProductUI };
 
@@ -27,10 +17,14 @@ export default function ProductCard({ product }: Props) {
   const [qty, setQty] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
 
-  const price = product.sale_price ?? product.price;
-  const hasDiscount = product.sale_price && product.sale_price < product.price;
+  // Calculate effective price (lowest between base price and offer price)
+  const basePrice = product.price;
+  const offerPrice = product.offerPrice;
+  const hasDiscount = !!(offerPrice && offerPrice > 0 && offerPrice < basePrice);
+  const effectivePrice = hasDiscount ? offerPrice : basePrice;
+
   const discountPercent = hasDiscount
-    ? Math.round(((product.price - product.sale_price!) / product.price) * 100)
+    ? Math.round(((basePrice - offerPrice!) / basePrice) * 100)
     : 0;
 
   const formatCurrency = (value: number) => {
@@ -46,8 +40,8 @@ export default function ProductCard({ product }: Props) {
     addToCart({
       id: product.id,
       name: product.name,
-      price: price || 0,
-      image: product.image || undefined, // adapter for CartItem
+      price: effectivePrice,
+      image: product.image || "/file.svg", // adapter for CartItem
       slug: product.slug,
     }, qty);
 
@@ -97,9 +91,9 @@ export default function ProductCard({ product }: Props) {
       {/* Content */}
       <div className="flex flex-col flex-1 p-4 gap-2">
         {/* Category */}
-        {product.category?.name && (
+        {product.categories && product.categories.length > 0 && (
           <p className="text-xs font-medium text-emerald-600 uppercase tracking-wide">
-            {product.category.name}
+            {product.categories[0]}
           </p>
         )}
 
@@ -115,15 +109,15 @@ export default function ProductCard({ product }: Props) {
           {hasDiscount ? (
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-emerald-600">
-                {formatCurrency(product.sale_price!)}
+                {formatCurrency(effectivePrice)}
               </span>
               <span className="text-sm text-gray-400 line-through">
-                {formatCurrency(product.price)}
+                {formatCurrency(basePrice)}
               </span>
             </div>
           ) : (
             <div className="text-2xl font-bold text-gray-900">
-              {formatCurrency(product.price)}
+              {formatCurrency(basePrice)}
             </div>
           )}
         </div>
