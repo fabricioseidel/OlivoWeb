@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import ProductCard, { ProductUI } from "@/components/ProductCard";
+import ProductCard from "@/components/ProductCard";
+import { ProductUI } from "@/types";
 import SkeletonCard from "../components/ui/SkeletonCard";
 
 type Props = {

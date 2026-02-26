@@ -1,11 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useProducts } from "@/contexts/ProductContext";
-import { useCart } from "@/contexts/CartContext";
-import { useToast } from "@/contexts/ToastContext";
-import { normalizeImageUrl } from "@/utils/image";
 import ProductCard from "@/components/ProductCard";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -20,8 +16,6 @@ import {
 
 export default function Home() {
   const { products, loading } = useProducts();
-  const { addToCart } = useCart();
-  const { showToast } = useToast();
 
   // Filtrar productos destacados y activos
   const featuredProducts = products
@@ -124,7 +118,8 @@ export default function Home() {
                       price: product.price,
                       offerPrice: product.offerPrice,
                       image: product.image,
-                      category: product.categories && product.categories[0] ? { name: product.categories[0] } : null,
+                      categories: product.categories || [],
+                      description: product.description || "",
                       featured: product.featured,
                       stock: product.stock
                     }}
