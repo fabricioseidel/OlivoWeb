@@ -25,29 +25,27 @@ export default function Home() {
   return (
     <div className="bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-emerald-800 via-emerald-700 to-green-900 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE0QzMyLjY5IDE0IDMwIDE2LjY5IDMwIDIwczIuNjkgNiA2IDYgNi0yLjY5IDYtNi0yLjY5LTYtNi02ek0zNiA0QzMyLjY5IDQgMzAgNi42OSAzMCAxMHMyLjY5IDYgNiA2IDYtMi42OSA2LTYtMi42OS02LTYtNnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 py-16 md:py-24">
-          <div className="max-w-2xl">
-            <h2 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">
-              Bienvenido a <br />
-              <span className="text-emerald-300">OLIVOMARKET</span>
+      <section className="bg-gradient-to-br from-emerald-50/50 to-green-100/30 py-12 md:py-20">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="max-w-2xl text-center md:text-left mx-auto md:mx-0">
+            <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-emerald-950 tracking-tight leading-tight">
+              Todo lo que necesitas, <br className="hidden sm:block" />
+              en un <span className="text-emerald-600">solo lugar</span>
             </h2>
-            <p className="text-xl md:text-2xl mb-8 text-emerald-50">
-              Los mejores productos venezolanos <br className="hidden sm:block" />
-              al alcance de tu hogar
+            <p className="text-base sm:text-lg md:text-xl mb-8 text-gray-600">
+              Descubre nuestra amplia selección de productos venezolanos. Compra rápido y recibe en tu puerta con la mejor calidad garantizada.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center md:justify-start">
               <Link href="/productos">
-                <Button size="lg" className="bg-white text-emerald-700 hover:bg-emerald-50 shadow-xl border-none">
-                  Ver Productos
-                  <ChevronRight className="size-5 ml-2" />
+                <Button size="lg" className="w-full sm:w-auto bg-emerald-600 text-white hover:bg-emerald-700 shadow-md">
+                  Explorar productos
+                  <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
               <Link href="/productos">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                  Ofertas Especiales
-                  <Star className="size-5 ml-2" />
+                <Button size="lg" variant="outline" className="w-full sm:w-auto border-emerald-200 text-emerald-800 hover:bg-emerald-50">
+                  Ver ofertas
+                  <Star className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
             </div>
@@ -56,39 +54,41 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-12 bg-white border-y border-gray-100">
+      <section className="py-10 md:py-16 bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors">
-              <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600">
-                <Truck className="size-6" />
+          <div className="grid grid-cols-1 xs:grid-cols-3 gap-4 md:gap-8">
+            <div className="flex flex-col items-center justify-center text-center gap-3 p-6 rounded-2xl border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all bg-white">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-600">
+                <Truck className="w-7 h-7" strokeWidth={1.5} />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900 mb-1">Envío Rápido</h3>
-                <p className="text-sm text-gray-600">
-                  Recibe tus productos en 24-48 horas
+                <h3 className="font-semibold text-gray-900 mb-1">Envío Rápido</h3>
+                <p className="text-xs text-gray-500">
+                  En 24-48 horas
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors">
-              <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600">
-                <Shield className="size-6" />
+
+            <div className="flex flex-col items-center justify-center text-center gap-3 p-6 rounded-2xl border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all bg-white">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center bg-blue-50 text-blue-600">
+                <Shield className="w-7 h-7" strokeWidth={1.5} />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900 mb-1">Compra Segura</h3>
-                <p className="text-sm text-gray-600">
-                  Protección en todas tus transacciones
+                <h3 className="font-semibold text-gray-900 mb-1">Compra Segura</h3>
+                <p className="text-xs text-gray-500">
+                  Pagos protegidos
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors">
-              <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600">
-                <Clock className="size-6" />
+
+            <div className="flex flex-col items-center justify-center text-center gap-3 p-6 rounded-2xl border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all bg-white">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center bg-orange-50 text-orange-600">
+                <Clock className="w-7 h-7" strokeWidth={1.5} />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900 mb-1">Siempre Fresco</h3>
-                <p className="text-sm text-gray-600">
-                  Productos frescos y de calidad garantizada
+                <h3 className="font-semibold text-gray-900 mb-1">Siempre Fresco</h3>
+                <p className="text-xs text-gray-500">
+                  Calidad garantizada
                 </p>
               </div>
             </div>
@@ -97,9 +97,14 @@ export default function Home() {
       </section>
 
       {/* Productos Destacados */}
-      <section className="py-12 md:py-16">
+      <section className="py-12 md:py-16 bg-gray-50/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8 text-center">Productos Destacados</h2>
+          <div className="flex items-end justify-between mb-6 md:mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Productos Destacados</h2>
+            <Link href="/productos" className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline hidden sm:block">
+              Ver todos
+            </Link>
+          </div>
 
           {loading ? (
             <div className="flex justify-center py-12">
@@ -149,9 +154,9 @@ export default function Home() {
             <Input
               type="email"
               placeholder="tu@email.com"
-              className="flex-1 bg-white/10 border-white/20 text-white placeholder-gray-400 focus:ring-emerald-500 focus:border-emerald-500 rounded-xl"
+              className="flex-1 bg-white/10 border-white/20 text-white placeholder-gray-400 focus:ring-emerald-500 focus:border-emerald-500 rounded-xl min-h-[48px]"
             />
-            <Button size="lg" className="sm:w-auto bg-emerald-600 hover:bg-emerald-500 border-none">
+            <Button size="lg" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 border-none min-h-[48px]">
               Suscribirse
             </Button>
           </div>

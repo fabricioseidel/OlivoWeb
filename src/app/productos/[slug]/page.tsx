@@ -124,10 +124,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
 
       {/* Contenedor principal */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 lg:p-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 p-4 sm:p-6 lg:p-10">
           {/* Galería de imágenes */}
           <div>
-            <div className="rounded-2xl overflow-hidden mb-4 h-[500px] bg-gray-50 flex items-center justify-center relative">
+            <div className="rounded-2xl overflow-hidden mb-4 h-[300px] sm:h-[400px] md:h-[500px] bg-gray-50 flex items-center justify-center relative">
               <ImageWithFallback
                 key={allImages[selectedImage] || 'main-image'}
                 src={allImages[selectedImage] || product.image || "/file.svg"}
@@ -136,11 +136,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
               />
             </div>
             {allImages.length > 1 && (
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-2 sm:gap-3">
                 {allImages.map((image, index) => (
                   <button
                     key={index}
-                    className={`relative rounded-xl overflow-hidden h-24 border-2 transition-all ${selectedImage === index
+                    className={`relative rounded-xl overflow-hidden h-20 sm:h-24 border-2 transition-all ${selectedImage === index
                       ? "border-emerald-500 ring-2 ring-emerald-200 ring-offset-1"
                       : "border-transparent hover:border-emerald-200"
                       }`}
@@ -161,7 +161,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
 
           {/* Información del producto */}
           <div className="flex flex-col">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">{product.name}</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">{product.name}</h1>
             <div className="flex items-center gap-2 mb-6">
               <span className="text-sm text-gray-500">Categoría:</span>
               <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-sm font-semibold rounded-full uppercase tracking-wide">
@@ -169,25 +169,25 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
               </span>
             </div>
 
-            <div className="text-3xl font-bold text-emerald-600 mb-6 flex items-center gap-3">
+            <div className="text-2xl sm:text-3xl font-bold text-emerald-600 mb-6 flex flex-wrap items-center gap-3">
               <span>$ {effectivePrice.toLocaleString('es-CL')}</span>
               {hasDiscount && (
                 <>
-                  <span className="text-xl line-through font-normal text-gray-400">$ {basePrice.toLocaleString('es-CL')}</span>
-                  <span className="text-sm bg-red-100 text-red-600 font-bold px-2 py-1 rounded-full">
+                  <span className="text-lg sm:text-xl line-through font-normal text-gray-400">$ {basePrice.toLocaleString('es-CL')}</span>
+                  <span className="text-xs sm:text-sm bg-red-100 text-red-600 font-bold px-2 py-1 rounded-full">
                     -{Math.round(((basePrice - offerPrice!) / basePrice) * 100)}%
                   </span>
                 </>
               )}
             </div>
 
-            <p className="text-gray-600 mb-8 leading-relaxed text-lg">{product.description}</p>
+            <p className="text-gray-600 mb-8 leading-relaxed text-base sm:text-lg">{product.description}</p>
 
             {/* Características */}
             {product.features && product.features.length > 0 && (
-              <div className="mb-8 p-6 bg-gray-50 rounded-xl">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900">Características:</h3>
-                <ul className="text-gray-700 space-y-2">
+              <div className="mb-8 p-4 sm:p-6 bg-gray-50 rounded-xl">
+                <h3 className="text-base sm:text-lg font-semibold mb-4 text-gray-900">Características:</h3>
+                <ul className="text-gray-700 space-y-2 text-sm sm:text-base">
                   {product.features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2">
                       <span className="text-emerald-500 mt-1.5">•</span>
@@ -200,10 +200,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
 
             {/* Disponibilidad */}
             <div className="mb-8">
-              <div className="flex items-center gap-3 text-sm">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className={`flex items-center gap-1.5 font-medium ${product.stock > 0 ? "text-emerald-700" : "text-red-600"}`}>
                   <span className={`w-2.5 h-2.5 rounded-full ${product.stock > 0 ? "bg-emerald-500" : "bg-red-500"}`}></span>
-                  {product.stock > 0 ? `${product.stock} unidades disponibles` : "Agotado temporalmente"}
+                  {product.stock > 0 ? `${product.stock} disponibles` : "Agotado"}
                 </span>
                 {product.stock > 0 && product.stock <= 5 && (
                   <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">¡Pocas unidades!</span>
@@ -212,41 +212,43 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             </div>
 
             {/* Controles de cantidad y acciones */}
-            <div className="bg-white border-t border-gray-100 pt-8 mt-auto">
+            <div className="bg-white border-t border-gray-100 pt-6 sm:pt-8 mt-auto">
               <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex items-center border border-gray-300 rounded-xl h-[52px]">
-                  <button
-                    type="button"
-                    className="px-4 h-full text-gray-500 hover:text-emerald-600 hover:bg-gray-50 rounded-l-xl transition-colors disabled:opacity-50"
-                    onClick={decreaseQuantity}
-                    disabled={quantity <= 1}
-                  >
-                    <MinusIcon className="h-5 w-5" />
-                  </button>
-                  <input
-                    type="number"
-                    min="1"
-                    max={product.stock}
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.min(Math.max(1, parseInt(e.target.value) || 1), product.stock))}
-                    className="w-16 text-center h-full border-x border-gray-300 focus:outline-none font-semibold text-gray-900"
-                  />
-                  <button
-                    type="button"
-                    className="px-4 h-full text-gray-500 hover:text-emerald-600 hover:bg-gray-50 rounded-r-xl transition-colors disabled:opacity-50"
-                    onClick={increaseQuantity}
-                    disabled={quantity >= product.stock}
-                  >
-                    <PlusIcon className="h-5 w-5" />
-                  </button>
+                <div className="flex justify-center sm:justify-start">
+                  <div className="inline-flex items-center border border-gray-300 rounded-xl h-[52px]">
+                    <button
+                      type="button"
+                      className="px-4 h-full text-gray-500 hover:text-emerald-600 hover:bg-gray-50 rounded-l-xl transition-colors disabled:opacity-50"
+                      onClick={decreaseQuantity}
+                      disabled={quantity <= 1}
+                    >
+                      <MinusIcon className="h-5 w-5" />
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      max={product.stock}
+                      value={quantity}
+                      onChange={(e) => setQuantity(Math.min(Math.max(1, parseInt(e.target.value) || 1), product.stock))}
+                      className="w-16 text-center h-full border-x border-gray-300 focus:outline-none font-semibold text-gray-900 bg-transparent"
+                    />
+                    <button
+                      type="button"
+                      className="px-4 h-full text-gray-500 hover:text-emerald-600 hover:bg-gray-50 rounded-r-xl transition-colors disabled:opacity-50"
+                      onClick={increaseQuantity}
+                      disabled={quantity >= product.stock}
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex-1 flex gap-3">
-                  <Button fullWidth size="lg" onClick={handleAddToCart} className="flex-1 shadow-lg shadow-emerald-600/20">
+                <div className="flex-1 flex flex-col sm:flex-row gap-3">
+                  <Button fullWidth size="lg" onClick={handleAddToCart} className="flex-1 shadow-lg shadow-emerald-600/20 text-sm sm:text-base">
                     Agregar al Carrito
                   </Button>
                   <Link href="/checkout" className="flex-1" onClick={handleAddToCart}>
-                    <Button variant="outline" fullWidth size="lg" className="h-full border-2">
+                    <Button variant="outline" fullWidth size="lg" className="h-full border-2 text-sm sm:text-base">
                       Comprar Ahora
                     </Button>
                   </Link>

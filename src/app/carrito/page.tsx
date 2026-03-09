@@ -43,29 +43,31 @@ export default function CartPage() {
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <ul className="divide-y divide-gray-200">
                 {cartItems.map((item) => (
-                  <li key={item.id} className="p-6">
-                    <div className="flex flex-col sm:flex-row items-center">
-                      {/* Imagen */}
-                      <div className="w-full sm:w-24 h-24 flex-shrink-0 mb-4 sm:mb-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-full h-full object-cover rounded-md"
-                        />
-                      </div>
+                  <li key={item.id} className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                      <div className="flex items-start gap-4 flex-1">
+                        {/* Imagen */}
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border border-gray-100">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
 
-                      {/* Información */}
-                      <div className="flex-1 ml-0 sm:ml-6 text-center sm:text-left">
-                        <Link href={`/productos/${item.slug}`} className="text-lg font-bold text-gray-900 hover:text-emerald-600 transition-colors">
-                          {item.name}
-                        </Link>
-                        <p className="mt-1 text-emerald-600 font-bold">$ {item.price.toFixed(2)}</p>
+                        {/* Información */}
+                        <div className="flex-1">
+                          <Link href={`/productos/${item.slug}`} className="text-base sm:text-lg font-bold text-gray-900 hover:text-emerald-600 transition-colors line-clamp-2">
+                            {item.name}
+                          </Link>
+                          <p className="mt-1 text-emerald-600 font-bold">$ {item.price.toFixed(2)}</p>
+                        </div>
                       </div>
 
                       {/* Controles de cantidad */}
-                      <div className="flex items-center mt-4 sm:mt-0 gap-4">
-                        <div className="flex items-center border border-gray-200 rounded-xl">
+                      <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-2 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-0 border-gray-100">
+                        <div className="flex items-center border border-gray-200 rounded-xl bg-white shadow-sm">
                           <button
                             type="button"
                             className="p-2 hover:bg-gray-50 rounded-l-xl text-gray-500 transition-colors"

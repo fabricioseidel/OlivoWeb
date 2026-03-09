@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState, Fragment } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Menu, X } from "lucide-react"; // Switched to Lucide
+import { ShoppingBag, Menu, X, Search } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -30,6 +30,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const { itemCount } = useCart();
   const [animateCart, setAnimateCart] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   useEffect(() => {
     if (itemCount > 0) {
@@ -83,7 +84,7 @@ export default function Navbar() {
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
-    <Disclosure as="nav" className="bg-white border-b border-gray-200 relative sticky top-0 z-50">
+    <Disclosure as="nav" className="bg-white/95 backdrop-blur-md border-b border-gray-200 relative sticky top-0 z-50">
       {({ open }) => (
         <>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -236,8 +237,32 @@ export default function Navbar() {
                 )}
               </div>
 
-              {/* Botón menú móvil */}
-              <div className="-mr-2 flex items-center sm:hidden">
+              {/* Móvil: carrito + búsqueda + menú */}
+              <div className="-mr-2 flex items-center gap-1 sm:hidden">
+                {/* Mobile search toggle */}
+                <button
+                  onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+                  className="p-2 rounded-md text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                  aria-label="Buscar"
+                >
+                  <Search className="h-5 w-5" />
+                </button>
+
+                {/* Mobile cart */}
+                <Link
+                  href="/carrito"
+                  className={`relative p-2 rounded-md text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all ${animateCart ? 'scale-110 text-emerald-600' : ''}`}
+                >
+                  <span className="sr-only">Carrito</span>
+                  <ShoppingBag className="h-5 w-5" strokeWidth={2} />
+                  {itemCount > 0 && (
+                    <span className={`absolute -top-0.5 -right-0.5 bg-emerald-600 text-white text-[9px] font-bold rounded-full h-4 w-4 flex items-center justify-center ring-1.5 ring-white transition-transform ${animateCart ? 'scale-125' : ''}`}>
+                      {itemCount}
+                    </span>
+                  )}
+                </Link>
+
+                {/* Hamburger menu */}
                 <Disclosure.Button className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-500">
                   <span className="sr-only">Abrir menú principal</span>
                   {open ? (
@@ -249,6 +274,20 @@ export default function Navbar() {
               </div>
             </div>
           </div>
+
+          {/* Mobile search bar */}
+          {mobileSearchOpen && (
+            <div className="sm:hidden px-4 pb-3 pt-1 border-b border-gray-100 bg-white">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  autoFocus
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-full bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  placeholder="Buscar productos..."
+                />
+              </div>
+            </div>
+          )}
 
           {/* Menú móvil */}
           <Disclosure.Panel className="sm:hidden bg-white border-b border-gray-200">
