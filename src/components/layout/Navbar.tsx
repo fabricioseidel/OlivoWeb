@@ -288,8 +288,7 @@ export default function Navbar() {
                       href="/login"
                       className="block text-center text-base font-medium text-gray-500 hover:text-emerald-600 transition-colors duration-300"
                     >
-                      Iniciar Sesión
-                    </Link>
+                      Iniciar Sesión                  {...(item.href ? { href: item.href } : { onClick: item.onClick })}
                     <Link
                       href="/registro"
                       className="block text-center w-full bg-emerald-600 text-white px-4 py-3 rounded-2xl font-medium hover:bg-emerald-700 shadow-sm transition-all duration-300"
