@@ -1,5 +1,4 @@
 "use client";
-
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -17,7 +16,7 @@ import {
   CurrencyDollarIcon,
   ArrowUpTrayIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -29,28 +28,30 @@ export default function AdminLayout({
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   // Verificar si el usuario es administrador o vendedor
   useEffect(() => {
+    if (status === "loading") return; // No hacer nada mientras carga
 
     if (status === "authenticated") {
       const userRole = (session as any)?.user?.role || (session as any)?.role;
-
       // Permitir acceso a ADMIN y SELLER
       if (userRole !== "ADMIN" && userRole !== "SELLER") {
         console.log("Usuario sin permisos de administrador o vendedor. Redirigiendo...");
         router.push("/");
-        router.refresh();
       }
+      setHasCheckedAuth(true);
     } else if (status === "unauthenticated") {
+      // Redirigir a login con callbackUrl=/admin para que vuelva aqui después
       console.log("Usuario no autenticado. Redirigiendo al login...");
       router.push("/login?callbackUrl=/admin");
-      router.refresh();
+      setHasCheckedAuth(true);
     }
-  }, [session, status, router]);
+  }, [status, session, router]);
 
   // Mostrar pantalla de carga mientras verifica la sesión
-  if (status === "loading" || status === "unauthenticated") {
+  if (!hasCheckedAuth || status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
@@ -75,10 +76,22 @@ export default function AdminLayout({
     { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
     { name: "Ventas", href: "/admin/ventas", icon: CurrencyDollarIcon },
     { name: "Uber Eats Export", href: "/admin/uber-eats", icon: ArrowUpTrayIcon },
-    { name: "Reabastecimiento", href: "/admin/reabastecimiento", icon: ArrowPathIcon },
-    { name: "Pedidos Proveedores", href: "/admin/pedidos-proveedor", icon: TruckIcon },
+    {
+      name: "Reabastecimiento",
+      href: "/admin/reabastecimiento",
+      icon: ArrowPathIcon,
+    },
+    {
+      name: "Pedidos Proveedores",
+      href: "/admin/pedidos-proveedor",
+      icon: TruckIcon,
+    },
     { name: "Proveedores", href: "/admin/proveedores", icon: TruckIcon },
-    { name: "Pedidos Clientes", href: "/admin/pedidos", icon: ClipboardDocumentListIcon },
+    {
+      name: "Pedidos Clientes",
+      href: "/admin/pedidos",
+      icon: ClipboardDocumentListIcon,
+    },
     { name: "Usuarios", href: "/admin/usuarios", icon: UsersIcon },
     { name: "Configuración", href: "/admin/configuracion", icon: Cog6ToothIcon },
     { name: "Debug Categorías", href: "/debug/categorias", icon: BugAntIcon },
@@ -88,13 +101,16 @@ export default function AdminLayout({
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar (Desktop) - Sticky positioning */}
       <div
-        className={`hidden md:flex flex-col sticky top-0 h-screen bg-gray-900 border-r border-gray-800 transition-all duration-300 flex-shrink-0 ${isCollapsed ? 'w-20' : 'w-64'}`}
+        className={`hidden md:flex flex-col sticky top-0 h-screen bg-gray-900 border-r border-gray-800 transition-all duration-300 flex-shrink-0 ${
+          isCollapsed ? "w-20" : "w-64"
+        }`}
       >
         {/* Header del Sidebar */}
         <div className="flex items-center h-16 flex-shrink-0 px-4 bg-gray-900 justify-between">
           {!isCollapsed && (
             <Link href="/admin" className="text-xl font-bold text-white truncate">
-              OLIVOMARKET <span className="text-emerald-400">Admin</span>
+              OLIVOMARKET{" "}
+              <span className="text-emerald-400">Admin</span>
             </Link>
           )}
           {isCollapsed && (
@@ -111,11 +127,14 @@ export default function AdminLayout({
                 key={item.name}
                 href={item.href}
                 title={isCollapsed ? item.name : undefined}
-                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-800 hover:text-white transition-colors
-                  ${isCollapsed ? 'justify-center' : ''}`}
+                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-800 hover:text-white transition-colors ${
+                  isCollapsed ? "justify-center" : ""
+                }`}
               >
                 <item.icon
-                  className={`h-6 w-6 text-gray-400 group-hover:text-emerald-400 transition-colors ${!isCollapsed ? 'mr-3' : ''}`}
+                  className={`h-6 w-6 text-gray-400 group-hover:text-emerald-400 transition-colors ${
+                    !isCollapsed ? "mr-3" : ""
+                  }`}
                   aria-hidden="true"
                 />
                 {!isCollapsed && (
@@ -132,7 +151,11 @@ export default function AdminLayout({
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="p-1.5 rounded-md bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
-            {isCollapsed ? <ChevronRightIcon className="h-5 w-5" /> : <ChevronLeftIcon className="h-5 w-5" />}
+            {isCollapsed ? (
+              <ChevronRightIcon className="h-5 w-5" />
+            ) : (
+              <ChevronLeftIcon className="h-5 w-5" />
+            )}
           </button>
         </div>
       </div>
@@ -163,6 +186,7 @@ export default function AdminLayout({
             </svg>
           </button>
         </div>
+
         <main className="flex-1 relative z-0 focus:outline-none">
           <div className="py-6">
             <div className="w-full px-4 sm:px-6 md:px-8">
