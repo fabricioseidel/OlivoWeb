@@ -1,5 +1,4 @@
 "use client";
-
 import { Fragment, ReactNode } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import Link from "next/link";
@@ -34,7 +33,6 @@ const Dropdown = ({
           <Menu.Button className={triggerClassName}>
             {trigger}
           </Menu.Button>
-
           <Transition
             as={Fragment}
             show={open}
@@ -50,21 +48,24 @@ const Dropdown = ({
             >
               {items.map((item, idx) => (
                 <Menu.Item key={idx}>
-                  {({ active }) => (
-                    item.href ? (
-                      <Link
-                        href={item.href}
-                        className={`${
-                          active
-                            ? `${item.isDanger ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`
-                            : `${item.isDanger ? "text-red-600" : "text-gray-700"}`
-                        } block w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
-                          item.className || ""
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    ) : (
+                  {({ active }) => {
+                    if (item.href) {
+                      return (
+                        <Link
+                          href={item.href}
+                          className={`${
+                            active
+                              ? `${item.isDanger ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`
+                              : `${item.isDanger ? "text-red-600" : "text-gray-700"}`
+                          } block w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
+                            item.className || ""
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      );
+                    }
+                    return (
                       <button
                         onClick={() => {
                           item.onClick?.();
@@ -79,8 +80,8 @@ const Dropdown = ({
                       >
                         {item.label}
                       </button>
-                    )
-                  )}
+                    );
+                  }}
                 </Menu.Item>
               ))}
             </Menu.Items>
