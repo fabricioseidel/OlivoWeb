@@ -2,6 +2,7 @@
 
 import { Fragment, ReactNode } from "react";
 import { Menu, Transition } from "@headlessui/react";
+import Link from "next/link";
 
 export interface DropdownItem {
   label: string;
@@ -48,45 +49,39 @@ const Dropdown = ({
               className={`absolute ${align === "right" ? "right-0" : "left-0"} mt-2 w-56 rounded-lg shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50`}
             >
               {items.map((item, idx) => (
-                <Fragment key={idx}>
-                  {item.href ? (
-                    <Menu.Item>
-                      {({ active }) => (
-                        <a
-                          href={item.href}
-                          className={`${
-                            active
-                              ? `${item.isDanger ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`
-                              : `${item.isDanger ? "text-red-600" : "text-gray-700"}`
-                          } block w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
-                            item.className || ""
-                          }`}
-                        >
-                          {item.label}
-                        </a>
-                      )}
-                    </Menu.Item>
-                  ) : (
-                    <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          onClick={() => {
-                            item.onClick?.();
-                          }}
-                          className={`${
-                            active
-                              ? `${item.isDanger ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`
-                              : `${item.isDanger ? "text-red-600" : "text-gray-700"}`
-                          } block w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
-                            item.className || ""
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      )}
-                    </Menu.Item>
+                <Menu.Item key={idx}>
+                  {({ active }) => (
+                    item.href ? (
+                      <Link
+                        href={item.href}
+                        className={`${
+                          active
+                            ? `${item.isDanger ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`
+                            : `${item.isDanger ? "text-red-600" : "text-gray-700"}`
+                        } block w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
+                          item.className || ""
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          item.onClick?.();
+                        }}
+                        className={`${
+                          active
+                            ? `${item.isDanger ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`
+                            : `${item.isDanger ? "text-red-600" : "text-gray-700"}`
+                        } block w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
+                          item.className || ""
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    )
                   )}
-                </Fragment>
+                </Menu.Item>
               ))}
             </Menu.Items>
           </Transition>
