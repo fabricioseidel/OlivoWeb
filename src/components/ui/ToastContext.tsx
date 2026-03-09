@@ -1,7 +1,7 @@
-\"use client\";
+ "use client";
 
-import { createContext, useContext, useState, ReactNode, useCallback } from \"react\";
-import Toast, { ToastType } from \"@/components/ui/Toast\";
+import { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import Toast, { ToastType } from "@/components/ui/Toast";
 
 interface ToastItem {
   id: string;
@@ -31,7 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast, hideToast }}>
       {children}
-      <div className=\"fixed bottom-4 right-4 z-[9999] flex flex-col gap-3 items-end pointer-events-none sm:bottom-6 sm:right-6\">
+      <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-3 items-end pointer-events-none sm:bottom-6 sm:right-6">
         {toasts.map((toast) => (
           <Toast
             key={toast.id}
@@ -49,7 +49,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 export function useToast() {
   const context = useContext(ToastContext);
   if (context === undefined) {
-    throw new Error(\"useToast must be used within a ToastProvider\");
+    throw new Error("useToast must be used within a ToastProvider");
   }
   return context;
 }
