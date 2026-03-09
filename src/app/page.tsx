@@ -11,7 +11,11 @@ import {
   Truck,
   Shield,
   Clock,
-  Heart
+  Heart,
+  Apple,
+  Home as HomeIcon,
+  PawPrint,
+  ShoppingBag
 } from "lucide-react";
 
 export default function Home() {
@@ -92,6 +96,42 @@ export default function Home() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Categorías (Reference Layout) */}
+      <section className="py-12 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-8 text-center">Categorías</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <Link href="/productos?categoria=alimentos" className="flex flex-col items-center justify-center p-6 bg-white border border-gray-100 rounded-2xl hover:border-emerald-200 hover:shadow-md transition-all">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-500 mb-4">
+                <Apple className="w-7 h-7" strokeWidth={1.5} />
+              </div>
+              <span className="text-sm font-semibold text-gray-900">Alimentos</span>
+            </Link>
+
+            <Link href="/productos?categoria=hogar" className="flex flex-col items-center justify-center p-6 bg-white border border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-md transition-all">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center bg-blue-50 text-blue-500 mb-4">
+                <HomeIcon className="w-7 h-7" strokeWidth={1.5} />
+              </div>
+              <span className="text-sm font-semibold text-gray-900">Hogar</span>
+            </Link>
+
+            <Link href="/productos?categoria=mascotas" className="flex flex-col items-center justify-center p-6 bg-white border border-gray-100 rounded-2xl hover:border-orange-200 hover:shadow-md transition-all">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center bg-orange-50 text-orange-500 mb-4">
+                <PawPrint className="w-7 h-7" strokeWidth={1.5} />
+              </div>
+              <span className="text-sm font-semibold text-gray-900">Mascotas</span>
+            </Link>
+
+            <Link href="/productos?categoria=conveniencia" className="flex flex-col items-center justify-center p-6 bg-white border border-gray-100 rounded-2xl hover:border-purple-200 hover:shadow-md transition-all">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center bg-purple-50 text-purple-500 mb-4">
+                <ShoppingBag className="w-7 h-7" strokeWidth={1.5} />
+              </div>
+              <span className="text-sm font-semibold text-gray-900">Conveniencia</span>
+            </Link>
           </div>
         </div>
       </section>
