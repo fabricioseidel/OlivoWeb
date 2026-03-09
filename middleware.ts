@@ -1,41 +1,25 @@
-import { auth } from "@/auth";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { withAuth } from "next-auth/middleware";
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // Rutas protegidas que requieren autenticación
-  const protectedRoutes = ["/admin"];
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
-
-  if (!isProtectedRoute) {
-    return NextResponse.next();
+export default withAuth(
+  function middleware(request) {
+    // Este middleware se ejecuta después de que NextAuth valida la sesión
+    // Si el usuario no está autenticado, NextAuth lo redirigirá a login automáticamente
+    // Si está autenticado pero sin permisos, puedes agregar lógica aquí
+    return undefined;
+  },
+  {
+    callbacks: {
+      authorized: async ({ token }) => {
+        // Permitir acceso si hay un token válido (usuario autenticado)
+        return !!token;
+      },
+    },
+    // Rutas que requieren autenticación
+    pages: {
+      signIn: "/login",
+    },
   }
-
-  // Obtener la sesión
-  const session = await auth();
-
-  // Si no hay sesión, redirigir a login
-  if (!session) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // Verificar el rol
-  const userRole = (session.user as any)?.role || (session as any)?.role;
-
-  if (userRole !== "ADMIN" && userRole !== "SELLER") {
-    // Redirigir a home si no tiene permisos
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  // Permitir el acceso
-  return NextResponse.next();
-}
+);
 
 export const config = {
   matcher: ["/admin/:path*"],
