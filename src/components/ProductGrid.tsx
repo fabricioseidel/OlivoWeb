@@ -18,7 +18,7 @@ export default function ProductGrid({ products = [], loading, emptyMessage = "No
   return (
     <div>
       {showSkeletons ? (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-3 sm:gap-5">
           {Array.from({ length: 8 }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
@@ -26,7 +26,7 @@ export default function ProductGrid({ products = [], loading, emptyMessage = "No
       ) : list.length === 0 ? (
         <div className="text-center py-16 text-gray-500">{emptyMessage}</div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-3 sm:gap-5">
           {list.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}

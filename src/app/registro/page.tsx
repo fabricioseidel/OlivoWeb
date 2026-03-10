@@ -13,6 +13,7 @@ export default function RegisterPage() {
   const googleEnabled =
     process.env.NEXT_PUBLIC_AUTH_GOOGLE === "1" ||
     !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -68,7 +69,7 @@ export default function RegisterPage() {
     } catch (error: any) {
       setError(
         error.response?.data?.message ||
-          "Ocurrió un error al registrarse. Intenta de nuevo."
+        "Ocurrió un error al registrarse. Intenta de nuevo."
       );
     } finally {
       setLoading(false);
@@ -83,27 +84,29 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-4xl font-black text-gray-900 tracking-tight">
             Crear una cuenta
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-500 font-medium">
             ¿Ya tienes una cuenta?{" "}
             <Link
               href="/login"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-black text-emerald-600 hover:text-emerald-500 transition-colors"
             >
-              Inicia Sesión
+              Inicia Sesión aquí
             </Link>
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div className="mb-4">
+
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {error && (
+              <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-2xl text-sm font-bold animate-shake">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-4">
               <Input
                 id="name"
                 name="name"
@@ -114,35 +117,35 @@ export default function RegisterPage() {
                 value={formData.name}
                 onChange={handleChange}
                 label="Nombre completo"
+                className="rounded-2xl h-12"
               />
-            </div>
-            <div className="mb-4">
+
               <Input
                 id="email"
                 name="email"
                 type="email"
                 autoComplete="email"
                 required
-                placeholder="Correo electrónico"
+                placeholder="tu@email.com"
                 value={formData.email}
                 onChange={handleChange}
                 label="Correo electrónico"
+                className="rounded-2xl h-12"
               />
-            </div>
-            <div className="mb-4">
+
               <Input
                 id="password"
                 name="password"
                 type="password"
                 autoComplete="new-password"
                 required
-                placeholder="Contraseña"
+                placeholder="Contraseña (mín. 6 caracteres)"
                 value={formData.password}
                 onChange={handleChange}
                 label="Contraseña"
+                className="rounded-2xl h-12"
               />
-            </div>
-            <div>
+
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -153,68 +156,49 @@ export default function RegisterPage() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 label="Confirmar contraseña"
+                className="rounded-2xl h-12"
               />
             </div>
-          </div>
 
-          <div>
             <Button
               type="submit"
               fullWidth
               disabled={loading}
+              className="h-14 rounded-2xl text-lg font-black shadow-lg shadow-emerald-500/20 translate-y-0 active:translate-y-1 transition-all"
             >
-              {loading ? "Registrando..." : "Registrarse"}
+              {loading ? "Registrando..." : "Crear mi cuenta"}
             </Button>
-          </div>
-        </form>
+          </form>
 
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
+          <div className="mt-8">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-100" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white text-gray-400 font-black uppercase tracking-widest">O continúa con</span>
+              </div>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">
-                O continúa con
-              </span>
-            </div>
-          </div>
 
-          <div className="mt-6">
-            {googleEnabled ? (
-              <Button
-                type="button"
-                fullWidth
-                variant="outline"
-                onClick={handleGoogleSignIn}
-              >
-                <svg
-                  className="h-5 w-5 mr-2"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
+            {googleEnabled && (
+              <div className="mt-6">
+                <Button
+                  type="button"
+                  fullWidth
+                  variant="outline"
+                  onClick={handleGoogleSignIn}
+                  className="h-14 rounded-2xl border-2 font-black hover:bg-gray-50 transition-all gap-3 flex items-center justify-center text-gray-700"
                 >
-                  <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
-                    <path
-                      fill="#4285F4"
-                      d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z"
-                    />
-                  </g>
-                </svg>
-                Continuar con Google
-              </Button>
-            ) : null}
+                  <svg className="h-5 w-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                  </svg>
+                  Google
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

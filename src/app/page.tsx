@@ -31,56 +31,82 @@ export default function Home() {
   return (
     <div className="bg-white">
       {/* Hero Section - Rediseñado para ser más llamativo y premium */}
-      <section className="relative overflow-hidden bg-emerald-950 pt-16 pb-20 md:pt-24 md:pb-32">
-        {/* Decoración de fondo */}
-        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[500px] h-[500px] bg-emerald-500/20 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+      <section className="relative overflow-hidden bg-emerald-950 pt-16 pb-24 md:pt-32 md:pb-40">
+        {/* Decoraciones de fondo ultra-premium */}
+        <div className="absolute top-0 right-0 -translate-y-1/3 translate-x-1/3 w-[600px] h-[600px] bg-emerald-500/30 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[10s]" />
+        <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-amber-500/10 rounded-full blur-[80px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-emerald-400 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] mb-8 animate-in fade-in slide-in-from-top duration-700">
                 <Sparkles className="w-4 h-4" />
                 <span>Productos venezolanos premium</span>
               </div>
-              <h1 className="text-4xl md:text-6xl font-black mb-6 text-white tracking-tight leading-[1.1]">
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-8 text-white tracking-tighter leading-[0.95] md:leading-[1]">
                 Sabor que te <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-300">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-green-300 to-blue-400 animate-gradient-x">
                   conecta con casa
                 </span>
               </h1>
-              <p className="text-lg md:text-xl mb-10 text-emerald-100/80 max-w-xl mx-auto lg:mx-0">
-                Llevamos lo mejor de Venezuela directo a tu puerta. Calidad garantizada, frescura y el sabor que ya conoces.
+              <p className="text-lg md:text-2xl mb-12 text-emerald-100/70 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
+                Llevamos lo mejor de Venezuela directo a tu puerta en Chile. Calidad garantizada, frescura y el sabor que ya conoces.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Link href="/productos">
-                  <Button size="lg" className="w-full sm:w-auto bg-emerald-500 text-white hover:bg-emerald-400 border-none shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all hover:scale-105 active:scale-95 px-8">
+              <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start">
+                <Link href="/productos" className="w-full sm:w-auto">
+                  <Button size="lg" className="w-full sm:w-auto bg-emerald-500 text-white hover:bg-emerald-400 border-none shadow-[0_20px_40px_rgba(16,185,129,0.3)] transition-all hover:scale-105 active:scale-95 px-10 h-16 rounded-2xl text-lg font-black">
                     Comprar Ahora
-                    <ArrowRight className="w-5 h-5 ml-2" />
+                    <ArrowRight className="w-6 h-6 ml-2" />
                   </Button>
                 </Link>
-                <Link href="/ofertas">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto border-emerald-500/30 text-emerald-100 hover:bg-emerald-500/10 hover:border-emerald-500/50">
+                <Link href="/ofertas" className="w-full sm:w-auto">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10 hover:border-white/40 h-16 px-10 rounded-2xl text-lg font-bold backdrop-blur-sm">
                     Ver Ofertas
-                    <Star className="w-5 h-5 ml-2" />
+                    <Star className="w-6 h-6 ml-2" />
                   </Button>
                 </Link>
               </div>
             </div>
 
-            {/* Imagen/Gráfico Lado Derecho (Placeholder estilizado) */}
-            <div className="hidden lg:block relative">
-              <div className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-gradient-to-br from-emerald-800 to-emerald-900 border border-emerald-500/20 shadow-2xl">
-                <div className="absolute inset-0 flex items-center justify-center opacity-30">
-                  <ShoppingBag className="w-48 h-48 text-emerald-400/20" />
+            {/* Gráfico Lado Derecho - Composición App-like para móviles */}
+            <div className="relative group">
+              <div className="relative aspect-square sm:aspect-[4/3] rounded-[3rem] overflow-hidden bg-gradient-to-br from-emerald-800 to-emerald-950 border border-white/10 shadow-2xl transition-all duration-700 group-hover:scale-[1.02]">
+                <div className="absolute inset-0 flex items-center justify-center opacity-40">
+                  <ShoppingBag className="w-48 h-48 sm:w-64 sm:h-64 text-emerald-400/20" />
                 </div>
-                {/* Elementos flotantes simulando productos o interfaz */}
-                <div className="absolute top-10 right-10 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 animate-bounce transition-all duration-3000">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center mb-2">
-                    <Truck className="text-white w-6 h-6" />
+
+                {/* Elementos flotantes premium */}
+                <div className="absolute top-[10%] left-[10%] bg-white/10 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-white/20 shadow-2xl animate-float transition-all hover:scale-110">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30">
+                    <Truck className="text-white w-6 h-6 sm:w-8 sm:h-8" />
                   </div>
-                  <div className="h-2 w-16 bg-white/20 rounded-full mb-1" />
-                  <div className="h-2 w-10 bg-white/10 rounded-full" />
+                  <div className="h-2 w-16 sm:w-24 bg-white/30 rounded-full mb-2" />
+                  <div className="h-2 w-10 sm:w-16 bg-white/10 rounded-full" />
+                </div>
+
+                <div className="absolute bottom-[15%] right-[10%] bg-white/10 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-white/20 shadow-2xl animate-float-delayed transition-all hover:scale-110">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                      <Star className="text-white w-5 h-5 sm:w-6 sm:h-6 fill-white" />
+                    </div>
+                    <div>
+                      <div className="h-2 w-12 bg-white/30 rounded-full mb-1" />
+                      <div className="h-2 w-8 bg-white/10 rounded-full" />
+                    </div>
+                  </div>
+                  <div className="h-8 w-24 sm:w-32 bg-emerald-500/20 rounded-xl border border-emerald-500/30" />
+                </div>
+              </div>
+
+              {/* Badge flotante extra */}
+              <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-[2rem] shadow-2xl hidden md:flex items-center gap-4 border border-gray-100 animate-bounce-slow">
+                <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600">
+                  <Heart className="w-6 h-6 fill-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-gray-900 leading-none">5k+ Clientes</p>
+                  <p className="text-xs text-gray-500 font-medium mt-1">Satisfechos en todo Chile</p>
                 </div>
               </div>
             </div>
@@ -151,7 +177,7 @@ export default function Home() {
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {featuredProducts.length > 0 ? (
                 featuredProducts.map((product) => (
                   <ProductCard

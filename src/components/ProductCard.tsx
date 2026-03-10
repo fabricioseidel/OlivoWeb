@@ -51,74 +51,74 @@ export default function ProductCard({ product }: Props) {
   };
 
   return (
-    <div className="group relative h-full flex flex-col rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 hover:shadow-xl hover:ring-emerald-500/10 transition-all duration-300">
-      <Link href={`/productos/${product.slug}`} className="block relative aspect-square overflow-hidden bg-gray-50 rounded-t-2xl">
+    <div className="group relative h-full flex flex-col rounded-[2rem] bg-white shadow-sm ring-1 ring-gray-100 hover:shadow-2xl hover:ring-emerald-500/10 transition-all duration-500 overflow-hidden">
+      <Link href={`/productos/${product.slug}`} className="block relative aspect-square overflow-hidden bg-gray-50">
         <ImageWithFallback
           src={product.image ?? '/file.svg'}
           alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 origin-center"
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 origin-center"
           fallback="/file.svg"
         />
 
-        {/* Badges */}
-        <div className="absolute top-3 inset-x-3 flex justify-between items-start">
+        {/* Badges - Glassmorphism style */}
+        <div className="absolute top-3 inset-x-3 flex justify-between items-start pointer-events-none">
           <div className="flex flex-col gap-1.5">
             {product.featured && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-500/20">
-                Destacado
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest uppercase bg-emerald-600/90 backdrop-blur-md text-white shadow-lg ring-1 ring-white/20">
+                TOP
               </span>
             )}
             {hasDiscount && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase bg-red-600 text-white shadow-sm ring-1 ring-red-500/20">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest uppercase bg-red-600/90 backdrop-blur-md text-white shadow-lg ring-1 ring-white/20">
                 -{discountPercent}%
               </span>
             )}
           </div>
         </div>
 
-        {/* Stock Badge overlay */}
+        {/* Stock Badge - Premium look */}
         {product.stock !== undefined && product.stock < 10 && (
-          <div className="absolute bottom-3 left-3">
-            <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide font-bold shadow-sm ${product.stock === 0
-              ? 'bg-gray-900 text-white'
-              : 'bg-amber-100 text-amber-800 ring-1 ring-amber-200'
+          <div className="absolute bottom-3 left-3 pointer-events-none">
+            <span className={`px-2.5 py-1 rounded-lg text-[9px] uppercase tracking-widest font-black shadow-lg backdrop-blur-md border ${product.stock === 0
+              ? 'bg-gray-900/80 text-white border-white/10'
+              : 'bg-amber-500/90 text-white border-white/10'
               }`}>
-              {product.stock === 0 ? 'Agotado' : `Últimos ${product.stock}`}
+              {product.stock === 0 ? 'AGOTADO' : `Últimos ${product.stock}`}
             </span>
           </div>
         )}
       </Link>
 
       {/* Content */}
-      <div className="flex flex-col flex-1 p-4">
-        {/* Category */}
+      <div className="flex flex-col flex-1 p-3 sm:p-5">
+        {/* Category - Subtle and clean */}
         {product.categories && product.categories.length > 0 && (
-          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+          <p className="text-[9px] font-black text-emerald-600/60 uppercase tracking-[0.2em] mb-1">
             {product.categories[0]}
           </p>
         )}
 
-        {/* Product Name */}
-        <Link href={`/productos/${product.slug}`} className="hover:text-emerald-600 transition-colors">
-          <h3 className="text-sm sm:text-base font-medium text-gray-900 line-clamp-2 leading-tight min-h-[2.5rem] sm:min-h-[2.75rem]">
+        {/* Product Name - Stronger hierarchy */}
+        <Link href={`/productos/${product.slug}`} className="group-hover:text-emerald-600 transition-colors">
+          <h3 className="text-sm sm:text-base font-bold text-gray-900 line-clamp-2 leading-snug min-h-[2.4rem] sm:min-h-[2.8rem]">
             {product.name}
           </h3>
         </Link>
 
-        {/* Pricing Layout App-like */}
+        {/* Pricing & CTA */}
         <div className="mt-auto pt-3 flex items-center justify-between">
           <div className="flex flex-col">
             {hasDiscount ? (
               <>
-                <span className="text-xs text-gray-400 font-medium line-through">
+                <span className="text-[10px] text-gray-400 font-bold line-through ml-0.5">
                   {formatCurrency(basePrice)}
                 </span>
-                <span className="text-lg font-bold text-gray-900 leading-none">
+                <span className="text-base sm:text-xl font-black text-gray-900 leading-none tracking-tight">
                   {formatCurrency(effectivePrice)}
                 </span>
               </>
             ) : (
-              <span className="text-lg font-bold text-gray-900 leading-none h-[1.75rem] flex items-end">
+              <span className="text-base sm:text-xl font-black text-gray-900 leading-none h-[1.25rem] sm:h-[1.5rem] flex items-end tracking-tight">
                 {formatCurrency(basePrice)}
               </span>
             )}
@@ -127,18 +127,18 @@ export default function ProductCard({ product }: Props) {
           <button
             onClick={handleAdd}
             disabled={isAdding || product.stock === 0}
-            className={`flex items-center justify-center p-3 rounded-xl transition-all min-h-[44px] min-w-[44px] ${isAdding
-                ? 'bg-emerald-100 text-emerald-600'
-                : product.stock === 0
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-md active:scale-95'
+            className={`flex items-center justify-center p-2.5 rounded-2xl transition-all duration-300 min-h-[44px] min-w-[44px] ${isAdding
+              ? 'bg-emerald-100 text-emerald-600 scale-110'
+              : product.stock === 0
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed grayscale'
+                : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20 active:scale-90'
               }`}
             aria-label="Añadir al carrito"
           >
             {isAdding ? (
-              <span className="font-bold text-sm">✓</span>
+              <span className="font-black text-sm">✓</span>
             ) : (
-              <Plus strokeWidth={2.5} className="w-5 h-5" />
+              <Plus strokeWidth={3} className="w-5 h-5 sm:w-6 sm:h-6" />
             )}
           </button>
         </div>

@@ -80,7 +80,7 @@ export default function Navbar() {
 
   return (
     <Disclosure as="nav" className="bg-white/95 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 transition-all duration-300">
-      {({ open }) => (
+      {({ open, close }) => (
         <>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
@@ -107,8 +107,8 @@ export default function Navbar() {
                       key={item.name}
                       href={item.href}
                       className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-300 ${isActive(item.href)
-                          ? "border-emerald-600 text-gray-900"
-                          : "border-transparent text-gray-500 hover:text-emerald-600 hover:border-emerald-200"
+                        ? "border-emerald-600 text-gray-900"
+                        : "border-transparent text-gray-500 hover:text-emerald-600 hover:border-emerald-200"
                         }`}
                     >
                       {item.name}
@@ -189,9 +189,10 @@ export default function Navbar() {
                   key={item.name}
                   as={Link}
                   href={item.href}
+                  onClick={() => close()}
                   className={`block pl-4 pr-4 py-3 border-l-4 text-base font-medium ${isActive(item.href)
-                      ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                      : "border-transparent text-gray-500 hover:bg-gray-50 hover:border-emerald-300 hover:text-emerald-600"
+                    ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+                    : "border-transparent text-gray-500 hover:bg-gray-50 hover:border-emerald-300 hover:text-emerald-600"
                     }`}
                 >
                   {item.name}
@@ -221,6 +222,7 @@ export default function Navbar() {
                     <Disclosure.Button
                       as={Link}
                       href="/login"
+                      onClick={() => close()}
                       className="block text-center py-2 text-base font-medium text-gray-500 hover:text-emerald-600"
                     >
                       Entrar
@@ -228,6 +230,7 @@ export default function Navbar() {
                     <Disclosure.Button
                       as={Link}
                       href="/registro"
+                      onClick={() => close()}
                       className="block text-center w-full bg-emerald-600 text-white py-3 rounded-2xl font-medium"
                     >
                       Registrarse

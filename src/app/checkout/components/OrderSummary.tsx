@@ -61,7 +61,7 @@ export default function OrderSummary({ cartItems, subtotal, shippingCost, total 
 
         <div className="pt-3 border-t border-gray-200 flex justify-between">
           <p className="text-lg font-semibold text-gray-900">Total</p>
-          <p className="text-2xl font-bold text-blue-600">${total.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-emerald-600">${total.toFixed(2)}</p>
         </div>
       </div>
 
