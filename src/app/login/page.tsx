@@ -1,6 +1,6 @@
 "use client";
-import { useState, useMemo, Suspense } from "react";
-import { signIn } from "next-auth/react";
+import { useState, useMemo, Suspense, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
@@ -24,11 +24,22 @@ function mapNextAuthError(code?: string) {
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const { data: session, status } = useSession();
+
   const oauthErr = params.get("error");
   const callbackUrl = params.get("callbackUrl") || "/";
+
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // REDIRIGIR SI YA ESTÁ AUTENTICADO
+  useEffect(() => {
+    if (status === "authenticated") {
+      console.log("[LOGIN] Usuario ya autenticado. Redirigiendo a:", callbackUrl);
+      router.replace(callbackUrl);
+    }
+  }, [status, callbackUrl, router]);
 
   const errorFromCallback = useMemo(
     () => mapNextAuthError(oauthErr || undefined),
@@ -61,7 +72,7 @@ function LoginForm() {
         console.error("Sign in error:", result.error);
         setError(mapNextAuthError(result.error));
       } else if (result?.ok) {
-        // Éxito - redirigir al callbackUrl o al inicio
+        // Al usar redirect: false, debemos empujar manualmente
         router.push(callbackUrl);
         router.refresh();
       } else {
@@ -76,9 +87,20 @@ function LoginForm() {
   };
 
   const handleGoogleSignIn = () => {
-    // Pasar el callbackUrl a Google OAuth
     signIn("google", { callbackUrl: callbackUrl });
   };
+
+  // No mostrar el formulario si ya estamos autenticados (el useEffect ya está haciendo el redirect)
+  if (status === "authenticated") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-500 mb-4">Ya has iniciado sesión. Redirigiendo...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

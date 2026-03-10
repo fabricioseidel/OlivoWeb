@@ -1,6 +1,6 @@
 "use client";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -27,20 +27,33 @@ export default function AdminLayout({
 }>) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Verificar si el usuario es administrador o vendedor
   useEffect(() => {
-    if (status === "authenticated") {
-      const userRole = ((session as any)?.user?.role || (session as any)?.role || "USER").toString().toUpperCase();
+    // Si todavía carga, no hacer nada
+    if (status === "loading") return;
 
-      // Permitir acceso a ADMIN y SELLER
+    // Si NO está autenticado, mandarlo al login con callbackUrl
+    if (status === "unauthenticated") {
+      console.log("[ADMIN-LAYOUT] No autenticado. Redirigiendo...");
+      const callback = encodeURIComponent(pathname);
+      router.replace(`/login?callbackUrl=${callback}`);
+      return;
+    }
+
+    // Si está autenticado, verificar el ROL
+    if (status === "authenticated") {
+      const userRole = ((session as any)?.role || (session as any)?.user?.role || "USER").toString().toUpperCase();
+
+      // Permitir acceso solo a ADMIN y SELLER
       if (userRole !== "ADMIN" && userRole !== "SELLER") {
-        console.log("Usuario sin permisos de administrador o vendedor. Redirigiendo a home...");
-        router.push("/");
+        console.log("[ADMIN-LAYOUT] Rol insuficiente:", userRole);
+        router.replace("/");
       }
     }
-  }, [status, session, router]);
+  }, [status, session, router, pathname]);
 
   // Mostrar pantalla de carga mientras verifica la sesión
   if (status === "loading") {
@@ -51,16 +64,11 @@ export default function AdminLayout({
     );
   }
 
-  // Redirigir si no está autenticado (aunque el middleware debería manejarlo)
-  if (status === "unauthenticated") {
-    return null;
-  }
+  // Si no está autenticado o tiene rol insuficiente, NO mostrar nada (el useEffect hará el redirect)
+  if (status === "unauthenticated") return null;
 
-  // Verificar rol después de cargar
-  const userRole = ((session as any)?.user?.role || (session as any)?.role || "USER").toString().toUpperCase();
-  if (userRole !== "ADMIN" && userRole !== "SELLER") {
-    return null; // El useEffect se encargará de redirigir
-  }
+  const userRole = ((session as any)?.role || (session as any)?.user?.role || "USER").toString().toUpperCase();
+  if (userRole !== "ADMIN" && userRole !== "SELLER") return null;
 
   // Estructura del menú de administración
   const menuItems = [
@@ -150,10 +158,8 @@ export default function AdminLayout({
         </div>
       </div>
 
-      {/* Main content - Takes remaining space with flex-1 */}
       <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
         <div className="md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-white border-b border-gray-200">
-          {/* Mobile Sidebar Toggle */}
           <button
             type="button"
             className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-500"
