@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
+import { ensureUploadsBucket } from '@/utils/supabaseStorage';
 
 // Cliente con service role para storage
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -13,8 +14,12 @@ export async function POST(
 ) {
   try {
     const { id: orderId } = await params;
+
+    // Asegurar que el bucket existe
+    await ensureUploadsBucket();
+
     const formData = await request.formData();
-    
+
     const file = formData.get('file') as File;
     const type = formData.get('type') as 'receipt' | 'invoice';
 
@@ -96,7 +101,7 @@ export async function POST(
     if (error) {
       // Si falla la actualización, intentar eliminar el archivo subido
       await supabaseAdmin.storage.from('uploads').remove([filePath]);
-      
+
       console.error('Error updating order:', error);
       return NextResponse.json(
         { error: 'Error al actualizar el pedido' },
@@ -150,13 +155,13 @@ export async function DELETE(
     }
 
     const fileUrl = type === 'receipt' ? order.payment_receipt_url : order.invoice_url;
-    
+
     // Extraer el path del archivo de la URL
     if (fileUrl) {
       const urlParts = fileUrl.split('/uploads/');
       if (urlParts.length > 1) {
         const filePath = urlParts[1];
-        
+
         // Eliminar archivo de Storage
         const { error: deleteError } = await supabaseAdmin.storage
           .from('uploads')

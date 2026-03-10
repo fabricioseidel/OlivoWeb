@@ -23,7 +23,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [mounted, setMounted] = useState(false);
-  
+
   // Carga inicial del carrito desde localStorage (solo en el cliente)
   useEffect(() => {
     setMounted(true);
@@ -33,9 +33,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const parsedCart = JSON.parse(storedCart);
         if (Array.isArray(parsedCart)) {
           // Validar y limpiar los datos del carrito
-          const validatedCart = parsedCart.filter(item => 
-            item && 
-            typeof item === 'object' && 
+          const validatedCart = parsedCart.filter(item =>
+            item &&
+            typeof item === 'object' &&
             typeof item.id === 'string' &&
             typeof item.name === 'string' &&
             typeof item.price === 'number' &&
@@ -63,26 +63,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("cart", JSON.stringify([]));
     }
   }, []);
-  
+
   // Actualizar localStorage cuando cambia el carrito
   useEffect(() => {
     if (mounted) {
       localStorage.setItem("cart", JSON.stringify(cartItems));
     }
   }, [cartItems, mounted]);
-  
+
   // Calcular subtotal
   const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-  
-  // Calcular costo de envío (ejemplo simple)
-  const shippingCost = subtotal > 0 ? 10 : 0;
-  
+
+  // Calcular costo de envío (0 por defecto, se calcula en Checkout)
+  const shippingCost = 0;
+
   // Calcular total
   const total = subtotal + shippingCost;
-  
+
   // Contar el número total de artículos
   const itemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
-  
+
   // Agregar producto al carrito
   const addToCart = useCallback((product: Omit<CartItem, "quantity">, quantity: number = 1) => {
     const qty = Math.max(1, Math.floor(quantity || 1));
@@ -97,28 +97,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     });
   }, []);
-  
+
   // Eliminar producto del carrito
   const removeFromCart = useCallback((id: string) => {
     setCartItems(prevItems => prevItems.filter(item => item.id !== id));
   }, []);
-  
+
   // Actualizar cantidad de un producto
   const updateQuantity = useCallback((id: string, quantity: number) => {
     if (quantity < 1) return;
-    
+
     setCartItems(prevItems =>
       prevItems.map(item => (item.id === id ? { ...item, quantity } : item))
     );
   }, []);
-  
+
   // Vaciar carrito
   const clearCart = useCallback(() => {
     setCartItems([]);
     localStorage.removeItem('cart');
     localStorage.removeItem('cartItems');
   }, []);
-  
+
   // Valores del contexto
   const contextValue: CartContextType = {
     cartItems,
@@ -131,17 +131,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     shippingCost,
     itemCount,
   };
-  
+
   return <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>;
 }
 
 // Hook personalizado para usar el contexto
 export function useCart() {
   const context = useContext(CartContext);
-  
+
   if (context === undefined) {
     throw new Error("useCart debe ser usado dentro de un CartProvider");
   }
-  
+
   return context;
 }

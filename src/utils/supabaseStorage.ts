@@ -20,7 +20,7 @@ export async function ensureUploadsBucket() {
       // Create the uploads bucket
       const { error: createError } = await supabaseAdmin.storage.createBucket('uploads', {
         public: true,
-        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'image/svg+xml'],
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'image/svg+xml', 'application/pdf'],
         fileSizeLimit: 10485760 // 10MB
       });
 

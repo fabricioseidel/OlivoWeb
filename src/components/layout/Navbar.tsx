@@ -246,6 +246,7 @@ export default function Navbar() {
                         key={item.label}
                         as={Link}
                         href={item.href}
+                        onClick={() => close()}
                         className={`flex items-center w-full px-4 py-3 text-base font-medium ${item.isDanger ? 'text-red-500 hover:bg-red-50' : 'text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'
                           }`}
                       >
@@ -256,7 +257,10 @@ export default function Navbar() {
                       <Disclosure.Button
                         key={item.label}
                         as="button"
-                        onClick={item.onClick}
+                        onClick={() => {
+                          item.onClick?.();
+                          close();
+                        }}
                         className={`flex items-center w-full px-4 py-3 text-base font-medium ${item.isDanger ? 'text-red-500 hover:bg-red-50' : 'text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'
                           }`}
                       >

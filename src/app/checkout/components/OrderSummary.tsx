@@ -52,7 +52,7 @@ export default function OrderSummary({ cartItems, subtotal, shippingCost, total 
           <p className="text-gray-600">Envío</p>
           <p className="font-medium text-gray-900">
             {shippingCost === 0 ? (
-              <span className="text-green-600">Gratis</span>
+              <span className="text-green-600 font-medium">Gratis</span>
             ) : (
               `$${shippingCost.toFixed(2)}`
             )}

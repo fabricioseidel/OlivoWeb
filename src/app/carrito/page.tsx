@@ -131,7 +131,7 @@ export default function CartPage() {
                 <div className="flex justify-between items-center text-gray-500">
                   <span className="font-bold text-sm uppercase tracking-widest">Envío estimado</span>
                   <span className="text-lg font-black text-emerald-600">
-                    {shippingCost === 0 ? "Gratis" : `$ ${shippingCost.toLocaleString('es-CL')}`}
+                    {shippingCost === 0 ? "Calculado al pagar" : `$ ${shippingCost.toLocaleString('es-CL')}`}
                   </span>
                 </div>
 
