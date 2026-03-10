@@ -2177,8 +2177,92 @@ export default function UberEatsExportPage() {
         </div>
       </div>
 
-      {/* Tabla de productos - COMPACTA */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      {/* Vista Móvil (Cards) */}
+      <div className="md:hidden space-y-4">
+        {filteredProducts
+          .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+          .map((product) => (
+            <div
+              key={product.id}
+              className={`bg-white rounded-lg shadow p-4 space-y-3 relative border-l-4 ${product.exportSelected ? "border-emerald-500" : "border-gray-200"} ${!product.isValid ? "bg-red-50 border-red-500" : ""}`}
+              onClick={() => setSelectedProductForUpload(product.id)}
+            >
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    {product.isValid ? (
+                      <CheckCircleIcon className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    ) : (
+                      <ExclamationTriangleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
+                    )}
+                    <span className="text-sm font-bold text-gray-900 truncate">{product.name}</span>
+                  </div>
+                  <div className="text-xs text-gray-500 font-mono">{product.barcode}</div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-base font-black text-emerald-600">${product.priceWithVat.toLocaleString()}</div>
+                  <div className="text-[10px] text-gray-400 uppercase font-bold">IVA {product.vatPercentage}%</div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {product.uberCategories.length > 0 ? (
+                  product.uberCategories.slice(0, 2).map((cat, i) => (
+                    <span key={i} className="px-2 py-0.5 bg-gray-100 text-[10px] font-bold text-gray-600 rounded-full truncate max-w-[120px]">
+                      {cat}
+                    </span>
+                  ))
+                ) : (
+                  <span className="px-2 py-0.5 bg-gray-50 text-[10px] font-bold text-gray-400 rounded-full italic">Sin categoría</span>
+                )}
+                {product.uberCategories.length > 2 && (
+                  <span className="px-2 py-0.5 bg-emerald-50 text-[10px] font-bold text-emerald-700 rounded-full">+{product.uberCategories.length - 2} más</span>
+                )}
+              </div>
+
+              {!product.isValid && (
+                <div className="text-[10px] text-red-600 bg-red-100/50 p-2 rounded border border-red-100 mt-2">
+                  {product.validationErrors.map((e, i) => (
+                    <div key={i} className="flex gap-1"><span>•</span> {e}</div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-2">
+                <div className="flex gap-3">
+                  <label className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={product.exportSelected}
+                      onChange={() => toggleExportSelected(product.id)}
+                      className="w-4 h-4 rounded text-emerald-600"
+                    />
+                    <span className="text-xs font-bold text-gray-600">Export</span>
+                  </label>
+                  <label className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={product.editSelected}
+                      onChange={() => toggleEditSelected(product.id)}
+                      className="w-4 h-4 rounded text-blue-600"
+                    />
+                    <span className="text-xs font-bold text-gray-600">Sel.</span>
+                  </label>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSelectedProductForUpload(product.id); }}
+                  className="px-3 py-1 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700"
+                >
+                  EDITAR
+                </button>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+
+      {/* Tabla de productos - COMPACTA (Vista Desktop) */}
+      <div className="hidden md:block bg-white rounded-lg shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">

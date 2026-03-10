@@ -245,7 +245,37 @@ function MetricTable({ title, rows, headerValor, headerExtra }: MetricTableProps
       <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <h3 className="text-sm font-medium text-gray-900">{title}</h3>
       </div>
-      <div className="overflow-x-auto">
+
+      {/* Vista Móvil (Cards) */}
+      <div className="md:hidden divide-y divide-gray-100">
+        {rows.length === 0 ? (
+          <div className="px-6 py-10 text-center text-gray-400 text-xs">Sin datos todavía</div>
+        ) : (
+          rows.map(r => (
+            <div key={r.id} className="p-4 flex flex-col gap-2">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-sm font-bold text-gray-900 line-clamp-2 flex-1">{r.nombre}</span>
+                <div className="flex flex-col items-end shrink-0">
+                  <span className="text-xs font-black text-emerald-600">{r.valor}</span>
+                  <span className="text-[10px] text-gray-400 uppercase font-bold">{headerValor}</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center mt-1">
+                <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium truncate max-w-[150px]">
+                  {r.categoria || 'Sin categoría'}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-gray-400">{headerExtra}:</span>
+                  <span className="text-[10px] font-bold text-gray-700">{r.extra}</span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Vista Desktop (Tabla) */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

@@ -477,8 +477,93 @@ export default function CategoriesPage() {
         </div>
       </div>
 
-      {/* Tabla de categorías */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8 border border-gray-100">
+      {/* Vista de Lista para Móviles */}
+      <div className="grid grid-cols-1 gap-4 md:hidden mb-8">
+        {loading ? (
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center text-gray-500">
+            <div className="flex justify-center items-center space-x-2">
+              <svg className="animate-spin h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Cargando categorías...</span>
+            </div>
+          </div>
+        ) : (
+          filteredCategories.map((category) => (
+            <div key={category.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+              <div className="flex gap-4">
+                <div className="h-20 w-20 flex-shrink-0 bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
+                  <ImageWithFallback
+                    key={`${category.id}-${imageRefreshMap.get(category.id) || 0}`}
+                    src={getImageUrlForCategory(category.id, category.image)}
+                    alt={category.name}
+                    className="h-full w-full object-cover"
+                    fallback="/file.svg"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start">
+                    <h3 className="text-sm font-bold text-gray-900 truncate">{category.name}</h3>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${category.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                      {category.isActive ? 'ACTIVA' : 'INACTIVA'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-indigo-600 font-mono mt-0.5">/{category.slug}</p>
+                  <p className="text-xs text-gray-500 line-clamp-2 mt-1">{category.description || 'Sin descripción'}</p>
+
+                  <div className="mt-2 flex items-center text-xs text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                    {category.productsCount} productos
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between pt-3 border-t border-gray-50">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEditCategory(category)}
+                    className="p-2 text-indigo-600 bg-indigo-50 rounded-lg"
+                    title="Editar"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => toggleCategoryStatus(category.id)}
+                    className={`text-[10px] uppercase tracking-wider font-bold px-3 py-1 rounded-lg border transition-colors ${category.isActive ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'
+                      }`}
+                  >
+                    {category.isActive ? 'Desactivar' : 'Activar'}
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleDeleteCategory(category.id)}
+                    disabled={category.productsCount > 0}
+                    className={`p-2 text-red-600 bg-red-50 rounded-lg ${category.productsCount > 0 ? 'opacity-30' : ''}`}
+                    title="Eliminar"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+
+        {!loading && filteredCategories.length === 0 && (
+          <div className="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300">
+            <p className="text-gray-500 text-sm">No se encontraron categorías</p>
+          </div>
+        )}
+      </div>
+
+      {/* Tabla de categorías (Oculta en móviles, visible en tablets/escritorio) */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden mb-8 border border-gray-100">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">

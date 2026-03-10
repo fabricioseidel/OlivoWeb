@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { 
-  PencilIcon, 
-  TrashIcon, 
+import {
+  PencilIcon,
+  TrashIcon,
   PlusIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -38,7 +38,7 @@ export default function AdminProductsPage() {
   const filteredProducts = useMemo(() => (
     products.filter((product) => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           product.description.toLowerCase().includes(searchTerm.toLowerCase());
+        product.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory === "Todas" || (Array.isArray(product.categories) && product.categories.includes(selectedCategory));
       return matchesSearch && matchesCategory;
     })
@@ -102,7 +102,7 @@ export default function AdminProductsPage() {
       confirmText: "Eliminar",
       cancelText: "Cancelar"
     });
-    
+
     if (confirmed) {
       deleteProduct(id);
       showToast(
@@ -165,7 +165,7 @@ export default function AdminProductsPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FunnelIcon className="h-5 w-5 text-gray-400" />
@@ -190,7 +190,7 @@ export default function AdminProductsPage() {
               className="border rounded px-3 py-2 text-sm hover:bg-gray-50"
             >Limpiar</Button>
           </div>
-          
+
           <div className="text-right" aria-live="polite">
             <span className="text-sm text-gray-500">
               {filteredProducts.length === 0
@@ -201,8 +201,74 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Tabla de productos */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+      {/* Vista de Lista para Móviles */}
+      <div className="grid grid-cols-1 gap-4 md:hidden mb-6">
+        {currentItems.map((product) => (
+          <div key={product.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div className="flex gap-4">
+              <div className="h-20 w-20 flex-shrink-0 bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
+                <ImageWithFallback className="h-full w-full object-cover" src={product.image} alt={product.name} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-gray-900 truncate">{product.name}</h3>
+                <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">{product.description}</p>
+
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-sm font-bold text-emerald-600">${product.price.toFixed(2)}</span>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${product.stock > 10 ? 'bg-green-100 text-green-700' :
+                      product.stock > 0 ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-red-100 text-red-700'
+                    }`}>
+                    {product.stock} un.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between pt-3 border-t border-gray-50">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => toggleFeatured(product.id, !product.featured)}
+                  className={`text-[10px] uppercase tracking-wider font-bold px-3 py-1 rounded-lg border transition-colors ${product.featured ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-gray-50 border-gray-200 text-gray-500'
+                    }`}
+                >
+                  ★ {product.featured ? 'Destacado' : 'Normal'}
+                </button>
+                <button
+                  onClick={() => toggleActive(product.id, !product.isActive)}
+                  className={`text-[10px] uppercase tracking-wider font-bold px-3 py-1 rounded-lg border transition-colors ${product.isActive ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-gray-50 border-gray-200 text-gray-500'
+                    }`}
+                >
+                  {product.isActive ? 'Activo' : 'Inactivo'}
+                </button>
+              </div>
+
+              <div className="flex gap-2">
+                <Link
+                  href={`/admin/productos/${product.id}`}
+                  className="p-2 text-blue-600 bg-blue-50 rounded-lg"
+                >
+                  <PencilIcon className="h-4 w-4" />
+                </Link>
+                <button
+                  onClick={() => handleDeleteProduct(product.id, product.name)}
+                  className="p-2 text-red-600 bg-red-50 rounded-lg"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {currentItems.length === 0 && (
+          <div className="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300">
+            <p className="text-gray-500 text-sm">No se encontraron productos</p>
+          </div>
+        )}
+      </div>
+
+      {/* Tabla de productos (Oculta en móviles, visible en tablets/escritorio) */}
+      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden mb-6">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -335,11 +401,10 @@ export default function AdminProductsPage() {
                           showToast(e?.message || 'No se pudo actualizar', 'error');
                         }
                       }}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors border ${
-                        product.featured
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors border ${product.featured
                           ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
                           : 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200'
-                      }`}
+                        }`}
                       aria-pressed={product.featured}
                       aria-label={product.featured ? 'Destacado' : 'No destacado'}
                     >
@@ -359,11 +424,10 @@ export default function AdminProductsPage() {
                           showToast(e?.message || 'No se pudo actualizar', 'error');
                         }
                       }}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors border ${
-                        product.isActive
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors border ${product.isActive
                           ? 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200'
                           : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
-                      }`}
+                        }`}
                       aria-pressed={product.isActive}
                       aria-label={product.isActive ? 'Activo' : 'Inactivo'}
                     >
@@ -415,7 +479,7 @@ export default function AdminProductsPage() {
             </tbody>
           </table>
         </div>
-        
+
         {/* Paginación */}
         {totalPages > 1 && (
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
@@ -434,38 +498,35 @@ export default function AdminProductsPage() {
                   <button
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                      currentPage === 1
+                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${currentPage === 1
                         ? "text-gray-300 cursor-not-allowed"
                         : "text-gray-500 hover:bg-gray-50"
-                    }`}
+                      }`}
                   >
                     <span className="sr-only">Anterior</span>
                     <ChevronLeftIcon className="h-5 w-5" />
                   </button>
-                  
+
                   {Array.from({ length: totalPages }).map((_, index) => (
                     <button
                       key={index}
                       onClick={() => paginate(index + 1)}
-                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium ${
-                        currentPage === index + 1
+                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium ${currentPage === index + 1
                           ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
                           : "text-gray-500 hover:bg-gray-50"
-                      }`}
+                        }`}
                     >
                       {index + 1}
                     </button>
                   ))}
-                  
+
                   <button
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                      currentPage === totalPages
+                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${currentPage === totalPages
                         ? "text-gray-300 cursor-not-allowed"
                         : "text-gray-500 hover:bg-gray-50"
-                    }`}
+                      }`}
                   >
                     <span className="sr-only">Siguiente</span>
                     <ChevronRightIcon className="h-5 w-5" />

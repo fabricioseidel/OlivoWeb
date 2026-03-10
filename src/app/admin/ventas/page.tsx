@@ -465,8 +465,71 @@ export default function VentasPage() {
         </div>
       </div>
 
-      {/* Tabla de ventas */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Vista de Lista para Móviles */}
+      <div className="grid grid-cols-1 gap-4 md:hidden mb-6">
+        {loading ? (
+          <div className="flex justify-center items-center py-12 bg-white rounded-lg shadow-sm">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : filteredSales.length === 0 ? (
+          <div className="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300">
+            <p className="text-gray-500 text-sm">No se encontraron ventas</p>
+          </div>
+        ) : (
+          filteredSales.map((sale) => {
+            const isTransfer = sale.payment_method === 'transferencia';
+            const hasReceipt = sale.transfer_receipt_uri;
+
+            return (
+              <div
+                key={sale.id}
+                className={`p-4 rounded-xl shadow-sm border transition-colors ${isTransfer && !hasReceipt ? 'bg-red-50 border-red-100' :
+                    isTransfer && hasReceipt ? 'bg-green-50 border-green-100' :
+                      'bg-white border-gray-100'
+                  }`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Venta #{sale.id}</span>
+                    <span className="text-sm font-black text-gray-900">${sale.total.toLocaleString()}</span>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 uppercase">
+                      {sale.payment_method}
+                    </span>
+                    {isTransfer && (
+                      <span className={`text-[9px] font-bold ${hasReceipt ? 'text-green-600' : 'text-red-600'}`}>
+                        {hasReceipt ? '✓ CON COMPROBANTE' : '⚠ SIN COMPROBANTE'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-end mt-4 pt-3 border-t border-gray-100/50">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                      <UserIcon className="h-3 w-3" />
+                      {sale.seller_name || 'N/A'}
+                    </span>
+                    <span className="text-[10px] text-gray-400 mt-0.5">
+                      {new Date(sale.ts).toLocaleString()}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleSaleClick(sale)}
+                    className="p-2 text-blue-600 bg-blue-100/50 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    <EyeIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Tabla de ventas (Oculta en móviles, visible en tablets/escritorio) */}
+      <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">
             Historial de Ventas ({filteredSales.length})
@@ -557,8 +620,8 @@ export default function VentasPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        )
+        }</div>
 
       {/* Modal de detalle */}
       {selectedSale && mounted && createPortal(

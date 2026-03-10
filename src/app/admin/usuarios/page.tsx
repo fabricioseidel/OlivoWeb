@@ -282,8 +282,54 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Tabla de usuarios */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+      {/* Vista de Lista para Móviles */}
+      <div className="grid grid-cols-1 gap-4 md:hidden mb-6">
+        {loading ? (
+          <div className="text-center py-8 bg-white rounded-lg shadow-sm border border-gray-100 italic text-gray-500">
+            Cargando usuarios...
+          </div>
+        ) : (
+          currentItems.map((user) => (
+            <div key={user.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-bold text-gray-900 truncate">{user.name || 'Sin nombre'}</h3>
+                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                </div>
+                <div className="flex flex-col items-end gap-1.5">
+                  <RoleBadge role={user.role} />
+                  <StatusBadge status={'ACTIVE'} />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1 mb-4">
+                <p className="text-[10px] text-gray-400 font-mono">ID: {user.id}</p>
+                <p className="text-[10px] text-gray-400 italic">Registrado: {new Date(user.createdAt).toLocaleDateString()}</p>
+              </div>
+
+              {session?.user?.role === 'ADMIN' && user.id !== session.user.id && (
+                <div className="pt-3 border-t border-gray-50 flex justify-end">
+                  <button
+                    onClick={() => toggleUserRole(user.id, user.role)}
+                    className="text-xs font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors"
+                  >
+                    CAMBIAR ROL
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+
+        {!loading && currentItems.length === 0 && (
+          <div className="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300">
+            <p className="text-gray-500 text-sm">No se encontraron usuarios</p>
+          </div>
+        )}
+      </div>
+
+      {/* Tabla de usuarios (Oculta en móviles, visible en tablets/escritorio) */}
+      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden mb-6">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -389,8 +435,8 @@ export default function UsersPage() {
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
                     className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${currentPage === 1
-                        ? "text-gray-300 cursor-not-allowed"
-                        : "text-gray-500 hover:bg-gray-50"
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-gray-500 hover:bg-gray-50"
                       }`}
                   >
                     <span className="sr-only">Anterior</span>
@@ -402,8 +448,8 @@ export default function UsersPage() {
                       key={index}
                       onClick={() => paginate(index + 1)}
                       className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium ${currentPage === index + 1
-                          ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                          : "text-gray-500 hover:bg-gray-50"
+                        ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                        : "text-gray-500 hover:bg-gray-50"
                         }`}
                     >
                       {index + 1}
@@ -414,8 +460,8 @@ export default function UsersPage() {
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalPages}
                     className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${currentPage === totalPages
-                        ? "text-gray-300 cursor-not-allowed"
-                        : "text-gray-500 hover:bg-gray-50"
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-gray-500 hover:bg-gray-50"
                       }`}
                   >
                     <span className="sr-only">Siguiente</span>

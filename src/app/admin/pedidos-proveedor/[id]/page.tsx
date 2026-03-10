@@ -294,8 +294,8 @@ export default function SupplierOrderDetailPage({
           <button
             onClick={() => updateStatus('gestionado')}
             className={`px-4 py-2 rounded-lg flex items-center gap-2 ${order.status === 'gestionado'
-                ? 'bg-gray-200 text-gray-600'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+              ? 'bg-gray-200 text-gray-600'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -307,8 +307,8 @@ export default function SupplierOrderDetailPage({
           <button
             onClick={() => updateStatus('gestionado')}
             className={`px-4 py-2 rounded-lg flex items-center gap-2 ${order.status === 'gestionado'
-                ? 'bg-gray-200 text-gray-600'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+              ? 'bg-gray-200 text-gray-600'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -326,8 +326,8 @@ export default function SupplierOrderDetailPage({
               }
             }}
             className={`px-4 py-2 rounded-lg flex items-center gap-2 ${order.status === 'enviado_por_whatsapp'
-                ? 'bg-green-600 text-white hover:bg-green-700'
-                : 'bg-green-600 text-white hover:bg-green-700'
+              ? 'bg-green-600 text-white hover:bg-green-700'
+              : 'bg-green-600 text-white hover:bg-green-700'
               }`}
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -347,7 +347,42 @@ export default function SupplierOrderDetailPage({
           {/* Items del pedido */}
           <div className="bg-white border rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4">Productos</h2>
-            <div className="overflow-x-auto">
+
+            {/* Vista Móvil (Cards) */}
+            <div className="md:hidden space-y-4">
+              {order.items.map((item) => (
+                <div key={item.id} className="bg-gray-50 rounded-lg p-4 space-y-2 border border-gray-100">
+                  <div className="flex justify-between items-start gap-4">
+                    <div>
+                      <div className="text-sm font-bold text-gray-900">{item.product_name}</div>
+                      <div className="text-[10px] text-gray-400 font-mono uppercase tracking-wider">{item.product_sku}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-sm font-black text-emerald-600">${item.subtotal.toFixed(2)}</div>
+                      <div className="text-[10px] text-gray-400 uppercase font-bold">Subtotal</div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center text-xs pt-2 border-t border-gray-200">
+                    <div className="flex flex-col">
+                      <span className="text-gray-400 font-medium">Cantidad:</span>
+                      <span className="text-gray-700 font-bold">{item.quantity}</span>
+                    </div>
+                    <div className="text-right flex flex-col">
+                      <span className="text-gray-400 font-medium">Precio Unit.:</span>
+                      <span className="text-gray-700 font-bold">${item.unit_cost.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="bg-emerald-50 rounded-lg p-4 flex justify-between items-center border border-emerald-100 mt-4">
+                <span className="text-sm font-bold text-emerald-800 uppercase tracking-wider">Total Pedido:</span>
+                <span className="text-lg font-black text-emerald-900">${order.total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Vista Desktop (Tabla) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>

@@ -16,11 +16,7 @@ interface Order {
   items?: number; // cantidad de items
 }
 
-// Tipo bruto que podría venir de distintos orígenes (checkout usa campos en español)
-
 export default function AdminOrdersPage() {
-  // ...existing code...
-  // ...existing code...
   const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,7 +66,7 @@ export default function AdminOrdersPage() {
     fetchOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // Memo para evitar recalcular en cada render
+
   const filteredOrders = useMemo(() => {
     return orders.filter(o => {
       const s = searchTerm.trim().toLowerCase();
@@ -94,7 +90,6 @@ export default function AdminOrdersPage() {
     });
   }, [orders, searchTerm, statusFilter, dateFrom, dateTo]);
 
-  // Mostrar aviso "sin resultados" solo cuando hay filtros activos o ya cargamos datos
   useEffect(() => {
     const filtersActive = Boolean(searchTerm || dateFrom || dateTo || (statusFilter && statusFilter !== 'Todos'));
     if (loaded && filtersActive && filteredOrders.length === 0) {
@@ -183,7 +178,58 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      {/* Vista de Lista para Móviles */}
+      <div className="grid grid-cols-1 gap-4 md:hidden">
+        {currentItems.length === 0 && (
+          <div className="bg-white p-10 rounded-xl border border-dashed border-gray-300 text-center text-gray-500">
+            No hay pedidos.
+          </div>
+        )}
+        {currentItems.map(o => (
+          <div key={o.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pedido #{o.id}</span>
+                <span className="text-sm font-black text-gray-900">${o.total.toFixed(2)}</span>
+              </div>
+              <StatusBadge status={o.status} />
+            </div>
+
+            <div className="flex flex-col gap-1 mb-4">
+              <div className="text-sm font-bold text-gray-800">{o.customer || '-'}</div>
+              <div className="text-xs text-gray-500 truncate">{o.email || ''}</div>
+              <div className="text-[10px] text-gray-400 mt-1 italic">{o.date}</div>
+            </div>
+
+            <div className="pt-3 border-t border-gray-50 flex justify-end">
+              <Link
+                href={`/admin/pedidos/${o.id}`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-blue-100 transition-colors"
+                onClick={() => {
+                  try {
+                    const lightweight = {
+                      id: o.id,
+                      date: o.date,
+                      customer: o.customer,
+                      email: o.email,
+                      total: o.total,
+                      status: o.status,
+                    };
+                    localStorage.setItem('selectedOrder', JSON.stringify(lightweight));
+                    try { sessionStorage.setItem(`order:${o.id}`, JSON.stringify(lightweight)); } catch { }
+                  } catch { }
+                }}
+              >
+                <EyeIcon className="h-4 w-4" />
+                VER PEDIDO
+              </Link>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabla de pedidos (Oculta en móviles, visible en tablets/escritorio) */}
+      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 select-none">
@@ -220,7 +266,6 @@ export default function AdminOrdersPage() {
                       className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
                       onClick={() => {
                         try {
-                          // Guardar una copia ligera del pedido seleccionado para el detalle
                           const lightweight = {
                             id: o.id,
                             date: o.date,
@@ -228,10 +273,8 @@ export default function AdminOrdersPage() {
                             email: o.email,
                             total: o.total,
                             status: o.status,
-                            // items no está en la tabla; el detalle manejará fallback a [] si no existen
                           };
                           localStorage.setItem('selectedOrder', JSON.stringify(lightweight));
-                          // Guardar también una copia por clave de pedido en sessionStorage (para abrir en nueva pestaña)
                           try { sessionStorage.setItem(`order:${o.id}`, JSON.stringify(lightweight)); } catch { }
                         } catch { }
                       }}
@@ -244,21 +287,23 @@ export default function AdminOrdersPage() {
             </tbody>
           </table>
         </div>
-
-        {filteredOrders.length > itemsPerPage && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
-            <div className="flex items-center gap-1">
-              <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className={`p-2 rounded border ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-50 text-gray-600'}`}> <ChevronLeftIcon className="h-5 w-5" /> </button>
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button key={i} onClick={() => paginate(i + 1)} className={`px-3 py-1 rounded border text-sm ${currentPage === i + 1 ? 'bg-blue-50 border-blue-500 text-blue-600 font-medium' : 'hover:bg-gray-50 text-gray-600'}`}>{i + 1}</button>
-              ))}
-              <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className={`p-2 rounded border ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-50 text-gray-600'}`}> <ChevronRightIcon className="h-5 w-5" /> </button>
-            </div>
-            <div className="text-xs text-gray-500">Página {currentPage} de {totalPages}</div>
-          </div>
-        )}
       </div>
 
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
+          <div className="flex items-center gap-1">
+            <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className={`p-2 rounded border ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-50 text-gray-600'}`}> <ChevronLeftIcon className="h-5 w-5" /> </button>
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button key={i} onClick={() => paginate(i + 1)} className={`px-3 py-1 rounded border text-sm ${currentPage === i + 1 ? 'bg-blue-50 border-blue-500 text-blue-600 font-medium' : 'hover:bg-gray-50 text-gray-600'}`}>{i + 1}</button>
+            ))}
+            <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className={`p-2 rounded border ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-50 text-gray-600'}`}> <ChevronRightIcon className="h-5 w-5" /> </button>
+          </div>
+          <div className="text-xs text-gray-500">Página {currentPage} de {totalPages}</div>
+        </div>
+      )}
+
+      {/* Resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         <SummaryCard label="Total pedidos" value={orders.length} />
         <SummaryCard label="En proceso" value={orders.filter(o => o.status === 'En proceso').length} color="text-yellow-600" />

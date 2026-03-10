@@ -406,8 +406,8 @@ export default function SuppliersAdminPage() {
                 type="button"
                 onClick={() => setSelectedId(supplier.id)}
                 className={`w-full text-left px-3 py-3 rounded-md transition ${supplier.id === selectedId
-                    ? "bg-blue-50 border border-blue-200"
-                    : "hover:bg-gray-50"
+                  ? "bg-blue-50 border border-blue-200"
+                  : "hover:bg-gray-50"
                   }`}
               >
                 <div className="flex items-center justify-between">
@@ -677,7 +677,56 @@ export default function SuppliersAdminPage() {
                 </div>
               </form>
 
-              <div className="overflow-auto border rounded-lg">
+              {/* Vista Móvil (Cards de Productos Asignados) */}
+              <div className="md:hidden space-y-3">
+                {assignments.length === 0 ? (
+                  <div className="bg-gray-50 border border-dashed border-gray-200 rounded-lg p-8 text-center text-sm text-gray-500">
+                    No hay productos asignados a este proveedor.
+                  </div>
+                ) : (
+                  assignments.map((assignment) => {
+                    const product = products.find(p => p.id === assignment.product_id);
+                    const cost = assignment.unit_cost || 0;
+                    return (
+                      <div key={`${assignment.product_id}-${assignment.supplier_id}`} className="bg-gray-50 border border-gray-100 rounded-lg p-4 space-y-3 shadow-sm">
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <div className="text-sm font-bold text-gray-900">{product?.name ?? assignment.product_id}</div>
+                            {assignment.notes && <div className="text-xs text-gray-500 italic mt-0.5">{assignment.notes}</div>}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-sm font-black text-emerald-600">${(cost * 1.19).toFixed(2)}</div>
+                            <div className="text-[10px] text-gray-400 uppercase font-bold">Con IVA</div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs border-t border-gray-200 pt-2">
+                          <div className="flex flex-col">
+                            <span className="text-gray-400 font-medium">Costo Sin IVA:</span>
+                            <span className="text-gray-700 font-bold">${cost.toFixed(2)}</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <span className="text-gray-400 font-medium">Cant. Sugerida:</span>
+                            <span className="text-gray-700 font-bold">{assignment.default_reorder_qty ?? "-"}</span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="danger"
+                            className="px-2 py-1 text-[10px] h-auto"
+                            onClick={() => handleDeleteAssignment(assignment.product_id)}
+                            disabled={assignmentSaving}
+                          >
+                            Quitar
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Vista Desktop (Tabla) */}
+              <div className="hidden md:block overflow-auto border rounded-lg">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>

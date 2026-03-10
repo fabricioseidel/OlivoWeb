@@ -289,7 +289,55 @@ export default function SupplierOrdersPage() {
       </div>
 
       {/* Tabla de pedidos */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Vista Móvil (Cards) */}
+      <div className="md:hidden space-y-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <p className="text-sm text-gray-500">No se encontraron pedidos</p>
+          </div>
+        ) : (
+          filteredOrders.map((order) => (
+            <div key={order.id} className="bg-white rounded-lg shadow p-4 space-y-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">{order.id}</div>
+                  <div className="text-base font-bold text-gray-900">{order.supplierName}</div>
+                  <div className="text-xs text-gray-500">{new Date(order.orderDate).toLocaleDateString()}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-black text-emerald-600">${order.total.toLocaleString()}</div>
+                  <div className="text-[10px] text-gray-400 uppercase font-bold">{order.itemCount} productos</div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-tight ${statusColors[order.status]}`}>
+                  {statusLabels[order.status]}
+                </span>
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-tight ${paymentStatusColors[order.paymentStatus]}`}>
+                  {paymentStatusLabels[order.paymentStatus]}
+                </span>
+              </div>
+
+              <div className="pt-2">
+                <Link href={`/admin/pedidos-proveedor/${order.id}`}>
+                  <Button className="w-full text-xs py-2 h-auto" variant="outline">
+                    <EyeIcon className="h-4 w-4 mr-2" />
+                    Detalle del Pedido
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Vista Desktop (Tabla) */}
+      <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -350,7 +398,7 @@ export default function SupplierOrdersPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200 text-sm">
                 {filteredOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
