@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { Fragment, useEffect } from "react";
 import { Transition } from "@headlessui/react";
@@ -62,35 +62,42 @@ const Toast = ({ type = "info", message, show, onClose, duration = 4000 }: Toast
       leaveFrom="opacity-100 scale-100"
       leaveTo="opacity-0 scale-95"
     >
-      <div className={`max-w-md w-full sm:w-80 pointer-events-auto overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-black ring-opacity-5 transition-all hover:shadow-2xl border ${config.border}`}>
-        <div className="p-4">
-          <div className="flex items-start gap-4">
-            <div className={`flex-shrink-0 rounded-xl p-2 ${config.bg}`}>
-              <Icon className={`h-5 w-5 ${config.color}`} />
+      <div className={`max-w-md w-full sm:w-72 pointer-events-auto overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black ring-opacity-5 transition-all border ${config.border}`}>
+        <div className="p-3 sm:p-4">
+          <div className="flex items-center gap-3">
+            <div className={`flex-shrink-0 rounded-lg p-1.5 ${config.bg}`}>
+              <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${config.color}`} />
             </div>
-            <div className="flex-1 pt-0.5">
-              <p className="text-sm font-semibold text-gray-900">
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">
+                {message}
               </p>
-              <p className="mt-1 text-sm text-gray-500 leading-relaxed">{message}</p>
             </div>
             <div className="flex-shrink-0">
               <button
                 onClick={onClose}
-                className="inline-flex rounded-lg p-1.5 text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                className="inline-flex rounded-lg p-1 text-gray-400 hover:text-gray-500 hover:bg-gray-100 transition-colors"
               >
-                <span className="sr-only">Cerrar</span>
                 <X className="h-4 w-4" />
               </button>
             </div>
           </div>
         </div>
-        <div className="h-1 w-full bg-gray-50">
-          <div 
-            className={`h-full ${config.color.replace('text-', 'bg-')} transition-all duration-[4000ms] ease-linear`}
-            style={{ width: show ? '0%' : '100%' }}
+        <div className="h-1 w-full bg-gray-50 overflow-hidden">
+          <div
+            className={`h-full ${config.color.replace('text-', 'bg-')} transition-all ease-linear`}
+            style={{
+              width: '100%',
+              animation: `shrink ${duration}ms linear forwards`
+            }}
           />
         </div>
+        <style jsx>{`
+          @keyframes shrink {
+            from { width: 100%; }
+            to { width: 0%; }
+          }
+        `}</style>
       </div>
     </Transition>
   );

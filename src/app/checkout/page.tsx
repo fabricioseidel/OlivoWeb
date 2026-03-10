@@ -25,9 +25,8 @@ const paymentMethods: PaymentMethod[] = [
 
 // Métodos de envío estáticos básicos
 const baseShippingMethods: ShippingMethod[] = [
-  { id: "flash", name: "Envío Flash (Uber)", price: 3500, days: "Llega en < 1 hora" },
-  { id: "express", name: "Envío Express", price: 2500, days: "Mismo día" },
-  { id: "pickup", name: "Retirar en Tienda", price: 0, days: "Disponible inmediato" },
+  { id: "flash", name: "Envío Flash (Uber Eats)", price: 4500, days: "Llega en < 45 min" },
+  { id: "pickup", name: "Retirar en Tienda (Providencia)", price: 0, days: "Listo en 1 hora (Gratis)" },
 ];
 
 export default function CheckoutPage() {
@@ -53,7 +52,7 @@ export default function CheckoutPage() {
   const shippingMethods = useMemo(() => {
     const list = [...baseShippingMethods];
     if (dynamicShipping) {
-      // Reemplazar o añadir el método dinámico
+      // Priorizar el envío a domicilio dinámico
       return [dynamicShipping, ...list];
     }
     return list;
@@ -139,7 +138,33 @@ export default function CheckoutPage() {
       fullName: prev.fullName || displayName,
       email: prev.email || displayEmail,
     }));
-  }, [session?.user]);
+  }, [session]);
+
+  // Efecto para intentar calcular envío si hay dirección pre-llenada
+  useEffect(() => {
+    if (shippingInfo.address && !dynamicShipping && !isCalculatingDistance && storeSettings) {
+      console.log("[Shipping Debug] Attempting auto-calc for pre-filled address:", shippingInfo.address);
+      // Solo si la dirección parece completa (tiene números o es larga)
+      if (shippingInfo.address.length > 8) {
+        // Intentar buscar coordenadas via Geocoder si está disponible
+        if (typeof window !== "undefined" && (window as any).google?.maps?.Geocoder) {
+          const geocoder = new (window as any).google.maps.Geocoder();
+          geocoder.geocode({ address: `${shippingInfo.address}, ${shippingInfo.city}, Chile` }, (results: any, status: any) => {
+            if (status === "OK" && results[0]) {
+              const loc = results[0].geometry.location;
+              handleAddressSelect({
+                formattedAddress: results[0].formatted_address,
+                lat: loc.lat(),
+                lng: loc.lng(),
+                city: shippingInfo.city,
+                state: shippingInfo.state
+              } as any);
+            }
+          });
+        }
+      }
+    }
+  }, [shippingInfo.address, storeSettings, dynamicShipping, isCalculatingDistance]);
 
 
   const handleShippingInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,11 +229,17 @@ export default function CheckoutPage() {
               shipSettings.shippingPricePerKm || 0
             );
 
+            const now = new Date();
+            const hour = now.getHours();
+            const schedulingMsg = hour < 14
+              ? "Pedido antes 2pm: llega hoy (antes 9pm)"
+              : "Pedido tras 2pm: llega mañana (antes 2pm)";
+
             const dynamicMethod: ShippingMethod = {
               id: "dynamic",
               name: `Envío a domicilio (${result.distanceKm.toFixed(1)} km)`,
               price: Math.round(cost),
-              days: `Llega hoy (${result.durationText} tras despacho)`
+              days: `${schedulingMsg}. (${result.durationText} de viaje)`
             };
 
             setDynamicShipping(dynamicMethod);

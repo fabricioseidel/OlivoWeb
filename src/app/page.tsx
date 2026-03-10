@@ -76,27 +76,29 @@ export default function Home() {
                   <ShoppingBag className="w-48 h-48 sm:w-64 sm:h-64 text-emerald-400/20" />
                 </div>
 
-                {/* Elementos flotantes premium */}
-                <div className="absolute top-[10%] left-[10%] bg-white/10 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-white/20 shadow-2xl animate-float transition-all hover:scale-110">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30">
+                {/* Elementos flotantes premium - Ahora funcionales */}
+                <Link href="/contacto" className="absolute top-[10%] left-[10%] bg-white/10 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-white/20 shadow-2xl animate-float transition-all hover:scale-110 group/truck z-20">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30 group-hover/truck:animate-bounce">
                     <Truck className="text-white w-6 h-6 sm:w-8 sm:h-8" />
                   </div>
-                  <div className="h-2 w-16 sm:w-24 bg-white/30 rounded-full mb-2" />
-                  <div className="h-2 w-10 sm:w-16 bg-white/10 rounded-full" />
-                </div>
+                  <div className="text-[10px] font-black text-white/90 uppercase tracking-widest mb-1">Envío Rápido</div>
+                  <div className="h-1.5 w-12 bg-white/20 rounded-full" />
+                </Link>
 
-                <div className="absolute bottom-[15%] right-[10%] bg-white/10 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-white/20 shadow-2xl animate-float-delayed transition-all hover:scale-110">
+                <Link href="/ofertas" className="absolute bottom-[15%] right-[10%] bg-white/10 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-white/20 shadow-2xl animate-float-delayed transition-all hover:scale-110 group/star z-20">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover/star:rotate-12 transition-transform">
                       <Star className="text-white w-5 h-5 sm:w-6 sm:h-6 fill-white" />
                     </div>
                     <div>
-                      <div className="h-2 w-12 bg-white/30 rounded-full mb-1" />
-                      <div className="h-2 w-8 bg-white/10 rounded-full" />
+                      <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest leading-none">Súper Oferta</div>
+                      <div className="h-1.5 w-8 bg-white/20 rounded-full mt-1" />
                     </div>
                   </div>
-                  <div className="h-8 w-24 sm:w-32 bg-emerald-500/20 rounded-xl border border-emerald-500/30" />
-                </div>
+                  <div className="h-8 w-24 sm:w-32 bg-amber-400/20 rounded-xl border border-amber-400/30 flex items-center justify-center">
+                    <span className="text-[10px] font-black text-amber-400">VER DESCUENTOS</span>
+                  </div>
+                </Link>
               </div>
 
               {/* Badge flotante extra */}

@@ -108,10 +108,10 @@ export default function OrderConfirmationClient() {
         </div>
 
         <div className="p-8">
-          <div className="bg-blue-50 rounded-xl p-6 mb-8 border border-blue-100">
+          <div className="bg-emerald-50 rounded-2xl p-6 mb-8 border border-emerald-100 shadow-sm">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div>
-                <p className="text-sm text-blue-600 font-medium uppercase tracking-wide mb-1">
+                <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest mb-1">
                   Número de pedido
                 </p>
                 <p className="text-2xl font-bold text-gray-900 font-mono">
@@ -119,21 +119,21 @@ export default function OrderConfirmationClient() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-500 mb-1">Fecha</p>
-                <p className="font-medium text-gray-900">
+                <p className="text-sm text-gray-400 font-bold mb-1">Fecha de Compra</p>
+                <p className="font-bold text-gray-900">
                   {new Date(order.created_at).toLocaleDateString()}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="text-center mb-8">
-            <p className="text-gray-600 mb-2">
+          <div className="text-center mb-10">
+            <p className="text-gray-600 mb-3 font-medium">
               Hemos enviado un correo electrónico de confirmación a tu dirección registrada.
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-400 leading-relaxed">
               Revisa tu bandeja de entrada (y la carpeta de spam por si acaso) para ver los
-              detalles completos.
+              detalles completos de tu orden.
             </p>
           </div>
 
