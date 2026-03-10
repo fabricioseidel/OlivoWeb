@@ -1,7 +1,7 @@
 "use client";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import Link from "next/link";
 import {
   ShoppingBagIcon,
@@ -17,7 +17,10 @@ import {
   ArrowUpTrayIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  XMarkIcon,
+  Bars3Icon,
 } from "@heroicons/react/24/outline";
+import { Dialog, Transition } from "@headlessui/react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function AdminLayout({
@@ -29,33 +32,31 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Verificar si el usuario es administrador o vendedor
   useEffect(() => {
-    // Si todavía carga, no hacer nada
     if (status === "loading") return;
 
-    // Si NO está autenticado, mandarlo al login con callbackUrl
     if (status === "unauthenticated") {
-      console.log("[ADMIN-LAYOUT] No autenticado. Redirigiendo...");
       const callback = encodeURIComponent(pathname);
       router.replace(`/login?callbackUrl=${callback}`);
       return;
     }
 
-    // Si está autenticado, verificar el ROL
     if (status === "authenticated") {
       const userRole = ((session as any)?.role || (session as any)?.user?.role || "USER").toString().toUpperCase();
-
-      // Permitir acceso solo a ADMIN y SELLER
       if (userRole !== "ADMIN" && userRole !== "SELLER") {
-        console.log("[ADMIN-LAYOUT] Rol insuficiente:", userRole);
         router.replace("/");
       }
     }
   }, [status, session, router, pathname]);
 
-  // Mostrar pantalla de carga mientras verifica la sesión
+  // Cerrar menú móvil al navegar
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
   if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -64,53 +65,102 @@ export default function AdminLayout({
     );
   }
 
-  // Si no está autenticado o tiene rol insuficiente, NO mostrar nada (el useEffect hará el redirect)
   if (status === "unauthenticated") return null;
 
   const userRole = ((session as any)?.role || (session as any)?.user?.role || "USER").toString().toUpperCase();
   if (userRole !== "ADMIN" && userRole !== "SELLER") return null;
 
-  // Estructura del menú de administración
   const menuItems = [
     { name: "Dashboard", href: "/admin", icon: ChartBarIcon },
     { name: "Productos", href: "/admin/productos", icon: ShoppingBagIcon },
     { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
     { name: "Ventas", href: "/admin/ventas", icon: CurrencyDollarIcon },
     { name: "Uber Eats Export", href: "/admin/uber-eats", icon: ArrowUpTrayIcon },
-    {
-      name: "Reabastecimiento",
-      href: "/admin/reabastecimiento",
-      icon: ArrowPathIcon,
-    },
-    {
-      name: "Pedidos Proveedores",
-      href: "/admin/pedidos-proveedor",
-      icon: TruckIcon,
-    },
+    { name: "Reabastecimiento", href: "/admin/reabastecimiento", icon: ArrowPathIcon },
+    { name: "Pedidos Proveedores", href: "/admin/pedidos-proveedor", icon: TruckIcon },
     { name: "Proveedores", href: "/admin/proveedores", icon: TruckIcon },
-    {
-      name: "Pedidos Clientes",
-      href: "/admin/pedidos",
-      icon: ClipboardDocumentListIcon,
-    },
+    { name: "Pedidos Clientes", href: "/admin/pedidos", icon: ClipboardDocumentListIcon },
     { name: "Usuarios", href: "/admin/usuarios", icon: UsersIcon },
     { name: "Configuración", href: "/admin/configuracion", icon: Cog6ToothIcon },
-    { name: "Debug Categorías", href: "/debug/categorias", icon: BugAntIcon },
+    { name: "Debug", href: "/debug/categorias", icon: BugAntIcon },
   ];
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar (Desktop) - Sticky positioning */}
+      {/* Sidebar Móvil (Slide-over) */}
+      <Transition.Root show={mobileMenuOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50 md:hidden" onClose={setMobileMenuOpen}>
+          <Transition.Child
+            as={Fragment}
+            enter="transition-opacity ease-linear duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="transition-opacity ease-linear duration-300"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-gray-900/80" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 flex">
+            <Transition.Child
+              as={Fragment}
+              enter="transition ease-in-out duration-300 transform"
+              enterFrom="-translate-x-full"
+              enterTo="translate-x-0"
+              leave="transition ease-in-out duration-300 transform"
+              leaveFrom="translate-x-0"
+              leaveTo="-translate-x-full"
+            >
+              <Dialog.Panel className="relative mr-16 flex w-full max-w-xs flex-1 flex-col bg-gray-950">
+                <div className="absolute left-full top-0 flex w-16 justify-center pt-5">
+                  <button type="button" className="-m-2.5 p-2.5 text-white" onClick={() => setMobileMenuOpen(false)}>
+                    <span className="sr-only">Cerrar menú</span>
+                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                  </button>
+                </div>
+
+                <div className="flex h-16 shrink-0 items-center px-6 border-b border-gray-800">
+                  <span className="text-xl font-bold text-white">
+                    OLIVOMARKET <span className="text-emerald-400 text-sm">ADMIN</span>
+                  </span>
+                </div>
+
+                <nav className="flex-1 overflow-y-auto px-4 py-6">
+                  <div className="space-y-1">
+                    {menuItems.map((item) => (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`group flex items-center px-3 py-3 text-base font-medium rounded-xl transition-all ${pathname === item.href
+                            ? "bg-emerald-600/10 text-emerald-400"
+                            : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                          }`}
+                      >
+                        <item.icon
+                          className={`mr-4 h-6 w-6 shrink-0 ${pathname === item.href ? "text-emerald-400" : "text-gray-500 group-hover:text-gray-300"
+                            }`}
+                        />
+                        {item.name}
+                      </Link>
+                    ))}
+                  </div>
+                </nav>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition.Root>
+
+      {/* Sidebar Escritorio */}
       <div
         className={`hidden md:flex flex-col sticky top-0 h-screen bg-gray-900 border-r border-gray-800 transition-all duration-300 flex-shrink-0 ${isCollapsed ? "w-20" : "w-64"
           }`}
       >
-        {/* Header del Sidebar */}
         <div className="flex items-center h-16 flex-shrink-0 px-4 bg-gray-900 justify-between">
           {!isCollapsed && (
             <Link href="/admin" className="text-xl font-bold text-white truncate">
-              OLIVOMARKET{" "}
-              <span className="text-emerald-400">Admin</span>
+              OLIVOMARKET <span className="text-emerald-400">Admin</span>
             </Link>
           )}
           {isCollapsed && (
@@ -126,69 +176,51 @@ export default function AdminLayout({
               <Link
                 key={item.name}
                 href={item.href}
-                title={isCollapsed ? item.name : undefined}
-                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-800 hover:text-white transition-colors ${isCollapsed ? "justify-center" : ""
-                  }`}
+                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all ${pathname === item.href
+                    ? "bg-emerald-600/10 text-emerald-400"
+                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                  } ${isCollapsed ? "justify-center" : ""}`}
               >
                 <item.icon
-                  className={`h-6 w-6 text-gray-400 group-hover:text-emerald-400 transition-colors ${!isCollapsed ? "mr-3" : ""
-                    }`}
-                  aria-hidden="true"
+                  className={`h-6 w-6 shrink-0 transition-colors ${pathname === item.href ? "text-emerald-400" : "text-gray-500 group-hover:text-gray-300"
+                    } ${!isCollapsed ? "mr-3" : ""}`}
                 />
-                {!isCollapsed && (
-                  <span className="truncate">{item.name}</span>
-                )}
+                {!isCollapsed && <span className="truncate">{item.name}</span>}
               </Link>
             ))}
           </nav>
         </div>
 
-        {/* Toggle Button at the bottom */}
         <div className="p-4 border-t border-gray-800 flex justify-end">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 rounded-md bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="p-1.5 rounded-md bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
           >
-            {isCollapsed ? (
-              <ChevronRightIcon className="h-5 w-5" />
-            ) : (
-              <ChevronLeftIcon className="h-5 w-5" />
-            )}
+            {isCollapsed ? <ChevronRightIcon className="h-5 w-5" /> : <ChevronLeftIcon className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
-        <div className="md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-white border-b border-gray-200">
-          <button
-            type="button"
-            className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-500"
-          >
-            <span className="sr-only">Abrir sidebar</span>
-            <svg
-              className="h-6 w-6"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
+      {/* Contenido Principal */}
+      <div className="flex-1 flex flex-col min-h-screen">
+        {/* Header Móvil */}
+        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm sm:px-6 md:hidden">
+          <button type="button" className="-m-2.5 p-2.5 text-gray-700" onClick={() => setMobileMenuOpen(true)}>
+            <span className="sr-only">Abrir menú</span>
+            <Bars3Icon className="h-6 w-6" aria-hidden="true" />
           </button>
-        </div>
 
-        <main className="flex-1 relative z-0 focus:outline-none">
-          <div className="py-6">
-            <div className="w-full px-4 sm:px-6 md:px-8">
-              <ErrorBoundary>
-                {children}
-              </ErrorBoundary>
+          <Link href="/admin" className="text-lg font-bold text-gray-900">
+            OLIVOMARKET <span className="text-emerald-600">Admin</span>
+          </Link>
+
+          <div className="w-6" /> {/* Placeholder para equilibrar */}
+        </header>
+
+        <main className="flex-1">
+          <div className="py-6 sm:py-8 lg:py-10">
+            <div className="mx-auto w-full px-4 sm:px-6 lg:px-8">
+              <ErrorBoundary>{children}</ErrorBoundary>
             </div>
           </div>
         </main>

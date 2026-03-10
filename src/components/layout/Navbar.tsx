@@ -106,11 +106,10 @@ export default function Navbar() {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-300 ${
-                        isActive(item.href)
+                      className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-300 ${isActive(item.href)
                           ? "border-emerald-600 text-gray-900"
                           : "border-transparent text-gray-500 hover:text-emerald-600 hover:border-emerald-200"
-                      }`}
+                        }`}
                     >
                       {item.name}
                     </Link>
@@ -121,9 +120,8 @@ export default function Navbar() {
               <div className="hidden sm:ml-6 sm:flex sm:items-center gap-4">
                 <Link
                   href="/carrito"
-                  className={`relative p-2 rounded-xl text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all duration-300 ${
-                    animateCart ? 'scale-110 text-emerald-600' : ''
-                  }`}
+                  className={`relative p-2 rounded-xl text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all duration-300 ${animateCart ? 'scale-110 text-emerald-600' : ''
+                    }`}
                 >
                   <ShoppingBag className="h-6 w-6" strokeWidth={2} />
                   {itemCount > 0 && (
@@ -191,11 +189,10 @@ export default function Navbar() {
                   key={item.name}
                   as={Link}
                   href={item.href}
-                  className={`block pl-4 pr-4 py-3 border-l-4 text-base font-medium ${
-                    isActive(item.href)
+                  className={`block pl-4 pr-4 py-3 border-l-4 text-base font-medium ${isActive(item.href)
                       ? "border-emerald-600 bg-emerald-50 text-emerald-700"
                       : "border-transparent text-gray-500 hover:bg-gray-50 hover:border-emerald-300 hover:text-emerald-600"
-                  }`}
+                    }`}
                 >
                   {item.name}
                 </Disclosure.Button>
@@ -221,8 +218,20 @@ export default function Navbar() {
                   </>
                 ) : (
                   <div className="flex flex-col space-y-3 w-full px-2">
-                    <Link href="/login" className="block text-center py-2 text-base font-medium text-gray-500 hover:text-emerald-600">Entrar</Link>
-                    <Link href="/registro" className="block text-center w-full bg-emerald-600 text-white py-3 rounded-2xl font-medium">Registrarse</Link>
+                    <Disclosure.Button
+                      as={Link}
+                      href="/login"
+                      className="block text-center py-2 text-base font-medium text-gray-500 hover:text-emerald-600"
+                    >
+                      Entrar
+                    </Disclosure.Button>
+                    <Disclosure.Button
+                      as={Link}
+                      href="/registro"
+                      className="block text-center w-full bg-emerald-600 text-white py-3 rounded-2xl font-medium"
+                    >
+                      Registrarse
+                    </Disclosure.Button>
                   </div>
                 )}
               </div>
@@ -234,9 +243,8 @@ export default function Navbar() {
                         key={item.label}
                         as={Link}
                         href={item.href}
-                        className={`flex items-center w-full px-4 py-3 text-base font-medium ${
-                          item.isDanger ? 'text-red-500 hover:bg-red-50' : 'text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'
-                        }`}
+                        className={`flex items-center w-full px-4 py-3 text-base font-medium ${item.isDanger ? 'text-red-500 hover:bg-red-50' : 'text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'
+                          }`}
                       >
                         {item.icon && <item.icon className="h-5 w-5 mr-3" />}
                         {item.label}
@@ -246,9 +254,8 @@ export default function Navbar() {
                         key={item.label}
                         as="button"
                         onClick={item.onClick}
-                        className={`flex items-center w-full px-4 py-3 text-base font-medium ${
-                          item.isDanger ? 'text-red-500 hover:bg-red-50' : 'text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'
-                        }`}
+                        className={`flex items-center w-full px-4 py-3 text-base font-medium ${item.isDanger ? 'text-red-500 hover:bg-red-50' : 'text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'
+                          }`}
                       >
                         {item.icon && <item.icon className="h-5 w-5 mr-3" />}
                         {item.label}
