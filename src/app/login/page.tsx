@@ -61,6 +61,7 @@ function LoginForm() {
         console.error("Sign in error:", result.error);
         setError(mapNextAuthError(result.error));
       } else if (result?.ok) {
+        // Éxito - redirigir al callbackUrl o al inicio
         router.push(callbackUrl);
         router.refresh();
       } else {

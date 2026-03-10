@@ -28,30 +28,22 @@ export default function AdminLayout({
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   // Verificar si el usuario es administrador o vendedor
   useEffect(() => {
-    if (status === "loading") return; // No hacer nada mientras carga
-
     if (status === "authenticated") {
-      const userRole = (session as any)?.user?.role || (session as any)?.role;
+      const userRole = ((session as any)?.user?.role || (session as any)?.role || "USER").toString().toUpperCase();
+
       // Permitir acceso a ADMIN y SELLER
       if (userRole !== "ADMIN" && userRole !== "SELLER") {
-        console.log("Usuario sin permisos de administrador o vendedor. Redirigiendo...");
+        console.log("Usuario sin permisos de administrador o vendedor. Redirigiendo a home...");
         router.push("/");
       }
-      setHasCheckedAuth(true);
-    } else if (status === "unauthenticated") {
-      // Redirigir a login con callbackUrl=/admin para que vuelva aqui después
-      console.log("Usuario no autenticado. Redirigiendo al login...");
-      router.push("/login?callbackUrl=/admin");
-      setHasCheckedAuth(true);
     }
   }, [status, session, router]);
 
   // Mostrar pantalla de carga mientras verifica la sesión
-  if (!hasCheckedAuth || status === "loading") {
+  if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
@@ -59,14 +51,15 @@ export default function AdminLayout({
     );
   }
 
+  // Redirigir si no está autenticado (aunque el middleware debería manejarlo)
+  if (status === "unauthenticated") {
+    return null;
+  }
+
   // Verificar rol después de cargar
-  const userRole = (session as any)?.user?.role || (session as any)?.role;
+  const userRole = ((session as any)?.user?.role || (session as any)?.role || "USER").toString().toUpperCase();
   if (userRole !== "ADMIN" && userRole !== "SELLER") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
-      </div>
-    );
+    return null; // El useEffect se encargará de redirigir
   }
 
   // Estructura del menú de administración
@@ -101,9 +94,8 @@ export default function AdminLayout({
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar (Desktop) - Sticky positioning */}
       <div
-        className={`hidden md:flex flex-col sticky top-0 h-screen bg-gray-900 border-r border-gray-800 transition-all duration-300 flex-shrink-0 ${
-          isCollapsed ? "w-20" : "w-64"
-        }`}
+        className={`hidden md:flex flex-col sticky top-0 h-screen bg-gray-900 border-r border-gray-800 transition-all duration-300 flex-shrink-0 ${isCollapsed ? "w-20" : "w-64"
+          }`}
       >
         {/* Header del Sidebar */}
         <div className="flex items-center h-16 flex-shrink-0 px-4 bg-gray-900 justify-between">
@@ -127,14 +119,12 @@ export default function AdminLayout({
                 key={item.name}
                 href={item.href}
                 title={isCollapsed ? item.name : undefined}
-                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-800 hover:text-white transition-colors ${
-                  isCollapsed ? "justify-center" : ""
-                }`}
+                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-800 hover:text-white transition-colors ${isCollapsed ? "justify-center" : ""
+                  }`}
               >
                 <item.icon
-                  className={`h-6 w-6 text-gray-400 group-hover:text-emerald-400 transition-colors ${
-                    !isCollapsed ? "mr-3" : ""
-                  }`}
+                  className={`h-6 w-6 text-gray-400 group-hover:text-emerald-400 transition-colors ${!isCollapsed ? "mr-3" : ""
+                    }`}
                   aria-hidden="true"
                 />
                 {!isCollapsed && (

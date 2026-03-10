@@ -6,15 +6,19 @@ export default withAuth(
         const token = req.nextauth.token;
         const path = req.nextUrl.pathname;
 
-        // Todas las rutas dentro de /dashboard requieren autenticación (manejado por withAuth por defecto)
-        // Sin embargo, podemos proteger secciones específicas basadas en el rol.
-        if (path.startsWith("/dashboard/settings") && token?.role !== "ADMIN") {
-            // Solo ADMIN puede entrar a configuración
+        const role = (token?.role as string || "USER").toUpperCase();
+
+        // Proteger el panel de administración
+        if (path.startsWith("/admin") && role !== "ADMIN" && role !== "SELLER") {
+            return NextResponse.redirect(new URL("/", req.url));
+        }
+
+        // Proteger secciones del dashboard basadas en el rol
+        if (path.startsWith("/dashboard/settings") && role !== "ADMIN") {
             return NextResponse.redirect(new URL("/dashboard", req.url));
         }
 
-        if (path.startsWith("/dashboard/usuarios") && token?.role !== "ADMIN") {
-            // Solo ADMIN puede gestionar usuarios
+        if (path.startsWith("/dashboard/usuarios") && role !== "ADMIN") {
             return NextResponse.redirect(new URL("/dashboard", req.url));
         }
     },
@@ -28,7 +32,6 @@ export default withAuth(
     }
 );
 
-// Define a qué rutas se aplica este middleware
 export const config = {
-    matcher: ["/dashboard/:path*", "/admin/:path*"],
+    matcher: ["/dashboard/:path*", "/admin/:path*", "/admin", "/dashboard"],
 };
