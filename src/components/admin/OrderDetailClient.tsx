@@ -255,8 +255,8 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
               <ArrowLeftIcon className="h-5 w-5 mr-1" />
               Volver a pedidos
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900 mt-2">Pedido {order.id}</h1>
-            <p className="text-sm text-gray-500">Realizado el {new Date(order.date).toLocaleString()}</p>
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mt-2 truncate max-w-[280px] sm:max-w-none">Pedido {id.substring(0, 8)}...</h1>
+            <p className="text-xs sm:text-sm text-gray-500">Realizado el {new Date(order.date).toLocaleString()}</p>
           </div>
           <div className="flex space-x-3 print:hidden">
             <Button variant="outline" onClick={handlePrintInvoice}>
@@ -314,13 +314,13 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
-                          ${item.price.toFixed(2)}
+                          ${item.price.toLocaleString('es-CL')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
                           {item.quantity}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          ${(item.price * item.quantity).toLocaleString('es-CL')}
                         </td>
                       </tr>
                     ))}
@@ -452,19 +452,19 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
               <div className="px-6 py-4">
                 <div className="flex justify-between py-2">
                   <span className="text-sm text-gray-500">Subtotal</span>
-                  <span className="text-sm font-medium text-gray-900">${order.subtotal.toFixed(2)}</span>
+                  <span className="text-sm font-medium text-gray-900">${order.subtotal.toLocaleString('es-CL')}</span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-sm text-gray-500">Envío</span>
-                  <span className="text-sm font-medium text-gray-900">${order.shippingCost.toFixed(2)}</span>
+                  <span className="text-sm font-medium text-gray-900">${order.shippingCost.toLocaleString('es-CL')}</span>
                 </div>
                 <div className="flex justify-between py-2">
-                  <span className="text-sm text-gray-500">Impuestos</span>
-                  <span className="text-sm font-medium text-gray-900">${order.taxes.toFixed(2)}</span>
+                  <span className="text-sm text-gray-500">Impuestos (Incl.)</span>
+                  <span className="text-sm font-medium text-gray-900">${order.taxes.toLocaleString('es-CL')}</span>
                 </div>
                 <div className="flex justify-between py-2 border-t border-gray-200 mt-2">
                   <span className="text-base font-medium text-gray-900">Total</span>
-                  <span className="text-base font-bold text-gray-900">${order.total.toFixed(2)}</span>
+                  <span className="text-base font-bold text-gray-900">${order.total.toLocaleString('es-CL')}</span>
                 </div>
               </div>
             </div>

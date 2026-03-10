@@ -42,18 +42,18 @@ export default function PedidosPage() {
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data)) {
-               const normalized: Pedido[] = data.map((o: any) => ({
-                 id: o.id,
-                 fecha: (o.created_at || o.date || '').toString().split('T')[0],
-                 total: Number(o.total) || 0,
-                 estado: o.status || 'Pendiente',
-                 productos: o.items_count || 0,
-                 email: o.shipping_address?.email,
-                 customer: o.shipping_address?.fullName,
-                 userId: o.user_id
-               }));
-               setPedidos(normalized);
-               setFilteredPedidos(normalized);
+              const normalized: Pedido[] = data.map((o: any) => ({
+                id: o.id,
+                fecha: (o.created_at || o.date || '').toString().split('T')[0],
+                total: Number(o.total) || 0,
+                estado: o.status || 'Pendiente',
+                productos: o.items_count || 0,
+                email: o.shipping_address?.email,
+                customer: o.shipping_address?.fullName,
+                userId: o.user_id
+              }));
+              setPedidos(normalized);
+              setFilteredPedidos(normalized);
             }
           }
         } catch (error) {
@@ -74,7 +74,7 @@ export default function PedidosPage() {
           productos: 2
         },
         {
-          id: "ORD-2025-002", 
+          id: "ORD-2025-002",
           fecha: "2025-08-08",
           total: 89.50,
           estado: "En tránsito",
@@ -104,22 +104,22 @@ export default function PedidosPage() {
   // Aplicar filtros y búsqueda
   useEffect(() => {
     let resultado = [...pedidos];
-    
+
     // Filtrar por estado
     if (filtroEstado !== "todos") {
       resultado = resultado.filter(pedido => pedido.estado === filtroEstado);
     }
-    
+
     // Aplicar búsqueda
     if (busqueda) {
       const busquedaLower = busqueda.toLowerCase();
       resultado = resultado.filter(
-        pedido => 
+        pedido =>
           pedido.id.toLowerCase().includes(busquedaLower) ||
           pedido.fecha.includes(busqueda)
       );
     }
-    
+
     setFilteredPedidos(resultado);
     setPaginaActual(1); // Resetear a primera página al cambiar filtros
   }, [busqueda, filtroEstado, pedidos]);
@@ -191,7 +191,7 @@ export default function PedidosPage() {
               </select>
             </div>
           </div>
-          
+
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
@@ -208,51 +208,41 @@ export default function PedidosPage() {
       </div>
 
       {/* Lista de pedidos */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {pedidosPaginados.length > 0 ? (
+      <div className="space-y-4">
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+          </div>
+        ) : filteredPedidos.length > 0 ? (
           <>
-            <div className="overflow-x-auto">
+            {/* Vista Tabla (Escritorio) */}
+            <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Pedido
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th scope="col" className="relative px-6 py-3">
-                      <span className="sr-only">Ver</span>
-                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-black text-gray-500 uppercase tracking-[0.1em]">Pedido</th>
+                    <th className="px-6 py-4 text-left text-xs font-black text-gray-500 uppercase tracking-[0.1em]">Fecha</th>
+                    <th className="px-6 py-4 text-left text-xs font-black text-gray-500 uppercase tracking-[0.1em]">Total</th>
+                    <th className="px-6 py-4 text-left text-xs font-black text-gray-500 uppercase tracking-[0.1em]">Estado</th>
+                    <th className="relative px-6 py-4 whitespace-nowrap text-right text-xs font-black text-emerald-600">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-gray-100">
                   {pedidosPaginados.map((pedido) => (
-                    <tr key={pedido.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-blue-600">{pedido.id}</div>
+                    <tr key={pedido.id} className="hover:bg-emerald-50/30 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap tracking-tight font-bold text-gray-900">
+                        #{pedido.id.substring(0, 8)}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{pedido.fecha}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-gray-900">${pedido.total.toLocaleString('es-CL')}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{pedido.fecha}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">${pedido.total.toFixed(2)}</div>
-                        <div className="text-sm text-gray-500">{pedido.productos} {pedido.productos === 1 ? 'producto' : 'productos'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getEstadoColor(pedido.estado)}`}>
+                        <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-full ${getEstadoColor(pedido.estado)}`}>
                           {pedido.estado}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Link href={`/mi-cuenta/pedidos/${pedido.id}`} className="text-blue-600 hover:text-blue-900">
-                          Ver detalles
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <Link href={`/mi-cuenta/pedidos/${pedido.id}`} className="text-emerald-600 font-bold hover:text-emerald-700">
+                          Detalles
                         </Link>
                       </td>
                     </tr>
@@ -260,89 +250,62 @@ export default function PedidosPage() {
                 </tbody>
               </table>
             </div>
-            
+
+            {/* Vista Cards (Móvil) */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+              {pedidosPaginados.map((pedido) => (
+                <Link key={pedido.id} href={`/mi-cuenta/pedidos/${pedido.id}`} className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 active:scale-[0.98] transition-all">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Pedido #{pedido.id.substring(0, 8)}</p>
+                      <p className="text-lg font-black text-gray-900">${pedido.total.toLocaleString('es-CL')}</p>
+                    </div>
+                    <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-full ${getEstadoColor(pedido.estado)}`}>
+                      {pedido.estado}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span className="font-medium">{pedido.fecha}</span>
+                    <span className="flex items-center gap-1 text-emerald-600 font-bold">VER DETALLES <ChevronRightIcon className="w-3 h-3" /></span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
             {/* Paginación */}
             {totalPaginas > 1 && (
-              <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700">
-                      Mostrando <span className="font-medium">{(paginaActual - 1) * itemsPorPagina + 1}</span> a{" "}
-                      <span className="font-medium">
-                        {Math.min(paginaActual * itemsPorPagina, filteredPedidos.length)}
-                      </span>{" "}
-                      de <span className="font-medium">{filteredPedidos.length}</span> resultados
-                    </p>
-                  </div>
-                  <div>
-                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                      <button
-                        onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
-                        disabled={paginaActual === 1}
-                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                          paginaActual === 1
-                            ? "text-gray-300 cursor-not-allowed"
-                            : "text-gray-500 hover:bg-gray-50"
-                        }`}
-                      >
-                        <span className="sr-only">Anterior</span>
-                        <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
-                      </button>
-                      
-                      {/* Números de página */}
-                      {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(pagina => (
-                        <button
-                          key={pagina}
-                          onClick={() => setPaginaActual(pagina)}
-                          className={`relative inline-flex items-center px-4 py-2 border ${
-                            pagina === paginaActual
-                              ? "bg-blue-50 border-blue-500 text-blue-600 z-10"
-                              : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                          } text-sm font-medium`}
-                        >
-                          {pagina}
-                        </button>
-                      ))}
-                      
-                      <button
-                        onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
-                        disabled={paginaActual === totalPaginas}
-                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                          paginaActual === totalPaginas
-                            ? "text-gray-300 cursor-not-allowed"
-                            : "text-gray-500 hover:bg-gray-50"
-                        }`}
-                      >
-                        <span className="sr-only">Siguiente</span>
-                        <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
-                      </button>
-                    </nav>
-                  </div>
-                </div>
+              <div className="mt-8 flex justify-center gap-2">
+                <button onClick={() => setPaginaActual(p => Math.max(1, p - 1))} className="p-2 bg-white rounded-xl border border-gray-100 disabled:opacity-30"><ChevronLeftIcon className="w-5 h-5" /></button>
+                <div className="flex items-center px-4 font-bold text-sm">Página {paginaActual} de {totalPaginas}</div>
+                <button onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))} className="p-2 bg-white rounded-xl border border-gray-100 disabled:opacity-30"><ChevronRightIcon className="w-5 h-5" /></button>
               </div>
             )}
           </>
         ) : (
-          <div className="text-center py-8">
-            <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No se encontraron pedidos</h3>
-            <p className="mt-1 text-sm text-gray-500">
+          <div className="text-center py-20 bg-white rounded-[2rem] border border-dashed border-gray-200">
+            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <MagnifyingGlassIcon className="h-10 w-10 text-gray-300" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Pedidos no visibles en este momento</h3>
+            <p className="text-sm text-gray-500 max-w-xs mx-auto mb-8">
               {busqueda || filtroEstado !== "todos"
-                ? "Intenta con otros filtros de búsqueda"
-                : "Aún no has realizado ningún pedido"}
+                ? "Ningún pedido coincide con tus filtros."
+                : "Si realizaste una compra recientemente y no aparece, intenta recargar la página."}
             </p>
-            {!(busqueda || filtroEstado !== "todos") && (
-              <div className="mt-6">
-                <Link
-                  href="/productos"
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Ver productos
-                </Link>
-              </div>
-            )}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+              >
+                Recargar Página
+              </button>
+              <Link
+                href="/productos"
+                className="px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+              >
+                Ir a la tienda
+              </Link>
+            </div>
           </div>
         )}
       </div>

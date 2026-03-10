@@ -36,15 +36,15 @@ export default function BottomNav() {
                             key={item.href}
                             href={item.href}
                             className={`flex flex-col items-center justify-center gap-0.5 py-2 transition-colors relative ${active
-                                    ? "text-emerald-600"
-                                    : "text-gray-500 hover:text-emerald-500"
+                                ? "text-emerald-600"
+                                : "text-gray-500 hover:text-emerald-500"
                                 }`}
                         >
                             <div className="relative">
-                                <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
+                                <Icon className={`h-5 w-5 ${active ? "animate-bounce" : ""}`} strokeWidth={active ? 2.5 : 2} />
                                 {/* Cart badge */}
                                 {item.href === "/carrito" && itemCount > 0 && (
-                                    <span className="absolute -top-2 -right-3 bg-emerald-600 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center ring-2 ring-white">
+                                    <span className="absolute -top-2 -right-3 bg-emerald-600 text-white text-[10px] font-black rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white shadow-lg animate-pulse">
                                         {itemCount > 9 ? "9+" : itemCount}
                                     </span>
                                 )}

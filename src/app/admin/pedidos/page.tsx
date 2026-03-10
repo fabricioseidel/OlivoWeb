@@ -189,8 +189,8 @@ export default function AdminOrdersPage() {
           <div key={o.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
             <div className="flex justify-between items-start mb-3">
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pedido #{o.id}</span>
-                <span className="text-sm font-black text-gray-900">${o.total.toFixed(2)}</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pedido #{o.id.substring(0, 8)}...</span>
+                <span className="text-sm font-black text-gray-900">${o.total.toLocaleString('es-CL')}</span>
               </div>
               <StatusBadge status={o.status} />
             </div>
@@ -329,12 +329,16 @@ function HeaderCell({ label, active, dir, onClick }: { label: string; active: bo
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     'En proceso': 'bg-yellow-100 text-yellow-700',
+    'Pendiente': 'bg-yellow-100 text-yellow-700',
+    'pending': 'bg-yellow-100 text-yellow-700',
     'Enviado': 'bg-blue-100 text-blue-700',
+    'sent': 'bg-blue-100 text-blue-700',
     'Gestionado': 'bg-indigo-100 text-indigo-700',
     'Completado': 'bg-green-100 text-green-700',
+    'paid': 'bg-green-100 text-green-700',
     'Cancelado': 'bg-red-100 text-red-700'
   };
-  return <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${map[status] || 'bg-gray-100 text-gray-600'}`}>{status}</span>;
+  return <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${map[status] || map[status.toLowerCase()] || 'bg-gray-100 text-gray-600'}`}>{status === 'pending' ? 'Pendiente' : status === 'paid' ? 'Pagado' : status}</span>;
 }
 
 function SummaryCard({ label, value, color }: { label: string; value: number; color?: string }) {

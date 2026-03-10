@@ -34,6 +34,8 @@ export default function ProductCard({ product }: Props) {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
       currency: 'CLP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(value);
   };
 
