@@ -131,6 +131,7 @@ export default function MiCuentaPage() {
           <div className="bg-white rounded-[2rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-100 text-center">
             <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white shadow-lg overflow-hidden">
               {session?.user?.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={session.user.image} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <UserIcon className="w-12 h-12 text-emerald-600" />

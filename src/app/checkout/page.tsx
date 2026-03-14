@@ -164,6 +164,7 @@ export default function CheckoutPage() {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shippingInfo.address, storeSettings, dynamicShipping, isCalculatingDistance]);
 
 

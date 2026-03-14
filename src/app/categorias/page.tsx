@@ -4,7 +4,7 @@ import React from "react";
 import { useCategories as useCategoryHook } from "@/hooks/useCategories";
 import CategoryCard from "@/components/CategoryCard";
 import { useRouter } from "next/navigation";
-import { Sparkles, ArrowRight, Search, LayoutGrid, X } from "lucide-react";
+import { Sparkles, ArrowRight, LayoutGrid, X } from "lucide-react";
 
 export default function CategoriesPage() {
   const { categories, loading, error } = useCategoryHook();

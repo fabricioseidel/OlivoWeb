@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import ProductGrid from "@/components/ProductGrid";
 import { useProducts } from "@/contexts/ProductContext";
 
-import { Sparkles, Search } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 export default function ProductsPage() {
   const { products, loading, error } = useProducts();

@@ -29,7 +29,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
       trackProductView(product.id);
       viewTrackedRef.current = product.id;
     }
-  }, [loading, product?.id, trackProductView]);
+  }, [loading, product, trackProductView]);
 
   // Reset selected image when product changes
   useEffect(() => {

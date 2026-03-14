@@ -10,8 +10,7 @@ import {
   TrashIcon,
   PlusIcon
 } from "@heroicons/react/24/outline";
-import Button from "@/components/ui/Button";
-import { Sparkles, ShoppingBag, Heart, Truck, Star } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { getCategoryStyle, iconOptions } from '@/utils/categoryStyles';
 
 type Category = {
@@ -41,10 +40,7 @@ export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showInactiveCategories, setShowInactiveCategories] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [globalError, setGlobalError] = useState<string | null>(null);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
@@ -61,8 +57,6 @@ export default function CategoriesPage() {
   const [formErrors, setFormErrors] = useState<{ name?: string; slug?: string }>({});
 
   const loadCategories = async () => {
-    setLoading(true);
-    setGlobalError(null);
     try {
       const res = await safeFetch('/api/categories', { cache: 'no-store' });
       const data = await safeJsonParse<Category[]>(res);
@@ -72,15 +66,13 @@ export default function CategoriesPage() {
       setCategories(data);
     } catch (e: any) {
       const errorMessage = e.message || 'Error al cargar categorías';
-      setGlobalError(errorMessage);
       showToast(errorMessage, 'error');
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
     loadCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const normalizeSlug = (value: string) => value
@@ -137,6 +129,7 @@ export default function CategoriesPage() {
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isModalOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -168,7 +161,6 @@ export default function CategoriesPage() {
     if (Object.keys(errors).length > 0) return;
 
     setSaving(true);
-    setGlobalError(null);
     try {
       if (editingCategory) {
         const res = await fetch(`/api/categories/${editingCategory.id}`, {
@@ -185,7 +177,7 @@ export default function CategoriesPage() {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           if (res.status === 409) setFormErrors(prev => ({ ...prev, slug: 'Slug ya existe' }));
-          else setGlobalError(data.error || 'No se pudo actualizar');
+          else showToast(data.error || 'No se pudo actualizar', 'error');
           return;
         }
         setCategories(prev => prev.map(c => c.id === data.id ? data : c));
@@ -209,7 +201,6 @@ export default function CategoriesPage() {
       closeModal();
       loadCategories(); // Reload to sync counts
     } catch (err: any) {
-      setGlobalError(err.message || 'Error al guardar');
       showToast(err.message || 'Error al guardar', 'error');
     } finally {
       setSaving(false);
@@ -248,7 +239,7 @@ export default function CategoriesPage() {
       const data = await safeJsonParse(res);
       setCategories(prev => prev.map(c => c.id === categoryId ? data : c));
       showToast("Estado actualizado", "success");
-    } catch (e: any) {
+    } catch {
       showToast("Error al actualizar estado", "error");
     }
   };

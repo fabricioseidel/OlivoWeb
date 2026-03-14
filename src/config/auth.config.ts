@@ -172,7 +172,7 @@ export const authOptions: NextAuthOptions = {
       }
     },
     
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       // Cuando se crea un nuevo token (en el login)
       if (user) {
         if (__dev) console.log("[JWT] Creating token for user:", { id: (user as any).id, role: (user as any).role });

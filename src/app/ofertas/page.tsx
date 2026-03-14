@@ -91,7 +91,7 @@ export default function OfertasPage() {
                     <Search className="size-10 text-emerald-600" />
                 </div>
                 <h3 className="text-2xl font-black text-gray-900 mb-2">Sin resultados</h3>
-                <p className="text-gray-500 font-medium max-w-sm mx-auto mb-8">No encontramos ofertas para "{search}" en esta categoría.</p>
+                <p className="text-gray-500 font-medium max-w-sm mx-auto mb-8">No encontramos ofertas para &quot;{search}&quot; en esta categoría.</p>
                 <Link href="/productos">
                     <button className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/10 active:scale-95">
                         Ver catálogo completo
@@ -132,7 +132,7 @@ export default function OfertasPage() {
       <section className="py-20 border-t border-gray-100 bg-gray-50/30 border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 text-center">
             <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">¿No encontraste lo que buscabas?</h2>
-            <p className="text-gray-500 mb-10 font-medium italic">"Lo mejor de Venezuela y Chile, siempre al alcance de tu mano."</p>
+            <p className="text-gray-500 mb-10 font-medium italic">&quot;Lo mejor de Venezuela y Chile, siempre al alcance de tu mano.&quot;</p>
             <Link href="/productos">
                 <button className="bg-white border border-gray-200 text-gray-900 px-10 py-5 rounded-3xl font-black uppercase text-[10px] tracking-widest hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-xl shadow-gray-200/50 hover:shadow-emerald-200/20 active:scale-95 flex items-center gap-3 mx-auto">
                     Explorar toda la tienda

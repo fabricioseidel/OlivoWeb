@@ -24,7 +24,7 @@ function mapNextAuthError(code?: string) {
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   const oauthErr = params.get("error");
   const callbackUrl = params.get("callbackUrl") || "/";

@@ -427,7 +427,7 @@ export default function AdminProductsPage() {
                             !product.featured ? 'Producto destacado ✨' : 'Quitado de destacados',
                             'success'
                           );
-                        } catch (e: any) {
+                        } catch {
                           showToast('No se pudo actualizar', 'error');
                         }
                       }}
@@ -448,7 +448,7 @@ export default function AdminProductsPage() {
                             !product.isActive ? 'Producto activado ✓' : 'Producto desactivado ×',
                             'success'
                           );
-                        } catch (e: any) {
+                        } catch {
                           showToast('No se pudo actualizar', 'error');
                         }
                       }}
