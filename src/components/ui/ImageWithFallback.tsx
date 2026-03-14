@@ -38,11 +38,12 @@ const ImageWithFallback: React.FC<Props> = ({
       src={imgSrc}
       alt={alt || "Imagen"}
       className={`max-w-full ${hasError ? 'object-contain' : 'object-cover'} ${className}`}
-      onError={() => {
+      onError={(e) => {
         if (imgSrc !== fallback) {
           setImgSrc(fallback);
           setHasError(true);
         }
+        if (rest.onError) rest.onError(e);
       }}
       style={{
         maxHeight: hasError ? '100%' : undefined,

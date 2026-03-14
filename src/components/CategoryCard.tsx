@@ -1,6 +1,8 @@
-import React from 'react';
-import { ChevronRight } from 'lucide-react';
-import ImageWithFallback from '@/components/ui/ImageWithFallback'; // Updated import
+import { 
+  ChevronRight
+} from 'lucide-react';
+
+import { getCategoryStyle } from '@/utils/categoryStyles';
 
 export type CategoryUI = {
     id: string;
@@ -16,41 +18,36 @@ type Props = {
 };
 
 export default function CategoryCard({ category, onClick }: Props) {
+    const style = getCategoryStyle(category.name, category.image || undefined);
+    const Icon = style.icon;
+
     return (
         <button
             onClick={onClick}
-            className="group relative w-full aspect-[16/10] rounded-[2rem] overflow-hidden bg-white shadow-sm hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 block text-left"
+            className={`group relative flex flex-col items-center justify-center p-8 sm:p-10 ${style.bg} rounded-[3rem] transition-all duration-500 border-2 border-transparent ${style.border} hover:shadow-xl hover:-translate-y-2 w-full active:scale-95`}
         >
-            {/* Background & Image */}
-            <div className="absolute inset-0 z-0">
-                <ImageWithFallback
-                    src={category.image || '/placeholder.svg'}
-                    alt={category.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-95 group-hover:brightness-100"
-                />
-                {/* Modern Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent group-hover:from-emerald-900/40 transition-all duration-500"></div>
+            {/* Contenedor de Icono */}
+            <div className="size-20 sm:size-24 rounded-[2rem] flex items-center justify-center bg-white shadow-sm mb-6 group-hover:scale-110 group-hover:shadow-md transition-all duration-500 relative overflow-hidden">
+                <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 ${style.bg}`} />
+                <Icon className={`size-10 sm:size-12 ${style.color} transition-all duration-500 group-hover:rotate-6 relative z-10`} />
             </div>
 
-            {/* Content */}
-            <div className="relative z-10 h-full flex flex-col justify-end p-8">
-                <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                    <span className="inline-block px-3 py-1 bg-emerald-500/20 backdrop-blur-md text-emerald-300 text-[10px] font-black uppercase tracking-widest rounded-full mb-3 border border-emerald-500/30">
-                        Colección
-                    </span>
-                    <h3 className="text-2xl font-black text-white mb-2 tracking-tight group-hover:text-emerald-300 transition-colors drop-shadow-md">
-                        {category.name}
-                    </h3>
-                    {category.productsCount !== undefined && (
-                        <p className="text-sm text-gray-300 mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                            {category.productsCount} productos disponibles
-                        </p>
-                    )}
-                    <div className="inline-flex items-center gap-2 text-white font-bold text-sm bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl group-hover:bg-emerald-600 transition-all">
-                        <span>Ver Colección</span>
-                        <ChevronRight className="size-4 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                </div>
+            {/* Nombre de Categoría */}
+            <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-2 tracking-tight group-hover:text-emerald-600 transition-colors">
+                {category.name}
+            </h3>
+
+            {/* Contador de productos si está disponible */}
+            {category.productsCount !== undefined && (
+                <p className="text-sm font-bold text-gray-400 mb-4 opacity-100 group-hover:text-emerald-500/60 transition-colors">
+                    {category.productsCount} productos
+                </p>
+            )}
+
+            {/* Botón de acción / CTA decorativo */}
+            <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-sm bg-white/50 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/50 shadow-sm transition-all duration-500 opacity-60 group-hover:opacity-100 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-500 group-hover:shadow-emerald-200">
+                <span>Ver catálogo</span>
+                <ChevronRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
             </div>
         </button>
     );

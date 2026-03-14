@@ -7,6 +7,8 @@ import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
 
+import { getCategoryStyle } from '@/utils/categoryStyles';
+
 import { ProductUI } from '@/types';
 
 type Props = { product: ProductUI };
@@ -15,6 +17,13 @@ export default function ProductCard({ product }: Props) {
   const { addToCart, cartItems, removeFromCart } = useCart();
   const { showToast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
+
+  // Obtener estilo de la categoría para el fallback de imagen
+  const categoryName = (product.categories && product.categories.length > 0) ? product.categories[0] : 'General';
+  const categoryStyle = getCategoryStyle(categoryName);
+  const CategoryIcon = categoryStyle.icon;
+
+  const [imgError, setImgError] = useState(false);
 
   // Check if item is in cart and get its quantity
   const cartItem = useMemo(() => cartItems.find(item => item.id === product.id), [cartItems, product.id]);
@@ -75,107 +84,127 @@ export default function ProductCard({ product }: Props) {
     }
   };
 
-  return (
-    <div className="group relative h-full flex flex-col rounded-[2rem] bg-white shadow-sm ring-1 ring-gray-100 hover:shadow-2xl hover:ring-emerald-500/10 transition-all duration-500 overflow-hidden">
-      <Link href={`/productos/${product.slug}`} className="block relative aspect-square overflow-hidden bg-gray-50">
-        <ImageWithFallback
-          src={product.image ?? '/file.svg'}
-          alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 origin-center"
-          fallback="/file.svg"
-        />
+  // Determinar si tenemos una imagen válida (que no sea el placeholder antiguo)
+  const hasValidImage = product.image && 
+                       product.image !== '/file.svg' && 
+                       product.image.trim() !== '' && 
+                       !imgError;
 
-        {/* Badges */}
-        <div className="absolute top-3 inset-x-3 flex justify-between items-start pointer-events-none">
-          <div className="flex flex-col gap-1.5">
-            {product.featured && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest uppercase bg-emerald-600/90 backdrop-blur-md text-white shadow-lg ring-1 ring-white/20">
-                TOP
-              </span>
+  return (
+    <div className="group relative h-full flex flex-col rounded-[2.5rem] bg-white border border-gray-100/50 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] hover:-translate-y-2 hover:border-emerald-100 transition-all duration-500 overflow-hidden">
+      {/* Contenedor de Imagen Homogéneo */}
+      <Link href={`/productos/${product.slug}`} className="block relative aspect-square overflow-hidden bg-gray-50/50 p-6 sm:p-8">
+        <div className="relative w-full h-full flex items-center justify-center">
+            {hasValidImage ? (
+                <ImageWithFallback
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-700 pointer-events-none"
+                    onError={() => setImgError(true)}
+                />
+            ) : (
+                <div className={`size-20 sm:size-24 rounded-[2rem] ${categoryStyle.bg} flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-700 animate-in fade-in zoom-in duration-500`}>
+                    <CategoryIcon className={`size-10 sm:size-12 ${categoryStyle.color} opacity-60 group-hover:opacity-100 transition-opacity`} />
+                </div>
             )}
-            {hasDiscount && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest uppercase bg-red-600/90 backdrop-blur-md text-white shadow-lg ring-1 ring-white/20">
-                -{discountPercent}%
-              </span>
-            )}
-          </div>
         </div>
 
-        {/* Stock Badge */}
-        {product.stock !== undefined && product.stock < 10 && (
-          <div className="absolute bottom-3 left-3 pointer-events-none">
-            <span className={`px-2.5 py-1 rounded-lg text-[9px] uppercase tracking-widest font-black shadow-lg backdrop-blur-md border ${product.stock === 0
-              ? 'bg-gray-900/80 text-white border-white/10'
-              : 'bg-amber-500/90 text-white border-white/10'
+        {/* Badges Flotantes - Simplificados y Elegantes */}
+        <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none z-10">
+          {product.featured && (
+            <div className="px-3 py-1 bg-emerald-600/90 backdrop-blur-md text-white text-[9px] font-black tracking-tighter rounded-lg shadow-lg shadow-emerald-900/10 uppercase ring-1 ring-white/20">
+              Popular
+            </div>
+          )}
+          {hasDiscount && (
+            <div className="px-3 py-1 bg-red-500/90 backdrop-blur-md text-white text-[9px] font-black tracking-tighter rounded-lg shadow-lg shadow-red-900/10 uppercase ring-1 ring-white/20">
+              {discountPercent}% OFF
+            </div>
+          )}
+        </div>
+
+        {/* Stock / Estado Badge */}
+        {product.stock !== undefined && product.stock <= 5 && (
+          <div className="absolute bottom-4 left-4 pointer-events-none z-10">
+            <span className={`px-2.5 py-1 rounded-lg text-[8px] sm:text-[9px] uppercase tracking-widest font-black shadow-lg backdrop-blur-md border ${product.stock === 0
+              ? 'bg-gray-900/90 text-white border-white/10'
+              : 'bg-amber-400/90 text-white border-white/10'
               }`}>
-              {product.stock === 0 ? 'AGOTADO' : `Últimos ${product.stock}`}
+              {product.stock === 0 ? 'AGOTADO' : `¡Últimas ${product.stock}!`}
             </span>
           </div>
         )}
       </Link>
 
-      <div className="flex flex-col flex-1 p-3 sm:p-5">
+      <div className="flex flex-col flex-1 p-5 sm:p-6 bg-white">
+        {/* Categoría con estilo minimalista */}
         {product.categories && product.categories.length > 0 && (
-          <p className="text-[9px] font-black text-emerald-600/60 uppercase tracking-[0.2em] mb-1">
-            {product.categories[0]}
-          </p>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="size-1.5 rounded-full bg-emerald-400" />
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                {product.categories[0]}
+            </p>
+          </div>
         )}
 
-        <Link href={`/productos/${product.slug}`} className="group-hover:text-emerald-600 transition-colors">
-          <h3 className="text-sm sm:text-base font-bold text-gray-900 line-clamp-2 leading-snug min-h-[2.4rem] sm:min-h-[2.8rem]">
+        <Link href={`/productos/${product.slug}`} className="mb-4">
+          <h3 className="text-sm sm:text-base font-bold text-gray-900 line-clamp-2 leading-[1.3] group-hover:text-emerald-600 transition-colors">
             {product.name}
           </h3>
         </Link>
 
-        <div className="mt-auto pt-3 flex items-center justify-between">
+        {/* Precio y Botón en un bloque balanceado */}
+        <div className="mt-auto pt-4 flex items-end justify-between border-t border-gray-50">
           <div className="flex flex-col">
             {hasDiscount ? (
               <>
-                <span className="text-[10px] text-gray-400 font-bold line-through ml-0.5">
+                <span className="text-[10px] sm:text-xs text-gray-400 font-bold line-through mb-0.5">
                   {formatCurrency(basePrice)}
                 </span>
-                <span className="text-base sm:text-xl font-black text-gray-900 leading-none tracking-tight">
+                <span className="text-lg sm:text-2xl font-black text-emerald-950 leading-none tracking-tighter">
                   {formatCurrency(effectivePrice)}
                 </span>
               </>
             ) : (
-              <span className="text-base sm:text-xl font-black text-gray-900 leading-none h-[1.25rem] sm:h-[1.5rem] flex items-end tracking-tight">
+              <span className="text-lg sm:text-2xl font-black text-emerald-950 leading-none tracking-tighter mb-1">
                 {formatCurrency(basePrice)}
               </span>
             )}
           </div>
 
-          {quantityInCart > 0 ? (
-            <div className="flex items-center bg-gray-50 rounded-2xl p-1 border border-gray-100 shadow-inner">
-              <button
-                onClick={handleRemoveOne}
-                className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 hover:bg-white transition-all shadow-sm active:scale-90"
-              >
-                {quantityInCart === 1 ? <Trash2 className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
-              </button>
-              <span className="w-8 text-center text-sm font-black text-gray-900">{quantityInCart}</span>
-              <button
+          <div className="relative">
+            {quantityInCart > 0 ? (
+                <div className="flex items-center bg-gray-50 rounded-2xl p-1 border border-gray-100 shadow-sm animate-in scale-in">
+                    <button
+                        onClick={handleRemoveOne}
+                        className="size-8 sm:size-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 hover:bg-white transition-all active:scale-90"
+                    >
+                        {quantityInCart === 1 ? <Trash2 className="size-4" /> : <Minus className="size-4" />}
+                    </button>
+                    <span className="w-8 text-center text-sm font-black text-gray-950">{quantityInCart}</span>
+                    <button
+                        onClick={handleAddOne}
+                        disabled={product.stock !== undefined && quantityInCart >= product.stock}
+                        className="size-8 sm:size-10 flex items-center justify-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 transition-all shadow-md active:scale-90 disabled:opacity-50"
+                    >
+                        <Plus className="size-4" strokeWidth={3} />
+                    </button>
+                </div>
+            ) : (
+                <button
                 onClick={handleAddOne}
-                disabled={product.stock !== undefined && quantityInCart >= product.stock}
-                className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 transition-all shadow-md active:scale-90 disabled:bg-gray-200 disabled:cursor-not-allowed"
-              >
-                <Plus className="w-4 h-4" strokeWidth={3} />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={handleAddOne}
-              disabled={isAdding || product.stock === 0}
-              className={`flex items-center justify-center p-2.5 rounded-2xl transition-all duration-300 min-h-[44px] min-w-[44px] ${isAdding
-                ? 'bg-emerald-100 text-emerald-600 scale-110'
-                : product.stock === 0
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed grayscale'
-                  : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20 active:scale-90'
-                }`}
-            >
-              <Plus strokeWidth={3} className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-          )}
+                disabled={isAdding || product.stock === 0}
+                className={`flex items-center justify-center size-10 sm:size-12 rounded-2xl transition-all duration-300 ${isAdding
+                    ? 'bg-emerald-50 text-emerald-600 scale-110'
+                    : product.stock === 0
+                    ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                    : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:rotate-90 shadow-[0_10px_20px_-5px_rgba(16,185,129,0.3)]'
+                    }`}
+                >
+                <Plus strokeWidth={3} className="size-5 sm:size-6" />
+                </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

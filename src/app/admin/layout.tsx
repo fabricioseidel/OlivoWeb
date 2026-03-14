@@ -86,7 +86,7 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-[#fcfdfd]">
       {/* Sidebar Móvil (Slide-over) */}
       <Transition.Root show={mobileMenuOpen} as={Fragment}>
         <Dialog as="div" className="relative z-[100] md:hidden" onClose={setMobileMenuOpen}>
@@ -112,13 +112,14 @@ export default function AdminLayout({
               leaveFrom="translate-x-0"
               leaveTo="-translate-x-full"
             >
-              <Dialog.Panel className="relative flex w-full max-w-[280px] flex-1 flex-col bg-gray-900 shadow-2xl">
-                <div className="p-6 flex items-center justify-between border-b border-white/5">
-                  <span className="text-xl font-black text-white tracking-tighter">
-                    OLIVO<span className="text-emerald-500">ADMIN</span>
+              <Dialog.Panel className="relative flex w-full max-w-[300px] flex-1 flex-col bg-emerald-950 shadow-2xl">
+                <div className="absolute inset-y-0 right-0 w-[1px] bg-gradient-to-b from-transparent via-emerald-500/20 to-transparent" />
+                <div className="p-8 flex items-center justify-between border-b border-white/5 bg-emerald-950/50 backdrop-blur-md">
+                  <span className="text-xl font-black text-white tracking-widest">
+                    OLIVO<span className="text-emerald-500 italic">ADMIN</span>
                   </span>
-                  <button type="button" className="p-2 text-gray-400 hover:text-white" onClick={() => setMobileMenuOpen(false)}>
-                    <XMarkIcon className="h-6 w-6" />
+                  <button type="button" className="p-3 bg-white/5 rounded-2xl text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all border border-white/10" onClick={() => setMobileMenuOpen(false)}>
+                    <XMarkIcon className="h-5 w-5" />
                   </button>
                 </div>
 
@@ -128,13 +129,13 @@ export default function AdminLayout({
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={`group flex items-center px-4 py-3.5 text-sm font-bold rounded-2xl transition-all ${pathname === item.href
-                          ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
-                          : "text-gray-400 hover:bg-white/5 hover:text-white"
+                        className={`group flex items-center px-5 py-4 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 ${pathname === item.href
+                          ? "bg-emerald-600 text-white shadow-xl shadow-emerald-900/40"
+                          : "text-emerald-100/30 hover:bg-white/5 hover:text-emerald-400 font-bold"
                           }`}
                       >
                         <item.icon
-                          className={`mr-4 h-5 w-5 shrink-0 ${pathname === item.href ? "text-white" : "text-gray-500 group-hover:text-gray-300"
+                          className={`mr-4 h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${pathname === item.href ? "text-white" : "text-emerald-100/20 group-hover:text-emerald-400"
                             }`}
                         />
                         {item.name}
@@ -143,12 +144,12 @@ export default function AdminLayout({
                   </div>
                 </nav>
 
-                <div className="p-6 border-t border-white/5">
+                <div className="p-8 border-t border-white/5 bg-emerald-950/30">
                   <button
                     onClick={() => { /* Logout logic */ }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-500/10 rounded-2xl transition-all"
+                    className="w-full flex items-center justify-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-rose-400 bg-rose-400/5 hover:bg-rose-400 hover:text-white rounded-2xl transition-all border border-rose-400/20"
                   >
-                    <ArrowPathIcon className="w-5 h-5 rotate-180" />
+                    <ArrowPathIcon className="w-4 h-4 rotate-180" />
                     Cerrar Sesión
                   </button>
                 </div>
@@ -158,69 +159,84 @@ export default function AdminLayout({
         </Dialog>
       </Transition.Root>
 
-      {/* Sidebar Escritorio */}
+      {/* Sidebar Escritorio Premium */}
       <div
-        className={`hidden md:flex flex-col sticky top-0 h-screen bg-gray-900 border-r border-gray-800 transition-all duration-300 flex-shrink-0 ${isCollapsed ? "w-20" : "w-64"
+        className={`hidden md:flex flex-col sticky top-0 h-screen bg-emerald-950 border-r border-white/5 transition-all duration-500 ease-in-out flex-shrink-0 relative ${isCollapsed ? "w-24" : "w-72"
           }`}
       >
-        <div className="flex items-center h-16 flex-shrink-0 px-4 bg-gray-900 justify-between">
+        <div className="absolute inset-y-0 right-0 w-[1px] bg-gradient-to-b from-transparent via-emerald-500/20 to-transparent" />
+        
+        <div className="flex items-center h-24 flex-shrink-0 px-8 bg-emerald-950/50 backdrop-blur-md justify-between border-b border-white/5 mb-6">
           {!isCollapsed && (
-            <Link href="/admin" className="text-xl font-bold text-white truncate">
-              OLIVOMARKET <span className="text-emerald-400">Admin</span>
+            <Link href="/admin" className="text-xl font-black text-white tracking-widest">
+              OLIVO<span className="text-emerald-500 italic">ADMIN</span>
             </Link>
           )}
           {isCollapsed && (
-            <Link href="/admin" className="text-xl font-bold text-emerald-400 mx-auto">
-              OM
+            <Link href="/admin" className="text-xl font-black text-emerald-500 mx-auto italic tracking-tighter">
+              OA
             </Link>
           )}
         </div>
 
-        <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
-          <nav className="flex-1 px-2 py-4 space-y-1">
-            {menuItems.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all ${pathname === item.href
-                  ? "bg-emerald-600/10 text-emerald-400"
-                  : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                  } ${isCollapsed ? "justify-center" : ""}`}
-              >
-                <item.icon
-                  className={`h-6 w-6 shrink-0 transition-colors ${pathname === item.href ? "text-emerald-400" : "text-gray-500 group-hover:text-gray-300"
-                    } ${!isCollapsed ? "mr-3" : ""}`}
-                />
-                {!isCollapsed && <span className="truncate">{item.name}</span>}
-              </Link>
-            ))}
+        <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden px-4 mb-4 scrollbar-hide">
+          <nav className="flex-1 space-y-2">
+            {menuItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`group relative flex items-center px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all duration-500 ${isActive
+                    ? "bg-emerald-600 text-white shadow-xl shadow-emerald-900/40 translate-x-1"
+                    : "text-emerald-100/30 hover:bg-emerald-600/10 hover:text-emerald-400"
+                    } ${isCollapsed ? "justify-center px-0 h-14" : ""}`}
+                >
+                  <item.icon
+                    className={`shrink-0 transition-all duration-500 group-hover:scale-110 ${isActive ? "text-white" : "text-emerald-100/20 group-hover:text-emerald-500"
+                      } ${!isCollapsed ? "mr-4 h-5 w-5" : "h-6 w-6"}`}
+                  />
+                  {!isCollapsed && <span className="truncate">{item.name}</span>}
+                  
+                  {/* Indicador Activo */}
+                  {isActive && !isCollapsed && (
+                    <div className="absolute left-0 w-1 h-6 bg-white rounded-full -ml-4" />
+                  )}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
-        <div className="p-4 border-t border-gray-800 flex justify-end">
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 rounded-md bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
-          >
-            {isCollapsed ? <ChevronRightIcon className="h-5 w-5" /> : <ChevronLeftIcon className="h-5 w-5" />}
-          </button>
+        <div className="p-8 border-t border-white/5 bg-emerald-950/30 flex justify-between items-center">
+            {!isCollapsed && (
+                <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest italic">Vuestro Market</span>
+                    <span className="text-[10px] font-bold text-emerald-100/20 truncate w-32 uppercase">Panel de Control</span>
+                </div>
+            )}
+            <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="p-3 rounded-2xl bg-white/5 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all border border-white/10"
+            >
+                {isCollapsed ? <ChevronRightIcon className="h-5 w-5" /> : <ChevronLeftIcon className="h-5 w-5" />}
+            </button>
         </div>
       </div>
 
       {/* Contenido Principal */}
       <div className="flex-1 flex flex-col min-h-screen">
-        {/* Header Móvil */}
-        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm sm:px-6 md:hidden">
-          <button type="button" className="-m-2.5 p-2.5 text-gray-700" onClick={() => setMobileMenuOpen(true)}>
-            <span className="sr-only">Abrir menú</span>
-            <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+        {/* Header Móvil Premium */}
+        <header className="sticky top-0 z-40 flex h-20 shrink-0 items-center justify-between bg-emerald-950 px-6 shadow-xl shadow-emerald-950/20 md:hidden border-b border-white/5">
+          <button type="button" className="p-3 bg-white/5 border border-white/10 rounded-2xl text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-lg" onClick={() => setMobileMenuOpen(true)}>
+            <Bars3Icon className="h-5 w-5" aria-hidden="true" />
           </button>
 
-          <Link href="/admin" className="text-lg font-bold text-gray-900">
-            OLIVOMARKET <span className="text-emerald-600">Admin</span>
+          <Link href="/admin" className="text-xl font-black text-white tracking-widest uppercase">
+            Olivo<span className="text-emerald-500 italic lowercase">Admin</span>
           </Link>
 
-          <div className="w-6" /> {/* Placeholder para equilibrar */}
+          <div className="w-11" />
         </header>
 
         <main className="flex-1">

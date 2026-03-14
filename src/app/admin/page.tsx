@@ -123,25 +123,36 @@ export default function AdminDashboard() {
   }, [products]);
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Resumen general y estadísticas de la tienda
-        </p>
+    <div className="-m-4 sm:-m-8">
+      {/* Header Premium Admin */}
+      <div className="bg-emerald-950 p-8 sm:p-12 mb-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-[100px]" />
+        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-end sm:items-center gap-6">
+            <div>
+                <h1 className="text-3xl font-black text-white tracking-tight">Centro de Control</h1>
+                <p className="mt-2 text-emerald-100/50 font-medium italic">
+                    Monitoreo en tiempo real de Olivo Market
+                </p>
+            </div>
+            <div className="flex items-center gap-4 bg-white/5 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
+                <div className="size-2 bg-emerald-500 rounded-full animate-pulse" />
+                <span className="text-emerald-100/70 text-xs font-black uppercase tracking-widest">Sincronizado: {lastSync || '—'}</span>
+            </div>
+        </div>
       </div>
 
-      {/* Tarjetas de estadísticas (dinámicas) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Pedidos" value={metrics.totalOrders} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} bgColor="bg-indigo-600" helper="Pedidos confirmados" />
-        <StatCard title="Ingresos" value={`$ ${metrics.grossRevenue.toFixed(2)}`} icon={<ArrowUpIcon className="h-6 w-6" />} bgColor="bg-green-600" helper="Suma de totales" />
-        <StatCard title="Ticket medio" value={`$ ${metrics.avgOrder.toFixed(2)}`} icon={<ArrowDownIcon className="h-6 w-6" />} bgColor="bg-teal-600" helper="Ingresos / pedidos" />
-        <StatCard title="Items vendidos" value={metrics.itemsSold} icon={<Squares2X2Icon className="h-6 w-6" />} bgColor="bg-fuchsia-600" helper="Suma cantidades" />
-        <StatCard title="Vistas productos" value={metrics.totalViews} icon={<EyeIcon className="h-6 w-6" />} bgColor="bg-emerald-600" helper="Suma viewCount" />
-        <StatCard title="Intentos pedido" value={metrics.totalOrderIntents} icon={<CursorArrowRaysIcon className="h-6 w-6" />} bgColor="bg-blue-600" helper="Clicks compra" />
-        <StatCard title="Conv. intentos" value={`${metrics.intentConversion.toFixed(1)}%`} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} bgColor="bg-amber-600" helper="Pedidos / intentos" />
-        <StatCard title="Bajo stock" value={products.filter(p => p.stock > 0 && p.stock <= 5).length} icon={<Squares2X2Icon className="h-6 w-6" />} bgColor="bg-rose-600" helper="<=5 unidades" />
-      </div>
+      <div className="px-8 pb-12">
+        {/* Tarjetas de estadísticas Premium */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
+            <StatCard title="Pedidos" value={metrics.totalOrders} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} color="emerald" helper="Confirmados" />
+            <StatCard title="Ingresos" value={`$ ${metrics.grossRevenue.toLocaleString('es-CL')}`} icon={<ArrowUpIcon className="h-6 w-6" />} color="blue" helper="Suma total ventas" />
+            <StatCard title="Ticket Medio" value={`$ ${metrics.avgOrder.toLocaleString('es-CL')}`} icon={<ArrowDownIcon className="h-6 w-6" />} color="teal" helper="Promedio por pedido" />
+            <StatCard title="Items Vendidos" value={metrics.itemsSold} icon={<Squares2X2Icon className="h-6 w-6" />} color="indigo" helper="Unidades totales" />
+            <StatCard title="Vistas" value={metrics.totalViews} icon={<EyeIcon className="h-6 w-6" />} color="emerald" helper="Visitas a productos" />
+            <StatCard title="Intentos" value={metrics.totalOrderIntents} icon={<CursorArrowRaysIcon className="h-6 w-6" />} color="blue" helper="Clicks en comprar" />
+            <StatCard title="Conversión" value={`${metrics.intentConversion.toFixed(1)}%`} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} color="amber" helper="Intentos vs Pedidos" />
+            <StatCard title="Bajo Stock" value={metrics.lowStock} icon={<Squares2X2Icon className="h-6 w-6" />} color="rose" helper="Menos de 5 unids." />
+        </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Gráfico de Ventas en el tiempo */}
@@ -215,23 +226,52 @@ export default function AdminDashboard() {
         />
       </div>
 
-      <div className="text-xs text-gray-400">* Datos locales: pedidos (localStorage) + métricas de productos. Conversión intentos = pedidos / intentos.</div>
+      </div>
     </div>
   );
 }
 
-interface StatCardProps { title: string; value: string | number; change?: number; isPositive?: boolean; icon: React.ReactNode; bgColor: string; helper?: string; }
-function StatCard({ title, value, icon, bgColor, helper }: StatCardProps) {
+interface StatCardProps { 
+    title: string; 
+    value: string | number; 
+    icon: React.ReactNode; 
+    color: 'emerald' | 'blue' | 'indigo' | 'amber' | 'rose' | 'teal'; 
+    helper?: string; 
+}
+
+function StatCard({ title, value, icon, color, helper }: StatCardProps) {
+  const colorMap = {
+    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    blue: "bg-blue-50 text-blue-600 border-blue-100",
+    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
+    amber: "bg-amber-50 text-amber-600 border-amber-100",
+    rose: "bg-rose-50 text-red-600 border-red-100",
+    teal: "bg-teal-50 text-teal-600 border-teal-100",
+  };
+
+  const iconBgMap = {
+    emerald: "bg-emerald-600 shadow-emerald-200",
+    blue: "bg-blue-600 shadow-blue-200",
+    indigo: "bg-indigo-600 shadow-indigo-200",
+    amber: "bg-amber-600 shadow-amber-200",
+    rose: "bg-rose-600 shadow-red-200",
+    teal: "bg-teal-600 shadow-teal-200",
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="p-5 flex items-start gap-4">
-        <div className={`flex-shrink-0 rounded-md p-3 ${bgColor} text-white`}>{icon}</div>
-        <div className="flex-1">
-          <div className="text-sm font-medium text-gray-500 flex items-center gap-2">
-            <span>{title}</span>
-          </div>
-          <div className="text-xl font-semibold text-gray-900 mt-1">{value}</div>
-          {helper && <div className="text-xs text-gray-400 mt-1">{helper}</div>}
+    <div className={`p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 group relative overflow-hidden`}>
+      <div className={`absolute top-0 right-0 w-24 h-24 ${colorMap[color].split(' ')[0]} rounded-full blur-3xl opacity-50 -mr-12 -mt-12 group-hover:opacity-100 transition-opacity`} />
+      
+      <div className="relative z-10">
+        <div className="flex justify-between items-start mb-4">
+            <div className={`p-3 rounded-2xl ${iconBgMap[color]} text-white shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-500`}>
+                {icon}
+            </div>
+            {helper && <span className="text-[10px] font-black uppercase tracking-widest text-gray-300 italic">{helper}</span>}
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">{title}</h3>
+          <p className="text-3xl font-black text-gray-900 tracking-tight">{value}</p>
         </div>
       </div>
     </div>

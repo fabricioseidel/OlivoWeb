@@ -12,6 +12,7 @@ import {
   ArrowDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ShoppingBagIcon,
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import { useProducts } from "@/contexts/ProductContext";
@@ -127,79 +128,95 @@ export default function AdminProductsPage() {
     );
   }
   return (
-    <div>
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Productos</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Gestiona todos los productos de tu tienda
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/admin/productos/edicion-masiva">
-            <Button variant="outline">
-              📋 Edición Masiva
-            </Button>
-          </Link>
-          <Link href="/admin/productos/nuevo">
-            <Button>
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Nuevo Producto
-            </Button>
-          </Link>
+    <div className="-m-4 sm:-m-8">
+      {/* Header Premium Admin */}
+      <div className="bg-emerald-950 p-8 sm:p-12 mb-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px]" />
+        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-end sm:items-center gap-6">
+            <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 backdrop-blur-md rounded-full text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-4 border border-white/5">
+                    <ShoppingBagIcon className="size-3" />
+                    <span>Inventario</span>
+                </div>
+                <h1 className="text-4xl font-black text-white tracking-tight">Gestión de Productos</h1>
+                <p className="mt-2 text-emerald-100/50 font-medium italic">
+                    Control total sobre el catálogo de Olivo Market
+                </p>
+            </div>
+            <div className="flex items-center gap-3">
+                <Link href="/admin/productos/edicion-masiva">
+                    <button className="px-6 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl text-white text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2">
+                        📋 Edición Masiva
+                    </button>
+                </Link>
+                <Link href="/admin/productos/nuevo">
+                    <button className="px-6 py-3 bg-emerald-500 rounded-2xl text-emerald-950 text-xs font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2">
+                        <PlusIcon className="size-4" />
+                        Nuevo Producto
+                    </button>
+                </Link>
+            </div>
         </div>
       </div>
 
-      {/* Filtros y búsqueda */}
-      <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              placeholder="Buscar productos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+      <div className="px-8 pb-12">
 
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FunnelIcon className="h-5 w-5 text-gray-400" />
-            </div>
-            <select
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <option value="Todas">Todas</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.name}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center justify-end">
-            <Button
-              onClick={() => { setSearchTerm(""); setSelectedCategory("Todas"); setCurrentPage(1); showToast('Filtros limpiados', 'info'); }}
-              aria-label="Limpiar filtros"
-              className="border rounded px-3 py-2 text-sm hover:bg-gray-50"
-            >Limpiar</Button>
-          </div>
+        {/* Filtros y búsqueda Premium */}
+        <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                <div className="md:col-span-2 relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <MagnifyingGlassIcon className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <input
+                        type="text"
+                        className="block w-full pl-11 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 transition-all"
+                        placeholder="Buscar por nombre o descripción..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
 
-          <div className="text-right" aria-live="polite">
-            <span className="text-sm text-gray-500">
-              {filteredProducts.length === 0
-                ? "Sin resultados con los filtros actuales"
-                : `Mostrando ${currentItems.length} de ${filteredProducts.length} productos`}
-            </span>
-          </div>
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <FunnelIcon className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <select
+                        className="block w-full pl-11 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 transition-all appearance-none cursor-pointer"
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                    >
+                        <option value="Todas">Todas las categorías</option>
+                        {categories.map((category) => (
+                            <option key={category.id} value={category.name}>
+                                {category.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-3 justify-end">
+                    <button
+                        onClick={() => { setSearchTerm(""); setSelectedCategory("Todas"); setCurrentPage(1); showToast('Filtros limpiados', 'info'); }}
+                        className="px-6 py-4 bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-gray-200 transition-all"
+                    >
+                        Limpiar
+                    </button>
+                </div>
+            </div>
+            
+            <div className="mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] italic">Catálogo Actual</span>
+                    <div className="h-1 w-1 rounded-full bg-emerald-500" />
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">
+                        {filteredProducts.length === 0
+                            ? "Sin resultados"
+                            : `${filteredProducts.length} productos encontrados`}
+                    </span>
+                </div>
+            </div>
         </div>
-      </div>
 
       {/* Vista de Lista para Móviles */}
       <div className="grid grid-cols-1 gap-4 md:hidden mb-6">
@@ -359,99 +376,105 @@ export default function AdminProductsPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-100">
               {currentItems.map((product) => (
-                <tr key={product.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={product.id} className="hover:bg-gray-50/50 transition-colors group">
+                  <td className="px-6 py-6 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="h-10 w-10 flex-shrink-0">
-                        <ImageWithFallback className="h-10 w-10 rounded-md object-cover" src={product.image} alt={product.name} />
+                      <div className="h-16 w-16 flex-shrink-0 bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 p-2 group-hover:scale-105 transition-transform duration-500">
+                        <ImageWithFallback className="h-full w-full object-contain mix-blend-multiply" src={product.image} alt={product.name} />
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                        <div className="text-sm text-gray-500 truncate max-w-xs">{product.description.substring(0, 50)}...</div>
+                      <div className="ml-6">
+                        <div className="text-sm font-black text-gray-900 tracking-tight">{product.name}</div>
+                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1 opacity-0 group-hover:opacity-100 transition-opacity">ID: {product.id.substring(0, 8)}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
+                  <td className="px-6 py-6 whitespace-nowrap">
+                    <div className="flex flex-wrap gap-1">
                       {Array.isArray(product.categories) && product.categories.length > 0
-                        ? product.categories.join(", ")
-                        : <span className="italic text-gray-400">Sin categoría</span>}
+                        ? product.categories.map((cat, idx) => (
+                            <span key={idx} className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-lg">
+                                {cat}
+                            </span>
+                          ))
+                        : <span className="italic text-gray-300 text-[10px] font-bold uppercase tracking-widest">Sin categoría</span>}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">${product.price.toFixed(2)}</div>
+                  <td className="px-6 py-6 whitespace-nowrap">
+                    <div className="text-sm font-black text-gray-900">${product.price.toLocaleString('es-CL')}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className={`text-sm ${product.stock > 10 ? 'text-green-600' : product.stock > 0 ? 'text-yellow-600' : 'text-red-600'}`}>
-                      {product.stock} unidades
+                  <td className="px-6 py-6 whitespace-nowrap">
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                        product.stock > 10 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
+                        product.stock > 0 ? 'bg-amber-50 text-amber-600 border border-amber-100' : 
+                        'bg-rose-50 text-rose-600 border border-rose-100'
+                    }`}>
+                        <div className={`size-1.5 rounded-full ${
+                            product.stock > 10 ? 'bg-emerald-500' : 
+                            product.stock > 0 ? 'bg-amber-500' : 
+                            'bg-rose-500 animate-pulse'
+                        }`} />
+                        {product.stock} unids.
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-6 whitespace-nowrap">
                     <button
                       onClick={async () => {
                         try {
                           await toggleFeatured(product.id, !product.featured);
                           showToast(
-                            !product.featured ? 'Marcado como destacado' : 'Marcado como NO destacado',
+                            !product.featured ? 'Producto destacado ✨' : 'Quitado de destacados',
                             'success'
                           );
                         } catch (e: any) {
-                          showToast(e?.message || 'No se pudo actualizar', 'error');
+                          showToast('No se pudo actualizar', 'error');
                         }
                       }}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors border ${product.featured
-                          ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
-                          : 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200'
+                      className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border ${product.featured
+                          ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20'
+                          : 'bg-white text-gray-400 border-gray-100 hover:border-amber-200 hover:text-amber-500'
                         }`}
-                      aria-pressed={product.featured}
-                      aria-label={product.featured ? 'Destacado' : 'No destacado'}
                     >
-                      {product.featured ? 'Sí' : 'No'}
+                      {product.featured ? 'Destacado' : 'Normal'}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-6 whitespace-nowrap">
                     <button
                       onClick={async () => {
                         try {
                           await toggleActive(product.id, !product.isActive);
                           showToast(
-                            !product.isActive ? 'Producto activado' : 'Producto desactivado',
+                            !product.isActive ? 'Producto activado ✓' : 'Producto desactivado ×',
                             'success'
                           );
                         } catch (e: any) {
-                          showToast(e?.message || 'No se pudo actualizar', 'error');
+                          showToast('No se pudo actualizar', 'error');
                         }
                       }}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors border ${product.isActive
-                          ? 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200'
-                          : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                      className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border ${product.isActive
+                          ? 'bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200'
+                          : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'
                         }`}
-                      aria-pressed={product.isActive}
-                      aria-label={product.isActive ? 'Activo' : 'Inactivo'}
                     >
                       {product.isActive ? 'Activo' : 'Inactivo'}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {product.createdAt}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2">
+                  <td className="px-6 py-6 whitespace-nowrap text-right">
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Link
                         href={`/admin/productos/${product.id}`}
-                        className="text-blue-600 hover:text-blue-900 border border-blue-200 rounded-md p-1.5 hover:bg-blue-50"
-                        title="Editar producto"
+                        className="size-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                        title="Editar"
                       >
-                        <PencilIcon className="h-5 w-5" />
+                        <PencilIcon className="size-4" />
                       </Link>
                       <button
                         onClick={() => handleDeleteProduct(product.id, product.name)}
-                        className="text-red-600 hover:text-red-900 border border-red-200 rounded-md p-1.5 hover:bg-red-50"
-                        title="Eliminar producto"
+                        className="size-10 flex items-center justify-center bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+                        title="Eliminar"
                       >
-                        <TrashIcon className="h-5 w-5" />
+                        <TrashIcon className="size-4" />
                       </button>
                     </div>
                   </td>
@@ -537,9 +560,7 @@ export default function AdminProductsPage() {
           </div>
         )}
       </div>
-      {/* Toast de notificación es manejado por el ToastContext */}
-
-      {/* Diálogo de confirmación es manejado por el ConfirmContext */}
     </div>
+  </div>
   );
 }

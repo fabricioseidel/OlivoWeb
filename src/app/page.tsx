@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useProducts } from "@/contexts/ProductContext";
 import ProductCard from "@/components/ProductCard";
+import CategoryCard from "@/components/CategoryCard";
+import { useCategories } from "@/hooks/useCategories";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import {
@@ -21,7 +23,8 @@ import {
 } from "lucide-react";
 
 export default function Home() {
-  const { products, loading } = useProducts();
+  const { products, loading: productsLoading } = useProducts();
+  const { categories, loading: categoriesLoading } = useCategories();
 
   // Filtrar productos destacados y activos
   const featuredProducts = products
@@ -71,24 +74,30 @@ export default function Home() {
 
             {/* Gráfico Lado Derecho - Composición App-like para móviles */}
             <div className="relative group">
-              <div className="relative aspect-square sm:aspect-[4/3] rounded-[3rem] overflow-hidden bg-gradient-to-br from-emerald-800 to-emerald-950 border border-white/10 shadow-2xl transition-all duration-700 group-hover:scale-[1.02]">
-                <div className="absolute inset-0 flex items-center justify-center opacity-40">
-                  <ShoppingBag className="w-48 h-48 sm:w-64 sm:h-64 text-emerald-400/20" />
+              <div className="relative aspect-square sm:aspect-[4/3] rounded-[3rem] overflow-hidden bg-gradient-to-br from-emerald-800 to-emerald-950 border border-white/10 shadow-2xl transition-all duration-700 group-hover:shadow-[0_40px_80px_rgba(0,0,0,0.4)]">
+                <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
+                  <ShoppingBag className="w-48 h-48 sm:w-64 sm:h-64 text-emerald-400/20 rotate-12" />
                 </div>
 
-                {/* Elementos flotantes premium - Ahora con feedback visual claro */}
-                <Link href="/contacto" className="absolute top-[10%] left-[10%] bg-white/20 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-white/30 shadow-2xl animate-float transition-all hover:scale-110 hover:bg-white/30 group/truck z-20 cursor-pointer active:scale-95">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30 group-hover/truck:animate-bounce ring-4 ring-emerald-500/20">
+                {/* Elementos flotantes premium - Reposicionados y hechos más interactivos */}
+                <Link 
+                  href="/mis-pedidos" 
+                  className="absolute top-[12%] left-[10%] bg-emerald-900/40 backdrop-blur-2xl p-4 sm:p-6 rounded-[2rem] border border-white/10 shadow-2xl animate-float transition-all hover:scale-110 hover:bg-emerald-800/60 z-30 group/truck active:scale-95 cursor-pointer block"
+                >
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30 group-hover/truck:rotate-6 transition-transform ring-4 ring-emerald-500/20">
                     <Truck className="text-white w-6 h-6 sm:w-8 sm:h-8" />
                   </div>
                   <div className="text-[10px] font-black text-white uppercase tracking-[0.2em] mb-1">Rastrear Envío</div>
                   <div className="flex items-center gap-1.5 mt-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    <span className="text-[8px] font-bold text-emerald-400">EN VIVO</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[8px] font-bold text-emerald-400">PEDIDO #1284</span>
                   </div>
                 </Link>
 
-                <Link href="/ofertas" className="absolute bottom-[15%] right-[10%] bg-white/20 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-white/30 shadow-2xl animate-float-delayed transition-all hover:scale-110 hover:bg-white/30 group/star z-20 cursor-pointer active:scale-95">
+                <Link 
+                  href="/ofertas" 
+                  className="absolute bottom-[18%] right-[10%] bg-amber-900/40 backdrop-blur-2xl p-4 sm:p-6 rounded-[2rem] border border-white/10 shadow-2xl animate-float-delayed transition-all hover:scale-110 hover:bg-amber-800/60 z-30 group/star active:scale-95 cursor-pointer block"
+                >
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover/star:rotate-12 transition-transform ring-4 ring-amber-400/20">
                       <Star className="text-white w-5 h-5 sm:w-6 sm:h-6 fill-white" />
@@ -97,28 +106,37 @@ export default function Home() {
                       <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest leading-none">OFERTAS TOP</div>
                     </div>
                   </div>
-                  <div className="h-9 w-24 sm:w-32 bg-amber-400 text-white rounded-xl border border-amber-400/30 flex items-center justify-center shadow-lg shadow-amber-400/20">
-                    <span className="text-[10px] font-black">SOLO HOY</span>
+                  <div className="px-4 py-2 bg-amber-400 text-white rounded-xl flex items-center justify-center shadow-lg shadow-amber-400/20">
+                    <span className="text-[10px] font-black">HASTA 40% OFF</span>
                   </div>
                 </Link>
+
+                {/* Grid decorativo */}
+                <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
               </div>
 
-              {/* Badge flotante extra */}
-              <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-[2rem] shadow-2xl hidden md:flex items-center gap-4 border border-gray-100 animate-bounce-slow">
-                <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600">
-                  <Heart className="w-6 h-6 fill-emerald-600" />
+              {/* Badge flotante extra - Ahora interactivo */}
+              <Link 
+                href="/registro"
+                className="absolute -bottom-6 -left-6 bg-white/95 backdrop-blur-lg p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] hidden md:flex items-center gap-4 border border-white transition-all hover:scale-105 hover:shadow-2xl z-40 group/stats active:scale-95 cursor-pointer"
+              >
+                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover/stats:bg-emerald-600 group-hover/stats:text-white transition-all duration-300">
+                  <Heart className="w-7 h-7 fill-current" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-gray-900 leading-none">5k+ Clientes</p>
-                  <p className="text-xs text-gray-500 font-medium mt-1">Satisfechos en todo Chile</p>
+                  <p className="text-base font-black text-gray-900 leading-none">5k+ Clientes</p>
+                  <p className="text-xs text-gray-500 font-bold mt-1.5 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Satisfechos en Chile
+                  </p>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Categorías - Subido para dar acción inmediata */}
+      {/* Categorías - Ahora reales y sincronizadas con la Base de Datos */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4">
@@ -126,39 +144,33 @@ export default function Home() {
               <h2 className="text-3xl font-bold text-gray-900 mb-2">Nuestras Categorías</h2>
               <p className="text-gray-500">Encuentra exactamente lo que buscas en segundos</p>
             </div>
-            <Link href="/categorias" className="text-emerald-600 font-semibold hover:underline flex items-center gap-1">
+            <Link href="/productos" className="text-emerald-600 font-semibold hover:underline flex items-center gap-1">
               Ver todas <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            <Link href="/productos?categoria=alimentos" className="group flex flex-col items-center justify-center p-8 bg-gray-50 rounded-3xl hover:bg-emerald-50 transition-all border border-transparent hover:border-emerald-100">
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-white shadow-sm text-emerald-600 mb-4 group-hover:scale-110 transition-transform">
-                <Apple className="w-10 h-10" />
-              </div>
-              <span className="text-lg font-bold text-gray-900">Alimentos</span>
-            </Link>
-
-            <Link href="/productos?categoria=hogar" className="group flex flex-col items-center justify-center p-8 bg-gray-50 rounded-3xl hover:bg-blue-50 transition-all border border-transparent hover:border-blue-100">
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-white shadow-sm text-blue-600 mb-4 group-hover:scale-110 transition-transform">
-                <HomeIcon className="w-10 h-10" />
-              </div>
-              <span className="text-lg font-bold text-gray-900">Hogar</span>
-            </Link>
-
-            <Link href="/productos?categoria=mascotas" className="group flex flex-col items-center justify-center p-8 bg-gray-50 rounded-3xl hover:bg-orange-50 transition-all border border-transparent hover:border-orange-100">
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-white shadow-sm text-orange-600 mb-4 group-hover:scale-110 transition-transform">
-                <PawPrint className="w-10 h-10" />
-              </div>
-              <span className="text-lg font-bold text-gray-900">Mascotas</span>
-            </Link>
-
-            <Link href="/productos?categoria=conveniencia" className="group flex flex-col items-center justify-center p-8 bg-gray-50 rounded-3xl hover:bg-purple-50 transition-all border border-transparent hover:border-purple-100">
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-white shadow-sm text-purple-600 mb-4 group-hover:scale-110 transition-transform">
-                <ShoppingBag className="w-10 h-10" />
-              </div>
-              <span className="text-lg font-bold text-gray-900">Conveniencia</span>
-            </Link>
+            {categoriesLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-64 bg-gray-50 animate-pulse rounded-[3rem]" />
+              ))
+            ) : categories && categories.length > 0 ? (
+              categories.slice(0, 4).map((cat) => (
+                <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}>
+                  <CategoryCard 
+                    category={{
+                      ...cat,
+                      slug: cat.slug || cat.id,
+                      image: cat.image || null
+                    }} 
+                  />
+                </Link>
+              ))
+            ) : (
+                <div className="col-span-full py-10 text-center text-gray-400 font-bold">
+                    No hay categorías disponibles aún.
+                </div>
+            )}
           </div>
         </div>
       </section>
@@ -176,7 +188,7 @@ export default function Home() {
             </Link>
           </div>
 
-          {loading ? (
+          {productsLoading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
             </div>

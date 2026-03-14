@@ -3,52 +3,58 @@
 import React from "react";
 import { useCategories as useCategoryHook } from "@/hooks/useCategories";
 import CategoryCard from "@/components/CategoryCard";
-
 import { useRouter } from "next/navigation";
+import { Sparkles, ArrowRight, Search, LayoutGrid, X } from "lucide-react";
 
 export default function CategoriesPage() {
   const { categories, loading, error } = useCategoryHook();
   const router = useRouter();
 
   if (loading) return (
-    <div className="max-w-7xl mx-auto px-4 py-12 flex justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-600"></div>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
+      <div className="size-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
+      <span className="text-gray-500 font-black uppercase tracking-widest text-[10px]">Cargando categorías...</span>
     </div>
   );
 
   if (error) return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200">
-        Error: {error}
+    <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="bg-red-50 text-red-600 p-8 rounded-[2.5rem] border border-red-100 flex items-center gap-6">
+        <div className="size-12 bg-red-100 rounded-2xl flex items-center justify-center shrink-0">
+            <X className="size-6" />
+        </div>
+        <div>
+            <h3 className="font-black text-lg">Vaya, algo salió mal</h3>
+            <p className="text-red-500/80 font-medium">Error: {error}</p>
+        </div>
       </div>
-    </div>
-  );
-
-  if (!categories.length) return (
-    <div className="max-w-7xl mx-auto px-4 py-12 text-center text-gray-500">
-      No se encontraron categorías.
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      {/* Hero Section */}
-      <div className="bg-white border-b border-gray-100 mb-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <span className="inline-block px-4 py-1.5 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-full mb-6 border border-emerald-100">
-            Nuestro Catálogo
-          </span>
-          <h1 className="text-5xl sm:text-6xl font-black text-gray-900 mb-6 tracking-tighter leading-none">
-            Explora Nuestras <span className="text-emerald-600">Categorías</span>
-          </h1>
-          <p className="text-lg text-gray-500 max-w-2xl mx-auto font-medium leading-relaxed">
-            Descubre una selección cuidadosamente curada de productos premium, organizados para que encuentres exactamente lo que buscas.
-          </p>
+    <div className="min-h-screen bg-white">
+      {/* Hero Section Premium */}
+      <section className="bg-emerald-950 pt-20 pb-20 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/10 rounded-full blur-[80px] pointer-events-none" />
+        
+        <div className="max-w-7xl mx-auto px-4 relative z-10 text-center sm:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-4">
+                <LayoutGrid className="size-3" />
+                <span>Explora el Catálogo</span>
+            </div>
+            <h1 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight leading-tight">
+                Todo lo que amas, <br />
+                <span className="text-emerald-400">fácil de encontrar</span>
+            </h1>
+            <p className="text-emerald-100/60 max-w-lg mb-0 font-medium text-lg">
+                Navega por nuestras categorías cuidadosamente seleccionadas. Calidad premium de Venezuela y Chile en un solo lugar.
+            </p>
         </div>
-      </div>
+      </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 py-20">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {categories.map((category) => {
             const slug = category.slug || category.name.toLowerCase().replace(/[^a-z0-9]+/gi, "-");
             return (
@@ -59,7 +65,7 @@ export default function CategoriesPage() {
                   name: category.name,
                   slug: slug,
                   image: category.image,
-                  productsCount: undefined
+                  productsCount: category.productsCount
                 }}
                 onClick={() => router.push(`/categorias/${encodeURIComponent(slug)}`)}
               />
@@ -67,20 +73,33 @@ export default function CategoriesPage() {
           })}
         </div>
 
-        {/* Info Section */}
-        <div className="mt-20 p-12 bg-emerald-950 rounded-[3rem] text-center relative overflow-hidden shadow-2xl">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500 rounded-full blur-[100px] opacity-20 -mr-32 -mt-32" />
+        {/* Info Section / CTA Premium */}
+        <div className="mt-28 p-8 sm:p-16 bg-emerald-950 rounded-[3.5rem] text-center relative overflow-hidden shadow-2xl group">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/50 to-emerald-950 opacity-100" />
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] -mr-64 -mt-64 group-hover:bg-emerald-500/20 transition-all duration-1000" />
+          
           <div className="relative z-10">
-            <h2 className="text-3xl font-black text-white mb-4 tracking-tight">¿Buscas algo específico?</h2>
-            <p className="text-emerald-200/70 mb-8 max-w-xl mx-auto">
-              Utiliza nuestro buscador en la parte superior o navega por todas nuestras ofertas disponibles.
+            <div className="size-16 bg-white/10 backdrop-blur-xl rounded-[2rem] flex items-center justify-center mx-auto mb-8 border border-white/10 shadow-xl group-hover:scale-110 transition-transform duration-500">
+                <Sparkles className="size-8 text-emerald-400" />
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4 tracking-tight">¿Prefieres ver todo junto?</h2>
+            <p className="text-emerald-100/60 mb-10 max-w-xl mx-auto font-medium">
+              Utiliza nuestro buscador o explora el catálogo completo con las mejores ofertas disponibles hoy.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button onClick={() => router.push('/productos')} className="px-8 py-4 bg-white text-emerald-950 font-black rounded-2xl hover:scale-105 transition-all">
-                Ver Todos los Productos
+              <button 
+                onClick={() => router.push('/productos')} 
+                className="px-8 py-5 bg-white text-emerald-950 font-black rounded-2xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 group/btn shadow-lg shadow-emerald-900/20"
+              >
+                Ver Catálogo Completo
+                <ArrowRight className="size-4 group-hover/btn:translate-x-1 transition-transform" />
               </button>
-              <button onClick={() => router.push('/ofertas')} className="px-8 py-4 bg-emerald-800 text-white font-black rounded-2xl hover:bg-emerald-700 transition-all border border-emerald-700">
-                Ver Ofertas Especiales
+              <button 
+                onClick={() => router.push('/ofertas')} 
+                className="px-8 py-5 bg-emerald-800 text-white font-black rounded-2xl hover:bg-emerald-700 transition-all border border-emerald-700 flex items-center justify-center gap-2 group/btn"
+              >
+                <Sparkles className="size-4 text-emerald-400" />
+                Ofertas Especiales
               </button>
             </div>
           </div>

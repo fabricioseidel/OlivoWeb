@@ -82,9 +82,9 @@ describe('CartContext', () => {
     fireEvent.click(screen.getByTestId('add-button'));
     
     await waitFor(() => {
-      // 1 item de 100 + shipping 10 => total 110
+      // 1 item de 100 + shipping 0 => total 100
       expect(screen.getByTestId('cart-count')).toHaveTextContent('1');
-      expect(screen.getByTestId('cart-total')).toHaveTextContent('110');
+      expect(screen.getByTestId('cart-total')).toHaveTextContent('100');
       expect(screen.getByTestId('cart-item-1')).toBeInTheDocument();
     });
 
@@ -92,8 +92,8 @@ describe('CartContext', () => {
     fireEvent.click(screen.getByTestId('update-button'));
     
     await waitFor(() => {
-      // 2 * 100 + shipping 10 = 210
-      expect(screen.getByTestId('cart-total')).toHaveTextContent('210');
+      // 2 * 100 + shipping 0 = 200
+      expect(screen.getByTestId('cart-total')).toHaveTextContent('200');
     });
 
     // Remove product

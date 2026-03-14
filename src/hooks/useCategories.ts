@@ -7,6 +7,7 @@ export type Category = {
   description?: string;
   image?: string;
   isActive?: boolean;
+  productsCount?: number;
 };
 
 export function useCategories() {

@@ -15,21 +15,44 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const mapped = (data || []).map((c: any) => ({
-    id: String(c.id ?? c.name ?? ""),
-    name: c.name ?? c.label ?? "",
-    slug:
-      c.slug ?? c.sku ?? (c.name ? String(c.name).toLowerCase().replace(/[^a-z0-9]+/gi, "-") : undefined),
-    description: c.description ?? c.desc ?? undefined,
-    image: c.image ?? c.img ?? c.image_url ?? undefined,
-    isActive:
-      typeof c.is_active === "boolean"
-        ? c.is_active
-        : typeof c.isActive === "boolean"
-          ? c.isActive
-          : true,
-    productsCount: typeof c.productsCount === 'number' ? c.productsCount : 0,
-  }));
+  // Fetch product counts
+  const { data: productsData, error: productsError } = await supabase
+    .from("products")
+    .select("category");
+
+  const productCounts: Record<string, number> = {};
+  if (!productsError && productsData) {
+    productsData.forEach((p: any) => {
+      if (p.category) {
+        const cats = String(p.category).split(/[,/|]/).map((c) => c.trim().toLowerCase()).filter(Boolean);
+        cats.forEach(cat => {
+          productCounts[cat] = (productCounts[cat] || 0) + 1;
+        });
+      }
+    });
+  }
+
+  const mapped = (data || []).map((c: any) => {
+    const categoryName = (c.name || "").toLowerCase().trim();
+    // Intenta buscar por nombre de categoría en el mapeo de productos
+    const count = productCounts[categoryName] || 0;
+
+    return {
+      id: String(c.id ?? c.name ?? ""),
+      name: c.name ?? c.label ?? "",
+      slug:
+        c.slug ?? c.sku ?? (c.name ? String(c.name).toLowerCase().replace(/[^a-z0-9]+/gi, "-") : undefined),
+      description: c.description ?? c.desc ?? undefined,
+      image: c.image ?? c.img ?? c.image_url ?? undefined,
+      isActive:
+        typeof c.is_active === "boolean"
+          ? c.is_active
+          : typeof c.isActive === "boolean"
+            ? c.isActive
+            : true,
+      productsCount: count,
+    };
+  });
 
   return NextResponse.json(mapped);
 }
