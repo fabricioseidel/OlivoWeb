@@ -62,30 +62,31 @@ const Toast = ({ type = "info", message, show, onClose, duration = 4000 }: Toast
       leaveFrom="opacity-100 scale-100"
       leaveTo="opacity-0 scale-95"
     >
-      <div className={`max-w-md w-full sm:w-72 pointer-events-auto overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black ring-opacity-5 transition-all border ${config.border}`}>
-        <div className="p-3 sm:p-4">
+      <div className={`max-w-[calc(100vw-2rem)] w-72 pointer-events-auto overflow-hidden rounded-[2rem] bg-white/90 backdrop-blur-md shadow-[0_20px_50px_rgba(0,0,0,0.15)] ring-1 ring-black/5 transition-all border ${config.border}`}>
+        <div className="p-3">
           <div className="flex items-center gap-3">
-            <div className={`flex-shrink-0 rounded-lg p-1.5 ${config.bg}`}>
-              <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${config.color}`} />
+            <div className={`flex-shrink-0 rounded-full p-2 ${config.bg}`}>
+              <Icon className={`h-4 w-4 ${config.color}`} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">
+              <p className="text-[11px] font-black uppercase tracking-wider text-gray-900 truncate">
                 {message}
               </p>
             </div>
             <div className="flex-shrink-0">
               <button
                 onClick={onClose}
-                className="inline-flex rounded-lg p-1 text-gray-400 hover:text-gray-500 hover:bg-gray-100 transition-colors"
+                className="p-1 rounded-full text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
           </div>
         </div>
-        <div className="h-1 w-full bg-gray-50 overflow-hidden">
+        {/* Subtle Progress Bar */}
+        <div className="h-1 w-full bg-gray-100/50">
           <div
-            className={`h-full ${config.color.replace('text-', 'bg-')} transition-all ease-linear`}
+            className={`h-full ${config.color.replace('text-', 'bg-')} opacity-60`}
             style={{
               width: '100%',
               animation: `shrink ${duration}ms linear forwards`

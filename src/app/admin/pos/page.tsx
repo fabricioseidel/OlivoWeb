@@ -172,7 +172,7 @@ export default function POSPage() {
       </div>
 
       {/* ── Cart & Checkout ── */}
-      <div className={`w-full lg:w-[380px] flex flex-col bg-slate-900 ${showCart ? 'flex' : 'hidden lg:flex'}`}>
+      <div className={`w-full lg:w-[380px] h-full flex flex-col bg-slate-900 border-l border-slate-800 ${showCart ? 'flex flex-1' : 'hidden lg:flex'}`}>
         {/* Mobile back button */}
         <div className="p-4 border-b border-slate-800 flex justify-between items-center">
           <button onClick={() => setShowCart(false)} className="lg:hidden text-slate-400 text-sm font-bold">← Productos</button>

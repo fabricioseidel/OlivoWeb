@@ -13,13 +13,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Array<{ id: number; message: string; type: ToastType; duration: number }>>([]);
 
   const showToast = (message: string, type: ToastType = "info", duration: number = 4000) => {
-    const id = Date.now() + Math.floor(Math.random() * 1000);
-    setToasts(prev => [...prev, { id, message, type, duration }]);
-    // Auto-remove after duration
+    const id = Date.now() + Math.random() * 1000;
+    setToasts(prev => {
+      const next = [...prev, { id, message, type, duration }];
+      return next.length > 3 ? next.slice(1) : next;
+    });
     if (duration > 0) {
-      setTimeout(() => {
-        setToasts(prev => prev.filter(t => t.id !== id));
-      }, duration);
+      setTimeout(() => handleClose(id), duration);
     }
   };
 
@@ -32,8 +32,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {/* Toast stack: fixed, floating with more margin */}
-      <div className="fixed bottom-4 left-4 right-4 sm:bottom-8 sm:right-8 sm:left-auto z-[70] pointer-events-none flex flex-col-reverse items-end gap-2 px-2">
+      {/* Toast stack: top-right to avoid covering bottom action buttons */}
+      <div className="fixed top-4 right-4 sm:top-8 sm:right-8 z-[70] pointer-events-none flex flex-col items-end gap-2 px-2 max-w-full">
         {toasts.map((t) => (
           <Toast
             key={t.id}
