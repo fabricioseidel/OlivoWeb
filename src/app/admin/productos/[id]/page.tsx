@@ -9,7 +9,8 @@ import { useCategories } from "@/hooks/useCategories";
 import Button from "@/components/ui/Button";
 import SingleImageUpload from "@/components/ui/SingleImageUpload";
 import MultiImageUpload from "@/components/ui/MultiImageUpload";
-import { TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { TrashIcon, PlusIcon, CameraIcon } from "@heroicons/react/24/outline";
+import POSScanner from "@/components/admin/POSScanner";
 
 
 interface FormState {
@@ -41,6 +42,7 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   // Estado para proveedores
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -82,7 +84,7 @@ export default function EditProductPage() {
         suggestedPrice: product.suggestedPrice?.toString() || "",
         offerPrice: product.offerPrice?.toString() || "",
         isActive: Boolean(product.isActive),
-        barcode: product.id, // Assuming ID is barcode as per context
+        barcode: product.barcode || product.id,
       });
       setLoading(false);
     } else {
@@ -330,9 +332,22 @@ export default function EditProductPage() {
             <input name="name" value={form.name} onChange={handleChange} className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-1">Código de Barras</label>
-              <input name="barcode" value={form.barcode} disabled className="w-full p-2 border rounded-md bg-gray-100 text-gray-500" />
+              <input 
+                name="barcode" 
+                value={form.barcode} 
+                onChange={handleChange}
+                className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 pr-10" 
+              />
+              <button
+                type="button"
+                onClick={() => setShowScanner(true)}
+                className="absolute bottom-1.5 right-2 p-1.5 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors"
+                title="Escanear con cámara"
+              >
+                <CameraIcon className="h-5 w-5" />
+              </button>
             </div>
             <div className="flex gap-4">
               <div className="flex-1">
@@ -539,6 +554,15 @@ export default function EditProductPage() {
           <Button type="submit" disabled={saving}>{saving ? 'Guardando...' : 'Guardar Cambios'}</Button>
         </div>
       </form>
+      {showScanner && (
+        <POSScanner
+          onScan={(barcode) => {
+            setForm(prev => prev ? ({ ...prev, barcode }) : prev);
+            setShowScanner(false);
+          }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </div>
   );
 }

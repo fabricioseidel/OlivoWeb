@@ -45,6 +45,7 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     // Back-compat: si is_active es null/undefined en registros antiguos,
     // considerarlo activo para que aparezcan en la tienda pública.
     isActive: p.is_active ?? true,
+    barcode: p.barcode,
   };
 }
 

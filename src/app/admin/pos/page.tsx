@@ -79,6 +79,9 @@ export default function POSPage() {
     try {
       const result = await createSaleAction({
         total, paymentMethod,
+        cashReceived: paymentMethod === 'cash' ? cashReceived : total,
+        changeGiven: paymentMethod === 'cash' ? change : 0,
+        tax: 0, // Prices usually include tax in retail
         items: cart.map(item => ({
           product_id: item.id,
           name: item.name,

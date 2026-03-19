@@ -10,6 +10,9 @@ type SaleActionState = {
   toastType?: ToastType;
 };
 
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
 export async function createSaleAction(data: {
   total: number;
   paymentMethod: string;
@@ -20,14 +23,28 @@ export async function createSaleAction(data: {
     total_price: number;
     name?: string;
   }>;
+  notas?: string;
+  cashReceived?: number;
+  changeGiven?: number;
+  tax?: number;
 }): Promise<SaleActionState> {
   try {
-    console.log("📦 createSaleAction called with:", JSON.stringify(data, null, 2));
+    const session = await getServerSession(authOptions);
+    const sellerName = session?.user?.name || "Web POS";
+    const sellerEmail = session?.user?.email || "";
+
+    console.log("📦 createSaleAction called by:", sellerName, "with:", JSON.stringify(data, null, 2));
     
     const result = await createQuickSale({
       total: data.total,
       paymentMethod: data.paymentMethod,
       items: data.items,
+      notas: data.notas,
+      cashReceived: data.cashReceived,
+      changeGiven: data.changeGiven,
+      tax: data.tax,
+      sellerName,
+      sellerEmail,
     });
 
     console.log("✅ Sale result:", result);

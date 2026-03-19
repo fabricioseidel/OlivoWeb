@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeftIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, TrashIcon, PlusIcon, CameraIcon } from "@heroicons/react/24/outline";
+import POSScanner from "@/components/admin/POSScanner";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import SingleImageUpload from "@/components/ui/SingleImageUpload";
@@ -18,6 +19,7 @@ export default function NewProductPage() {
   const { categories } = useCategories();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   // Estado para proveedores
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -366,16 +368,26 @@ export default function NewProductPage() {
                   />
                 </div>
 
-                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <Input
-                    label="Código de Barras (Opcional)"
-                    id="barcode"
-                    name="barcode"
-                    type="text"
-                    value={formData.barcode}
-                    onChange={handleChange}
-                    placeholder="Dejar vacío para generar automáticamente"
-                  />
+                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6 items-end">
+                  <div className="relative">
+                    <Input
+                      label="Código de Barras (Opcional)"
+                      id="barcode"
+                      name="barcode"
+                      type="text"
+                      value={formData.barcode}
+                      onChange={handleChange}
+                      placeholder="Dejar vacío para generar automáticamente"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowScanner(true)}
+                      className="absolute top-[34px] right-2 p-1.5 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors"
+                      title="Escanear con cámara"
+                    >
+                      <CameraIcon className="h-5 w-5" />
+                    </button>
+                  </div>
                   <div className="flex gap-4">
                     <div className="flex-1">
                       <Input
@@ -719,6 +731,15 @@ export default function NewProductPage() {
           </div>
         </form>
       </div>
+      {showScanner && (
+        <POSScanner
+          onScan={(barcode) => {
+            setFormData(prev => ({ ...prev, barcode }));
+            setShowScanner(false);
+          }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </div>
   );
 }

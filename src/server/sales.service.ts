@@ -21,6 +21,11 @@ export async function createQuickSale(data: {
     name?: string;
   }>;
   notas?: string;
+  sellerName?: string;
+  sellerEmail?: string;
+  cashReceived?: number;
+  changeGiven?: number;
+  tax?: number;
 }) {
   // ── Step 1: Insert the sale ──────────────────────────────────────────
   const { data: sale, error: saleErr } = await supabaseServer
@@ -31,6 +36,11 @@ export async function createQuickSale(data: {
       notes: data.notas || '',
       device_id: 'web-pos',
       client_sale_id: `web-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      seller_name: data.sellerName || 'Web POS',
+      seller_email: data.sellerEmail || '',
+      cash_received: data.cashReceived || 0,
+      change_given: data.changeGiven || 0,
+      tax: data.tax || 0,
     })
     .select("id")
     .single();
