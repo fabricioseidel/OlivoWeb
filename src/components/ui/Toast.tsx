@@ -55,38 +55,29 @@ const Toast = ({ type = "info", message, show, onClose, duration = 4000 }: Toast
     <Transition
       show={show}
       as={Fragment}
-      enter="transform ease-out duration-300 transition"
-      enterFrom="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-4"
-      enterTo="translate-y-0 opacity-100 sm:translate-x-0"
-      leave="transition ease-in duration-200"
+      enter="transform ease-out duration-200 transition"
+      enterFrom="translate-y-4 opacity-0 scale-95"
+      enterTo="translate-y-0 opacity-100 scale-100"
+      leave="transition ease-in duration-150"
       leaveFrom="opacity-100 scale-100"
       leaveTo="opacity-0 scale-95"
     >
-      <div className={`max-w-[calc(100vw-2rem)] w-72 pointer-events-auto overflow-hidden rounded-[2rem] bg-white/90 backdrop-blur-md shadow-[0_20px_50px_rgba(0,0,0,0.15)] ring-1 ring-black/5 transition-all border ${config.border}`}>
-        <div className="p-3">
-          <div className="flex items-center gap-3">
-            <div className={`flex-shrink-0 rounded-full p-2 ${config.bg}`}>
-              <Icon className={`h-4 w-4 ${config.color}`} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-black uppercase tracking-wider text-gray-900 truncate">
-                {message}
-              </p>
-            </div>
-            <div className="flex-shrink-0">
-              <button
-                onClick={onClose}
-                className="p-1 rounded-full text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      <div className={`pointer-events-auto overflow-hidden rounded-full bg-slate-900/80 backdrop-blur-lg shadow-2xl ring-1 ring-white/10 transition-all border ${config.border.replace('bg-', 'border-').replace('50', '500/20')}`}>
+        <div className="px-4 py-2 flex items-center gap-2.5">
+          <div className={`flex-shrink-0`}>
+            <Icon className={`h-3.5 w-3.5 ${config.color}`} />
           </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.1em] text-white whitespace-nowrap">
+            {message}
+          </p>
+          <button onClick={onClose} className="ml-1 p-0.5 rounded-full text-white/30 hover:text-white transition-colors">
+            <X className="h-3 w-3" />
+          </button>
         </div>
-        {/* Subtle Progress Bar */}
-        <div className="h-1 w-full bg-gray-100/50">
+        {/* Slim Progress Bar */}
+        <div className="h-[2px] w-full bg-white/5">
           <div
-            className={`h-full ${config.color.replace('text-', 'bg-')} opacity-60`}
+            className={`h-full ${config.color.replace('text-', 'bg-')}`}
             style={{
               width: '100%',
               animation: `shrink ${duration}ms linear forwards`

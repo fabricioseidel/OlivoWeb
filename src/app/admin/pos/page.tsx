@@ -103,7 +103,7 @@ export default function POSPage() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-[100dvh] bg-slate-950 text-white overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-full bg-slate-950 text-white overflow-hidden">
       {/* ── Product Grid ── */}
       <div className={`flex-1 flex flex-col p-3 lg:p-4 ${showCart ? 'hidden lg:flex' : 'flex'}`}>
         {/* Search Bar */}
@@ -127,9 +127,9 @@ export default function POSPage() {
             </button>
           </div>
           {/* Mobile cart toggle */}
-          <button onClick={() => setShowCart(true)} className="lg:hidden relative bg-emerald-600 p-3 rounded-xl">
+          <button onClick={() => setShowCart(true)} className="lg:hidden relative bg-emerald-600 p-3 rounded-xl shadow-lg shadow-emerald-600/20">
             <ShoppingBagIcon className="h-5 w-5" />
-            {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">{cart.length}</span>}
+            {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-white text-emerald-600 text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-emerald-600">{cart.length}</span>}
           </button>
         </div>
 
@@ -141,12 +141,23 @@ export default function POSPage() {
         )}
 
         {/* Products grid with scroll loading */}
-        <div className="flex-1 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-5 gap-2 content-start" onScroll={handleScroll}>
+        <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-5 gap-2 content-start pb-20 lg:pb-0" onScroll={handleScroll}>
           {loading ? Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="h-32 bg-slate-900/50 rounded-xl animate-pulse" />
           )) : visibleProducts.map((p) => (
-            <button key={p.id} onClick={() => { addToCart(p); showToast(`+ ${p.name}`, "success"); }}
-              className="group bg-slate-900 rounded-xl p-2 border border-slate-800 hover:border-emerald-500 transition-all active:scale-95 text-left">
+            <button key={p.id} 
+              disabled={p.stock <= 0}
+              onClick={() => { 
+                if (p.stock <= 0) {
+                  showToast("Producto sin stock", "error");
+                  return;
+                }
+                addToCart(p); 
+                showToast(`+ ${p.name}`, "success"); 
+              }}
+              className={`group bg-slate-900 rounded-xl p-2 border transition-all active:scale-95 text-left flex flex-col h-full ${
+                p.stock <= 0 ? 'opacity-50 grayscale border-slate-800 cursor-not-allowed' : 'border-slate-800 hover:border-emerald-500'
+              }`}>
               <div className="relative aspect-square rounded-lg overflow-hidden mb-2 bg-slate-800">
                 <Image src={p.image} alt={p.name} fill className="object-cover" sizes="20vw" />
                 {p.stock <= 0 && <div className="absolute inset-0 bg-black/60 flex items-center justify-center"><span className="text-[9px] font-bold text-red-400 uppercase">Sin Stock</span></div>}

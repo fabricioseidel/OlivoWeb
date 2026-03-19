@@ -32,8 +32,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {/* Toast stack: top-right to avoid covering bottom action buttons */}
-      <div className="fixed top-4 right-4 sm:top-8 sm:right-8 z-[70] pointer-events-none flex flex-col items-end gap-2 px-2 max-w-full">
+      {/* Toast stack: bottom-right to be less invasive */}
+      <div className="fixed bottom-20 sm:bottom-8 right-0 sm:right-8 z-[100] pointer-events-none flex flex-col items-center sm:items-end gap-2 px-4 w-full sm:w-auto">
         {toasts.map((t) => (
           <Toast
             key={t.id}

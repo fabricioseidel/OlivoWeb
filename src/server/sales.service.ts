@@ -27,30 +27,60 @@ export async function createQuickSale(data: {
   changeGiven?: number;
   tax?: number;
 }) {
-  // ── Step 1: Insert the sale ──────────────────────────────────────────
-  const { data: sale, error: saleErr } = await supabaseServer
-    .from("sales")
-    .insert({
-      total: data.total,
-      payment_method: data.paymentMethod,
-      notes: data.notas || '',
-      device_id: 'web-pos',
-      client_sale_id: `web-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      seller_name: data.sellerName || 'Web POS',
-      seller_email: data.sellerEmail || '',
-      cash_received: data.cashReceived || 0,
-      change_given: data.changeGiven || 0,
-      tax: data.tax || 0,
-    })
-    .select("id")
-    .single();
+  // ── Step 1: Insert the sale with Column Fallback ────────────────────
+  let salePayload: any = {
+    total: data.total,
+    payment_method: data.paymentMethod,
+    notes: data.notas || '',
+    device_id: 'web-pos',
+    client_sale_id: `web-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    seller_name: data.sellerName || 'Web POS',
+    seller_email: data.sellerEmail || '',
+    cash_received: data.cashReceived || 0,
+    change_given: data.changeGiven || 0,
+    tax: data.tax || 0,
+  };
 
-  if (saleErr) {
-    console.error("🔥 Step 1 FAILED (insert sale):", saleErr);
-    throw new Error(`Error al crear venta: ${saleErr.message}`);
+  let saleInstance: any = null;
+  let lastError: any = null;
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const { data: sale, error: saleErr } = await supabaseServer
+      .from("sales")
+      .insert(salePayload)
+      .select("id")
+      .maybeSingle();
+
+    if (!saleErr && sale) {
+      saleInstance = sale;
+      break;
+    }
+
+    lastError = saleErr;
+
+    // Retry logic if column is missing (PGRST204)
+    if (saleErr?.code === 'PGRST204' && typeof saleErr?.message === 'string') {
+      const match = saleErr.message.match(/Could not find the '([^']+)' column of 'sales'/);
+      const missingColumn = match?.[1];
+      if (missingColumn && Object.prototype.hasOwnProperty.call(salePayload, missingColumn)) {
+        console.warn(`🚀 Schema mismatch: Removing missing column [${missingColumn}] and retrying...`);
+        const nextPayload = { ...salePayload };
+        delete nextPayload[missingColumn];
+        salePayload = nextPayload;
+        continue;
+      }
+    }
+
+    // Generic error
+    console.error(`🔥 Step 1 FAILED (insert sale) - Attempt ${attempt + 1}:`, saleErr);
+    throw new Error(`Error al crear venta: ${saleErr?.message || 'Unknown error'}`);
   }
 
-  const saleId = sale.id;
+  if (!saleInstance) {
+    throw new Error(`No se pudo obtener el ID de la venta creada. ${lastError?.message || ''}`);
+  }
+
+  const saleId = saleInstance.id;
   console.log("✅ Step 1: Sale created, ID:", saleId);
 
   // ── Step 2: Insert sale items ────────────────────────────────────────

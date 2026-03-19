@@ -165,45 +165,43 @@ export default function AdminLayout({
   return (
     <div className={`flex min-h-screen ${isPOS ? 'bg-black' : 'bg-[#fcfdfd]'}`}>
       {/* ── Mobile Sidebar (Slide-over) ── */}
-      {!isPOS && (
-        <Transition.Root show={mobileMenuOpen} as={Fragment}>
-          <Dialog as="div" className="relative z-[100] md:hidden" onClose={setMobileMenuOpen}>
+      <Transition.Root show={mobileMenuOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-[100] md:hidden" onClose={setMobileMenuOpen}>
+          <Transition.Child
+            as={Fragment}
+            enter="transition-opacity ease-linear duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="transition-opacity ease-linear duration-300"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-gray-950/80 backdrop-blur-sm" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 flex z-[101]">
             <Transition.Child
               as={Fragment}
-              enter="transition-opacity ease-linear duration-300"
-              enterFrom="opacity-0"
-              enterTo="opacity-100"
-              leave="transition-opacity ease-linear duration-300"
-              leaveFrom="opacity-100"
-              leaveTo="opacity-0"
+              enter="transition ease-in-out duration-300 transform"
+              enterFrom="-translate-x-full"
+              enterTo="translate-x-0"
+              leave="transition ease-in-out duration-300 transform"
+              leaveFrom="translate-x-0"
+              leaveTo="-translate-x-full"
             >
-              <div className="fixed inset-0 bg-gray-950/80 backdrop-blur-sm" />
+              <Dialog.Panel className="relative flex w-full max-w-[280px] flex-1 flex-col bg-emerald-950 shadow-2xl">
+                <div className="p-6 flex items-center justify-between border-b border-white/5">
+                  <span className="text-lg font-black text-white tracking-widest">OLIVO<span className="text-emerald-500 italic">ADMIN</span></span>
+                  <button type="button" onClick={() => setMobileMenuOpen(false)} className="p-2 text-emerald-500 hover:text-white">
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                </div>
+                <NavContent mobile />
+              </Dialog.Panel>
             </Transition.Child>
-
-            <div className="fixed inset-0 flex z-[101]">
-              <Transition.Child
-                as={Fragment}
-                enter="transition ease-in-out duration-300 transform"
-                enterFrom="-translate-x-full"
-                enterTo="translate-x-0"
-                leave="transition ease-in-out duration-300 transform"
-                leaveFrom="translate-x-0"
-                leaveTo="-translate-x-full"
-              >
-                <Dialog.Panel className="relative flex w-full max-w-[280px] flex-1 flex-col bg-emerald-950 shadow-2xl">
-                  <div className="p-6 flex items-center justify-between border-b border-white/5">
-                    <span className="text-lg font-black text-white tracking-widest">OLIVO<span className="text-emerald-500 italic">ADMIN</span></span>
-                    <button type="button" onClick={() => setMobileMenuOpen(false)} className="p-2 text-emerald-500 hover:text-white">
-                      <XMarkIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <NavContent mobile />
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
-          </Dialog>
-        </Transition.Root>
-      )}
+          </div>
+        </Dialog>
+      </Transition.Root>
 
       {/* ── Desktop Sidebar ── */}
       {!isPOS && (
@@ -223,15 +221,14 @@ export default function AdminLayout({
 
       {/* ── Main Content ── */}
       <div className="flex-1 flex flex-col min-h-screen">
-        {!isPOS && (
-          <header className="sticky top-0 z-40 flex h-16 items-center justify-between bg-emerald-950 px-4 md:hidden">
-            <button onClick={() => setMobileMenuOpen(true)} className="p-2 text-emerald-400">
-              <Bars3Icon className="h-5 w-5" />
-            </button>
-            <span className="text-lg font-black text-white tracking-widest uppercase">Olivo<span className="text-emerald-500 italic lowercase">Admin</span></span>
-            <div className="w-9" />
-          </header>
-        )}
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-emerald-950 px-4 md:hidden border-b border-white/5">
+          <button onClick={() => setMobileMenuOpen(true)} className="p-2 text-emerald-400">
+            <Bars3Icon className="h-5 w-5" />
+          </button>
+          <span className="text-md font-black text-white tracking-widest uppercase">Olivo<span className="text-emerald-500 italic lowercase">Admin</span></span>
+          <div className="w-9" />
+        </header>
+
         <main className={`flex-1 ${isPOS ? 'p-0' : 'py-4 px-3 sm:px-6 lg:px-8'}`}>
           {wrappedContent}
         </main>
