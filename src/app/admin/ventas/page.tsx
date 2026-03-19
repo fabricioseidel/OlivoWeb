@@ -387,10 +387,13 @@ export default function VentasPage() {
               className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             >
               <option value="all">Todos los métodos</option>
-              <option value="efectivo">Efectivo</option>
+              <option value="efectivo">Efectivo (App)</option>
+              <option value="cash">Efectivo (POS)</option>
               <option value="debito">Débito</option>
               <option value="credito">Crédito</option>
-              <option value="transferencia">Transferencia</option>
+              <option value="card">Tarjeta (POS)</option>
+              <option value="transferencia">Transferencia (App)</option>
+              <option value="transfer">Transferencia (POS)</option>
             </select>
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client";
+import React, { useEffect, useState, Fragment, ReactNode } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState, Fragment } from "react";
 import Link from "next/link";
 import {
   ShoppingBagIcon,
@@ -10,23 +10,73 @@ import {
   ClipboardDocumentListIcon,
   ChartBarIcon,
   Cog6ToothIcon,
-  BugAntIcon,
   TruckIcon,
   ArrowPathIcon,
   CurrencyDollarIcon,
-  ArrowUpTrayIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   XMarkIcon,
   Bars3Icon,
+  UserCircleIcon,
+  ShoppingCartIcon,
+  BanknotesIcon,
+  ArchiveBoxIcon,
 } from "@heroicons/react/24/outline";
 import { Dialog, Transition } from "@headlessui/react";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { POSProvider } from "@/contexts/POSContext";
+
+// ── Sidebar Groups ──────────────────────────────────────────────────────
+type MenuItem = { name: string; href: string; icon: typeof ChartBarIcon };
+type MenuGroup = { label: string; items: MenuItem[] };
+
+const menuGroups: MenuGroup[] = [
+  {
+    label: "General",
+    items: [
+      { name: "Dashboard", href: "/admin", icon: ChartBarIcon },
+    ],
+  },
+  {
+    label: "Ventas",
+    items: [
+      { name: "Punto de Venta", href: "/admin/pos", icon: UserCircleIcon },
+      { name: "Caja (Arqueo)", href: "/admin/caja", icon: BanknotesIcon },
+      { name: "Historial Ventas", href: "/admin/ventas", icon: CurrencyDollarIcon },
+    ],
+  },
+  {
+    label: "Inventario",
+    items: [
+      { name: "Productos", href: "/admin/productos", icon: ShoppingBagIcon },
+      { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
+    ],
+  },
+  {
+    label: "Compras",
+    items: [
+      { name: "Proveedores", href: "/admin/proveedores", icon: TruckIcon },
+      { name: "Reposición", href: "/admin/reabastecimiento", icon: ArrowPathIcon },
+      { name: "Pedidos Proveedor", href: "/admin/pedidos-proveedor", icon: ArchiveBoxIcon },
+    ],
+  },
+  {
+    label: "Admin",
+    items: [
+      { name: "Pedidos Clientes", href: "/admin/pedidos", icon: ClipboardDocumentListIcon },
+      { name: "Usuarios", href: "/admin/usuarios", icon: UsersIcon },
+      { name: "Configuración", href: "/admin/configuracion", icon: Cog6ToothIcon },
+    ],
+  },
+];
+
+// Flatten for active detection
+const allItems = menuGroups.flatMap(g => g.items);
 
 export default function AdminLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -34,16 +84,14 @@ export default function AdminLayout({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Verificar si el usuario es administrador o vendedor
+  // Auth guard
   useEffect(() => {
     if (status === "loading") return;
-
     if (status === "unauthenticated") {
       const callback = encodeURIComponent(pathname);
       router.replace(`/login?callbackUrl=${callback}`);
       return;
     }
-
     if (status === "authenticated") {
       const userRole = ((session as any)?.role || (session as any)?.user?.role || "USER").toString().toUpperCase();
       if (userRole !== "ADMIN" && userRole !== "SELLER") {
@@ -52,7 +100,7 @@ export default function AdminLayout({
     }
   }, [status, session, router, pathname]);
 
-  // Cerrar menú móvil al navegar
+  // Close mobile menu on navigate
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
@@ -66,185 +114,126 @@ export default function AdminLayout({
   }
 
   if (status === "unauthenticated") return null;
-
   const userRole = ((session as any)?.role || (session as any)?.user?.role || "USER").toString().toUpperCase();
   if (userRole !== "ADMIN" && userRole !== "SELLER") return null;
 
-  const menuItems = [
-    { name: "Dashboard", href: "/admin", icon: ChartBarIcon },
-    { name: "Productos", href: "/admin/productos", icon: ShoppingBagIcon },
-    { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
-    { name: "Ventas", href: "/admin/ventas", icon: CurrencyDollarIcon },
-    { name: "Uber Eats Export", href: "/admin/uber-eats", icon: ArrowUpTrayIcon },
-    { name: "Reabastecimiento", href: "/admin/reabastecimiento", icon: ArrowPathIcon },
-    { name: "Pedidos Proveedores", href: "/admin/pedidos-proveedor", icon: TruckIcon },
-    { name: "Proveedores", href: "/admin/proveedores", icon: TruckIcon },
-    { name: "Pedidos Clientes", href: "/admin/pedidos", icon: ClipboardDocumentListIcon },
-    { name: "Usuarios", href: "/admin/usuarios", icon: UsersIcon },
-    { name: "Configuración", href: "/admin/configuracion", icon: Cog6ToothIcon },
-    { name: "Debug", href: "/debug/categorias", icon: BugAntIcon },
-  ];
+  const isPOS = pathname === "/admin/pos";
 
-  return (
-    <div className="flex min-h-screen bg-[#fcfdfd]">
-      {/* Sidebar Móvil (Slide-over) */}
-      <Transition.Root show={mobileMenuOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-[100] md:hidden" onClose={setMobileMenuOpen}>
-          <Transition.Child
-            as={Fragment}
-            enter="transition-opacity ease-linear duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="transition-opacity ease-linear duration-300"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-gray-950/80 backdrop-blur-sm" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 flex z-[101]">
-            <Transition.Child
-              as={Fragment}
-              enter="transition ease-in-out duration-300 transform"
-              enterFrom="-translate-x-full"
-              enterTo="translate-x-0"
-              leave="transition ease-in-out duration-300 transform"
-              leaveFrom="translate-x-0"
-              leaveTo="-translate-x-full"
-            >
-              <Dialog.Panel className="relative flex w-full max-w-[300px] flex-1 flex-col bg-emerald-950 shadow-2xl">
-                <div className="absolute inset-y-0 right-0 w-[1px] bg-gradient-to-b from-transparent via-emerald-500/20 to-transparent" />
-                <div className="p-8 flex items-center justify-between border-b border-white/5 bg-emerald-950/50 backdrop-blur-md">
-                  <span className="text-xl font-black text-white tracking-widest">
-                    OLIVO<span className="text-emerald-500 italic">ADMIN</span>
-                  </span>
-                  <button type="button" className="p-3 bg-white/5 rounded-2xl text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all border border-white/10" onClick={() => setMobileMenuOpen(false)}>
-                    <XMarkIcon className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <nav className="flex-1 overflow-y-auto px-4 py-6 scrollbar-hide">
-                  <div className="space-y-1.5">
-                    {menuItems.map((item) => (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className={`group flex items-center px-5 py-4 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 ${pathname === item.href
-                          ? "bg-emerald-600 text-white shadow-xl shadow-emerald-900/40"
-                          : "text-emerald-100/30 hover:bg-white/5 hover:text-emerald-400 font-bold"
-                          }`}
-                      >
-                        <item.icon
-                          className={`mr-4 h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${pathname === item.href ? "text-white" : "text-emerald-100/20 group-hover:text-emerald-400"
-                            }`}
-                        />
-                        {item.name}
-                      </Link>
-                    ))}
-                  </div>
-                </nav>
-
-                <div className="p-8 border-t border-white/5 bg-emerald-950/30">
-                  <button
-                    onClick={() => { /* Logout logic */ }}
-                    className="w-full flex items-center justify-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-rose-400 bg-rose-400/5 hover:bg-rose-400 hover:text-white rounded-2xl transition-all border border-rose-400/20"
-                  >
-                    <ArrowPathIcon className="w-4 h-4 rotate-180" />
-                    Cerrar Sesión
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
-        </Dialog>
-      </Transition.Root>
-
-      {/* Sidebar Escritorio Premium */}
-      <div
-        className={`hidden md:flex flex-col sticky top-0 h-screen bg-emerald-950 border-r border-white/5 transition-all duration-500 ease-in-out flex-shrink-0 relative ${isCollapsed ? "w-24" : "w-72"
-          }`}
-      >
-        <div className="absolute inset-y-0 right-0 w-[1px] bg-gradient-to-b from-transparent via-emerald-500/20 to-transparent" />
-        
-        <div className="flex items-center h-24 flex-shrink-0 px-8 bg-emerald-950/50 backdrop-blur-md justify-between border-b border-white/5 mb-6">
+  // ── Sidebar nav content (shared between desktop and mobile) ──
+  const NavContent = ({ mobile = false }: { mobile?: boolean }) => (
+    <nav className={`flex-1 overflow-y-auto ${mobile ? 'px-4 py-4' : 'px-3 py-2'}`}>
+      {menuGroups.map((group) => (
+        <div key={group.label} className="mb-4">
           {!isCollapsed && (
-            <Link href="/admin" className="text-xl font-black text-white tracking-widest">
-              OLIVO<span className="text-emerald-500 italic">ADMIN</span>
-            </Link>
+            <p className="px-4 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500/50">
+              {group.label}
+            </p>
           )}
-          {isCollapsed && (
-            <Link href="/admin" className="text-xl font-black text-emerald-500 mx-auto italic tracking-tighter">
-              OA
-            </Link>
-          )}
-        </div>
-
-        <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden px-4 mb-4 scrollbar-hide">
-          <nav className="flex-1 space-y-2">
-            {menuItems.map((item) => {
-              const isActive = pathname === item.href;
+          <div className="space-y-0.5">
+            {group.items.map((item) => {
+              const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`group relative flex items-center px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all duration-500 ${isActive
-                    ? "bg-emerald-600 text-white shadow-xl shadow-emerald-900/40 translate-x-1"
-                    : "text-emerald-100/30 hover:bg-emerald-600/10 hover:text-emerald-400"
-                    } ${isCollapsed ? "justify-center px-0 h-14" : ""}`}
+                  className={`flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
+                    isActive
+                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
+                      : "text-emerald-100/40 hover:text-emerald-300 hover:bg-white/5"
+                  }`}
                 >
-                  <item.icon
-                    className={`shrink-0 transition-all duration-500 group-hover:scale-110 ${isActive ? "text-white" : "text-emerald-100/20 group-hover:text-emerald-500"
-                      } ${!isCollapsed ? "mr-4 h-5 w-5" : "h-6 w-6"}`}
-                  />
-                  {!isCollapsed && <span className="truncate">{item.name}</span>}
-                  
-                  {/* Indicador Activo */}
-                  {isActive && !isCollapsed && (
-                    <div className="absolute left-0 w-1 h-6 bg-white rounded-full -ml-4" />
-                  )}
+                  <item.icon className={`h-4 w-4 shrink-0 ${isCollapsed && !mobile ? "mx-auto" : ""}`} />
+                  {(!isCollapsed || mobile) && <span className="truncate">{item.name}</span>}
                 </Link>
               );
             })}
-          </nav>
-        </div>
-
-        <div className="p-8 border-t border-white/5 bg-emerald-950/30 flex justify-between items-center">
-            {!isCollapsed && (
-                <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest italic">Vuestro Market</span>
-                    <span className="text-[10px] font-bold text-emerald-100/20 truncate w-32 uppercase">Panel de Control</span>
-                </div>
-            )}
-            <button
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="p-3 rounded-2xl bg-white/5 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all border border-white/10"
-            >
-                {isCollapsed ? <ChevronRightIcon className="h-5 w-5" /> : <ChevronLeftIcon className="h-5 w-5" />}
-            </button>
-        </div>
-      </div>
-
-      {/* Contenido Principal */}
-      <div className="flex-1 flex flex-col min-h-screen">
-        {/* Header Móvil Premium */}
-        <header className="sticky top-0 z-40 flex h-20 shrink-0 items-center justify-between bg-emerald-950 px-6 shadow-xl shadow-emerald-950/20 md:hidden border-b border-white/5">
-          <button type="button" className="p-3 bg-white/5 border border-white/10 rounded-2xl text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-lg" onClick={() => setMobileMenuOpen(true)}>
-            <Bars3Icon className="h-5 w-5" aria-hidden="true" />
-          </button>
-
-          <Link href="/admin" className="text-xl font-black text-white tracking-widest uppercase">
-            Olivo<span className="text-emerald-500 italic lowercase">Admin</span>
-          </Link>
-
-          <div className="w-11" />
-        </header>
-
-        <main className="flex-1">
-          <div className="py-6 sm:py-8 lg:py-10">
-            <div className="mx-auto w-full px-4 sm:px-6 lg:px-8">
-              <ErrorBoundary>{children}</ErrorBoundary>
-            </div>
           </div>
+        </div>
+      ))}
+    </nav>
+  );
+
+  // Content wrapper: only POS gets POSProvider
+  const wrappedContent = isPOS ? (
+    <POSProvider>
+      <ErrorBoundary>{children}</ErrorBoundary>
+    </POSProvider>
+  ) : (
+    <ErrorBoundary>{children}</ErrorBoundary>
+  );
+
+  return (
+    <div className={`flex min-h-screen ${isPOS ? 'bg-black' : 'bg-[#fcfdfd]'}`}>
+      {/* ── Mobile Sidebar (Slide-over) ── */}
+      {!isPOS && (
+        <Transition.Root show={mobileMenuOpen} as={Fragment}>
+          <Dialog as="div" className="relative z-[100] md:hidden" onClose={setMobileMenuOpen}>
+            <Transition.Child
+              as={Fragment}
+              enter="transition-opacity ease-linear duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="transition-opacity ease-linear duration-300"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <div className="fixed inset-0 bg-gray-950/80 backdrop-blur-sm" />
+            </Transition.Child>
+
+            <div className="fixed inset-0 flex z-[101]">
+              <Transition.Child
+                as={Fragment}
+                enter="transition ease-in-out duration-300 transform"
+                enterFrom="-translate-x-full"
+                enterTo="translate-x-0"
+                leave="transition ease-in-out duration-300 transform"
+                leaveFrom="translate-x-0"
+                leaveTo="-translate-x-full"
+              >
+                <Dialog.Panel className="relative flex w-full max-w-[280px] flex-1 flex-col bg-emerald-950 shadow-2xl">
+                  <div className="p-6 flex items-center justify-between border-b border-white/5">
+                    <span className="text-lg font-black text-white tracking-widest">OLIVO<span className="text-emerald-500 italic">ADMIN</span></span>
+                    <button type="button" onClick={() => setMobileMenuOpen(false)} className="p-2 text-emerald-500 hover:text-white">
+                      <XMarkIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                  <NavContent mobile />
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </Dialog>
+        </Transition.Root>
+      )}
+
+      {/* ── Desktop Sidebar ── */}
+      {!isPOS && (
+        <div className={`hidden md:flex flex-col sticky top-0 h-screen bg-emerald-950 transition-all duration-500 ${isCollapsed ? "w-20" : "w-64"}`}>
+          <div className="flex items-center h-20 px-6 border-b border-white/5">
+            {!isCollapsed && <span className="text-lg font-black text-white">OLIVO<span className="text-emerald-500 italic">ADMIN</span></span>}
+            {isCollapsed && <span className="text-lg font-black text-emerald-500 mx-auto italic">OA</span>}
+          </div>
+          <NavContent />
+          <div className="p-4 border-t border-white/5 flex justify-center">
+            <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-2 text-emerald-500 hover:text-emerald-300 transition-colors">
+              {isCollapsed ? <ChevronRightIcon className="h-5 w-5" /> : <ChevronLeftIcon className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Main Content ── */}
+      <div className="flex-1 flex flex-col min-h-screen">
+        {!isPOS && (
+          <header className="sticky top-0 z-40 flex h-16 items-center justify-between bg-emerald-950 px-4 md:hidden">
+            <button onClick={() => setMobileMenuOpen(true)} className="p-2 text-emerald-400">
+              <Bars3Icon className="h-5 w-5" />
+            </button>
+            <span className="text-lg font-black text-white tracking-widest uppercase">Olivo<span className="text-emerald-500 italic lowercase">Admin</span></span>
+            <div className="w-9" />
+          </header>
+        )}
+        <main className={`flex-1 ${isPOS ? 'p-0' : 'py-4 px-3 sm:px-6 lg:px-8'}`}>
+          {wrappedContent}
         </main>
       </div>
     </div>

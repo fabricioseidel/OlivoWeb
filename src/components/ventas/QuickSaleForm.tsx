@@ -63,9 +63,6 @@ export default function QuickSaleForm({ customers }: QuickSaleFormProps) {
         reset({ customerId: "", total: 0, paymentMethod: "cash", notas: "" });
         return;
       }
-      if (result?.errors) {
-        setServerErrors(result.errors);
-      }
     });
   });
 

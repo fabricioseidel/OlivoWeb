@@ -1,56 +1,52 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-
-import { QuickSaleFormData, saleSchema } from "@/schemas/sale.schema";
 import { createQuickSale } from "@/server/sales.service";
 import type { ToastType } from "@/components/ui/Toast";
 
-const DASHBOARD_SALES_PATH = "/dashboard/ventas";
-
 type SaleActionState = {
-  errors?: Partial<Record<"customerId" | "total" | "paymentMethod" | "notas", string[]>>;
-  message?: string | null;
   ok?: boolean;
   toastMessage?: string;
   toastType?: ToastType;
 };
 
-const validationErrorState: SaleActionState = {
-  message: "Corrige los errores e inténtalo nuevamente",
-  toastMessage: "Revisa el formulario de venta",
-  toastType: "error",
-};
-
-function formatError(error: unknown) {
-  if (error instanceof Error) return error.message;
-  if (typeof error === "string") return error;
-  return "Ocurrió un error inesperado";
-}
-
-export async function createSaleAction(data: QuickSaleFormData): Promise<SaleActionState> {
-  const parsed = saleSchema.safeParse(data);
-
-  if (!parsed.success) {
-    return {
-      ...validationErrorState,
-      errors: parsed.error.flatten().fieldErrors,
-    };
-  }
-
+export async function createSaleAction(data: {
+  total: number;
+  paymentMethod: string;
+  items?: Array<{
+    product_id: string;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+    name?: string;
+  }>;
+}): Promise<SaleActionState> {
   try {
-    await createQuickSale(parsed.data);
-    revalidatePath(DASHBOARD_SALES_PATH);
+    console.log("📦 createSaleAction called with:", JSON.stringify(data, null, 2));
+    
+    const result = await createQuickSale({
+      total: data.total,
+      paymentMethod: data.paymentMethod,
+      items: data.items,
+    });
+
+    console.log("✅ Sale result:", result);
+
+    revalidatePath("/admin/ventas");
+    revalidatePath("/admin/pos");
+    revalidatePath("/admin/caja");
+
     return {
       ok: true,
       toastMessage: "Venta registrada correctamente",
       toastType: "success",
     };
-  } catch (error) {
-    const message = formatError(error);
+  } catch (error: any) {
+    console.error("🔥 createSaleAction CRASH:", error);
+    const msg = error?.message || "Error desconocido al registrar venta";
     return {
-      message,
-      toastMessage: message,
+      ok: false,
+      toastMessage: msg,
       toastType: "error",
     };
   }
