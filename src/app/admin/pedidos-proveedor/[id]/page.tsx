@@ -562,35 +562,43 @@ export default function SupplierOrderDetailPage({
             </p>
           </div>
 
-          {/* Acciones rápidas */}
-          {order.status !== 'recibido' && order.status !== 'cancelado' && (
+          {/* Acciones rápidas (Solo disponibles si no está cancelado) */}
+          {order.status !== 'cancelado' && order.status !== 'recibido' && (
             <div className="bg-white border rounded-lg p-6">
               <h2 className="text-lg font-semibold mb-4">Acciones</h2>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {order.status === 'gestionado' && (
-                  <button
-                    onClick={() => updateStatus('recibido')}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center gap-2"
-                  >
-                    <Check className="h-4 w-4" />
-                    Marcar como Recibido
-                  </button>
+                  <div>
+                    <button
+                      onClick={() => updateStatus('recibido')}
+                      className="w-full px-4 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.98]"
+                    >
+                      <Check className="h-5 w-5" />
+                      Marcar como Recibido
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      ⚠️ Al marcar como recibido, el stock de los productos se incrementará automáticamente.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
           )}
 
           {/* Botón de cancelar separado */}
-          {order.status !== 'cancelado' && order.status !== 'recibido' && (
-            <div className="bg-white border rounded-lg p-6">
+          {order.status !== 'cancelado' && (
+            <div className="bg-white border rounded-lg p-6 mt-6">
               <h2 className="text-lg font-semibold mb-4 text-red-700">Zona de Peligro</h2>
               <button
                 onClick={() => {
-                  if (confirm('¿Estás seguro de que deseas cancelar este pedido? Esta acción no se puede deshacer.')) {
+                  const msg = order.status === 'recibido'
+                    ? '¿Estás seguro? Al cancelar un pedido ya recibido SE DESCONTARÁ EL STOCK ingresado automáticamente. Esta acción no se puede deshacer.'
+                    : '¿Estás seguro de que deseas cancelar este pedido? Esta acción no se puede deshacer.';
+                  if (confirm(msg)) {
                     updateStatus('cancelado');
                   }
                 }}
-                className="w-full px-4 py-2 border-2 border-red-600 text-red-600 rounded hover:bg-red-50 flex items-center justify-center gap-2 font-medium"
+                className="w-full px-4 py-2 border-2 border-red-600 text-red-600 rounded-lg hover:bg-red-50 flex items-center justify-center gap-2 font-medium transition active:scale-[0.98]"
               >
                 <X className="h-4 w-4" />
                 Cancelar Pedido

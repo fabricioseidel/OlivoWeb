@@ -46,6 +46,7 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     // considerarlo activo para que aparezcan en la tienda pública.
     isActive: p.is_active ?? true,
     barcode: p.barcode,
+    purchasePrice: p.purchase_price ? Number(p.purchase_price) : undefined,
   };
 }
 

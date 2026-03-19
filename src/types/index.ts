@@ -45,6 +45,7 @@ export type ProductUI = {
   offerPrice?: number;
   isActive?: boolean;
   barcode?: string;
+  purchasePrice?: number;
 };
 
 export interface CartItem {

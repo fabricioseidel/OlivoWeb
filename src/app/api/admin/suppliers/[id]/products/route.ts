@@ -42,12 +42,17 @@ export async function GET(
     const products = (productSuppliers || []).map((ps: any) => {
       const product = Array.isArray(ps.products) ? ps.products[0] : ps.products;
       
+      const supplierCost = parseFloat(ps.unit_cost);
+      const productCost = parseFloat(product?.purchase_price || '0');
+      const hasSupplierCost = !isNaN(supplierCost) && supplierCost > 0;
+      
       return {
         id: product?.id,
         name: product?.name,
         barcode: product?.barcode,
         stock: product?.stock || 0,
-        purchase_price: ps.unit_cost || product?.purchase_price || 0,
+        purchase_price: hasSupplierCost ? supplierCost : productCost,
+        cost_source: hasSupplierCost ? 'supplier' : 'product',
         reorder_threshold: ps.reorder_threshold || product?.reorder_threshold || 10,
         supplier_id: id,
         supplier_sku: ps.supplier_sku || product?.barcode,

@@ -2,8 +2,26 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  ArrowPathIcon,
+  PlusIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  EyeIcon,
+  ClockIcon,
+  BanknotesIcon,
+  CheckCircleIcon,
+  TruckIcon,
+  ExclamationTriangleIcon,
+  ShoppingCartIcon,
+} from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/contexts/ToastContext";
+
+// ════════════════════════════════════════════════════════════════════
+// TYPES
+// ════════════════════════════════════════════════════════════════════
 
 type SupplierSummary = {
   id: string;
@@ -55,195 +73,403 @@ type SupplierGroup = {
   lowProducts: SupplierGroupItem[];
 };
 
+interface SupplierOrder {
+  id: string;
+  supplierId: string;
+  supplierName: string;
+  orderDate: string;
+  expectedDate?: string;
+  deliveredDate?: string;
+  status: 'pendiente' | 'confirmado' | 'enviado_por_whatsapp' | 'gestionado' | 'recibido' | 'cancelado';
+  paymentStatus: 'pendiente' | 'parcial' | 'pagado';
+  total: number;
+  itemCount: number;
+  notes?: string;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════════════════
+
+const statusColors: Record<string, string> = {
+  pendiente: 'bg-yellow-100 text-yellow-800',
+  confirmado: 'bg-blue-100 text-blue-800',
+  enviado_por_whatsapp: 'bg-purple-100 text-purple-800',
+  gestionado: 'bg-indigo-100 text-indigo-800',
+  recibido: 'bg-green-100 text-green-800',
+  cancelado: 'bg-red-100 text-red-800',
+};
+
+const statusLabels: Record<string, string> = {
+  pendiente: 'Pendiente',
+  confirmado: 'Confirmado',
+  enviado_por_whatsapp: 'WhatsApp',
+  gestionado: 'Gestionado',
+  recibido: 'Recibido',
+  cancelado: 'Cancelado',
+};
+
+const paymentStatusColors: Record<string, string> = {
+  pendiente: 'bg-red-100 text-red-800',
+  parcial: 'bg-yellow-100 text-yellow-800',
+  pagado: 'bg-green-100 text-green-800',
+};
+
+const paymentLabels: Record<string, string> = {
+  pendiente: 'Sin pagar',
+  parcial: 'Parcial',
+  pagado: 'Pagado',
+};
+
+// ════════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════════
+
 function buildSupplierGroups(items: ReplenishmentProduct[]): SupplierGroup[] {
   const map = new Map<string, SupplierGroup>();
-
   items.forEach((product) => {
     product.suppliers.forEach((assignment) => {
-      const supplierId = assignment.supplier.id;
-      if (!map.has(supplierId)) {
-        map.set(supplierId, {
-          supplier: assignment.supplier,
-          lowProducts: [],
-        });
+      const sid = assignment.supplier.id;
+      if (!map.has(sid)) {
+        map.set(sid, { supplier: assignment.supplier, lowProducts: [] });
       }
-      map.get(supplierId)!.lowProducts.push({
-        product,
-        assignment,
-      });
+      map.get(sid)!.lowProducts.push({ product, assignment });
     });
   });
-
   return Array.from(map.values()).sort((a, b) =>
-    a.supplier.name.localeCompare(b.supplier.name),
+    b.lowProducts.length - a.lowProducts.length
   );
 }
 
-export default function ReplenishmentPage() {
+// ════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ════════════════════════════════════════════════════════════════════
+
+type TabId = "stock" | "pedidos";
+
+export default function ComprasPage() {
   const { showToast } = useToast();
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get("tab") as TabId) || "stock";
+
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
+
+  // ── Tab: Stock Bajo ──
+  const [lowLoading, setLowLoading] = useState(true);
   const [lowData, setLowData] = useState<ReplenishmentResponse | null>(null);
 
-  const loadLowData = useCallback(async () => {
-    setLoading(true);
+  // ── Tab: Pedidos ──
+  const [orders, setOrders] = useState<SupplierOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("todos");
+
+  // ═══════════════════ DATA LOADING ═══════════════════
+
+  const loadLowStock = useCallback(async () => {
+    setLowLoading(true);
     try {
       const res = await fetch("/api/admin/replenishment");
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(
-          data.error || "No se pudo cargar la información de reposición",
-        );
-      }
-      const response = (await res.json()) as ReplenishmentResponse;
-      setLowData(response);
+      if (!res.ok) throw new Error("Error cargando stock bajo");
+      const data = (await res.json()) as ReplenishmentResponse;
+      setLowData(data);
     } catch (error: any) {
-      console.error("[Replenishment] load error:", error);
-      showToast(error.message || "Error cargando reposición", "error");
+      showToast(error.message || "Error cargando datos", "error");
     } finally {
-      setLoading(false);
+      setLowLoading(false);
+    }
+  }, [showToast]);
+
+  const loadOrders = useCallback(async () => {
+    setOrdersLoading(true);
+    try {
+      const res = await fetch("/api/admin/supplier-orders");
+      if (!res.ok) throw new Error("Error cargando pedidos");
+      const data = await res.json();
+      setOrders(data.orders || []);
+    } catch (error: any) {
+      showToast(error.message || "Error cargando pedidos", "error");
+    } finally {
+      setOrdersLoading(false);
     }
   }, [showToast]);
 
   useEffect(() => {
-    loadLowData();
-  }, [loadLowData]);
+    loadLowStock();
+    loadOrders();
+  }, [loadLowStock, loadOrders]);
+
+  // ═══════════════════ MEMOS ═══════════════════
 
   const supplierGroups = useMemo(
     () => buildSupplierGroups(lowData?.items ?? []),
-    [lowData],
+    [lowData]
   );
 
+  const filteredOrders = useMemo(() => {
+    let filtered = orders;
+    if (orderSearch.trim()) {
+      const q = orderSearch.toLowerCase();
+      filtered = filtered.filter(o =>
+        o.id.toLowerCase().includes(q) ||
+        o.supplierName.toLowerCase().includes(q)
+      );
+    }
+    if (orderStatusFilter !== "todos") {
+      filtered = filtered.filter(o => o.status === orderStatusFilter);
+    }
+    return filtered.sort((a, b) =>
+      new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
+    );
+  }, [orders, orderSearch, orderStatusFilter]);
+
+  const stats = useMemo(() => {
+    const active = orders.filter(o => !['recibido', 'cancelado'].includes(o.status)).length;
+    const unpaid = orders.filter(o => o.paymentStatus === 'pendiente').length;
+    const totalPending = orders
+      .filter(o => o.paymentStatus !== 'pagado')
+      .reduce((s, o) => s + o.total, 0);
+    return { active, unpaid, totalPending };
+  }, [orders]);
+
+  // ═══════════════════ RENDER ═══════════════════
+
+  const tabs = [
+    { id: "stock" as TabId, label: "Stock Bajo", icon: ExclamationTriangleIcon, badge: lowData?.lowStockCount },
+    { id: "pedidos" as TabId, label: "Pedidos", icon: ShoppingCartIcon, badge: stats.active || undefined },
+  ];
+
   return (
-    <div className="space-y-6 py-2">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-4 py-2">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Reposición con proveedores
-          </h1>
-          <p className="text-sm text-gray-500">
-            Gestiona rápidamente los pedidos a proveedores sin perder de vista los
-            productos con stock bajo.
+          <h1 className="text-2xl font-bold text-gray-900">Compras</h1>
+          <p className="text-xs text-gray-500">
+            Monitorea stock, crea pedidos y gestiona entregas
           </p>
-          {lowData?.generatedAt ? (
-            <p className="text-xs text-gray-400 mt-1">
-              Actualizado: {new Date(lowData.generatedAt).toLocaleString()}
-            </p>
-          ) : null}
         </div>
-        <Button type="button" onClick={loadLowData} disabled={loading}>
-          {loading ? "Actualizando..." : "Actualizar datos"}
-        </Button>
+        <button
+          onClick={() => { loadLowStock(); loadOrders(); }}
+          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition"
+          title="Actualizar datos"
+        >
+          <ArrowPathIcon className={`h-5 w-5 text-gray-600 ${lowLoading || ordersLoading ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
-      <section className="bg-white border rounded-lg shadow-sm p-6 space-y-6">
-        <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800">
-              Productos bajos de stock por proveedor
-            </h2>
-            <p className="text-sm text-gray-500">
-              Cada tarjeta muestra los productos críticos asignados a ese proveedor.
-              Desde aquí puedes iniciar un nuevo pedido en pocos pasos.
-            </p>
-          </div>
-          {lowData ? (
-            <div className="text-sm text-gray-500">
-              Total productos monitoreados:{" "}
-              <span className="font-semibold text-gray-700">
-                {lowData.totalProducts}
-              </span>{" "}
-              · Con alerta de stock:{" "}
-              <span className="font-semibold text-red-600">
-                {lowData.lowStockCount}
-              </span>
-            </div>
-          ) : null}
-        </header>
+      {/* ── Quick Stats ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white rounded-xl border p-3 text-center">
+          <p className="text-2xl font-black text-red-600">{lowData?.lowStockCount ?? "—"}</p>
+          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Stock bajo</p>
+        </div>
+        <div className="bg-white rounded-xl border p-3 text-center">
+          <p className="text-2xl font-black text-yellow-600">{stats.active}</p>
+          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Activos</p>
+        </div>
+        <div className="bg-white rounded-xl border p-3 text-center">
+          <p className="text-2xl font-black text-emerald-600">${stats.totalPending > 0 ? (stats.totalPending / 1000).toFixed(0) + "k" : "0"}</p>
+          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Pendiente</p>
+        </div>
+      </div>
 
-        {loading ? (
-          <div className="py-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-sm text-gray-500">Cargando información...</p>
-          </div>
-        ) : supplierGroups.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-500">
-            No hay productos con stock por debajo del umbral configurado.
-          </div>
-        ) : (
-          <div className="grid gap-4 xl:grid-cols-2">
-            {supplierGroups.map((group) => (
-              <SupplierCard
-                key={group.supplier.id}
-                group={group}
+      {/* ── Tabs ── */}
+      <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all ${
+              activeTab === tab.id
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <tab.icon className="h-4 w-4" />
+            <span>{tab.label}</span>
+            {tab.badge !== undefined && tab.badge > 0 && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                activeTab === tab.id ? "bg-red-100 text-red-700" : "bg-gray-200 text-gray-600"
+              }`}>
+                {tab.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ══════════════════ TAB: STOCK BAJO ══════════════════ */}
+      {activeTab === "stock" && (
+        <div className="space-y-4">
+          {lowLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-emerald-500" />
+            </div>
+          ) : supplierGroups.length === 0 ? (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-8 text-center">
+              <CheckCircleIcon className="h-12 w-12 text-emerald-400 mx-auto mb-3" />
+              <p className="font-semibold text-emerald-800">¡Stock al día!</p>
+              <p className="text-sm text-emerald-600 mt-1">
+                No hay productos por debajo del umbral de reposición.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {supplierGroups.map((group) => (
+                <SupplierStockCard key={group.supplier.id} group={group} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══════════════════ TAB: PEDIDOS ══════════════════ */}
+      {activeTab === "pedidos" && (
+        <div className="space-y-4">
+          {/* New Order Button */}
+          <Link href="/admin/reabastecimiento?tab=stock">
+            <Button className="w-full py-3 text-sm">
+              <PlusIcon className="h-5 w-5 mr-2" />
+              Crear Pedido desde Stock Bajo
+            </Button>
+          </Link>
+
+          {/* Filters */}
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar..."
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
-            ))}
+            </div>
+            <select
+              value={orderStatusFilter}
+              onChange={(e) => setOrderStatusFilter(e.target.value)}
+              className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="todos">Todos</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="gestionado">Gestionado</option>
+              <option value="recibido">Recibido</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
           </div>
-        )}
-      </section>
+
+          {/* Orders List */}
+          {ordersLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-emerald-500" />
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="bg-white rounded-xl border p-8 text-center">
+              <p className="text-sm text-gray-500">No se encontraron pedidos</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredOrders.map((order) => (
+                <Link key={order.id} href={`/admin/pedidos-proveedor/${order.id}`}>
+                  <div className="bg-white rounded-xl border p-4 space-y-2 hover:shadow-md transition active:scale-[0.99]">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-sm font-bold text-gray-900">{order.supplierName}</div>
+                        <div className="text-[10px] text-gray-400 font-mono">#{order.id.slice(0, 8)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-base font-black text-emerald-600">${order.total.toLocaleString()}</div>
+                        <div className="text-[10px] text-gray-400">{order.itemCount} prod.</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-1.5">
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${statusColors[order.status] || 'bg-gray-100 text-gray-600'}`}>
+                          {statusLabels[order.status] || order.status}
+                        </span>
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${paymentStatusColors[order.paymentStatus] || 'bg-gray-100 text-gray-600'}`}>
+                          {paymentLabels[order.paymentStatus] || order.paymentStatus}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-gray-400">
+                        {new Date(order.orderDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function SupplierCard({
-  group,
-}: {
-  group: SupplierGroup;
-}) {
-  const lowProducts = group.lowProducts.sort(
-    (a, b) => b.assignment.deficit - a.assignment.deficit,
+// ════════════════════════════════════════════════════════════════════
+// SUPPLIER STOCK CARD (for Stock Bajo tab)
+// ════════════════════════════════════════════════════════════════════
+
+function SupplierStockCard({ group }: { group: SupplierGroup }) {
+  const sorted = group.lowProducts.sort(
+    (a, b) => a.product.stock - b.product.stock
   );
-  const topProducts = lowProducts.slice(0, 3);
-  const remaining = lowProducts.length - topProducts.length;
+  const topProducts = sorted.slice(0, 4);
+  const remaining = sorted.length - topProducts.length;
 
   return (
-    <div className="border border-gray-200 rounded-lg p-5 flex flex-col gap-4 shadow-sm hover:shadow transition">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">
+    <div className="bg-white border rounded-xl p-4 space-y-3 hover:shadow-sm transition">
+      {/* Supplier Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-bold text-gray-900 truncate">
             {group.supplier.name}
           </h3>
-          <p className="text-xs text-gray-500">
-            {group.supplier.contact_name
-              ? `Contacto: ${group.supplier.contact_name}`
-              : "Sin contacto asignado"}
-            {group.supplier.whatsapp
-              ? ` • WhatsApp: ${group.supplier.whatsapp}`
-              : group.supplier.phone
-              ? ` • Tel: ${group.supplier.phone}`
-              : ""}
+          <p className="text-[10px] text-gray-500 mt-0.5">
+            {group.supplier.contact_name && `${group.supplier.contact_name} • `}
+            {group.supplier.whatsapp || group.supplier.phone || "Sin teléfono"}
           </p>
         </div>
-        <span className="inline-flex items-center gap-1 text-xs font-medium bg-red-100 text-red-700 px-3 py-1 rounded-full">
-          {group.lowProducts.length} productos críticos
+        <span className="shrink-0 text-[10px] font-bold bg-red-100 text-red-700 px-2.5 py-1 rounded-full">
+          {group.lowProducts.length} bajos
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {topProducts.map(({ product, assignment }) => (
-          <span
-            key={product.productId}
-            className="inline-flex items-center gap-2 text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full"
-          >
-            <span className="font-medium">{product.name}</span>
-            <span className="text-red-600">
-              Stock {product.stock}/{assignment.reorderThreshold ?? product.threshold}
+      {/* Product Pills */}
+      <div className="flex flex-wrap gap-1.5">
+        {topProducts.map(({ product }) => {
+          const isZero = product.stock === 0;
+          return (
+            <span
+              key={product.productId}
+              className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border ${
+                isZero
+                  ? "bg-red-50 border-red-200 text-red-700"
+                  : "bg-yellow-50 border-yellow-200 text-yellow-700"
+              }`}
+            >
+              <span className="font-medium truncate max-w-[140px]">{product.name}</span>
+              <span className="font-black">{product.stock}/{product.threshold}</span>
             </span>
+          );
+        })}
+        {remaining > 0 && (
+          <span className="text-[10px] text-gray-400 self-center">
+            +{remaining} más
           </span>
-        ))}
-        {remaining > 0 ? (
-          <span className="text-xs text-gray-500">
-            +{remaining} producto(s) adicional(es)
-          </span>
-        ) : null}
+        )}
       </div>
 
-      <div className="flex justify-end">
-        <Link href={`/admin/pedidos-proveedor/nuevo?supplierId=${group.supplier.id}`}>
-          <Button>
-            Crear Pedido
-          </Button>
-        </Link>
-      </div>
+      {/* Action */}
+      <Link href={`/admin/pedidos-proveedor/nuevo?supplierId=${group.supplier.id}`}>
+        <button className="w-full mt-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition active:scale-[0.98]">
+          <ShoppingCartIcon className="h-4 w-4 inline mr-1.5 -mt-0.5" />
+          Crear Pedido
+        </button>
+      </Link>
     </div>
   );
 }

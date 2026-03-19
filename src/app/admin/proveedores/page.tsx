@@ -613,9 +613,28 @@ export default function SuppliersAdminPage() {
                   <select
                     className="mt-1 w-full rounded-md border border-gray-300 px-2 py-2 text-sm focus:border-blue-500 focus:ring-blue-500"
                     value={assignmentForm.productId}
-                    onChange={(e) =>
-                      handleAssignmentChange("productId", e.target.value)
-                    }
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      if (!id) {
+                        handleAssignmentChange("productId", "");
+                        return;
+                      }
+                      
+                      const selectedProduct = products.find(p => p.id === id);
+                      if (selectedProduct && selectedProduct.purchasePrice) {
+                        // Auto-completar precio sin IVA desde el producto y calcular con IVA
+                        const withoutVat = selectedProduct.purchasePrice;
+                        const withVat = withoutVat * 1.19;
+                        setAssignmentForm(prev => ({
+                          ...prev,
+                          productId: id,
+                          priceWithoutVat: withoutVat.toFixed(2),
+                          priceWithVat: withVat.toFixed(2),
+                        }));
+                      } else {
+                        handleAssignmentChange("productId", id);
+                      }
+                    }}
                     required
                   >
                     <option value="">Selecciona producto</option>

@@ -56,8 +56,7 @@ const menuGroups: MenuGroup[] = [
     label: "Compras",
     items: [
       { name: "Proveedores", href: "/admin/proveedores", icon: TruckIcon },
-      { name: "Reposición", href: "/admin/reabastecimiento", icon: ArrowPathIcon },
-      { name: "Pedidos Proveedor", href: "/admin/pedidos-proveedor", icon: ArchiveBoxIcon },
+      { name: "Compras", href: "/admin/reabastecimiento", icon: ShoppingCartIcon },
     ],
   },
   {

@@ -118,6 +118,15 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
+    // ── Read previous status BEFORE updating ──
+    const { data: previousOrder } = await supabaseServer
+      .from('supplier_orders')
+      .select('status')
+      .eq('id', id)
+      .single();
+
+    const previousStatus = previousOrder?.status;
+
     const updates: any = {};
 
     if (body.status) updates.status = body.status;
@@ -126,8 +135,8 @@ export async function PATCH(
     if (body.delivered_date !== undefined) updates.delivered_date = body.delivered_date;
     if (body.notes !== undefined) updates.notes = body.notes;
 
-    // Si se marca como entregado, agregar fecha de entrega
-    if (body.status === 'entregado' && !updates.delivered_date) {
+    // Auto-set delivered_date when marking as recibido
+    if (body.status === 'recibido' && !updates.delivered_date) {
       updates.delivered_date = new Date().toISOString().split('T')[0];
     }
 
@@ -149,67 +158,104 @@ export async function PATCH(
       );
     }
 
-    // ===== ACTUALIZACIÓN AUTOMÁTICA DEL INVENTARIO =====
-    // Si el pedido pasa a "recibido", aumentar el stock
-    if (body.status === 'recibido') {
+    // ═══════════════════════════════════════════════════════════════
+    // STOCK AUTO-UPDATE: Increment stock when order is "recibido"
+    // ═══════════════════════════════════════════════════════════════
+    if (body.status === 'recibido' && previousStatus !== 'recibido') {
       try {
-        // Obtener los items del pedido
+        const { data: orderItems } = await supabaseServer
+          .from('supplier_order_items')
+          .select('product_id, quantity, supplier_sku')
+          .eq('order_id', id);
+
+        if (orderItems && orderItems.length > 0) {
+          for (const item of orderItems) {
+            // Direct stock increment (no RPC dependency)
+            const { data: currentProduct } = await supabaseServer
+              .from('products')
+              .select('stock, barcode')
+              .eq('id', item.product_id)
+              .maybeSingle();
+
+            if (currentProduct) {
+              const newStock = (Number(currentProduct.stock) || 0) + item.quantity;
+              await supabaseServer
+                .from('products')
+                .update({ stock: newStock })
+                .eq('id', item.product_id);
+
+              // Record inventory movement for traceability
+              try {
+                await supabaseServer
+                  .from('inventory_movements')
+                  .insert({
+                    product_barcode: currentProduct.barcode,
+                    type: 'IN',
+                    quantity: item.quantity,
+                    reason: `Recepción pedido proveedor #${id.slice(0, 8)}`,
+                    reference_id: id,
+                  });
+              } catch {
+                // inventory_movements may not exist yet — non-critical
+              }
+            }
+          }
+          console.log(`✅ Stock actualizado: pedido ${id.slice(0, 8)}, +${orderItems.length} productos`);
+        }
+      } catch (invError) {
+        console.error('Error al actualizar inventario:', invError);
+        // Don't fail the status update because of inventory error
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // STOCK REVERT: If cancelling a previously received order
+    // ═══════════════════════════════════════════════════════════════
+    if (body.status === 'cancelado' && previousStatus === 'recibido') {
+      try {
         const { data: orderItems } = await supabaseServer
           .from('supplier_order_items')
           .select('product_id, quantity')
           .eq('order_id', id);
 
         if (orderItems && orderItems.length > 0) {
-          // Actualizar el stock de cada producto
           for (const item of orderItems) {
-            await supabaseServer.rpc('increment_product_stock', {
-              p_product_id: item.product_id,
-              p_quantity: item.quantity
-            });
-          }
-          console.log(`Inventario actualizado para pedido ${id}: +${orderItems.length} productos`);
-        }
-      } catch (invError) {
-        console.error('Error al actualizar inventario:', invError);
-        // No fallar la actualización del pedido por error en inventario
-      }
-    }
+            const { data: currentProduct } = await supabaseServer
+              .from('products')
+              .select('stock, barcode')
+              .eq('id', item.product_id)
+              .maybeSingle();
 
-    // Si el pedido es cancelado y estaba en "recibido", revertir el stock
-    if (body.status === 'cancelado') {
-      try {
-        // Verificar si el pedido estaba previamente en "recibido"
-        const { data: previousOrder } = await supabaseServer
-          .from('supplier_orders')
-          .select('status')
-          .eq('id', id)
-          .single();
+            if (currentProduct) {
+              const newStock = Math.max(0, (Number(currentProduct.stock) || 0) - item.quantity);
+              await supabaseServer
+                .from('products')
+                .update({ stock: newStock })
+                .eq('id', item.product_id);
 
-        if (previousOrder && previousOrder.status === 'recibido') {
-          // Obtener los items del pedido
-          const { data: orderItems } = await supabaseServer
-            .from('supplier_order_items')
-            .select('product_id, quantity')
-            .eq('order_id', id);
-
-          if (orderItems && orderItems.length > 0) {
-            // Revertir el stock de cada producto
-            for (const item of orderItems) {
-              await supabaseServer.rpc('decrement_product_stock', {
-                p_product_id: item.product_id,
-                p_quantity: item.quantity
-              });
+              try {
+                await supabaseServer
+                  .from('inventory_movements')
+                  .insert({
+                    product_barcode: currentProduct.barcode,
+                    type: 'OUT',
+                    quantity: item.quantity,
+                    reason: `Cancelación pedido proveedor #${id.slice(0, 8)}`,
+                    reference_id: id,
+                  });
+              } catch {
+                // non-critical
+              }
             }
-            console.log(`Inventario revertido para pedido cancelado ${id}`);
           }
+          console.log(`⚠️ Stock revertido: pedido cancelado ${id.slice(0, 8)}`);
         }
       } catch (invError) {
         console.error('Error al revertir inventario:', invError);
       }
     }
 
-
-    // Obtener items actualizados
+    // ── Fetch updated items for response ──
     const { data: items } = await supabaseServer
       .from('supplier_order_items')
       .select(`

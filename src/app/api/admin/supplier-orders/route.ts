@@ -3,6 +3,7 @@ import { supabaseServer } from '@/lib/supabase-server';
 
 export async function GET() {
   try {
+    // Single query: fetch orders with supplier name AND item count via relation
     const { data: orders, error } = await supabaseServer
       .from('supplier_orders')
       .select(`
@@ -20,7 +21,8 @@ export async function GET() {
         total,
         paid_amount,
         notes,
-        created_at
+        created_at,
+        supplier_order_items (id)
       `)
       .order('order_date', { ascending: false });
 
@@ -32,31 +34,22 @@ export async function GET() {
       );
     }
 
-    // Obtener conteo de items por pedido
-    const ordersWithItems = await Promise.all(
-      (orders || []).map(async (order: any) => {
-        const { count } = await supabaseServer
-          .from('supplier_order_items')
-          .select('*', { count: 'exact', head: true })
-          .eq('order_id', order.id);
-
-        return {
-          id: order.id,
-          supplierId: order.supplier_id,
-          supplierName: Array.isArray(order.suppliers) ? order.suppliers[0]?.name : order.suppliers?.name || 'Sin nombre',
-          orderDate: order.order_date,
-          expectedDate: order.expected_date,
-          deliveredDate: order.delivered_date,
-          status: order.status,
-          paymentStatus: order.payment_status,
-          total: parseFloat(order.total || '0'),
-          paidAmount: parseFloat(order.paid_amount || '0'),
-          itemCount: count || 0,
-          notes: order.notes,
-          createdAt: order.created_at,
-        };
-      })
-    );
+    // Transform — no more N+1 queries for item count
+    const ordersWithItems = (orders || []).map((order: any) => ({
+      id: order.id,
+      supplierId: order.supplier_id,
+      supplierName: Array.isArray(order.suppliers) ? order.suppliers[0]?.name : order.suppliers?.name || 'Sin nombre',
+      orderDate: order.order_date,
+      expectedDate: order.expected_date,
+      deliveredDate: order.delivered_date,
+      status: order.status,
+      paymentStatus: order.payment_status,
+      total: parseFloat(order.total || '0'),
+      paidAmount: parseFloat(order.paid_amount || '0'),
+      itemCount: Array.isArray(order.supplier_order_items) ? order.supplier_order_items.length : 0,
+      notes: order.notes,
+      createdAt: order.created_at,
+    }));
 
     return NextResponse.json({ orders: ordersWithItems });
   } catch (error) {

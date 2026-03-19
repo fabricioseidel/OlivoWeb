@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Package, Save, Send } from "lucide-react";
+import { ArrowLeftIcon, PaperAirplaneIcon, CheckIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import { useToast } from "@/contexts/ToastContext";
 
 interface Supplier {
   id: string;
@@ -11,7 +12,6 @@ interface Supplier {
   contact_name?: string;
   phone?: string;
   whatsapp?: string;
-  email?: string;
 }
 
 interface Product {
@@ -27,7 +27,7 @@ interface Product {
 }
 
 interface OrderItem {
-  product_id: number; // Cambiado de string a number
+  product_id: number;
   product_name: string;
   product_sku: string;
   supplier_sku: string;
@@ -40,181 +40,156 @@ export default function NuevoPedidoProveedorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supplierId = searchParams.get("supplierId");
+  const { showToast } = useToast();
 
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedItems, setSelectedItems] = useState<Map<number, OrderItem>>(new Map());
-  const [notes, setNotes] = useState('');
-  const [expectedDate, setExpectedDate] = useState('');
+  const [notes, setNotes] = useState("");
+  const [expectedDate, setExpectedDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
+    if (!supplierId) return;
     const loadData = async () => {
-      if (supplierId) {
-        try {
-          setLoading(true);
-          
-          // Cargar proveedor
-          const supplierRes = await fetch(`/api/admin/suppliers/${supplierId}`);
-          if (supplierRes.ok) {
-            const supplierData = await supplierRes.json();
-            setSupplier(supplierData);
-          }
+      try {
+        setLoading(true);
+        const [supRes, prodsRes] = await Promise.all([
+          fetch(`/api/admin/suppliers/${supplierId}`),
+          fetch(`/api/admin/suppliers/${supplierId}/products`),
+        ]);
 
-          // Cargar productos del proveedor
-          const productsRes = await fetch(`/api/admin/suppliers/${supplierId}/products`);
-          if (productsRes.ok) {
-            const productsData = await productsRes.json();
-            setProducts(productsData);
-          }
-        } catch (error) {
-          console.error("Error loading data:", error);
-        } finally {
-          setLoading(false);
+        if (supRes.ok) setSupplier(await supRes.json());
+        if (prodsRes.ok) {
+          const prodsData = await prodsRes.json();
+          setProducts(prodsData);
+
+          // AUTO-SELECT: Products below reorder threshold
+          const autoMap = new Map<number, OrderItem>();
+          prodsData.forEach((p: Product) => {
+            const threshold = p.reorder_threshold || 5;
+            if (p.stock <= threshold) {
+              const qty = p.default_reorder_qty || Math.max(threshold - p.stock, 1);
+              autoMap.set(p.id, {
+                product_id: p.id,
+                product_name: p.name,
+                product_sku: p.barcode,
+                supplier_sku: p.supplier_sku || p.barcode,
+                quantity: qty,
+                unit_cost: p.purchase_price,
+                subtotal: qty * p.purchase_price,
+              });
+            }
+          });
+          if (autoMap.size > 0) setSelectedItems(autoMap);
         }
+
+        // Auto-set expected date to 3 days from now
+        const d = new Date();
+        d.setDate(d.getDate() + 3);
+        setExpectedDate(d.toISOString().split("T")[0]);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setLoading(false);
       }
     };
-    
     loadData();
   }, [supplierId]);
 
   const toggleProduct = (product: Product) => {
-    const newItems = new Map(selectedItems);
-    
-    if (newItems.has(product.id)) {
-      newItems.delete(product.id);
+    const next = new Map(selectedItems);
+    if (next.has(product.id)) {
+      next.delete(product.id);
     } else {
-      const minStock = product.reorder_threshold || 10;
-      const deficit = Math.max(minStock - product.stock, 0);
-      // Usar default_reorder_qty si está definido, sino usar el déficit o mínimo 1
-      const suggestedQty = product.default_reorder_qty || Math.max(deficit, 1);
-      
-      newItems.set(product.id, {
+      const threshold = product.reorder_threshold || 5;
+      const qty = product.default_reorder_qty || Math.max(threshold - product.stock, 1);
+      next.set(product.id, {
         product_id: product.id,
         product_name: product.name,
         product_sku: product.barcode,
         supplier_sku: product.supplier_sku || product.barcode,
-        quantity: suggestedQty,
+        quantity: qty,
         unit_cost: product.purchase_price,
-        subtotal: suggestedQty * product.purchase_price,
+        subtotal: qty * product.purchase_price,
       });
     }
-    
-    setSelectedItems(newItems);
+    setSelectedItems(next);
   };
 
-  const updateQuantity = (productId: number, quantity: number) => {
-    const newItems = new Map(selectedItems);
-    const item = newItems.get(productId);
-    
-    if (item && quantity > 0) {
-      item.quantity = quantity;
-      item.subtotal = quantity * item.unit_cost;
-      newItems.set(productId, item);
-      setSelectedItems(newItems);
+  const updateQty = (id: number, qty: number) => {
+    if (qty < 1) return;
+    const next = new Map(selectedItems);
+    const item = next.get(id);
+    if (item) {
+      item.quantity = qty;
+      item.subtotal = qty * item.unit_cost;
+      next.set(id, { ...item });
+      setSelectedItems(next);
     }
   };
 
-  const updateUnitCost = (productId: number, unitCost: number) => {
-    const newItems = new Map(selectedItems);
-    const item = newItems.get(productId);
-    
-    if (item && unitCost >= 0) {
-      item.unit_cost = unitCost;
-      item.subtotal = item.quantity * unitCost;
-      newItems.set(productId, item);
-      setSelectedItems(newItems);
-    }
-  };
+  const total = useMemo(
+    () => Array.from(selectedItems.values()).reduce((s, i) => s + i.subtotal, 0),
+    [selectedItems]
+  );
 
-  const calculateTotal = () => {
-    return Array.from(selectedItems.values()).reduce(
-      (sum, item) => sum + item.subtotal,
-      0
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm.trim()) return products;
+    const q = searchTerm.toLowerCase();
+    return products.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.barcode.includes(q)
     );
-  };
+  }, [products, searchTerm]);
 
   const generateWhatsAppMessage = () => {
-    if (!supplier || selectedItems.size === 0) return '';
-
+    if (!supplier || selectedItems.size === 0) return "";
     const items = Array.from(selectedItems.values());
-    const total = calculateTotal();
-    
-    let message = `🛒 *Pedido para ${supplier.name}*\n\n`;
-    message += `📅 Fecha esperada: ${expectedDate || 'Por definir'}\n\n`;
-    message += `*Productos:*\n`;
-    
-    items.forEach((item, index) => {
-      message += `${index + 1}. ${item.product_name}\n`;
-      message += `   • Código: ${item.supplier_sku}\n`;
-      message += `   • Cantidad: ${item.quantity}\n`;
-      message += `   • Precio unit.: $${item.unit_cost.toFixed(2)} (aprox.)\n`;
-      message += `   • Subtotal: $${item.subtotal.toFixed(2)}\n\n`;
+    let msg = `🛒 *Pedido para ${supplier.name}*\n\n`;
+    msg += `📅 Entrega esperada: ${expectedDate || "Por definir"}\n\n`;
+    msg += `*Productos:*\n`;
+    items.forEach((item, i) => {
+      msg += `${i + 1}. ${item.product_name} — ${item.quantity} uds x $${item.unit_cost.toFixed(0)} = $${item.subtotal.toFixed(0)}\n`;
     });
-    
-    message += `💰 *Total aproximado: $${total.toFixed(2)}*\n`;
-    
-    if (notes) {
-      message += `\n📝 Notas:\n${notes}`;
-    }
-    
-    return message;
+    msg += `\n💰 *Total aprox: $${total.toFixed(0)}*`;
+    if (notes) msg += `\n\n📝 ${notes}`;
+    return msg;
   };
 
   const sendWhatsApp = () => {
-    if (!supplier?.whatsapp && !supplier?.phone) {
-      alert('Este proveedor no tiene WhatsApp configurado');
-      return;
-    }
-
-    const message = generateWhatsAppMessage();
-    const phone = (supplier.whatsapp || supplier.phone || '').replace(/\D/g, '');
-    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    
-    window.open(whatsappUrl, '_blank');
+    const phone = (supplier?.whatsapp || supplier?.phone || "").replace(/\D/g, "");
+    if (!phone) { showToast("Sin WhatsApp configurado", "warning"); return; }
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(generateWhatsAppMessage())}`, "_blank");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (selectedItems.size === 0) {
-      alert("Debes seleccionar al menos un producto");
-      return;
-    }
-
-    if (!expectedDate) {
-      alert("Debes indicar una fecha esperada de entrega");
-      return;
-    }
+  const handleSubmit = async () => {
+    if (selectedItems.size === 0) { showToast("Selecciona al menos un producto", "warning"); return; }
+    if (!expectedDate) { showToast("Indica fecha de entrega", "warning"); return; }
 
     try {
       setSaving(true);
-      
-      const orderData = {
-        supplier_id: supplierId,
-        expected_date: expectedDate,
-        notes: notes,
-        items: Array.from(selectedItems.values()),
-        total: calculateTotal(),
-      };
-
-      const response = await fetch("/api/admin/supplier-orders", {
+      const res = await fetch("/api/admin/supplier-orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderData),
+        body: JSON.stringify({
+          supplier_id: supplierId,
+          expected_date: expectedDate,
+          notes,
+          items: Array.from(selectedItems.values()),
+          total,
+        }),
       });
 
-      if (response.ok) {
-        await response.json();
-        alert("Pedido creado exitosamente");
-        router.push(`/admin/pedidos-proveedor`);
+      if (res.ok) {
+        showToast("¡Pedido creado!", "success");
+        router.push("/admin/reabastecimiento?tab=pedidos");
       } else {
-        throw new Error("Error al crear el pedido");
+        throw new Error("Error al crear pedido");
       }
-    } catch (error) {
-      console.error("Error creating order:", error);
-      alert("Error al crear el pedido");
+    } catch (error: any) {
+      showToast(error.message || "Error creando pedido", "error");
     } finally {
       setSaving(false);
     }
@@ -222,11 +197,8 @@ export default function NuevoPedidoProveedorPage() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-emerald-500" />
       </div>
     );
   }
@@ -234,297 +206,197 @@ export default function NuevoPedidoProveedorPage() {
   if (!supplier) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">Proveedor no encontrado</p>
-          <Link
-            href="/admin/proveedores"
-            className="text-red-600 hover:text-red-700 underline mt-2 inline-block"
-          >
-            Volver a proveedores
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+          <p className="text-red-800 font-semibold">Proveedor no encontrado</p>
+          <Link href="/admin/reabastecimiento" className="text-red-600 underline text-sm mt-2 inline-block">
+            Volver a Compras
           </Link>
         </div>
       </div>
     );
   }
 
-  const total = calculateTotal();
-
   return (
-    <div className="p-6">
+    <div className="pb-32">
       {/* Header */}
-      <div className="mb-6">
-        <Link
-          href="/admin/reabastecimiento"
-          className="inline-flex items-center text-gray-600 hover:text-gray-800 mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver
-        </Link>
-        
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Nuevo Pedido a Proveedor
-            </h1>
-            <div className="mt-2 space-y-1">
-              <p className="text-lg text-gray-700">
-                <span className="font-semibold">{supplier.name}</span>
-              </p>
-              {supplier.contact_name && (
-                <p className="text-sm text-gray-600">
-                  Contacto: {supplier.contact_name}
-                </p>
-              )}
-              {supplier.phone && (
-                <p className="text-sm text-gray-600">
-                  Tel: {supplier.phone}
-                </p>
-              )}
-            </div>
-          </div>
-          
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-gray-600">Total aproximado del pedido</p>
-            <p className="text-2xl font-bold text-blue-600">
-              ${total.toFixed(2)}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              {selectedItems.size} productos seleccionados
-            </p>
-            <p className="text-xs text-amber-600 mt-1">
-              * Precios pueden variar
+      <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 py-3 px-1 border-b">
+        <div className="flex items-center gap-3">
+          <Link href="/admin/reabastecimiento" className="p-2 rounded-lg hover:bg-gray-100">
+            <ArrowLeftIcon className="h-5 w-5 text-gray-600" />
+          </Link>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-sm font-bold text-gray-900 truncate">Pedido a {supplier.name}</h1>
+            <p className="text-[10px] text-gray-500">
+              {selectedItems.size} sel. · Total: ${total.toLocaleString()}
             </p>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Información del pedido */}
-        <div className="bg-white border rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Información del Pedido</h2>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha Esperada de Entrega *
-              </label>
-              <input
-                type="date"
-                value={expectedDate}
-                onChange={(e) => setExpectedDate(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-                min={new Date().toISOString().split("T")[0]}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notas
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={3}
-                placeholder="Información adicional sobre el pedido..."
-              />
-            </div>
+      {/* Date + Notes */}
+      <div className="p-4 space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+              Entrega esperada
+            </label>
+            <input
+              type="date"
+              value={expectedDate}
+              onChange={(e) => setExpectedDate(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+              min={new Date().toISOString().split("T")[0]}
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+              Notas
+            </label>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+              placeholder="Ej: Pedir factura"
+            />
           </div>
         </div>
 
-        {/* Lista de productos */}
-        <div className="bg-white border rounded-lg overflow-hidden">
-          <div className="p-6 border-b bg-gray-50">
-            <h2 className="text-lg font-semibold flex items-center">
-              <Package className="h-5 w-5 mr-2" />
-              Catálogo de Productos
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Selecciona los productos que deseas incluir en el pedido
-            </p>
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Buscar producto..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+        />
+      </div>
+
+      {/* Product Cards */}
+      <div className="px-4 space-y-2">
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-8 text-sm text-gray-500">
+            No hay productos para este proveedor
           </div>
+        ) : (
+          filteredProducts.map((product) => {
+            const isSelected = selectedItems.has(product.id);
+            const item = selectedItems.get(product.id);
+            const threshold = product.reorder_threshold || 5;
+            const isLow = product.stock <= threshold;
+            const isZero = product.stock === 0;
 
-          {products.length === 0 ? (
-            <div className="p-12 text-center">
-              <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">
-                No hay productos asociados a este proveedor
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Seleccionar
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Producto
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      SKU
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Stock Actual
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Cantidad
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Precio Unit. (aprox.)
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Subtotal
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {products.map((product) => {
-                    const isSelected = selectedItems.has(product.id);
-                    const item = selectedItems.get(product.id);
-                    const minStock = product.reorder_threshold || 10;
-                    const isLowStock = product.stock < minStock;
+            return (
+              <div
+                key={product.id}
+                className={`rounded-xl border p-3 transition-all ${
+                  isSelected
+                    ? "bg-emerald-50 border-emerald-300 shadow-sm"
+                    : isZero
+                    ? "bg-red-50/50 border-red-200"
+                    : isLow
+                    ? "bg-yellow-50/50 border-yellow-200"
+                    : "bg-white border-gray-200"
+                }`}
+              >
+                {/* Row 1: Name + toggle */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleProduct(product)}
+                    className={`shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-all ${
+                      isSelected
+                        ? "bg-emerald-600 text-white"
+                        : "bg-gray-200 text-gray-400 hover:bg-gray-300"
+                    }`}
+                  >
+                    {isSelected && <CheckIcon className="h-4 w-4" />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-gray-900 truncate">
+                      {product.name}
+                    </div>
+                    <div className="text-[10px] text-gray-400">{product.barcode}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className={`text-xs font-black ${
+                      isZero ? "text-red-600" : isLow ? "text-yellow-600" : "text-gray-600"
+                    }`}>
+                      Stock: {product.stock}
+                    </div>
+                    <div className="text-[10px] text-gray-400">
+                      ${product.purchase_price > 0 ? product.purchase_price.toFixed(0) : "—"}/u
+                    </div>
+                  </div>
+                </div>
 
-                    return (
-                      <tr
-                        key={product.id}
-                        className={`${
-                          isSelected ? "bg-blue-50" : "hover:bg-gray-50"
-                        } ${isLowStock ? "border-l-4 border-l-yellow-400" : ""}`}
+                {/* Row 2: Quantity controls (if selected) */}
+                {isSelected && item && (
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-emerald-200">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => updateQty(product.id, item.quantity - 1)}
+                        className="w-8 h-8 rounded-lg bg-white border border-gray-300 text-gray-600 font-bold flex items-center justify-center active:bg-gray-100"
                       >
-                        <td className="px-6 py-4">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleProduct(product)}
-                            className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {product.name}
-                            </p>
-                            {isLowStock && (
-                              <span className="text-xs text-yellow-600">
-                                ⚠️ Stock bajo
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {product.barcode}
-                        </td>
-                        <td className="px-6 py-4 text-sm">
-                          <span
-                            className={
-                              isLowStock
-                                ? "text-yellow-600 font-semibold"
-                                : "text-gray-600"
-                            }
-                          >
-                            {product.stock} / {minStock}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          {isSelected && item ? (
-                            <input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                updateQuantity(product.id, parseInt(e.target.value) || 0)
-                              }
-                              className="w-20 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          {isSelected && item ? (
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.unit_cost}
-                              onChange={(e) =>
-                                updateUnitCost(product.id, parseFloat(e.target.value) || 0)
-                              }
-                              className="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                          ) : (
-                            <span className="text-gray-600">
-                              ${product.purchase_price.toFixed(2)}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 font-medium">
-                          {isSelected && item ? (
-                            <span className="text-blue-600">
-                              ${item.subtotal.toFixed(2)}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateQty(product.id, parseInt(e.target.value) || 1)}
+                        className="w-16 text-center py-1 border rounded-lg text-sm font-bold focus:ring-2 focus:ring-emerald-500"
+                        min={1}
+                      />
+                      <button
+                        onClick={() => updateQty(product.id, item.quantity + 1)}
+                        className="w-8 h-8 rounded-lg bg-white border border-gray-300 text-gray-600 font-bold flex items-center justify-center active:bg-gray-100"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-black text-emerald-700">
+                        ${item.subtotal.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Sticky Footer */}
+      {selectedItems.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t shadow-lg p-4 z-20">
+          <div className="max-w-2xl mx-auto flex items-center gap-3">
+            <div className="flex-1">
+              <div className="text-lg font-black text-gray-900">${total.toLocaleString()}</div>
+              <div className="text-[10px] text-gray-500">{selectedItems.size} productos</div>
             </div>
-          )}
-        </div>
 
-        {/* Resumen y acciones */}
-        <div className="flex items-center justify-between bg-white border rounded-lg p-6">
-          <div className="space-y-2">
-            <p className="text-sm text-gray-600">
-              {selectedItems.size} productos seleccionados
-            </p>
-            <p className="text-2xl font-bold text-gray-900">
-              Total aproximado: ${total.toFixed(2)}
-            </p>
-            <p className="text-xs text-amber-600">
-              * Los precios pueden variar según el proveedor
-            </p>
-          </div>
-
-          <div className="flex gap-3">
-            <Link
-              href="/admin/reabastecimiento"
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
-            >
-              Cancelar
-            </Link>
-            
-            {/* Botón de WhatsApp */}
             {(supplier?.whatsapp || supplier?.phone) && (
               <button
                 type="button"
                 onClick={sendWhatsApp}
-                disabled={selectedItems.size === 0}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex items-center gap-2"
+                className="p-3 bg-green-600 text-white rounded-xl hover:bg-green-700 active:scale-95 transition"
+                title="Enviar por WhatsApp"
               >
-                <Send className="h-4 w-4" />
-                Enviar por WhatsApp
+                <PaperAirplaneIcon className="h-5 w-5" />
               </button>
             )}
-            
+
             <button
-              type="submit"
-              disabled={saving || selectedItems.size === 0}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex items-center gap-2"
+              onClick={handleSubmit}
+              disabled={saving}
+              className="flex-1 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition font-bold text-sm disabled:opacity-50"
             >
-              <Save className="h-4 w-4" />
               {saving ? "Guardando..." : "Crear Pedido"}
             </button>
           </div>
         </div>
-      </form>
+      )}
     </div>
   );
 }
