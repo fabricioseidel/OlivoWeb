@@ -3,6 +3,7 @@
 import React from 'react';
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { CartItem } from '@/types';
+import { useToast } from "./ToastContext";
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -10,10 +11,12 @@ interface CartContextType {
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+  validateCartWithServer: () => Promise<boolean>;
   subtotal: number;
   total: number;
   shippingCost: number;
   itemCount: number;
+  isSyncing: boolean;
 }
 
 // Crear el contexto
@@ -23,6 +26,8 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const { showToast } = useToast();
 
   // Carga inicial del carrito desde localStorage (solo en el cliente)
   useEffect(() => {
@@ -119,17 +124,68 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('cartItems');
   }, []);
 
-  // Valores del contexto
+  // Validación con el servidor
+  const validateCartWithServer = useCallback(async () => {
+    if (cartItems.length === 0) return true;
+    
+    setIsSyncing(true);
+    try {
+      const response = await fetch('/api/cart/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: cartItems.map(i => ({ id: i.id, quantity: i.quantity, price: i.price })) })
+      });
+
+      const data = await response.json();
+
+      if (data.updates && data.updates.length > 0) {
+        let needsUpdate = false;
+        const newItems = cartItems.map(item => {
+          const update = data.updates.find((u: any) => u.id === item.id);
+          if (update) {
+            needsUpdate = true;
+            if (update.priceChanged) showToast(`El precio de ${item.name} ha cambiado`, "info");
+            if (update.insufficientStock) {
+              if (update.availableQty === 0) {
+                showToast(`${item.name} se ha agotado`, "error");
+              } else {
+                showToast(`Stock ajustado para ${item.name} (${update.availableQty} disp.)`, "warning");
+              }
+            }
+            
+            return { 
+              ...item, 
+              price: update.newPrice ?? item.price,
+              quantity: update.availableQty ?? item.quantity 
+            };
+          }
+          return item;
+        }).filter(item => item.quantity > 0);
+
+        if (needsUpdate) setCartItems(newItems);
+        return false; // False significa que hubo cambios (no puede continuar el checkout tal cual)
+      }
+      return true; // OK
+    } catch (error) {
+      console.error("Cart validation failed", error);
+      return true; // No bloqueamos si falla el server, asumimos true localmente
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [cartItems, showToast]);
+
   const contextValue: CartContextType = {
     cartItems,
     addToCart,
     removeFromCart,
     updateQuantity,
     clearCart,
+    validateCartWithServer,
     subtotal,
     total,
     shippingCost,
     itemCount,
+    isSyncing,
   };
 
   return <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>;

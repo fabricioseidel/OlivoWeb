@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeftIcon, PaperAirplaneIcon, CheckIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, PaperAirplaneIcon, CheckIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -12,6 +12,7 @@ interface Supplier {
   contact_name?: string;
   phone?: string;
   whatsapp?: string;
+  email?: string;
 }
 
 interface Product {
@@ -50,6 +51,7 @@ export default function NuevoPedidoProveedorPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sendEmail, setSendEmail] = useState(false);
 
   useEffect(() => {
     if (!supplierId) return;
@@ -164,7 +166,7 @@ export default function NuevoPedidoProveedorPage() {
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(generateWhatsAppMessage())}`, "_blank");
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (viaWhatsapp: boolean) => {
     if (selectedItems.size === 0) { showToast("Selecciona al menos un producto", "warning"); return; }
     if (!expectedDate) { showToast("Indica fecha de entrega", "warning"); return; }
 
@@ -179,14 +181,21 @@ export default function NuevoPedidoProveedorPage() {
           notes,
           items: Array.from(selectedItems.values()),
           total,
+          send_email: sendEmail,
+          sent_by_whatsapp: viaWhatsapp,
         }),
       });
 
       if (res.ok) {
-        showToast("¡Pedido creado!", "success");
+        showToast("¡Pedido creado con éxito!", "success");
+        if (viaWhatsapp) {
+           // We do this AFTER the successful DB insert so it opens whatsapp
+           sendWhatsApp();
+        }
         router.push("/admin/reabastecimiento?tab=pedidos");
       } else {
-        throw new Error("Error al crear pedido");
+        const d = await res.json();
+        throw new Error(d.error || "Error al crear pedido");
       }
     } catch (error: any) {
       showToast(error.message || "Error creando pedido", "error");
@@ -369,31 +378,59 @@ export default function NuevoPedidoProveedorPage() {
 
       {/* Sticky Footer */}
       {selectedItems.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t shadow-lg p-4 z-20">
-          <div className="max-w-2xl mx-auto flex items-center gap-3">
-            <div className="flex-1">
-              <div className="text-lg font-black text-gray-900">${total.toLocaleString()}</div>
-              <div className="text-[10px] text-gray-500">{selectedItems.size} productos</div>
-            </div>
-
-            {(supplier?.whatsapp || supplier?.phone) && (
-              <button
-                type="button"
-                onClick={sendWhatsApp}
-                className="p-3 bg-green-600 text-white rounded-xl hover:bg-green-700 active:scale-95 transition"
-                title="Enviar por WhatsApp"
-              >
-                <PaperAirplaneIcon className="h-5 w-5" />
-              </button>
+        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] p-4 z-20 pb-4">
+          <div className="max-w-2xl mx-auto flex flex-col gap-3">
+            {/* Opciones de Envío Extra */}
+            {supplier?.email && (
+              <label className="flex items-center gap-2 text-[11px] font-bold text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100 cursor-pointer hover:bg-gray-100 transition">
+                <input 
+                  type="checkbox" 
+                  checked={sendEmail} 
+                  onChange={(e) => setSendEmail(e.target.checked)}
+                  className="rounded text-emerald-600 focus:ring-emerald-500" 
+                />
+                <EnvelopeIcon className="h-4 w-4" />
+                También enviar formato PDF/Mensaje formal al correo de este proveedor ({supplier.email})
+              </label>
             )}
 
-            <button
-              onClick={handleSubmit}
-              disabled={saving}
-              className="flex-1 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition font-bold text-sm disabled:opacity-50"
-            >
-              {saving ? "Guardando..." : "Crear Pedido"}
-            </button>
+            <div className="flex items-end gap-3">
+              <div className="flex-1">
+                <div className="text-xl font-black text-gray-900 leading-none">${total.toLocaleString()}</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">{selectedItems.size} productos</div>
+              </div>
+
+              <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                <button
+                  onClick={() => handleSubmit(false)}
+                  disabled={saving}
+                  className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 active:scale-95 transition font-bold text-sm hidden sm:block"
+                  title="Solo guardar el pedido sin enviar por WhatsApp"
+                >
+                  {saving ? "..." : "Solo Guardar"}
+                </button>
+
+                {(supplier?.whatsapp || supplier?.phone) ? (
+                  <button
+                    type="button"
+                    onClick={() => handleSubmit(true)}
+                    disabled={saving}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 active:scale-95 transition font-black text-sm shadow-xl shadow-green-500/20 disabled:opacity-50"
+                  >
+                    <PaperAirplaneIcon className="h-4 w-4" />
+                    {saving ? "Generando..." : "Guardar y Enviar WhatsApp"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleSubmit(false)}
+                    disabled={saving}
+                    className="flex-1 sm:flex-none py-3 px-6 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition font-bold text-sm disabled:opacity-50"
+                  >
+                    {saving ? "Guardando..." : "Guardar Pedido"}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

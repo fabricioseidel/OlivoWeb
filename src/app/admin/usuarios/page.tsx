@@ -329,76 +329,69 @@ export default function UsersPage() {
       </div>
 
       {/* Tabla de usuarios (Oculta en móviles, visible en tablets/escritorio) */}
-      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden mb-6">
+      <div className="hidden md:block bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden mb-6">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-100">
+            <thead className="bg-gray-50/80">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <button
-                    className="flex items-center focus:outline-none"
-                    onClick={() => handleSort("name")}
-                  >
+                <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">
+                  <button className="flex items-center hover:text-emerald-600 transition-colors focus:outline-none" onClick={() => handleSort("name")}>
                     Usuario
-                    {sortField === "name" && (
-                      sortDirection === "asc" ? (
-                        <ArrowUpIcon className="h-4 w-4 ml-1" />
-                      ) : (
-                        <ArrowDownIcon className="h-4 w-4 ml-1" />
-                      )
-                    )}
+                    {sortField === "name" && (sortDirection === "asc" ? <ArrowUpIcon className="h-4 w-4 ml-1" /> : <ArrowDownIcon className="h-4 w-4 ml-1" />)}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <button
-                    className="flex items-center focus:outline-none"
-                    onClick={() => handleSort("email")}
-                  >
-                    Email
-                    {sortField === "email" && (
-                      sortDirection === "asc" ? (
-                        <ArrowUpIcon className="h-4 w-4 ml-1" />
-                      ) : (
-                        <ArrowDownIcon className="h-4 w-4 ml-1" />
-                      )
-                    )}
+                <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">
+                  <button className="flex items-center hover:text-emerald-600 transition-colors focus:outline-none" onClick={() => handleSort("email")}>
+                    Email / Contacto
+                    {sortField === "email" && (sortDirection === "asc" ? <ArrowUpIcon className="h-4 w-4 ml-1" /> : <ArrowDownIcon className="h-4 w-4 ml-1" />)}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rol
+                <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">
+                  Rol del Sistema
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Creado</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">
+                  Creado el
+                </th>
+                <th className="px-8 py-5 text-right text-[11px] font-black text-gray-500 uppercase tracking-widest">
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-50">
               {!loading && currentItems.map((user) => (
-                <tr key={user.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{user.name || '—'}</div>
-                    <div className="text-sm text-gray-500">{user.id}</div>
+                <tr key={user.id} className="hover:bg-emerald-50/30 transition-colors group">
+                  <td className="px-8 py-5 whitespace-nowrap">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border-2 border-white shadow-sm">
+                        {(user.name || 'U')[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">{user.name || 'Usuario Nuevo'}</div>
+                        <div className="text-[10px] font-black tracking-widest uppercase text-gray-400">ID: {user.id.substring(0,8)}...</div>
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{user.email}</div>
+                  <td className="px-8 py-5 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-600">{user.email}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <RoleBadge role={user.role} /> {session?.user?.role === 'ADMIN' && user.id !== session.user.id && (
-                      <button onClick={() => toggleUserRole(user.id, user.role)} className="ml-2 text-xs text-indigo-600 hover:text-indigo-800 underline">Cambiar</button>
-                    )}
+                  <td className="px-8 py-5 whitespace-nowrap">
+                    <RoleBadge role={user.role} />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-8 py-5 whitespace-nowrap">
                     <StatusBadge status={'ACTIVE'} />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(user.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-3">
-                      <span className="text-xs text-gray-400">—</span>
-                    </div>
+                  <td className="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-500">
+                    {new Date(user.createdAt).toLocaleDateString('es-CL', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </td>
+                  <td className="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">
+                    {session?.user?.role === 'ADMIN' && user.id !== session.user.id && (
+                      <button onClick={() => toggleUserRole(user.id, user.role)} className="inline-flex items-center px-4 py-2 border border-gray-200 rounded-xl shadow-sm text-xs font-bold text-emerald-600 bg-white hover:bg-emerald-50 hover:border-emerald-200 focus:outline-none transition-all">
+                        Cambiar Rol
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

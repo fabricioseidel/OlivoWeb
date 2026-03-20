@@ -6,6 +6,7 @@ import type { ToastType } from "@/components/ui/Toast";
 
 type SaleActionState = {
   ok?: boolean;
+  saleId?: string | number;
   toastMessage?: string;
   toastType?: ToastType;
 };
@@ -55,6 +56,7 @@ export async function createSaleAction(data: {
 
     return {
       ok: true,
+      saleId: result.id,
       toastMessage: "Venta registrada correctamente",
       toastType: "success",
     };

@@ -14,14 +14,14 @@ export async function GET(req: NextRequest) {
   }
   const { data, error } = await supabaseAdmin
     .from('users')
-    .select('id,name,email,role');
+    .select('id,name,email,role,created_at');
   if (error) {
     console.error('[ADMIN/USERS][GET] Error:', error?.message || error);
     return NextResponse.json({ message: 'Error', detail: error.message }, { status: 500 });
   }
   const users = (data || [])
     .sort((a: any, b: any) => String(a?.email || '').localeCompare(String(b?.email || '')))
-    .map((u: any) => ({ id: u.id, name: u.name, email: u.email, role: u.role }));
+    .map((u: any) => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.created_at || new Date().toISOString() }));
   return NextResponse.json(users);
 }
 

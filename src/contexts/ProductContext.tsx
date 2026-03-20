@@ -42,6 +42,7 @@ export const ProductContext = createContext<ProductContextType | undefined>(unde
 
 export function ProductProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
+  const [fullProducts, setFullProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -58,7 +59,9 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       setError(undefined);
       const data = await fetchAllProducts();
       if (mounted) {
-        setProducts(normalize(data));
+        const normalized = normalize(data);
+        setProducts(normalized);
+        setFullProducts(normalized);
       }
     } catch (e: any) {
       if (mounted) {
@@ -85,16 +88,22 @@ export function ProductProvider({ children }: { children: ReactNode }) {
 
   const search = async (q: string) => {
     try {
-      setLoading(true);
-      setError(undefined);
-      const data = q.trim()
-        ? await searchProducts(q)
-        : await fetchAllProducts();
-      setProducts(normalize(data));
+      const term = q.trim().toLowerCase();
+      if (!term) {
+        setProducts(fullProducts);
+        return;
+      }
+      
+      // Búsqueda Ultra-Rápida en Cliente (Instantánea)
+      const localResults = fullProducts.filter(p => 
+        p.name.toLowerCase().includes(term) || 
+        (p.categories && p.categories.join(" ").toLowerCase().includes(term)) ||
+        (p.id && String(p.id).toLowerCase().includes(term))
+      );
+      
+      setProducts(localResults);
     } catch (e: any) {
       setError(e?.message || 'Error buscando productos');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -178,6 +187,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   const toggleFeatured = async (id: string, value: boolean) => {
     // optimistic update
     setProducts(prev => prev.map(p => p.id === id ? { ...p, featured: value } : p));
+    setFullProducts(prev => prev.map(p => p.id === id ? { ...p, featured: value } : p));
     try {
       const product = getProductById(id);
       if (!product) return;
@@ -207,6 +217,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   const toggleActive = async (id: string, value: boolean) => {
     // optimistic update
     setProducts(prev => prev.map(p => p.id === id ? { ...p, isActive: value } : p));
+    setFullProducts(prev => prev.map(p => p.id === id ? { ...p, isActive: value } : p));
     try {
       const product = getProductById(id);
       if (!product) return;

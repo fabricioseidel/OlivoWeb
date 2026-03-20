@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { ProductFormData, productSchema } from "@/schemas/product.schema";
 import { createProduct, deleteProduct, updateProduct } from "@/server/products.service";
+import { uploadImage } from "@/server/cloudinary.service";
 import { ProductFormState } from "@/types/forms/productFormState";
 
 const DASHBOARD_PRODUCTS_PATH = "/dashboard/productos";
@@ -37,7 +38,17 @@ export async function createProductAction(
   }
 
   try {
-    await createProduct(parsed.data);
+    const productData = { ...parsed.data };
+    
+    // Si hay una imagen en base64, subirla a Cloudinary
+    if (productData.image && productData.image.startsWith("data:image")) {
+      console.log("📸 Subiendo imagen a Cloudinary...");
+      const uploadResult = await uploadImage(productData.image);
+      productData.image = uploadResult.url;
+      console.log("✅ Imagen subida:", productData.image);
+    }
+
+    await createProduct(productData);
     revalidatePath(DASHBOARD_PRODUCTS_PATH);
     return {
       ok: true,
@@ -76,7 +87,31 @@ export async function updateProductAction(
   }
 
   try {
-    await updateProduct(id, parsed.data);
+    const productData = { ...parsed.data };
+
+    // 1. Procesar imagen principal
+    if (productData.image && productData.image.startsWith("data:image")) {
+      console.log("📸 Actualizando imagen principal en Cloudinary...");
+      const uploadResult = await uploadImage(productData.image);
+      productData.image = uploadResult.url;
+    }
+
+    // 2. Procesar galería (si hay imágenes nuevas en base64)
+    if (productData.gallery && productData.gallery.length > 0) {
+      const updatedGallery = await Promise.all(
+        productData.gallery.map(async (img) => {
+          if (img.startsWith("data:image")) {
+            console.log("📸 Subiendo imagen de galería a Cloudinary...");
+            const res = await uploadImage(img);
+            return res.url;
+          }
+          return img;
+        })
+      );
+      productData.gallery = updatedGallery;
+    }
+
+    await updateProduct(id, productData);
     revalidatePath(DASHBOARD_PRODUCTS_PATH);
     return {
       ok: true,

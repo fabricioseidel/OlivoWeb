@@ -11,16 +11,19 @@ import {
   ArrowDownIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
-interface LocalOrder {
-  id: string; total?: number; productos?: number; items?: any[]; createdAt?: string; fecha?: string; estado?: string; customer?: string; email?: string;
-}
+import { useToast } from "@/contexts/ToastContext";
+import LiveReceptionBoard, { LiveOrder } from "@/components/admin/LiveReceptionBoard";
+
+interface LocalOrder extends LiveOrder {}
 
 export default function AdminDashboard() {
   const { products } = useProducts();
+  const { showToast } = useToast();
   const [orders, setOrders] = useState<LocalOrder[]>([]);
   const [lastSync, setLastSync] = useState<string>("");
+  const [viewMode, setViewMode] = useState<'reception' | 'analytics'>('reception');
 
   // Cargar pedidos desde API
   const loadOrders = async () => {
@@ -33,10 +36,21 @@ export default function AdminDashboard() {
             id: o.id,
             total: Number(o.total),
             productos: o.items_count,
-            createdAt: o.created_at,
+            createdAt: o.created_at || o.date,
             fecha: o.created_at,
-            estado: o.status
+            estado: o.status,
+            customer: o.shipping_address?.fullName || o.shipping_address?.name || o.user_id || 'Invitado',
+            paymentStatus: o.payment_status || 'pending',
+            paymentMethod: o.payment_method || 'Desconocido'
           }));
+          
+          // Sound notification check (optional, only if new pending order arrived and length increased)
+          const newPendingCount = mapped.filter((x: any) => x.estado === 'Pendiente' || x.estado === 'pending').length;
+          const oldPendingCount = orders.filter((x: any) => x.estado === 'Pendiente' || x.estado === 'pending').length;
+          if (newPendingCount > oldPendingCount && viewMode === 'reception') {
+             try { new Audio('/notification.mp3').play().catch(() => {}); } catch {}
+          }
+
           setOrders(mapped);
           setLastSync(new Date().toLocaleTimeString());
         }
@@ -46,7 +60,30 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadOrders();
-  }, []);
+    // Auto-refresh every 15 seconds
+    const interval = setInterval(() => {
+      loadOrders();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [viewMode, orders.length]);
+
+  const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        showToast(`Pedido #${id.substring(0,6)} ahora es ${newStatus}`, 'success');
+        loadOrders();
+      } else {
+        showToast('Error al actualizar pedido', 'error');
+      }
+    } catch (e) {
+      showToast('Error de red al actualizar', 'error');
+    }
+  };
 
   const metrics = useMemo(() => {
     const totalViews = products.reduce((sum, p) => sum + (p.viewCount || 0), 0);
@@ -54,7 +91,7 @@ export default function AdminDashboard() {
     const lowStock = products.filter(p => p.stock > 0 && p.stock <= 5).length;
     const totalOrders = orders.length;
     const grossRevenue = orders.reduce((s, o) => s + (Number(o.total) || 0), 0);
-    const itemsSold = orders.reduce((s, o) => s + (o.productos || (Array.isArray(o.items) ? o.items.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0) : 0)), 0);
+    const itemsSold = orders.reduce((s, o) => s + (o.productos || (Array.isArray(o.items) ? o.items.reduce((acc: number, it: any) => acc + (Number(it.quantity) || 0), 0) : 0)), 0);
     const avgOrder = totalOrders ? grossRevenue / totalOrders : 0;
     // Conversión basada en intentos de pedido -> pedidos confirmados
     const intentConversion = totalOrderIntents ? (totalOrders / totalOrderIntents) * 100 : 0;
@@ -122,6 +159,17 @@ export default function AdminDashboard() {
       .sort((a, b) => b.Productos - a.Productos).slice(0, 5);
   }, [products]);
 
+  const ordersByStatus = useMemo(() => {
+    const statusMap: Record<string, number> = {};
+    orders.forEach(o => {
+      const s = o.estado || 'desconocido';
+      statusMap[s] = (statusMap[s] || 0) + 1;
+    });
+    return Object.entries(statusMap).map(([name, value]) => ({ name, value }));
+  }, [orders]);
+
+  const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'];
+
   return (
     <div className="-m-4 sm:-m-8">
       {/* Header Premium Admin */}
@@ -129,20 +177,44 @@ export default function AdminDashboard() {
         <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-[100px]" />
         <div className="relative z-10 flex flex-col sm:flex-row justify-between items-end sm:items-center gap-6">
             <div>
-                <h1 className="text-3xl font-black text-white tracking-tight">Centro de Control</h1>
+                <h1 className="text-4xl font-black text-white tracking-tight">Centro de Control</h1>
                 <p className="mt-2 text-emerald-100/50 font-medium italic">
-                    Monitoreo en tiempo real de Olivo Market
+                    Operaciones en tiempo real de Olivo Market
                 </p>
             </div>
-            <div className="flex items-center gap-4 bg-white/5 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
-                <div className="size-2 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="text-emerald-100/70 text-xs font-black uppercase tracking-widest">Sincronizado: {lastSync || '—'}</span>
+            <div className="flex flex-col items-end gap-3">
+              <div className="flex items-center gap-4 bg-white/5 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-xl">
+                  <div className="size-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_2px_#10B981]" />
+                  <span className="text-emerald-100/70 text-xs font-black uppercase tracking-widest">Sincronizado: {lastSync || '—'}</span>
+              </div>
+              <div className="bg-emerald-900/50 p-1 rounded-xl flex border border-emerald-800 backdrop-blur-sm">
+                <button 
+                  onClick={() => setViewMode('reception')}
+                  className={`px-4 py-2 text-xs font-black tracking-widest uppercase rounded-lg transition-all ${viewMode === 'reception' ? 'bg-emerald-500 text-white shadow-lg' : 'text-emerald-300/50 hover:text-emerald-200 hover:bg-white/5'}`}
+                >LIVE RECEPTION</button>
+                <button 
+                  onClick={() => setViewMode('analytics')}
+                  className={`px-4 py-2 text-xs font-black tracking-widest uppercase rounded-lg transition-all ${viewMode === 'analytics' ? 'bg-emerald-500 text-white shadow-lg' : 'text-emerald-300/50 hover:text-emerald-200 hover:bg-white/5'}`}
+                >ANALYTICS</button>
+              </div>
             </div>
         </div>
       </div>
 
       <div className="px-8 pb-12">
-        {/* Tarjetas de estadísticas Premium */}
+        {viewMode === 'reception' ? (
+          <div>
+            <div className="flex items-center justify-between mt-2 mb-8 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+              <p className="text-sm font-bold text-gray-500 max-w-lg leading-relaxed">Arrastra o gestiona los pedidos locales. Las actualizaciones se aplicarán de forma instantánea a los clientes y repartidores.</p>
+              <button onClick={() => loadOrders()} className="flex items-center gap-2 bg-gray-50 text-gray-600 px-4 py-2 rounded-xl text-xs font-black tracking-widest uppercase hover:bg-emerald-50 hover:text-emerald-700 transition-colors border border-gray-200">
+                <ArrowPathIcon className="w-4 h-4" /> Forzar Scan
+              </button>
+            </div>
+            <LiveReceptionBoard orders={orders as LiveOrder[]} onUpdateStatus={handleUpdateOrderStatus} />
+          </div>
+        ) : (
+          <>
+            {/* Tarjetas de estadísticas Premium */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
             <StatCard title="Pedidos" value={metrics.totalOrders} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} color="emerald" helper="Confirmados" />
             <StatCard title="Ingresos" value={`$ ${metrics.grossRevenue.toLocaleString('es-CL')}`} icon={<ArrowUpIcon className="h-6 w-6" />} color="blue" helper="Suma total ventas" />
@@ -186,6 +258,36 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* Gráfico de Distribución de Estados de Pedido */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden p-6 lg:col-span-2">
+          <h3 className="text-sm font-medium text-gray-900 mb-4">Distribución de Estados de Pedidos Web</h3>
+          <div className="h-64 flex items-center justify-center">
+            {ordersByStatus.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={ordersByStatus}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent = 0 }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  >
+                    {ordersByStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(val: number | undefined) => [val || 0, 'Pedidos']} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-gray-400 text-sm">No hay suficientes datos</p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center justify-between mb-6">
@@ -224,8 +326,9 @@ export default function AdminDashboard() {
           headerValor="Intentos"
           headerExtra="Vistas"
         />
-      </div>
-
+        </div>
+      </>
+      )}
       </div>
     </div>
   );

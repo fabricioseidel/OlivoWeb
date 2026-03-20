@@ -7,7 +7,7 @@ import OlivoButton from "@/components/OlivoButton";
 import { 
   TrashIcon, MinusIcon, PlusIcon, MagnifyingGlassIcon,
   ShoppingBagIcon, XMarkIcon, CreditCardIcon, BanknotesIcon,
-  CameraIcon, ArrowPathIcon, CheckCircleIcon
+  CameraIcon, ArrowPathIcon, CheckCircleIcon, EnvelopeIcon
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { createSaleAction } from "@/actions/sales";
@@ -17,7 +17,7 @@ import POSScanner from "@/components/admin/POSScanner";
 const PRODUCTS_PER_PAGE = 40;
 
 export default function POSPage() {
-  const { cart, addToCart, updateQuantity, removeFromCart, clearCart, total, isScanning } = usePOS();
+  const { cart, addToCart, updateQuantity, removeFromCart, clearCart, total, isScanning, appliedCoupon, discount, finalTotal, setAppliedCoupon, applyDiscount } = usePOS();
   
   const [searchQuery, setSearchQuery] = useState("");
   const [allProducts, setAllProducts] = useState<ProductUI[]>([]);
@@ -27,11 +27,13 @@ export default function POSPage() {
   const [cashReceived, setCashReceived] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [showCart, setShowCart] = useState(false); // Mobile toggle
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [sendingReceipt, setSendingReceipt] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const { showToast } = useToast();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const change = useMemo(() => Math.max(0, cashReceived - total), [cashReceived, total]);
+  const change = useMemo(() => Math.max(0, cashReceived - finalTotal), [cashReceived, finalTotal]);
 
   // Filtered products based on search
   const products = useMemo(() => {
@@ -71,17 +73,17 @@ export default function POSPage() {
 
   const handleCheckout = async () => {
     if (cart.length === 0 || processing) return;
-    if (paymentMethod === "cash" && cashReceived < total) {
+    if (paymentMethod === "cash" && cashReceived < finalTotal) {
       showToast("El monto recibido es menor al total", "error");
       return;
     }
     setProcessing(true);
     try {
       const result = await createSaleAction({
-        total, paymentMethod,
-        cashReceived: paymentMethod === 'cash' ? cashReceived : total,
+        total: finalTotal, paymentMethod,
+        cashReceived: paymentMethod === 'cash' ? cashReceived : finalTotal,
         changeGiven: paymentMethod === 'cash' ? change : 0,
-        tax: 0, // Prices usually include tax in retail
+        tax: 0,
         items: cart.map(item => ({
           product_id: item.id,
           name: item.name,
@@ -91,8 +93,38 @@ export default function POSPage() {
         }))
       });
       if (result.ok) {
+        // Send receipt email if customer provided email
+        if (customerEmail && customerEmail.includes("@")) {
+          setSendingReceipt(true);
+          try {
+            await fetch("/api/email/send", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "pos_receipt",
+                to: customerEmail,
+                saleId: result.saleId || Date.now(),
+                total: finalTotal,
+                paymentMethod,
+                cashReceived: paymentMethod === "cash" ? cashReceived : undefined,
+                changeGiven: paymentMethod === "cash" ? change : undefined,
+                items: cart.map(item => ({
+                  name: item.name,
+                  quantity: item.quantity,
+                  price: (item.offerPrice || item.price) * item.quantity,
+                })),
+              }),
+            });
+            showToast(`📧 Boleta enviada a ${customerEmail}`, "success");
+          } catch {
+            showToast("Venta OK pero no se pudo enviar la boleta", "error");
+          } finally {
+            setSendingReceipt(false);
+          }
+        }
         clearCart();
         setCashReceived(0);
+        setCustomerEmail("");
         setPaymentMethod("cash");
         showToast("✓ Venta registrada con éxito", "success");
       } else {
@@ -224,13 +256,52 @@ export default function POSPage() {
 
         {/* Payment section */}
         <div className="p-4 bg-slate-950 border-t border-slate-800 space-y-3">
-          {/* Total */}
-          <div className="flex justify-between items-end">
-            <div>
-              <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Total</span>
-              <p className="text-2xl font-black text-white">$ {total.toLocaleString()}</p>
+          {/* Total & Descuentos */}
+          <div className="flex flex-col gap-1">
+            <div className="flex justify-between items-center text-slate-400">
+              <span className="text-[10px] uppercase font-bold tracking-widest">Subtotal</span>
+              <span className="text-sm font-bold">$ {total.toLocaleString()}</span>
             </div>
-            <span className="text-slate-500 font-bold text-xs">{cart.length} items</span>
+            
+            {appliedCoupon && (
+              <div className="flex justify-between items-center bg-emerald-900/20 p-2 rounded-lg border border-emerald-500/20">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-emerald-500 uppercase font-black tracking-widest">Cupón Aplicado</span>
+                  <span className="text-xs font-bold text-white">{appliedCoupon}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-black text-emerald-400">- $ {discount.toLocaleString()}</span>
+                  <button onClick={() => { setAppliedCoupon(null); applyDiscount(0); }} className="text-slate-500 hover:text-red-400">
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-between items-end mt-2">
+              <div>
+                <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">Total a Pagar</span>
+                <p className="text-3xl font-black text-white">$ {finalTotal.toLocaleString()}</p>
+              </div>
+              <span className="text-slate-500 font-bold text-xs">{cart.length} items</span>
+            </div>
+          </div>
+
+          {/* Customer email (optional) */}
+          <div className="relative">
+            <EnvelopeIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+            <input
+              type="email"
+              placeholder="Email del cliente (opcional)"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-sm text-white placeholder-slate-600 outline-none focus:border-emerald-500 transition-colors"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+            />
+            {customerEmail && (
+              <button onClick={() => setCustomerEmail("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                <XMarkIcon className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Payment method */}
@@ -272,20 +343,20 @@ export default function POSPage() {
                 ))}
               </div>
               {/* Exact amount button */}
-              <button onClick={() => setCashReceived(total)}
+              <button onClick={() => setCashReceived(finalTotal)}
                 className="w-full text-[10px] font-bold py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">
-                Monto exacto (${total.toLocaleString()})
+                Monto exacto (${finalTotal.toLocaleString()})
               </button>
             </div>
           )}
 
           {/* Checkout button */}
-          <OlivoButton fullWidth size="lg" disabled={cart.length === 0 || processing || (paymentMethod === 'cash' && cashReceived < total && cart.length > 0)}
+          <OlivoButton fullWidth size="lg" disabled={cart.length === 0 || processing || (paymentMethod === 'cash' && cashReceived < finalTotal && cart.length > 0)}
             onClick={handleCheckout} className="h-14 text-sm uppercase tracking-widest">
             {processing ? "Procesando..." : (
               <>
                 <CheckCircleIcon className="h-5 w-5 mr-2 inline" />
-                {paymentMethod === 'cash' && cashReceived >= total
+                {paymentMethod === 'cash' && cashReceived >= finalTotal
                   ? `Cobrar (Vuelto: $${change.toLocaleString()})`
                   : "Completar Venta"}
               </>

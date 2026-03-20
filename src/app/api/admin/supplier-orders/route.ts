@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
+import { sendSupplierOrderEmail } from '@/server/email.service';
 
 export async function GET() {
   try {
@@ -99,6 +100,7 @@ export async function POST(request: Request) {
         notes: body.notes || null,
         total: 0, // Se calculará automáticamente con los triggers
         created_by: user?.id,
+        status: body.sent_by_whatsapp ? 'enviado_por_whatsapp' : 'pendiente'
       })
       .select()
       .single();
@@ -142,11 +144,30 @@ export async function POST(request: Request) {
       .from('supplier_orders')
       .select(`
         *,
-        suppliers (name),
+        suppliers (name, email),
         supplier_order_items (*)
       `)
       .eq('id', order.id)
       .single();
+
+    // ── Enviar Email si el flag está activo ──
+    if (body.send_email && completeOrder.suppliers?.email) {
+      // Necesitamos pasar los items con formato de email
+      const emailItems = body.items.map((item: any) => ({
+        name: item.product_name || "Producto sin nombre",
+        sku: item.supplier_sku || item.product_sku,
+        quantity: item.quantity,
+      }));
+
+      await sendSupplierOrderEmail({
+        toEmail: completeOrder.suppliers.email,
+        orderId: completeOrder.id,
+        supplierName: completeOrder.suppliers.name,
+        expectedDate: new Date(completeOrder.expected_date).toLocaleDateString(),
+        notes: body.notes,
+        items: emailItems,
+      }).catch((e) => console.error("Error enviando email al proveedor:", e));
+    }
 
     return NextResponse.json({ order: completeOrder }, { status: 201 });
   } catch (error) {

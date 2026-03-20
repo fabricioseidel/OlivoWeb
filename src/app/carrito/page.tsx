@@ -4,6 +4,7 @@ import Link from "next/link";
 import { TrashIcon, MinusIcon, PlusIcon } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
+import { PhotoIcon } from "@heroicons/react/24/outline";
 import { useCart } from "@/contexts/CartContext";
 import { buildWhatsAppOrderLink } from "@/utils/whatsapp";
 import { useProducts } from "@/contexts/ProductContext";
@@ -112,11 +113,72 @@ export default function CartPage() {
                 Seguir comprando más delicias
               </Link>
             </div>
+
+            {/* Upselling Section */}
+            <div className="mt-12">
+               <div className="flex items-center justify-between mb-6">
+                 <div>
+                   <h3 className="text-xl font-black text-gray-900 tracking-tight">Completa tu orden</h3>
+                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Quizás te interese esto</p>
+                 </div>
+               </div>
+               
+               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                 {/* Reutilizaremos lógica simple para mostrar un par de productos */}
+                 {/* En un futuro esto puede venir de una API de recomendaciones */}
+                 {[1, 2].map((id) => (
+                    <div key={id} className="bg-white rounded-3xl p-4 border border-gray-100 hover:shadow-lg transition-all text-center">
+                       <div className="w-20 h-20 bg-emerald-50 rounded-2xl mx-auto mb-3 flex items-center justify-center">
+                          <PhotoIcon className="h-8 w-8 text-emerald-200" />
+                       </div>
+                       <p className="text-xs font-black text-gray-900 line-clamp-1 mb-1 italic">Producto Sugerido</p>
+                       <p className="text-sm font-black text-emerald-600">$ 4.900</p>
+                       <button className="mt-3 w-full py-2 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-600 hover:text-white transition-all">
+                          Agregar
+                       </button>
+                    </div>
+                 ))}
+                 <Link href="/productos" className="bg-emerald-600 rounded-3xl p-4 flex flex-col items-center justify-center text-center group hover:bg-emerald-500 transition-all">
+                    <p className="text-xs font-black text-white/70 uppercase tracking-widest mb-1">Ver todos</p>
+                    <p className="text-sm font-black text-white">¡Y más! 🌿</p>
+                    <PlusIcon className="h-6 w-6 text-white mt-2 group-hover:scale-125 transition-transform" />
+                 </Link>
+               </div>
+            </div>
           </div>
 
           {/* Resumen Premium */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 p-8 border border-gray-100 sticky top-24 overflow-hidden">
+              {/* Barra de Envío Gratis */}
+              <div className="mb-8 p-6 bg-emerald-50/50 rounded-3xl border border-emerald-100 relative overflow-hidden">
+                <div className="relative z-10">
+                  {subtotal >= 30000 ? (
+                    <div className="space-y-2">
+                       <div className="flex items-center gap-2 text-emerald-700 font-black text-sm uppercase tracking-wider">
+                         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white text-[10px]">✓</span>
+                         ¡Envío Gratis Habilitado!
+                       </div>
+                       <p className="text-[11px] text-emerald-600/80 font-medium">Has alcanzado el monto mínimo para despacho gratuito.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-end">
+                        <span className="text-[11px] font-black text-emerald-800 uppercase tracking-widest">Envío gratis</span>
+                        <span className="text-xs font-bold text-emerald-700">Faltan ${(30000 - subtotal).toLocaleString('es-CL')}</span>
+                      </div>
+                      <div className="h-2 w-full bg-emerald-200/30 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-emerald-500 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                          style={{ width: `${Math.min((subtotal / 30000) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-emerald-600/70 font-bold leading-tight">Agrega ${(30000 - subtotal).toLocaleString('es-CL')} más para no pagar despacho.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Decoración sutil */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
 

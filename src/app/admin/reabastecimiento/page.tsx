@@ -241,41 +241,51 @@ export default function ComprasPage() {
   ];
 
   return (
-    <div className="space-y-4 py-2">
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Compras</h1>
-          <p className="text-xs text-gray-500">
-            Monitorea stock, crea pedidos y gestiona entregas
-          </p>
+    <div className="-m-4 sm:-m-8">
+      {/* ── Premium Admin Header ── */}
+      <div className="bg-emerald-950 p-8 sm:p-12 mb-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px]" />
+        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-end lg:items-center gap-6">
+            <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 backdrop-blur-md rounded-full text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-4 border border-white/5">
+                    <ShoppingCartIcon className="size-3" />
+                    <span>Reabastecimiento</span>
+                </div>
+                <h1 className="text-4xl font-black text-white tracking-tight">Gestión de Compras</h1>
+                <p className="mt-2 text-emerald-100/50 font-medium italic">
+                    Monitorea quiebres de stock y coordina proveedores
+                </p>
+            </div>
+            
+            <div className="flex items-center gap-4">
+                <div className="flex gap-4 p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/5">
+                   <div className="text-center px-4 border-r border-white/10">
+                       <p className="text-3xl font-black text-rose-400">{lowData?.lowStockCount ?? "—"}</p>
+                       <p className="text-[10px] text-emerald-100/50 uppercase font-black tracking-widest mt-1">Stock Crítico</p>
+                   </div>
+                   <div className="text-center px-4 border-r border-white/10">
+                       <p className="text-3xl font-black text-amber-400">{stats.active}</p>
+                       <p className="text-[10px] text-emerald-100/50 uppercase font-black tracking-widest mt-1">Activos</p>
+                   </div>
+                   <div className="text-center px-4">
+                       <p className="text-3xl font-black text-emerald-400">${stats.totalPending > 0 ? (stats.totalPending / 1000).toFixed(0) + "k" : "0"}</p>
+                       <p className="text-[10px] text-emerald-100/50 uppercase font-black tracking-widest mt-1">Pendiente</p>
+                   </div>
+                </div>
+
+                <button
+                    onClick={() => { loadLowStock(); loadOrders(); }}
+                    className={`p-4 rounded-2xl bg-emerald-800 hover:bg-emerald-700 text-emerald-100 transition-colors shadow-sm hidden sm:block ${lowLoading || ordersLoading ? 'animate-pulse' : ''}`}
+                    title="Actualizar datos"
+                >
+                    <ArrowPathIcon className={`h-6 w-6 ${lowLoading || ordersLoading ? 'animate-spin text-emerald-300' : ''}`} />
+                </button>
+            </div>
         </div>
-        <button
-          onClick={() => { loadLowStock(); loadOrders(); }}
-          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition"
-          title="Actualizar datos"
-        >
-          <ArrowPathIcon className={`h-5 w-5 text-gray-600 ${lowLoading || ordersLoading ? 'animate-spin' : ''}`} />
-        </button>
       </div>
 
-      {/* ── Quick Stats ── */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-xl border p-3 text-center">
-          <p className="text-2xl font-black text-red-600">{lowData?.lowStockCount ?? "—"}</p>
-          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Stock bajo</p>
-        </div>
-        <div className="bg-white rounded-xl border p-3 text-center">
-          <p className="text-2xl font-black text-yellow-600">{stats.active}</p>
-          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Activos</p>
-        </div>
-        <div className="bg-white rounded-xl border p-3 text-center">
-          <p className="text-2xl font-black text-emerald-600">${stats.totalPending > 0 ? (stats.totalPending / 1000).toFixed(0) + "k" : "0"}</p>
-          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Pendiente</p>
-        </div>
-      </div>
-
-      {/* ── Tabs ── */}
+      <div className="px-4 sm:px-8 pb-12 space-y-8">
+        {/* ── Tabs ── */}
       <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
         {tabs.map(tab => (
           <button
@@ -405,6 +415,7 @@ export default function ComprasPage() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

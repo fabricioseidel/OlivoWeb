@@ -1,0 +1,3 @@
+﻿src/app/admin/productos/edicion-masiva/page.tsx(16,36): error TS2339: Property 'refreshProducts' does not exist on type 'ProductContextType'.
+src/app/admin/productos/edicion-masiva/page.tsx(172,93): error TS2339: Property 'category' does not exist on type 'ProductUI'.
+src/app/checkout/confirmacion/OrderConfirmationClient.tsx(70,37): error TS2353: Object literal may only specify known properties, and 'orderId' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...>'.

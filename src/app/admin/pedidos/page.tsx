@@ -229,10 +229,10 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Tabla de pedidos (Oculta en móviles, visible en tablets/escritorio) */}
-      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="hidden md:block bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 select-none">
+          <table className="min-w-full divide-y divide-gray-100">
+            <thead className="bg-gray-50/80 select-none">
               <tr>
                 <HeaderCell label="ID" active={sortField === 'id'} dir={sortDirection} onClick={() => handleSort('id')} />
                 <HeaderCell label="Cliente" active={sortField === 'customer'} dir={sortDirection} onClick={() => handleSort('customer')} />
@@ -242,28 +242,35 @@ export default function AdminOrdersPage() {
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-50">
               {currentItems.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-500">No hay pedidos.</td>
+                  <td colSpan={6} className="px-8 py-10 text-center text-sm text-gray-500">No hay pedidos.</td>
                 </tr>
               )}
               {currentItems.map(o => (
-                <tr key={o.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">{o.id}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{o.customer || '-'}</div>
-                    <div className="text-xs text-gray-500">{o.email || ''}</div>
+                <tr key={o.id} className="hover:bg-emerald-50/30 transition-colors group">
+                  <td className="px-8 py-5 whitespace-nowrap text-[11px] font-black tracking-widest uppercase text-emerald-600">#{o.id.substring(0,8)}...</td>
+                  <td className="px-8 py-5 whitespace-nowrap">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border-2 border-white shadow-sm shrink-0">
+                        {o.customer?.[0]?.toUpperCase() || 'C'}
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">{o.customer || 'Cliente Invitado'}</div>
+                        <div className="text-xs text-gray-500">{o.email || 'Sin email'}</div>
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{o.date}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${o.total.toFixed(2)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-600">{o.date}</td>
+                  <td className="px-8 py-5 whitespace-nowrap text-sm font-black text-gray-900">${o.total.toLocaleString('es-CL')}</td>
+                  <td className="px-8 py-5 whitespace-nowrap">
                     <StatusBadge status={o.status} />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">
                     <Link
                       href={`/admin/pedidos/${o.id}`}
-                      className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-emerald-700 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-emerald-50 hover:border-emerald-200 transition-colors shadow-sm"
                       onClick={() => {
                         try {
                           const lightweight = {
@@ -317,10 +324,10 @@ export default function AdminOrdersPage() {
 
 function HeaderCell({ label, active, dir, onClick }: { label: string; active: boolean; dir: 'asc' | 'desc'; onClick: () => void }) {
   return (
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-      <button onClick={onClick} className="flex items-center gap-1 group">
+    <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">
+      <button onClick={onClick} className="flex items-center gap-1 group hover:text-emerald-600 transition-colors">
         <span>{label}</span>
-        {active && (dir === 'asc' ? <ArrowUpIcon className="h-3 w-3 text-gray-600" /> : <ArrowDownIcon className="h-3 w-3 text-gray-600" />)}
+        {active && (dir === 'asc' ? <ArrowUpIcon className="h-4 w-4 text-emerald-500 ml-1" /> : <ArrowDownIcon className="h-4 w-4 text-emerald-500 ml-1" />)}
       </button>
     </th>
   );

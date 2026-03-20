@@ -18,6 +18,11 @@ interface POSContextType {
   itemCount: number;
   isScanning: boolean;
   lastScannedBarcode: string | null;
+  discount: number;
+  appliedCoupon: string | null;
+  setAppliedCoupon: (code: string | null) => void;
+  applyDiscount: (amount: number) => void;
+  finalTotal: number;
 }
 
 const POSContext = createContext<POSContextType | undefined>(undefined);
@@ -29,9 +34,14 @@ export function POSProvider({ children }: { children: ReactNode }) {
 
   // Buffer for barcode scanner input (which behaves like a keyboard)
   const [scanBuffer, setScanBuffer] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [discount, setDiscount] = useState<number>(0);
 
   const total = cart.reduce((acc, item) => acc + (item.offerPrice || item.price) * item.quantity, 0);
+  const finalTotal = Math.max(0, total - discount);
   const itemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+
+  const applyDiscount = useCallback((amount: number) => setDiscount(amount), []);
 
   const addToCart = useCallback((product: ProductUI, quantity: number = 1) => {
     setCart(prev => {
@@ -55,7 +65,11 @@ export function POSProvider({ children }: { children: ReactNode }) {
     setCart(prev => prev.map(item => item.id === barcode ? { ...item, quantity } : item));
   }, [removeFromCart]);
 
-  const clearCart = useCallback(() => setCart([]), []);
+  const clearCart = useCallback(() => {
+    setCart([]);
+    setAppliedCoupon(null);
+    setDiscount(0);
+  }, []);
 
   // Global Key Listener for physical barcode scanners
   useEffect(() => {
@@ -71,10 +85,36 @@ export function POSProvider({ children }: { children: ReactNode }) {
         if (scanBuffer.length > 3) {
           setIsScanning(true);
           try {
+            // Check if it's a coupon format (heuristic: contains 'CUPON' or 'DESC')
+            if (scanBuffer.toUpperCase().includes("CUPON") || scanBuffer.toUpperCase().includes("DESC") || scanBuffer.length > 15) {
+              const res = await fetch(`/api/coupons/validate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: scanBuffer, cartTotal: total })
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.isValid && data.coupon) {
+                   setAppliedCoupon(data.coupon.code);
+                   setDiscount(data.discountAmount || 0);
+                   setIsScanning(false);
+                   setScanBuffer("");
+                   return; // Stop here if coupon applied
+                }
+              }
+            }
+
+            // Otherwise, it's a product
             const results = await searchProducts(scanBuffer);
             const found = results.find(p => p.id === scanBuffer);
             if (found) {
-              addToCart(found);
+              setCart(prev => {
+                const existing = prev.find(item => item.id === found.id);
+                if (existing) {
+                  return prev.map(item => item.id === found.id ? { ...item, quantity: item.quantity + 1 } : item);
+                }
+                return [...prev, { ...found, quantity: 1 }];
+              });
               setLastScannedBarcode(scanBuffer);
             }
           } catch (err) {
@@ -110,7 +150,12 @@ export function POSProvider({ children }: { children: ReactNode }) {
       total,
       itemCount,
       isScanning,
-      lastScannedBarcode
+      lastScannedBarcode,
+      discount,
+      appliedCoupon,
+      setAppliedCoupon,
+      applyDiscount,
+      finalTotal
     }}>
       {children}
     </POSContext.Provider>

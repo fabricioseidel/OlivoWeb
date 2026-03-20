@@ -21,6 +21,11 @@ import {
   ShoppingCartIcon,
   BanknotesIcon,
   ArchiveBoxIcon,
+  MegaphoneIcon,
+  TicketIcon,
+  StarIcon,
+  EnvelopeIcon,
+  NewspaperIcon,
 } from "@heroicons/react/24/outline";
 import { Dialog, Transition } from "@headlessui/react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -57,6 +62,16 @@ const menuGroups: MenuGroup[] = [
     items: [
       { name: "Proveedores", href: "/admin/proveedores", icon: TruckIcon },
       { name: "Compras", href: "/admin/reabastecimiento", icon: ShoppingCartIcon },
+    ],
+  },
+  {
+    label: "Marketing",
+    items: [
+      { name: "Central Marketing", href: "/admin/marketing", icon: MegaphoneIcon },
+      { name: "Cupones", href: "/admin/marketing/cupones", icon: TicketIcon },
+      { name: "Programa Puntos", href: "/admin/marketing/puntos", icon: StarIcon },
+      { name: "Campañas Email", href: "/admin/marketing/campanas", icon: EnvelopeIcon },
+      { name: "Newsletter", href: "/admin/marketing/newsletter", icon: NewspaperIcon },
     ],
   },
   {

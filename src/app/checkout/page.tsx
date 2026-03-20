@@ -3,18 +3,25 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { 
+  ShieldCheckIcon, 
+  MapPinIcon, 
+  CreditCardIcon, 
+  UserIcon,
+  ShoppingBagIcon,
+  ArrowLeftIcon
+} from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import { useCart } from "@/contexts/CartContext";
 import { useSession } from "next-auth/react";
-import CheckoutSteps from "./components/CheckoutSteps";
 import ShippingForm, { ShippingInfo, ShippingMethod } from "./components/ShippingForm";
 import PaymentForm, { PaymentMethod } from "./components/PaymentForm";
 import OrderSummary from "./components/OrderSummary";
+import UpsellingSection from "./components/UpsellingSection";
 import { AddressResult } from "@/components/AddressAutocomplete";
 import { calculateDistance, calculateShippingCost } from "@/utils/shipping-calculator";
 import { StoreSettings } from "@/app/api/admin/settings/route";
 
-// Métodos de pago disponibles
 const paymentMethods: PaymentMethod[] = [
   { id: "credit_card", name: "Tarjeta de Crédito" },
   { id: "debit_card", name: "Tarjeta de Débito" },
@@ -23,7 +30,6 @@ const paymentMethods: PaymentMethod[] = [
   { id: "bank_transfer", name: "Transferencia Bancaria" },
 ];
 
-// Métodos de envío estáticos básicos
 const baseShippingMethods: ShippingMethod[] = [
   { id: "flash", name: "Envío Flash (Uber Eats)", price: 4500, days: "Llega en < 45 min" },
   { id: "pickup", name: "Retirar en Tienda (Providencia)", price: 0, days: "Listo en 1 hora (Gratis)" },
@@ -32,12 +38,11 @@ const baseShippingMethods: ShippingMethod[] = [
 export default function CheckoutPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { cartItems } = useCart();
-  const [step, setStep] = useState(1);
+  const { cartItems, clearCart, validateCartWithServer } = useCart();
   const [loading, setLoading] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [dynamicShipping, setDynamicShipping] = useState<ShippingMethod | null>(null);
-  const [selectedShippingMethod, setSelectedShippingMethod] = useState("express");
+  const [selectedShippingMethod, setSelectedShippingMethod] = useState("dynamic");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("credit_card");
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
 
@@ -48,19 +53,14 @@ export default function CheckoutPage() {
     }
   }, [cartItems.length, router, status]);
 
-  // Combinar métodos base con el dinámico si existe
   const shippingMethods = useMemo(() => {
     const list = [...baseShippingMethods];
-    if (dynamicShipping) {
-      // Priorizar el envío a domicilio dinámico
-      return [dynamicShipping, ...list];
-    }
+    if (dynamicShipping) return [dynamicShipping, ...list];
     return list;
   }, [dynamicShipping]);
 
-  // Totales dinámicos según carrito y selección
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingCost = shippingMethods.find((method: ShippingMethod) => method.id === selectedShippingMethod)?.price || 0;
+  const shippingCost = shippingMethods.find((method) => method.id === selectedShippingMethod)?.price || 0;
   const total = subtotal + shippingCost;
 
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
@@ -74,24 +74,18 @@ export default function CheckoutPage() {
     country: "Chile",
   });
 
-  // Cargar configuraciones de la tienda al montar
+  // Load settings
   useEffect(() => {
     const loadSettings = async () => {
       try {
         const res = await fetch('/api/admin/settings');
-        if (res.ok) {
-          const data = await res.json();
-          console.log("[Shipping Debug] Loaded Store Settings:", data);
-          setStoreSettings(data);
-        }
-      } catch (e) {
-        console.error("Error loading settings:", e);
-      }
+        if (res.ok) setStoreSettings(await res.json());
+      } catch (e) { console.error(e); }
     };
     loadSettings();
   }, []);
 
-  // Autofill y recuperación de datos guardados
+  // Autofill
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -105,80 +99,11 @@ export default function CheckoutPage() {
         }));
       }
     } catch { }
-    try {
-      const addrRaw = localStorage.getItem('defaultAddress');
-      if (addrRaw) {
-        const addr = JSON.parse(addrRaw);
-        const addrLine = `${addr.calle || ''} ${addr.numero || ''}${addr.interior ? ' Int.' + addr.interior : ''}`.trim();
-        setShippingInfo(prev => ({
-          ...prev,
-          address: addrLine || prev.address,
-          city: addr.ciudad || prev.city,
-          state: addr.estado || prev.state,
-          zipCode: addr.codigoPostal || prev.zipCode,
-          phone: addr.telefono || prev.phone, // forzar teléfono de dirección predeterminada
-        }));
-      }
-    } catch { }
   }, []);
-
-  useEffect(() => {
-    if (!session?.user) return;
-    const firstName =
-      (session.user as any).firstName ||
-      (session.user?.name ? session.user.name.split(" ")[0] : "");
-    const lastName =
-      (session.user as any).lastName ||
-      (session.user?.name ? session.user.name.split(" ").slice(1).join(" ") : "");
-    const displayName = `${firstName ?? ""} ${lastName ?? ""}`.trim() || session.user.name || "";
-    const displayEmail = session.user.email || "";
-
-    setShippingInfo((prev) => ({
-      ...prev,
-      fullName: prev.fullName || displayName,
-      email: prev.email || displayEmail,
-    }));
-  }, [session]);
-
-  // Efecto para intentar calcular envío si hay dirección pre-llenada
-  useEffect(() => {
-    if (shippingInfo.address && !dynamicShipping && !isCalculatingDistance && storeSettings) {
-      console.log("[Shipping Debug] Attempting auto-calc for pre-filled address:", shippingInfo.address);
-      // Solo si la dirección parece completa (tiene números o es larga)
-      if (shippingInfo.address.length > 8) {
-        // Intentar buscar coordenadas via Geocoder si está disponible
-        if (typeof window !== "undefined" && (window as any).google?.maps?.Geocoder) {
-          const geocoder = new (window as any).google.maps.Geocoder();
-          geocoder.geocode({ address: `${shippingInfo.address}, ${shippingInfo.city}, Chile` }, (results: any, status: any) => {
-            if (status === "OK" && results[0]) {
-              const loc = results[0].geometry.location;
-              handleAddressSelect({
-                formattedAddress: results[0].formatted_address,
-                lat: loc.lat(),
-                lng: loc.lng(),
-                city: shippingInfo.city,
-                state: shippingInfo.state
-              } as any);
-            }
-          });
-        }
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shippingInfo.address, storeSettings, dynamicShipping, isCalculatingDistance]);
-
 
   const handleShippingInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setShippingInfo(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleShippingMethodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedShippingMethod(e.target.value);
-  };
-
-  const handlePaymentMethodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedPaymentMethod(e.target.value);
   };
 
   const handleAddressSelect = async (val: AddressResult | string) => {
@@ -195,31 +120,12 @@ export default function CheckoutPage() {
         country: val.country || prev.country
       }));
 
-      console.log("[Shipping Debug] Address selected:", val);
-      // Calcular envío dinámico si las coordenadas están presentes y habilitado en settings
       const shipSettings = storeSettings?.shipping;
-      console.log("[Shipping Debug] Settings:", shipSettings);
-
-      console.log("[Shipping Debug] Checks:", {
-        enableDynamicShipping: shipSettings?.enableDynamicShipping,
-        originLat: shipSettings?.shippingOriginLat,
-        originLng: shipSettings?.shippingOriginLng,
-        destLat: (val as any).lat,
-        destLng: (val as any).lng
-      });
-
-      if (
-        shipSettings?.enableDynamicShipping &&
-        shipSettings.shippingOriginLat &&
-        shipSettings.shippingOriginLng &&
-        (val as any).lat &&
-        (val as any).lng
-      ) {
-        console.log("[Shipping Debug] Calculating distance...");
+      if (shipSettings?.enableDynamicShipping && (val as any).lat) {
         setIsCalculatingDistance(true);
         try {
           const result = await calculateDistance(
-            { lat: shipSettings!.shippingOriginLat as number, lng: shipSettings!.shippingOriginLng as number },
+            { lat: shipSettings.shippingOriginLat as number, lng: shipSettings.shippingOriginLng as number },
             { lat: (val as any).lat, lng: (val as any).lng }
           );
 
@@ -229,187 +135,216 @@ export default function CheckoutPage() {
               shipSettings.shippingBaseFee || 0,
               shipSettings.shippingPricePerKm || 0
             );
-
-            const now = new Date();
-            const hour = now.getHours();
-            const schedulingMsg = hour < 14
-              ? "Pedido antes 2pm: llega hoy (antes 9pm)"
-              : "Pedido tras 2pm: llega mañana (antes 2pm)";
-
             const dynamicMethod: ShippingMethod = {
               id: "dynamic",
               name: `Envío a domicilio (${result.distanceKm.toFixed(1)} km)`,
               price: Math.round(cost),
-              days: `${schedulingMsg}. (${result.durationText} de viaje)`
+              days: "Entrega express hoy o mañana"
             };
-
             setDynamicShipping(dynamicMethod);
             setSelectedShippingMethod("dynamic");
-          } else {
-            console.warn("Distance calculation failed:", result.error);
-            setDynamicShipping(null);
           }
-        } catch (err) {
-          console.error("Error calculating dynamic shipping:", err);
-          setDynamicShipping(null);
-        } finally {
-          setIsCalculatingDistance(false);
-        }
-      } else {
-        setDynamicShipping(null);
+        } catch (err) { console.error(err); } finally { setIsCalculatingDistance(false); }
       }
     }
   };
 
-  const handleContinue = async () => {
-    if (step === 1) {
-      // Validar información de envío
-      const { fullName, email, phone, address, city, state, zipCode } = shippingInfo;
-      const newErrors: Record<string, string> = {};
+  const handleFinalizeOrder = async () => {
+    // Validaciones básicas
+    if (!shippingInfo.fullName || !shippingInfo.email || !shippingInfo.address) {
+       alert("Por favor, completa tus datos de contacto y dirección.");
+       return;
+    }
 
-      if (!fullName.trim()) newErrors.fullName = "El nombre es requerido";
-      if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) newErrors.email = "Email inválido";
-      if (!phone.trim()) newErrors.phone = "El teléfono es requerido";
-      if (!address.trim()) newErrors.address = "La dirección es requerida";
-      if (!city.trim()) newErrors.city = "La ciudad es requerida";
-      if (!state.trim()) newErrors.state = "La región/provincia es requerida";
-      if (!zipCode.trim()) newErrors.zipCode = "El código postal es requerido";
-
-      if (Object.keys(newErrors).length > 0) {
-        // TODO: Show inline errors instead of alert
-        alert("Por favor complete todos los campos requeridos correctamente.");
-        return;
-      }
-
-      setStep(2);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (step === 2) {
-      // Procesar pago (aquí iría la integración real)
-      setLoading(true);
-
-      if (process.env.NODE_ENV === 'test') {
-        console.log('[Checkout Debug] Test environment: skipping API call');
-        await new Promise(resolve => setTimeout(resolve, 50));
-        router.push('/checkout/confirmacion?orderId=test-order');
+    setLoading(true);
+    try {
+      // 1. Validación Inteligente de Stock y Precios
+      const isCartValid = await validateCartWithServer();
+      
+      if (!isCartValid) {
+        // El carrito se actualizará automáticamente y mostrará toasts de alerta
         setLoading(false);
         return;
       }
+      
+      const payload = {
+        items: cartItems,
+        shippingInfo,
+        shippingMethod: selectedShippingMethod,
+        paymentMethod: selectedPaymentMethod,
+        total,
+        subtotal,
+        shippingCost
+      };
 
-      try {
-        const payload = {
-          items: cartItems,
-          shippingInfo,
-          shippingMethod: selectedShippingMethod,
-          paymentMethod: selectedPaymentMethod,
-          total,
-          subtotal,
-          shippingCost
-        };
-        console.log('[Checkout Debug] Sending payload:', payload);
+      const response = await fetch('/api/checkout/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-        const apiUrl = typeof window !== 'undefined'
-          ? new URL('/api/checkout/create-order', window.location.origin).toString()
-          : new URL('/api/checkout/create-order', process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').toString();
-
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-
-        const data = await response.json();
-        console.log('[Checkout Debug] Response:', data);
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Error al procesar el pedido');
-        }
-
-        // Éxito
-        // No limpiamos el carrito aquí para evitar que el useEffect de redirección
-        // nos mande al carrito vacío antes de cambiar de página.
-        // La página de confirmación se encargará de limpiar el carrito.
-        router.push(`/checkout/confirmacion?orderId=${data.orderId}`);
-
-      } catch (error: any) {
-        console.error('[Checkout Debug] Error en checkout:', error);
-        alert(error.message || "Hubo un error al procesar tu pedido. Por favor intenta nuevamente.");
-      } finally {
-        setLoading(false);
-      }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Error al procesar el pedido');
+      
+      router.push(`/checkout/confirmacion?orderId=${data.orderId}`);
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-      {/* Header mejorado */}
-      <div className="mb-8">
-        <Link href="/carrito" className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4">
-          <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Volver al carrito
-        </Link>
-        <h1 className="text-3xl font-bold text-gray-900">Finalizar Compra</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {cartItems.length} {cartItems.length === 1 ? 'producto' : 'productos'} en tu carrito
-        </p>
-      </div>
+    <div className="bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+        <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <Link href="/carrito" className="group inline-flex items-center text-sm font-bold text-gray-400 hover:text-emerald-600 transition-colors mb-4 uppercase tracking-widest">
+              <ArrowLeftIcon className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+              Editar Carrito
+            </Link>
+            <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter">
+              Finalizar <span className="text-emerald-600">Pedido</span>
+            </h1>
+          </div>
+          <div className="flex items-center gap-4 bg-white px-6 py-4 rounded-3xl border border-gray-100 shadow-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <ShieldCheckIcon className="h-7 w-7" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Compra Segura</p>
+              <p className="text-sm font-bold text-gray-900">Encriptación SSL 256-bit</p>
+            </div>
+          </div>
+        </div>
 
-      <CheckoutSteps currentStep={step} />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+          {/* Formulario Unificado */}
+          <div className="lg:col-span-8 space-y-8">
+            {/* Bloque 1: Datos Personales */}
+            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
+              <div className="flex items-center gap-4 mb-8">
+                 <div className="h-10 w-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center font-black">1</div>
+                 <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                   <UserIcon className="h-6 w-6 text-gray-400" />
+                   Tus Datos
+                 </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="space-y-2">
+                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label>
+                   <input 
+                     name="fullName" 
+                     value={shippingInfo.fullName} 
+                     onChange={handleShippingInfoChange}
+                     placeholder="Ej: Juan Pérez"
+                     className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold" 
+                   />
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
+                   <input 
+                     name="email" 
+                     value={shippingInfo.email} 
+                     onChange={handleShippingInfoChange}
+                     placeholder="tu@email.com"
+                     className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold" 
+                   />
+                 </div>
+                 <div className="space-y-2 md:col-span-2">
+                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Teléfono</label>
+                   <input 
+                     name="phone" 
+                     value={shippingInfo.phone} 
+                     onChange={handleShippingInfoChange}
+                     placeholder="+56 9 1234 5678"
+                     className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold" 
+                   />
+                 </div>
+              </div>
+            </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Formulario */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            {step === 1 ? (
+            {/* Bloque 2: Despacho */}
+            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
+               <div className="flex items-center gap-4 mb-8">
+                 <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center font-black">2</div>
+                 <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                   <MapPinIcon className="h-6 w-6 text-gray-400" />
+                   Despacho
+                 </h2>
+              </div>
               <ShippingForm
                 shippingInfo={shippingInfo}
                 onChange={handleShippingInfoChange}
                 onAddressSelect={handleAddressSelect}
                 shippingMethods={shippingMethods}
                 selectedMethod={selectedShippingMethod}
-                onMethodChange={handleShippingMethodChange}
+                onMethodChange={(e) => setSelectedShippingMethod(e.target.value)}
                 isCalculating={isCalculatingDistance}
               />
-            ) : (
+            </section>
+
+            {/* Bloque 3: Pago */}
+            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
+               <div className="flex items-center gap-4 mb-8">
+                 <div className="h-10 w-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center font-black">3</div>
+                 <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                   <CreditCardIcon className="h-6 w-6 text-gray-400" />
+                   Método de Pago
+                 </h2>
+              </div>
               <PaymentForm
                 paymentMethods={paymentMethods}
                 selectedMethod={selectedPaymentMethod}
-                onMethodChange={handlePaymentMethodChange}
+                onMethodChange={(e) => setSelectedPaymentMethod(e.target.value)}
               />
-            )}
+            </section>
+          </div>
 
-            {/* Botones de acción */}
-            <div className="bg-gray-50 p-6 flex justify-between">
-              {step === 1 ? (
-                <Link href="/carrito">
-                  <Button variant="outline">
-                    Volver al Carrito
-                  </Button>
-                </Link>
-              ) : (
-                <Button variant="outline" onClick={() => setStep(1)}>
-                  Volver
+          {/* Resumen Lateral Sticky */}
+          <div className="lg:col-span-4 sticky top-10">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-emerald-900/10 p-8 border-2 border-emerald-600/5 overflow-hidden relative">
+              {/* Decoración Fondo */}
+              <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none opacity-50" />
+              
+              <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-2">
+                <ShoppingBagIcon className="h-5 w-5 text-emerald-600" />
+                Resumen del Pedido
+              </h3>
+
+              <OrderSummary
+                cartItems={cartItems}
+                subtotal={subtotal}
+                shippingCost={shippingCost}
+                total={total}
+              />
+
+              <UpsellingSection />
+
+              <div className="mt-8 pt-8 border-t border-gray-100 space-y-4">
+                <Button 
+                   fullWidth 
+                   onClick={handleFinalizeOrder} 
+                   loading={loading}
+                   className="h-16 rounded-2xl text-lg font-black bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 active:scale-95 transition-all"
+                >
+                  {loading ? "Procesando..." : `Pagar $${total.toLocaleString('es-CL')}`}
                 </Button>
-              )}
+                <p className="text-[10px] text-center text-gray-400 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                   <ShieldCheckIcon className="h-4 w-4" />
+                   Garantía de Satisfacción OlivoMarket
+                </p>
+              </div>
+            </div>
 
-              <Button onClick={handleContinue} disabled={loading}>
-                {loading ? "Procesando..." : step === 1 ? "Continuar al Pago" : "Completar Compra"}
-              </Button>
+            <div className="mt-6 px-4 py-6 bg-emerald-900 rounded-[2rem] text-white">
+               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 mb-2">Ayuda Inmediata</p>
+               <p className="text-sm font-bold opacity-90 mb-4 font-serif italic">"¿Tienes dudas con tu pedido? Estamos para apoyarte."</p>
+               <Link href={`https://wa.me/56912345678`} target="_blank" className="inline-flex items-center font-black text-emerald-300 hover:text-white transition-colors">
+                  Chat de Consultas WhatsApp →
+               </Link>
             </div>
           </div>
-        </div>
-
-        {/* Resumen mejorado */}
-        <div>
-          <OrderSummary
-            cartItems={cartItems}
-            subtotal={subtotal}
-            shippingCost={shippingCost}
-            total={total}
-          />
         </div>
       </div>
     </div>

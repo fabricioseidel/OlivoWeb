@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/contexts/ToastContext";
 import { ProductFormData, productSchema } from "@/schemas/product.schema";
 import { ProductFormState } from "@/types/forms/productFormState";
+import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 const DEFAULT_VALUES: ProductFormData = {
   nombre: "",
@@ -27,17 +28,37 @@ export default function AddProductForm() {
   const { showToast } = useToast();
   const [serverState, setServerState] = useState<ProductFormState>();
   const [isPending, startTransition] = useTransition();
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     reset,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema) as any,
     defaultValues: useMemo(() => ({ ...DEFAULT_VALUES }), []),
   });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setImagePreview(base64);
+        setValue("image", base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImagePreview(null);
+    setValue("image", undefined);
+  };
 
   useEffect(() => {
     if (!serverState?.errors) return;
@@ -62,6 +83,7 @@ export default function AddProductForm() {
 
       if (result?.ok) {
         reset({ ...DEFAULT_VALUES });
+        setImagePreview(null);
         router.push("/dashboard/productos");
         router.refresh();
       }
@@ -108,6 +130,46 @@ export default function AddProductForm() {
           {...register("stock", { valueAsNumber: true })}
         />
       </div>
+
+      {/* Cloudinary Image Upload Section */}
+      <div className="space-y-4">
+        <label className="text-sm font-semibold text-gray-700 block">Imagen del Producto (Cloudinary Optimized)</label>
+        
+        {imagePreview ? (
+          <div className="relative w-full max-w-xs group">
+            <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover rounded-2xl border-2 border-emerald-500/20" />
+            <button 
+              type="button"
+              onClick={removeImage}
+              className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-lg hover:bg-red-600 transition-colors"
+            >
+              <XMarkIcon className="h-4 w-4" />
+            </button>
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
+               <p className="text-white text-xs font-bold">Cambiar imagen</p>
+            </div>
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleImageChange}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+          </div>
+        ) : (
+          <div className="relative border-2 border-dashed border-gray-300 rounded-2xl p-8 flex flex-col items-center justify-center bg-gray-50 hover:bg-emerald-50 hover:border-emerald-500/50 transition-all group">
+            <PhotoIcon className="h-12 w-12 text-gray-400 group-hover:text-emerald-500 transition-colors mb-2" />
+            <p className="text-sm text-gray-400 group-hover:text-emerald-700">Haz clic para subir una imagen</p>
+            <p className="text-[10px] text-gray-400 uppercase mt-1">PNG, JPG o WebP (Max 5MB)</p>
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleImageChange}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+          </div>
+        )}
+      </div>
+
       <div className="space-y-2">
         <label className="text-sm font-semibold text-gray-700" htmlFor="descripcion">
           Descripcion

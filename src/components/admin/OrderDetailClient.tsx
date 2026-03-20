@@ -263,7 +263,7 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
               <PrinterIcon className="h-5 w-5 mr-2" />
               Imprimir
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={handlePrintInvoice}>
               <DocumentDuplicateIcon className="h-5 w-5 mr-2" />
               Generar factura
             </Button>

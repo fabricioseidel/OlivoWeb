@@ -1,0 +1,1 @@
+﻿src/server/coupon.service.ts(154,85): error TS2551: Property 'catch' does not exist on type 'PostgrestFilterBuilder<any, any, any, any, "increment_coupon_uses", null, "RPC">'. Did you mean 'match'?

@@ -128,25 +128,47 @@ export default function MiCuentaPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Panel Izquierdo: Resumen y accesos rápidos */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-[2rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-100 text-center">
-            <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white shadow-lg overflow-hidden">
-              {session?.user?.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={session.user.image} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <UserIcon className="w-12 h-12 text-emerald-600" />
-              )}
-            </div>
-            <h2 className="text-2xl font-black text-gray-900 mb-1">{displayName}</h2>
-            <p className="text-gray-400 text-sm font-medium mb-6">{session?.user?.email}</p>
-            <div className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-100">
-              <div>
-                <p className="text-2xl font-black text-emerald-600">{recentOrders.length}</p>
-                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Pedidos</p>
+          <div className="bg-white rounded-[2rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-100 text-center relative overflow-hidden group">
+            {/* Fondo decorativo de tarjeta premium */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-emerald-500/10 transition-colors" />
+            
+            <div className="relative z-10">
+              <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white shadow-lg overflow-hidden">
+                {session?.user?.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={session.user.image} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <UserIcon className="w-12 h-12 text-emerald-600" />
+                )}
               </div>
-              <div>
-                <p className="text-2xl font-black text-emerald-600">0</p>
-                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Cupones</p>
+              <h2 className="text-2xl font-black text-gray-900 mb-1">{displayName}</h2>
+              <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-6">Miembro OlivoMarket</p>
+              
+              {/* Tarjeta de Lealtad Premium */}
+              <div className="bg-gradient-to-br from-emerald-600 to-emerald-900 rounded-3xl p-6 text-white text-left shadow-2xl shadow-emerald-900/40 relative overflow-hidden mb-8">
+                 <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full blur-2xl -mr-5 -mt-5" />
+                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Mis Puntos Acumulados</p>
+                 <div className="flex items-end justify-between">
+                    <p className="text-4xl font-black">1.250 <span className="text-xs opacity-60 font-medium tracking-normal">pts</span></p>
+                    <div className="bg-white/20 px-3 py-1 rounded-full backdrop-blur-md">
+                       <p className="text-[10px] font-black uppercase tracking-wider">Socio Oro</p>
+                    </div>
+                 </div>
+                 <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                    <p className="text-[8px] font-bold opacity-60 uppercase tracking-widest">Vencen en: 12/2026</p>
+                    <Link href="/mi-cuenta/puntos" className="text-[10px] font-black uppercase tracking-tighter hover:text-emerald-300 transition-colors">Ver Beneficios →</Link>
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <p className="text-2xl font-black text-emerald-600">{recentOrders.length}</p>
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest leading-none mt-1">Pedidos</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <p className="text-2xl font-black text-emerald-600">2</p>
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest leading-none mt-1">Cupones</p>
+                </div>
               </div>
             </div>
           </div>

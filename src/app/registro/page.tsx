@@ -46,11 +46,14 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // Registrar usuario
+      // Registrar usuario con fuente opcional
+      const source = typeof window !== "undefined" ? sessionStorage.getItem("registration_source") : null;
+      
       await axios.post("/api/auth/register", {
         name: formData.name,
         email: formData.email,
         password: formData.password,
+        source: source || undefined
       });
 
       // Iniciar sesión automáticamente
