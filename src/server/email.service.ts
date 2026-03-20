@@ -1,8 +1,14 @@
 import { Resend } from "resend";
 import { supabaseServer } from "@/lib/supabase-server";
 
-// ── Singleton Resend client ─────────────────────────────────────────────
-const resend = new Resend(process.env.RESEND_API_KEY);
+// ── Lazy-initialized Resend client ───────────────────────────────────────
+let _resend: Resend | null = null;
+function getResend() {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY || "missing_api_key_for_build");
+  }
+  return _resend;
+}
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 const FROM_NAME = process.env.RESEND_FROM_NAME || "OlivoMarket";
@@ -28,7 +34,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailResult> {
   const { to, toName, subject, html, templateSlug, metadata } = payload;
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: [to],
       subject,

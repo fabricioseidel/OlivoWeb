@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { supabaseServer } from '@/lib/supabase-server';
 import { sendSupplierOrderEmail } from '@/server/email.service';
 
