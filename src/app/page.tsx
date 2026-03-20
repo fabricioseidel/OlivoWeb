@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useProducts } from "@/contexts/ProductContext";
+import { useToast } from "@/contexts/ToastContext";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
 import { useCategories } from "@/hooks/useCategories";
@@ -270,18 +271,65 @@ export default function Home() {
           <p className="text-gray-400 mb-10 max-w-xl mx-auto text-lg">
             Recibe ofertas exclusivas y un 10% de descuento en tu primera compra al suscribirte.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <Input
-              type="email"
-              placeholder="tu@email.com"
-              className="flex-1 bg-white/5 border-white/10 text-white placeholder-gray-500 focus:ring-emerald-500 focus:border-emerald-500 rounded-2xl min-h-[56px] px-6"
-            />
-            <Button size="lg" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 border-none min-h-[56px] px-8 rounded-2xl shadow-lg shadow-emerald-900/20">
-              Suscribirme
-            </Button>
-          </div>
+          <NewsletterForm />
         </div>
       </section>
     </div>
+  );
+}
+
+function NewsletterForm() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes("@")) {
+      showToast("Por favor, ingresa un email válido", "error");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, source: "homepage_footer" }),
+      });
+
+      if (res.ok) {
+        showToast("¡Gracias por suscribirte!", "success");
+        setEmail("");
+      } else {
+        const data = await res.json();
+        showToast(data.error || "Error al suscribirse", "error");
+      }
+    } catch (err) {
+      showToast("Hubo un problema al conectar con el servidor", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+      <Input
+        type="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="tu@email.com"
+        className="flex-1 bg-white/5 border-white/10 text-white placeholder-gray-500 focus:ring-emerald-500 focus:border-emerald-500 rounded-2xl min-h-[56px] px-6"
+      />
+      <Button 
+        type="submit"
+        size="lg" 
+        loading={loading}
+        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 border-none min-h-[56px] px-8 rounded-2xl shadow-lg shadow-emerald-900/20"
+      >
+        Suscribirme
+      </Button>
+    </form>
   );
 }

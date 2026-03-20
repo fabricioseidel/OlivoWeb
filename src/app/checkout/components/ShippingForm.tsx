@@ -208,7 +208,7 @@ export default function ShippingForm({
                 {method.price === 0 ? (
                   <span className="text-green-600 font-semibold">Gratis</span>
                 ) : (
-                  <span className="text-gray-900 font-semibold">${method.price.toFixed(2)}</span>
+                  <span className="text-gray-900 font-semibold">${(method.price || 0).toLocaleString('es-CL')}</span>
                 )}
               </div>
             </label>

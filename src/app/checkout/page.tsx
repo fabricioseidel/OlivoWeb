@@ -85,21 +85,53 @@ export default function CheckoutPage() {
     loadSettings();
   }, []);
 
-  // Autofill
+  // Autofill from session and last order
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const profileRaw = localStorage.getItem('profile');
-      if (profileRaw) {
-        const { nombre, apellidos, email } = JSON.parse(profileRaw);
-        setShippingInfo(prev => ({
-          ...prev,
-          fullName: `${nombre || ''} ${apellidos || ''}`.trim() || prev.fullName,
-          email: email || prev.email,
-        }));
-      }
-    } catch { }
-  }, []);
+    if (status === "authenticated" && session?.user) {
+      setShippingInfo(prev => ({
+        ...prev,
+        fullName: session.user.name || prev.fullName,
+        email: session.user.email || prev.email,
+      }));
+
+      // Try to fetch last shipping address from previous orders
+      const fetchLastAddress = async () => {
+        try {
+          const res = await fetch(`/api/user/last-order-address?email=${session.user?.email}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.address) {
+              setShippingInfo(prev => ({
+                ...prev,
+                address: data.address.address || prev.address,
+                city: data.address.city || prev.city,
+                state: data.address.state || prev.state,
+                zipCode: data.address.zipCode || prev.zipCode,
+                phone: data.address.phone || prev.phone,
+              }));
+            }
+          }
+        } catch (e) {
+          console.warn("Could not fetch last address:", e);
+        }
+      };
+      
+      if (session.user.email) fetchLastAddress();
+    } else {
+        // Fallback to localStorage for guest users
+        try {
+          const profileRaw = localStorage.getItem('profile');
+          if (profileRaw) {
+            const { nombre, apellidos, email } = JSON.parse(profileRaw);
+            setShippingInfo(prev => ({
+              ...prev,
+              fullName: `${nombre || ''} ${apellidos || ''}`.trim() || prev.fullName,
+              email: email || prev.email,
+            }));
+          }
+        } catch { }
+    }
+  }, [session, status]);
 
   const handleShippingInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -122,29 +154,42 @@ export default function CheckoutPage() {
 
       const shipSettings = storeSettings?.shipping;
       if (shipSettings?.enableDynamicShipping && (val as any).lat) {
+        // VALIDATION: Ensure we have origin coordinates
+        if (!shipSettings.shippingOriginLat || !shipSettings.shippingOriginLng) {
+          console.warn("Shipping origin not configured in admin settings.");
+          return;
+        }
+
         setIsCalculatingDistance(true);
         try {
           const result = await calculateDistance(
-            { lat: shipSettings.shippingOriginLat as number, lng: shipSettings.shippingOriginLng as number },
-            { lat: (val as any).lat, lng: (val as any).lng }
+            { lat: Number(shipSettings.shippingOriginLat), lng: Number(shipSettings.shippingOriginLng) },
+            { lat: Number((val as any).lat), lng: Number((val as any).lng) }
           );
 
-          if (result.success) {
+          if (result.success && !isNaN(result.distanceKm)) {
             const cost = calculateShippingCost(
               result.distanceKm,
-              shipSettings.shippingBaseFee || 0,
-              shipSettings.shippingPricePerKm || 0
+              Number(shipSettings.shippingBaseFee || 0),
+              Number(shipSettings.shippingPricePerKm || 0)
             );
-            const dynamicMethod: ShippingMethod = {
-              id: "dynamic",
-              name: `Envío a domicilio (${result.distanceKm.toFixed(1)} km)`,
-              price: Math.round(cost),
-              days: "Entrega express hoy o mañana"
-            };
-            setDynamicShipping(dynamicMethod);
-            setSelectedShippingMethod("dynamic");
+            
+            if (!isNaN(cost)) {
+              const dynamicMethod: ShippingMethod = {
+                id: "dynamic",
+                name: `Envío a domicilio (${result.distanceKm.toFixed(1)} km)`,
+                price: Math.round(cost),
+                days: "Entrega express hoy o mañana"
+              };
+              setDynamicShipping(dynamicMethod);
+              setSelectedShippingMethod("dynamic");
+            }
           }
-        } catch (err) { console.error(err); } finally { setIsCalculatingDistance(false); }
+        } catch (err) { 
+          console.error("Error calculating shipping:", err); 
+        } finally { 
+          setIsCalculatingDistance(false); 
+        }
       }
     }
   };

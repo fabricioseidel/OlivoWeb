@@ -110,7 +110,7 @@ export default function MarketingDashboard() {
             : [];
 
         setStats({
-          totalEmails: Array.isArray(emails) ? emails.length : 0,
+          totalEmails: Array.isArray(emails) ? emails.filter((e: any) => e.status === 'sent').length : 0,
           totalCoupons: Array.isArray(coupons) ? coupons.length : 0,
           activeCoupons: Array.isArray(coupons)
             ? coupons.filter((c: any) => c.is_active).length
@@ -130,6 +130,8 @@ export default function MarketingDashboard() {
     load();
   }, []);
 
+  const totalFailed = stats?.recentEmails.filter(e => e.status === 'failed').length || 0;
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -148,7 +150,12 @@ export default function MarketingDashboard() {
       {/* Stats Bar */}
       {!loading && stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatMini label="Emails Enviados" value={stats.totalEmails} color="text-blue-600" />
+          <StatMini 
+            label="Emails Enviados" 
+            value={stats.totalEmails} 
+            color="text-blue-600" 
+            subtitle={totalFailed > 0 ? `${totalFailed} fallidos recientemente` : undefined}
+          />
           <StatMini label="Cupones Activos" value={stats.activeCoupons} color="text-emerald-600" />
           <StatMini label="Suscriptores" value={stats.newsletterSubscribers} color="text-purple-600" />
           <StatMini label="Cupones Total" value={stats.totalCoupons} color="text-amber-600" />
@@ -235,10 +242,12 @@ function StatMini({
   label,
   value,
   color,
+  subtitle,
 }: {
   label: string;
   value: number;
   color: string;
+  subtitle?: string;
 }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4">
@@ -246,6 +255,7 @@ function StatMini({
         {label}
       </p>
       <p className={`text-2xl font-black ${color}`}>{value}</p>
+      {subtitle && <p className="text-[10px] text-red-500 font-bold mt-1 animate-pulse">{subtitle}</p>}
     </div>
   );
 }

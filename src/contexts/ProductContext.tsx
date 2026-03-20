@@ -152,28 +152,36 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   };
 
   // Actualiza en la nube por "id" (equivale a barcode)
-  const updateProduct = async (id: string, productData: Partial<Product>) => {
+  const updateProduct = async (id: string, updateData: Partial<Product>) => {
     const barcode = String(id).trim();
+    const existing = getProductById(id);
+
+    if (!existing) {
+      throw new Error(`Producto ${id} no encontrado localmente para actualizar.`);
+    }
+
+    // Combinar datos actuales con los nuevos cambios para evitar pérdida de campos
+    const merged: Product = { ...existing, ...updateData };
 
     // Update product data in Supabase (includes optional image_url/gallery)
     await saveProduct({
       barcode,
-      name: productData.name ?? '',
-      category: Array.isArray(productData.categories)
-        ? productData.categories.join(', ')
-        : (productData as any).category ?? null,
-      purchase_price: 0,
-      sale_price: Number(productData.price ?? 0),
-      expiry_date: null,
-      stock: Number(productData.stock ?? 0),
-      image_url: (productData as any).image ?? null,
-      gallery: (productData as any).gallery ?? null,
-      featured: productData.featured,
-      is_active: (productData as any).isActive ?? (productData as any).is_active ?? null,
-      measurement_unit: (productData as any).measurement_unit ?? (productData as any).measurementUnit ?? null,
-      measurement_value: (productData as any).measurement_value ?? (productData as any).measurementValue ?? null,
-      suggested_price: (productData as any).suggested_price ?? (productData as any).suggestedPrice ?? null,
-      offer_price: (productData as any).offer_price ?? (productData as any).offerPrice ?? null,
+      name: merged.name,
+      category: Array.isArray(merged.categories)
+        ? merged.categories.join(', ')
+        : (merged as any).category ?? '',
+      purchase_price: Number(merged.purchasePrice ?? 0),
+      sale_price: Number(merged.price ?? 0),
+      stock: Number(merged.stock ?? 0),
+      image_url: merged.image,
+      gallery: merged.gallery,
+      featured: merged.featured,
+      is_active: merged.isActive,
+      measurement_unit: merged.measurementUnit,
+      measurement_value: merged.measurementValue,
+      suggested_price: merged.suggestedPrice,
+      offer_price: merged.offerPrice,
+      description: merged.description,
     } as any);
 
     await load();

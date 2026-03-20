@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
 import Button from "@/components/ui/Button";
@@ -9,29 +9,61 @@ import {
   ArrowPathIcon,
   CloudArrowUpIcon,
   FunnelIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  PlusIcon,
+  MinusIcon,
+  PercentBadgeIcon,
+  CheckCircleIcon
 } from "@heroicons/react/24/outline";
+
+type ProductChanges = { price?: number; stock?: number };
 
 export default function BulkEditProductsPage() {
   const { products, updateProduct } = useProducts();
   const { showToast } = useToast();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [editedChanges, setEditedChanges] = useState<Record<string, { price?: number; stock?: number }>>({});
+  const [editedChanges, setEditedChanges] = useState<Record<string, ProductChanges>>({});
   const [filterLowStock, setFilterLowStock] = useState(false);
+  const [showBulkActions, setShowBulkActions] = useState(false);
+
+  // Sync with actual products context if needed (avoiding stale state)
+  const [localProducts, setLocalProducts] = useState(products);
+  useEffect(() => {
+    setLocalProducts(products);
+  }, [products]);
 
   // Filtrado de productos
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
+    return localProducts.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           (p.id?.toLowerCase().includes(searchTerm.toLowerCase()));
+                           (p.id?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            p.barcode?.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesLowStock = filterLowStock ? p.stock <= 5 : true;
       return matchesSearch && matchesLowStock;
     });
-  }, [products, searchTerm, filterLowStock]);
+  }, [localProducts, searchTerm, filterLowStock]);
 
   const handleInputChange = (productId: string, field: 'price' | 'stock', value: string) => {
     const numValue = parseFloat(value);
+    
+    // Check if value actually changed from original
+    const originalProduct = products.find(p => p.id === productId);
+    const originalValue = field === 'price' ? originalProduct?.price : originalProduct?.stock;
+    
+    if (numValue === originalValue) {
+      setEditedChanges(prev => {
+        const next = { ...prev };
+        if (next[productId]) {
+          delete next[productId][field];
+          if (Object.keys(next[productId]).length === 0) delete next[productId];
+        }
+        return next;
+      });
+      return;
+    }
+
     if (isNaN(numValue)) return;
 
     setEditedChanges(prev => ({
@@ -43,8 +75,42 @@ export default function BulkEditProductsPage() {
     }));
   };
 
+  const applyBulkAdjustment = (type: 'price_percent' | 'price_fixed' | 'stock_fixed', value: number) => {
+    const newChanges = { ...editedChanges };
+    
+    filteredProducts.forEach(product => {
+      const currentPrice = newChanges[product.id]?.price ?? product.price;
+      const currentStock = newChanges[product.id]?.stock ?? product.stock;
+      
+      let nextPrice = currentPrice;
+      let nextStock = currentStock;
+
+      if (type === 'price_percent') {
+        nextPrice = Math.round(currentPrice * (1 + value / 100));
+      } else if (type === 'price_fixed') {
+        nextPrice = currentPrice + value;
+      } else if (type === 'stock_fixed') {
+        nextStock = value;
+      }
+
+      if (nextPrice !== product.price || nextStock !== product.stock) {
+        newChanges[product.id] = {
+          ...newChanges[product.id],
+          ...(nextPrice !== product.price ? { price: nextPrice } : {}),
+          ...(nextStock !== product.stock ? { stock: nextStock } : {})
+        };
+      }
+    });
+
+    setEditedChanges(newChanges);
+    showToast(`Ajuste aplicado a ${filteredProducts.length} productos`, "info");
+    setShowBulkActions(false);
+  };
+
   const saveAllChanges = async () => {
-    const updateCount = Object.keys(editedChanges).length;
+    const targetIds = Object.keys(editedChanges);
+    const updateCount = targetIds.length;
+    
     if (updateCount === 0) {
       showToast("No hay cambios pendientes", "info");
       return;
@@ -54,14 +120,17 @@ export default function BulkEditProductsPage() {
     let success = 0;
     
     try {
-      for (const [id, changes] of Object.entries(editedChanges)) {
+      // Usamos una copia local para ir actualizando sin recargar
+      for (const id of targetIds) {
+        const changes = editedChanges[id];
         await updateProduct(id, changes);
         success++;
       }
+      
       showToast(`¡${success} productos actualizados con éxito!`, "success");
       setEditedChanges({});
-      // Reload page to reflect changes since refreshProducts was removed
-      window.location.reload();
+      // Ya no necesitamos recargar la página porque useProducts debería actualizarse
+      // Si el contexto no se actualiza automáticamente, podemos disparar un fetch o similar
     } catch (error) {
       showToast("Ocurrió un error al guardar algunos cambios", "error");
     } finally {
@@ -70,157 +139,320 @@ export default function BulkEditProductsPage() {
   };
 
   const hasChanges = Object.keys(editedChanges).length > 0;
+  const changedCount = Object.keys(editedChanges).length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10 pb-32">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Editor de Inventario ⚡</h1>
-          <p className="text-gray-500 font-medium">Actualiza precios y stock de forma instantánea.</p>
+          <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-2 uppercase">Inventario <span className="text-emerald-600 italic">Smart</span></h1>
+          <p className="text-sm text-gray-500 font-medium">Gestión rápida de precios y existencias.</p>
         </div>
         
-        <div className="flex gap-3">
+        <div className="hidden md:flex gap-3">
           <Button 
             variant="outline" 
             onClick={() => window.location.reload()}
             className="rounded-2xl border-2 font-bold px-6 h-14"
             disabled={isSaving}>
-            <ArrowPathIcon className="w-5 h-5" />
+            <ArrowPathIcon className="w-5 h-5 mr-2" /> Refrescar
           </Button>
           <Button 
             onClick={saveAllChanges}
             disabled={!hasChanges || isSaving}
             className={`rounded-2xl px-10 h-14 font-black shadow-xl transition-all ${
               hasChanges 
-                ? 'bg-emerald-600 shadow-emerald-500/20 scale-105 mr-2' 
+                ? 'bg-emerald-600 shadow-emerald-500/20 scale-105' 
                 : 'bg-gray-400 opacity-50'
             }`}
           >
             {isSaving ? (
-              <ArrowPathIcon className="w-5 h-5 animate-spin" />
+              <ArrowPathIcon className="w-5 h-5 animate-spin mr-2" />
             ) : (
-              <>
-                <CloudArrowUpIcon className="w-5 h-5 mr-2 " />
-                Guardar {Object.keys(editedChanges).length} cambios
-              </>
+              <CloudArrowUpIcon className="w-5 h-5 mr-2" />
             )}
+            Guardar {changedCount} cambios
           </Button>
         </div>
       </div>
 
-      {/* Barra de Herramientas */}
-      <div className="bg-white rounded-[2.5rem] p-6 shadow-xl shadow-gray-200/50 border border-gray-100 mb-8 flex flex-col md:flex-row gap-4 items-center">
-        <div className="relative flex-1 w-full">
-           <MagnifyingGlassIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-           <input 
-             type="text" 
-             placeholder="Buscar por nombre o SKU..."
-             className="w-full pl-14 pr-6 h-14 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-emerald-500 font-medium text-gray-900"
-             value={searchTerm}
-             onChange={(e) => setSearchTerm(e.target.value)}
-           />
+      {/* Toolbar & Filters */}
+      <div className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl shadow-gray-200/50 border border-gray-100 mb-6 sticky top-4 z-30">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+             <MagnifyingGlassIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+             <input 
+               type="text" 
+               placeholder="Nombre, SKU o Barcode..."
+               className="w-full pl-12 pr-6 h-14 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-emerald-500 font-medium text-gray-900 shadow-inner"
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+             />
+          </div>
+          
+          <div className="flex gap-2">
+             <button 
+               onClick={() => setFilterLowStock(!filterLowStock)}
+               className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 h-14 rounded-2xl font-bold transition-all border-2 ${
+                 filterLowStock 
+                   ? 'bg-amber-100 text-amber-700 border-amber-200 shadow-lg shadow-amber-200/20' 
+                   : 'bg-gray-50 text-gray-400 border-transparent hover:bg-gray-100'
+               }`}
+             >
+               <ExclamationCircleIcon className="w-5 h-5 shrink-0" />
+               <span className="md:hidden">Stock Bajo</span>
+             </button>
+             <button 
+               onClick={() => setShowBulkActions(!showBulkActions)}
+               className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 h-14 rounded-2xl font-bold transition-all border-2 ${
+                showBulkActions 
+                   ? 'bg-indigo-100 text-indigo-700 border-indigo-200' 
+                   : 'bg-gray-50 text-gray-400 border-transparent'
+               }`}
+             >
+               <PercentBadgeIcon className="w-5 h-5 shrink-0" />
+               <span className="hidden md:inline">Acciones Masivas</span>
+             </button>
+          </div>
         </div>
-        
-        <div className="flex gap-2 w-full md:w-auto">
-           <button 
-             onClick={() => setFilterLowStock(!filterLowStock)}
-             className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 h-14 rounded-2xl font-bold transition-all ${
-               filterLowStock 
-                 ? 'bg-amber-100 text-amber-700 border-2 border-amber-200 shadow-lg shadow-amber-200/20' 
-                 : 'bg-gray-50 text-gray-500 border-2 border-transparent'
-             }`}
-           >
-             <ExclamationCircleIcon className="w-5 h-5" />
-             Stock Bajo
-           </button>
-           <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 h-14 bg-gray-50 text-gray-500 rounded-2xl font-bold border-2 border-transparent">
-             <FunnelIcon className="w-5 h-5" />
-             Filtros
-           </button>
-        </div>
-      </div>
 
-      {/* Tabla Premium */}
-      <div className="bg-white rounded-[3rem] shadow-2xl shadow-gray-200/40 border border-gray-50 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50/50 border-b border-gray-100">
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Producto</th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Categoría</th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400 w-48 text-right">Precio ($)</th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400 w-48 text-right">Stock</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filteredProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-emerald-50/20 transition-colors group">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      {product.image ? (
-                        <img src={product.image} className="w-12 h-12 rounded-xl object-cover shadow-sm group-hover:scale-110 transition-transform" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">📦</div>
-                      )}
-                      <div>
-                        <p className="font-bold text-gray-900 group-hover:text-emerald-700">{product.name}</p>
-                        <p className="text-[10px] font-black text-gray-300 uppercase tracking-tighter">SKU: {product.id?.slice(0, 12)}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <span className="px-3 py-1 bg-gray-100 rounded-lg text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                      {Array.isArray(product.categories) && product.categories.length > 0 ? product.categories[0] : 'General'}
-                    </span>
-                  </td>
-                  <td className="px-8 py-6">
-                    <input 
-                      type="number"
-                      defaultValue={product.price}
-                      className={`w-full h-12 bg-transparent text-right font-black text-xl rounded-xl border-2 px-4 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
-                        editedChanges[product.id]?.price ? 'border-emerald-500 text-emerald-700 bg-emerald-50' : 'border-transparent text-gray-900'
-                      }`}
-                      onChange={(e) => handleInputChange(product.id, 'price', e.target.value)}
-                    />
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="relative">
-                      <input 
-                        type="number"
-                        defaultValue={product.stock}
-                        className={`w-full h-12 bg-transparent text-right font-black text-xl rounded-xl border-2 px-10 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
-                          editedChanges[product.id]?.stock ? 'border-emerald-500 text-emerald-700 bg-emerald-50' : 'border-transparent'
-                        } ${product.stock <= 5 && !editedChanges[product.id]?.stock ? 'text-amber-600 bg-amber-50' : 'text-gray-900'}`}
-                        onChange={(e) => handleInputChange(product.id, 'stock', e.target.value)}
-                      />
-                      {product.stock <= 5 && !editedChanges[product.id]?.stock && (
-                        <ExclamationCircleIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500" />
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {filteredProducts.length === 0 && (
-          <div className="py-32 text-center">
-             <p className="text-2xl font-black text-gray-200 mb-2 tracking-tighter uppercase">No se encontraron productos</p>
-             <p className="text-gray-400 font-medium">Intenta con otra búsqueda o limpia los filtros.</p>
+        {/* Panel de Acciones Masivas */}
+        {showBulkActions && (
+          <div className="mt-4 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 grid grid-cols-2 md:grid-cols-4 gap-3 animate-in slide-in-from-top-2 duration-300">
+             <button onClick={() => applyBulkAdjustment('price_percent', 10)} className="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-indigo-100 hover:border-indigo-400 transition-colors shadow-sm">
+                <PlusIcon className="w-4 h-4 text-indigo-600 mb-1" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-900">+10% Precio</span>
+             </button>
+             <button onClick={() => applyBulkAdjustment('price_percent', -10)} className="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-indigo-100 hover:border-indigo-400 transition-colors shadow-sm">
+                <MinusIcon className="w-4 h-4 text-indigo-600 mb-1" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-900">-10% Precio</span>
+             </button>
+             <button onClick={() => applyBulkAdjustment('price_fixed', 100)} className="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-indigo-100 hover:border-indigo-400 transition-colors shadow-sm">
+                <div className="text-xs font-black text-indigo-600 mb-1">+$100</div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-900">Aumentar Fijo</span>
+             </button>
+             <button onClick={() => {
+               const stockStr = prompt("¿Qué stock quieres fijar para todos los productos visibles?", "10");
+               if (stockStr) applyBulkAdjustment('stock_fixed', parseInt(stockStr));
+             }} className="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-indigo-100 hover:border-indigo-400 transition-colors shadow-sm">
+                <CheckCircleIcon className="w-4 h-4 text-indigo-600 mb-1" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-900">Fijar Stock</span>
+             </button>
           </div>
         )}
       </div>
 
-      {/* Info de Atajos */}
-      <div className="mt-8 flex items-center justify-center gap-8 text-[10px] font-black uppercase tracking-widest text-gray-300">
-         <div className="flex items-center gap-2 italic">
-           <span className="bg-gray-200 px-2 py-1 rounded text-gray-500">TAB</span> Navegar entre campos
-         </div>
-         <div className="flex items-center gap-2 italic">
-           <span className="bg-emerald-200 px-2 py-1 rounded text-emerald-600">VERDE</span> Indica cambio sin guardar
+      {/* Main Content Area */}
+      <div className="relative">
+        
+        {/* Desktop Table View */}
+        <div className="hidden lg:block bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/40 border border-gray-50 overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50/50 border-b border-gray-100">
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Producto / SKU</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Categoría</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-48 text-right">Precio ($)</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-48 text-right">Stock Act.</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filteredProducts.map((product) => (
+                <EditableRow 
+                  key={product.id} 
+                  product={product} 
+                  changes={editedChanges[product.id]} 
+                  onChange={handleInputChange} 
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile/Tablet Card View */}
+        <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+           {filteredProducts.map((product) => (
+             <EditableCard 
+               key={product.id} 
+               product={product} 
+               changes={editedChanges[product.id]} 
+               onChange={handleInputChange} 
+             />
+           ))}
+        </div>
+
+        {filteredProducts.length === 0 && (
+          <div className="py-24 md:py-32 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-gray-100">
+             <div className="bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">🔍</div>
+             <p className="text-xl font-black text-gray-300 mb-1 tracking-widest uppercase">Sin productos</p>
+             <p className="text-sm text-gray-400 font-medium italic">Prueba con términos más generales.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Floating Bottom Bar (Mobile/Tablet) */}
+      <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 animate-in slide-in-from-bottom-5 duration-500">
+         <div className="bg-gray-950/90 backdrop-blur-md rounded-3xl p-4 shadow-2xl border border-white/10 flex items-center justify-between gap-4">
+            <div className="flex flex-col">
+               <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest italic">Inventory Manager</span>
+               <span className="text-white text-sm font-bold">
+                 {hasChanges ? `${changedCount} cambios pendientes` : 'Sin cambios listos'}
+               </span>
+            </div>
+            <button 
+              onClick={saveAllChanges}
+              disabled={!hasChanges || isSaving}
+              className={`h-12 px-6 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
+                hasChanges 
+                 ? 'bg-emerald-500 text-white shadow-lg active:scale-95' 
+                 : 'bg-white/10 text-white/30'
+              }`}
+            >
+               {isSaving ? 'Guardando...' : 'Aplicar Todo'}
+            </button>
          </div>
       </div>
+
+      {/* Stats overlay (Desktop) */}
+      <div className="hidden md:flex mt-8 justify-center gap-6 text-[10px] font-black uppercase tracking-widest text-gray-400 opacity-60">
+         <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Cambios detectados</div>
+         <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500" /> Alerta Stock Bajo</div>
+         <div className="flex items-center gap-2 italic">Desarrollado para Android & Chrome</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Sub-components ──────────────────────────────────────────────────────
+
+function EditableRow({ product, changes, onChange }: { product: any, changes?: ProductChanges, onChange: any }) {
+  const isDirty = changes?.price !== undefined || changes?.stock !== undefined;
+  
+  return (
+    <tr className={`hover:bg-emerald-50/10 transition-colors group ${isDirty ? 'bg-emerald-50/5' : ''}`}>
+      <td className="px-8 py-5">
+        <div className="flex items-center gap-4">
+          <div className="relative group-hover:scale-110 transition-transform">
+             {product.image ? (
+               <img src={product.image} className="w-10 h-10 rounded-xl object-cover shadow-sm bg-white border border-gray-100" />
+             ) : (
+               <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-xs">📦</div>
+             )}
+             {isDirty && <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full animate-pulse" />}
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-800 leading-tight mb-0.5 line-clamp-1">{product.name}</p>
+            <div className="flex items-center gap-2">
+               <span className="text-[9px] font-black text-gray-300 uppercase tracking-tighter">SKU: {product.id?.slice(0, 10)}</span>
+               {product.barcode && <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter border-l pl-2">{product.barcode}</span>}
+            </div>
+          </div>
+        </div>
+      </td>
+      <td className="px-8 py-5">
+        <span className="px-2.5 py-1 bg-gray-100 rounded-lg text-[9px] font-black text-gray-400 uppercase tracking-[0.1em]">
+          {Array.isArray(product.categories) && product.categories.length > 0 ? product.categories[0] : 'General'}
+        </span>
+      </td>
+      <td className="px-8 py-5 text-right">
+        <div className="inline-flex items-center relative max-w-[140px] ml-auto">
+          <span className="absolute left-3 text-xs font-bold text-gray-400">$</span>
+          <input 
+            type="number"
+            inputMode="decimal"
+            value={changes?.price ?? product.price}
+            onChange={(e) => onChange(product.id, 'price', e.target.value)}
+            className={`w-full h-11 bg-white text-right font-black text-lg rounded-xl border-2 px-3 pl-6 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
+              changes?.price !== undefined ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-gray-900 hover:border-gray-200'
+            }`}
+          />
+        </div>
+      </td>
+      <td className="px-8 py-5 text-right">
+        <div className="inline-flex items-center relative max-w-[100px] ml-auto">
+           <input 
+             type="number"
+             inputMode="numeric"
+             value={changes?.stock ?? product.stock}
+             onChange={(e) => onChange(product.id, 'stock', e.target.value)}
+             className={`w-full h-11 bg-white text-right font-black text-lg rounded-xl border-2 px-3 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
+               changes?.stock !== undefined ? 'border-emerald-500 text-emerald-700' : 
+               (product.stock <= 5 ? 'border-amber-100 text-amber-600 bg-amber-50' : 'border-transparent text-gray-600 hover:border-gray-200')
+             }`}
+           />
+           {product.stock <= 5 && changes?.stock === undefined && (
+             <div className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full" />
+           )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function EditableCard({ product, changes, onChange }: { product: any, changes?: ProductChanges, onChange: any }) {
+  const isDirty = changes?.price !== undefined || changes?.stock !== undefined;
+  
+  return (
+    <div className={`p-5 rounded-[2.5rem] border-2 transition-all ${
+      isDirty ? 'bg-emerald-50/30 border-emerald-500 shadow-lg shadow-emerald-500/5' : 'bg-white border-transparent'
+    }`}>
+       <div className="flex items-center gap-4 mb-5">
+          <div className="relative">
+             {product.image ? (
+               <img src={product.image} className="w-14 h-14 rounded-2xl object-cover shadow-sm bg-white border border-gray-100" />
+             ) : (
+               <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400">📦</div>
+             )}
+             {isDirty && (
+               <div className="absolute -top-2 -right-2 bg-emerald-500 text-white p-1 rounded-full border-4 border-white shadow-lg">
+                 <CheckCircleIcon className="w-3 h-3" />
+               </div>
+             )}
+          </div>
+          <div className="flex-1 overflow-hidden">
+             <h3 className="text-sm font-black text-gray-900 leading-tight uppercase truncate">{product.name}</h3>
+             <p className="text-[10px] font-black text-gray-400 tracking-tighter uppercase truncate opacity-60">
+               SKU: {String(product.id).slice(0, 15)} 
+             </p>
+             <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 rounded-md text-[8px] font-black text-gray-400 uppercase">
+                {product.categories?.[0] || 'General'}
+             </span>
+          </div>
+       </div>
+
+       <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-2">Precio ($)</label>
+             <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">$</span>
+                <input 
+                   type="number"
+                   inputMode="decimal"
+                   value={changes?.price ?? product.price}
+                   onChange={(e) => onChange(product.id, 'price', e.target.value)}
+                   className={`w-full h-14 rounded-2xl border-0 font-black text-lg pl-8 pr-4 shadow-inner ${
+                     changes?.price !== undefined ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-900 group-focus-within:bg-white'
+                   }`}
+                />
+             </div>
+          </div>
+          <div className="space-y-1.5">
+             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-2">Existencias</label>
+             <div className="relative">
+                <input 
+                   type="number"
+                   inputMode="numeric"
+                   value={changes?.stock ?? product.stock}
+                   onChange={(e) => onChange(product.id, 'stock', e.target.value)}
+                   className={`w-full h-14 rounded-2xl border-0 font-black text-lg px-4 text-center shadow-inner ${
+                     changes?.stock !== undefined ? 'bg-emerald-100 text-emerald-800' : 
+                     (product.stock <= 5 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-900')
+                   }`}
+                />
+             </div>
+          </div>
+       </div>
     </div>
   );
 }
