@@ -16,12 +16,12 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useToast } from "@/contexts/ToastContext";
 import LiveReceptionBoard, { LiveOrder } from "@/components/admin/LiveReceptionBoard";
 
-interface LocalOrder extends LiveOrder {}
+// interface LocalOrder extends LiveOrder {}
 
 export default function AdminDashboard() {
   const { products } = useProducts();
   const { showToast } = useToast();
-  const [orders, setOrders] = useState<LocalOrder[]>([]);
+  const [orders, setOrders] = useState<LiveOrder[]>([]);
   const [lastSync, setLastSync] = useState<string>("");
   const [viewMode, setViewMode] = useState<'reception' | 'analytics'>('reception');
 

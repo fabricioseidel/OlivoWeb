@@ -135,36 +135,48 @@ export default function AdminLayout({
 
   // ── Sidebar nav content (shared between desktop and mobile) ──
   const NavContent = ({ mobile = false }: { mobile?: boolean }) => (
-    <nav className={`flex-1 overflow-y-auto ${mobile ? 'px-4 py-4' : 'px-3 py-2'}`}>
-      {menuGroups.map((group) => (
-        <div key={group.label} className="mb-4">
-          {!isCollapsed && (
-            <p className="px-4 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500/50">
-              {group.label}
-            </p>
-          )}
-          <div className="space-y-0.5">
-            {group.items.map((item) => {
-              const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
-                    isActive
-                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
-                      : "text-emerald-100/40 hover:text-emerald-300 hover:bg-white/5"
-                  }`}
-                >
-                  <item.icon className={`h-4 w-4 shrink-0 ${isCollapsed && !mobile ? "mx-auto" : ""}`} />
-                  {(!isCollapsed || mobile) && <span className="truncate">{item.name}</span>}
-                </Link>
-              );
-            })}
+    <>
+      <nav className={`flex-1 overflow-y-auto ${mobile ? 'px-4 py-4' : 'px-3 py-2'}`}>
+        {menuGroups.map((group) => (
+          <div key={group.label} className="mb-4">
+            {!isCollapsed && (
+              <p className="px-4 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500/50">
+                {group.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
+                      isActive
+                        ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
+                        : "text-emerald-100/40 hover:text-emerald-300 hover:bg-white/5"
+                    }`}
+                  >
+                    <item.icon className={`h-4 w-4 shrink-0 ${isCollapsed && !mobile ? "mx-auto" : ""}`} />
+                    {(!isCollapsed || mobile) && <span className="truncate">{item.name}</span>}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
-    </nav>
+        ))}
+      </nav>
+      
+      <div className={`mt-auto ${mobile ? 'px-4 py-4' : 'px-3 py-4'} border-t border-white/5`}>
+        <Link
+          href="/"
+          className={`flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all bg-white/5 text-emerald-300 hover:text-white hover:bg-white/10`}
+        >
+          <ShoppingBagIcon className={`h-4 w-4 shrink-0 ${isCollapsed && !mobile ? "mx-auto" : ""}`} />
+          {(!isCollapsed || mobile) && <span className="truncate">Volver a la Tienda</span>}
+        </Link>
+      </div>
+    </>
   );
 
   // Content wrapper: only POS gets POSProvider

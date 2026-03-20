@@ -339,7 +339,7 @@ export default function CheckoutPage() {
 
             <div className="mt-6 px-4 py-6 bg-emerald-900 rounded-[2rem] text-white">
                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 mb-2">Ayuda Inmediata</p>
-               <p className="text-sm font-bold opacity-90 mb-4 font-serif italic">"¿Tienes dudas con tu pedido? Estamos para apoyarte."</p>
+               <p className="text-sm font-bold opacity-90 mb-4 font-serif italic">&quot;¿Tienes dudas con tu pedido? Estamos para apoyarte.&quot;</p>
                <Link href={`https://wa.me/56912345678`} target="_blank" className="inline-flex items-center font-black text-emerald-300 hover:text-white transition-colors">
                   Chat de Consultas WhatsApp →
                </Link>

@@ -119,7 +119,7 @@ export default function OrderConfirmationClient() {
                 </div>
                 <div>
                    <p className="text-sm font-black text-gray-900 uppercase tracking-tighter">¿Alguna consulta especial?</p>
-                   <p className="text-xs text-emerald-800/70 font-medium font-serif italic">"Nuestro equipo está listo para ayudarte con tu despacho."</p>
+                   <p className="text-xs text-emerald-800/70 font-medium font-serif italic">&quot;Nuestro equipo está listo para ayudarte con tu despacho.&quot;</p>
                 </div>
              </div>
              <a 
