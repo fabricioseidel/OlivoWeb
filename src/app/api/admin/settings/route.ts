@@ -4,6 +4,22 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+export type PageBlock = {
+  id: string;
+  type: 'hero' | 'categories' | 'products' | 'features' | 'newsletter' | 'banner';
+  enabled: boolean;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  buttonText?: string;
+  buttonLink?: string;
+  imageUrl?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  itemsToShow?: number;
+  config?: any;
+};
+
 // Type para la configuración completa
 export type StoreSettings = {
   // General
@@ -31,6 +47,7 @@ export type StoreSettings = {
     footerBackgroundColor?: string;
     footerTextColor?: string;
     enableDarkMode?: boolean;
+    blocks?: PageBlock[];
   };
 
   // Envíos
@@ -134,6 +151,13 @@ export async function GET() {
           accentColor: "#047857",
           logoUrl: "/logo.png",
           enableDarkMode: false,
+          blocks: [
+            { id: 'b1', type: 'hero', enabled: true, title: 'Sabor que te conecta con casa', description: 'Llevamos lo mejor de Venezuela directo a tu puerta en Chile.' },
+            { id: 'b2', type: 'categories', enabled: true, title: 'Nuestras Categorías' },
+            { id: 'b3', type: 'products', enabled: true, title: 'Lo Más Vendido', itemsToShow: 8 },
+            { id: 'b4', type: 'features', enabled: true },
+            { id: 'b5', type: 'newsletter', enabled: true }
+          ]
         },
         shipping: {
           enableShipping: true,
@@ -188,6 +212,7 @@ export async function GET() {
         footerBackgroundColor: data.footer_background_color,
         footerTextColor: data.footer_text_color,
         enableDarkMode: data.enable_dark_mode,
+        blocks: data.blocks || [],
       },
       shipping: {
         enableShipping: data.enable_shipping,
@@ -279,6 +304,7 @@ export async function PATCH(req: Request) {
       footer_background_color: body.appearance?.footerBackgroundColor ?? null,
       footer_text_color: body.appearance?.footerTextColor ?? null,
       enable_dark_mode: body.appearance?.enableDarkMode ?? false,
+      blocks: body.appearance?.blocks ?? body.blocks ?? null,
       enable_shipping: body.shipping?.enableShipping ?? true,
       free_shipping_enabled: body.shipping?.freeShippingEnabled ?? false,
       free_shipping_minimum: body.shipping?.freeShippingMinimum ?? null,

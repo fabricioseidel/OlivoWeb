@@ -26,6 +26,7 @@ import {
   StarIcon,
   EnvelopeIcon,
   NewspaperIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { Dialog, Transition } from "@headlessui/react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -79,6 +80,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { name: "Pedidos Clientes", href: "/admin/pedidos", icon: ClipboardDocumentListIcon },
       { name: "Usuarios", href: "/admin/usuarios", icon: UsersIcon },
+      { name: "Constructor Visual", href: "/admin/constructor", icon: SparklesIcon },
       { name: "Configuración", href: "/admin/configuracion", icon: Cog6ToothIcon },
     ],
   },
