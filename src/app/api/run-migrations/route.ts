@@ -5,9 +5,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const sql = `
-    ALTER TABLE public.orders 
-    ADD COLUMN IF NOT EXISTS coupon_code TEXT, 
-    ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(15,2) DEFAULT 0;
+    ALTER TABLE public.products 
+    ADD COLUMN IF NOT EXISTS min_stock INTEGER DEFAULT 5, 
+    ADD COLUMN IF NOT EXISTS optimum_stock INTEGER DEFAULT 20;
+
+    UPDATE public.products SET optimum_stock = stock WHERE stock > 20 AND optimum_stock = 20;
   `;
   
   try {
