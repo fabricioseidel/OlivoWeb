@@ -19,6 +19,8 @@ export type SupaProduct = {
   offer_price?: number | null;
   is_active?: boolean | null;
   tax_rate?: number | null;
+  min_stock?: number | null;
+  optimum_stock?: number | null;
 };
 
 export type ProductUI = {
@@ -46,6 +48,8 @@ export type ProductUI = {
   isActive?: boolean;
   barcode?: string;
   purchasePrice?: number;
+  minStock?: number;
+  optimumStock?: number;
 };
 
 export interface CartItem {

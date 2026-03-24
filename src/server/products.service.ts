@@ -20,6 +20,8 @@ function mapFormToRow(data: ProductFormData) {
     gallery: data.gallery ?? null,
     is_active: data.isActive,
     featured: data.isFeatured,
+    min_stock: data.minStock ?? 5,
+    optimum_stock: data.optimumStock ?? 20,
     // Add other fields if DB supports them (e.g. sku, vendor, tags)
     // For now assuming 'features' stores tags/vendor or similar if needed, 
     // but sticking to known columns from SupaProduct.

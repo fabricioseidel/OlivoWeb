@@ -38,9 +38,10 @@ function mapProductToForm(product: ProductRecord): ProductFormData {
     stock: Number(product.stock ?? 0),
     barcode: product.barcode ?? "",
     image: product.image_url ?? "",
-    gallery: product.gallery ?? [],
     isActive: product.is_active ?? true,
     isFeatured: product.featured ?? false,
+    minStock: Number(product.min_stock ?? 5),
+    optimumStock: Number(product.optimum_stock ?? 20),
     // vendor, tags, sku no están en ProductRecord explícitamente, se pueden agregar después
   };
 }
@@ -230,13 +231,29 @@ export default function EditProductForm({ productId, initialProduct }: EditProdu
                 {...register("barcode")}
               />
             </div>
-            <div className="mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
               <Input
-                label="Cantidad disponible"
+                label="Stock Disponible"
                 type="number"
                 placeholder="0"
                 error={errors.stock?.message}
                 {...register("stock")}
+              />
+              <Input
+                label="Stock Mínimo"
+                type="number"
+                placeholder="5"
+                helperText="Nivel de alerta"
+                error={errors.minStock?.message}
+                {...register("minStock")}
+              />
+              <Input
+                label="Stock Óptimo"
+                type="number"
+                placeholder="20"
+                helperText="Nivel sugerido"
+                error={errors.optimumStock?.message}
+                {...register("optimumStock")}
               />
             </div>
           </div>

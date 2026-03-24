@@ -19,6 +19,8 @@ const DEFAULT_VALUES: ProductFormData = {
   descripcion: "",
   precio: 0,
   stock: 0,
+  minStock: 5,
+  optimumStock: 20,
   isActive: true,
   isFeatured: false,
 };
@@ -128,6 +130,24 @@ export default function AddProductForm() {
           disabled={isPending}
           error={errors.stock?.message}
           {...register("stock", { valueAsNumber: true })}
+        />
+        <Input
+          type="number"
+          min="0"
+          label="Stock Minimo (Alerta)"
+          placeholder="5"
+          disabled={isPending}
+          error={errors.minStock?.message}
+          {...register("minStock", { valueAsNumber: true })}
+        />
+        <Input
+          type="number"
+          min="0"
+          label="Stock Optimo (Sugerencia)"
+          placeholder="20"
+          disabled={isPending}
+          error={errors.optimumStock?.message}
+          {...register("optimumStock", { valueAsNumber: true })}
         />
       </div>
 

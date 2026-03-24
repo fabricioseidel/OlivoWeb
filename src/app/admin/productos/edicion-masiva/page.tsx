@@ -16,7 +16,7 @@ import {
   CheckCircleIcon
 } from "@heroicons/react/24/outline";
 
-type ProductChanges = { price?: number; offerPrice?: number | null; stock?: number; name?: string; categories?: string[] };
+type ProductChanges = { price?: number; offerPrice?: number | null; stock?: number; minStock?: number; optimumStock?: number; name?: string; categories?: string[] };
 
 export default function BulkEditProductsPage() {
   const { products, updateProduct } = useProducts();
@@ -56,9 +56,9 @@ export default function BulkEditProductsPage() {
     } else if (field === 'offerPrice') {
       newValue = value === "" ? null : parseFloat(value as string);
       originalValue = originalProduct?.offerPrice;
-    } else if (field === 'stock') {
+    } else if (field === 'stock' || field === 'minStock' || field === 'optimumStock') {
       newValue = parseInt(value as string, 10);
-      originalValue = originalProduct?.stock;
+      originalValue = field === 'stock' ? originalProduct?.stock : field === 'minStock' ? originalProduct?.minStock : originalProduct?.optimumStock;
     } else if (field === 'name') {
       newValue = value;
       originalValue = originalProduct?.name;
@@ -71,7 +71,7 @@ export default function BulkEditProductsPage() {
       ? JSON.stringify(newValue.concat().sort()) === JSON.stringify((originalValue || []).concat().sort())
       : newValue === originalValue;
 
-    if (isSame || (field === 'price' && isNaN(newValue)) || (field === 'offerPrice' && isNaN(newValue) && newValue !== null) || (field === 'stock' && isNaN(newValue))) {
+    if (isSame || (field === 'price' && isNaN(newValue)) || (field === 'offerPrice' && isNaN(newValue) && newValue !== null) || (['stock', 'minStock', 'optimumStock'].includes(field) && isNaN(newValue))) {
       setEditedChanges(prev => {
         const next = { ...prev };
         if (next[productId]) {
@@ -273,6 +273,8 @@ export default function BulkEditProductsPage() {
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-right">Precio ($)</th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-right">Oferta ($)</th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-right">Stock Act.</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-24 text-right">Mínimo</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-24 text-right">Óptimo</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -426,6 +428,32 @@ function EditableRow({ product, changes, onChange }: { product: any, changes?: P
            {product.stock <= 5 && changes?.stock === undefined && (
              <div className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full" />
            )}
+        </div>
+      </td>
+      <td className="px-6 py-5 text-right w-24">
+        <div className="inline-flex items-center relative w-full justify-end">
+           <input 
+             type="number"
+             inputMode="numeric"
+             value={changes?.minStock ?? product.minStock}
+             onChange={(e) => onChange(product.id, 'minStock', e.target.value)}
+             className={`w-full h-11 bg-white text-right font-black text-sm rounded-xl border-2 px-3 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
+               changes?.minStock !== undefined ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-gray-600 hover:border-gray-200 shadow-sm'
+             }`}
+           />
+        </div>
+      </td>
+      <td className="px-6 py-5 text-right w-24">
+        <div className="inline-flex items-center relative w-full justify-end">
+           <input 
+             type="number"
+             inputMode="numeric"
+             value={changes?.optimumStock ?? product.optimumStock}
+             onChange={(e) => onChange(product.id, 'optimumStock', e.target.value)}
+             className={`w-full h-11 bg-white text-right font-black text-sm rounded-xl border-2 px-3 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
+               changes?.optimumStock !== undefined ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-gray-600 hover:border-gray-200 shadow-sm'
+             }`}
+           />
         </div>
       </td>
     </tr>

@@ -21,7 +21,9 @@ interface Product {
   barcode: string;
   stock: number;
   purchase_price: number;
-  reorder_threshold: number | null;
+  min_stock?: number | null;
+  optimum_stock?: number | null;
+  reorder_threshold?: number | null;
   supplier_id: string;
   supplier_sku?: string;
   default_reorder_qty?: number;
@@ -68,12 +70,13 @@ export default function NuevoPedidoProveedorPage() {
           const prodsData = await prodsRes.json();
           setProducts(prodsData);
 
-          // AUTO-SELECT: Products below reorder threshold
+          // AUTO-SELECT: Products below min_stock
           const autoMap = new Map<number, OrderItem>();
           prodsData.forEach((p: Product) => {
-            const threshold = p.reorder_threshold || 5;
+            const threshold = p.min_stock ?? p.reorder_threshold ?? 5;
             if (p.stock <= threshold) {
-              const qty = p.default_reorder_qty || Math.max(threshold - p.stock, 1);
+              const optimum = p.optimum_stock ?? 20;
+              const qty = Math.max(optimum - p.stock, 1);
               autoMap.set(p.id, {
                 product_id: p.id,
                 product_name: p.name,
@@ -106,8 +109,8 @@ export default function NuevoPedidoProveedorPage() {
     if (next.has(product.id)) {
       next.delete(product.id);
     } else {
-      const threshold = product.reorder_threshold || 5;
-      const qty = product.default_reorder_qty || Math.max(threshold - product.stock, 1);
+      const optimum = product.optimum_stock ?? 20;
+      const qty = Math.max(optimum - product.stock, 1);
       next.set(product.id, {
         product_id: product.id,
         product_name: product.name,
@@ -291,7 +294,7 @@ export default function NuevoPedidoProveedorPage() {
           filteredProducts.map((product) => {
             const isSelected = selectedItems.has(product.id);
             const item = selectedItems.get(product.id);
-            const threshold = product.reorder_threshold || 5;
+            const threshold = product.min_stock ?? product.reorder_threshold ?? 5;
             const isLow = product.stock <= threshold;
             const isZero = product.stock === 0;
 

@@ -24,6 +24,8 @@ export async function GET(
           barcode,
           stock,
           purchase_price,
+          min_stock,
+          optimum_stock,
           reorder_threshold
         )
       `)
@@ -53,6 +55,8 @@ export async function GET(
         stock: product?.stock || 0,
         purchase_price: hasSupplierCost ? supplierCost : productCost,
         cost_source: hasSupplierCost ? 'supplier' : 'product',
+        min_stock: ps.min_stock ?? product?.min_stock ?? null,
+        optimum_stock: ps.optimum_stock ?? product?.optimum_stock ?? null,
         reorder_threshold: ps.reorder_threshold || product?.reorder_threshold || 10,
         supplier_id: id,
         supplier_sku: ps.supplier_sku || product?.barcode,

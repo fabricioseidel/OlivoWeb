@@ -15,6 +15,7 @@ import {
   TruckIcon,
   ExclamationTriangleIcon,
   ShoppingCartIcon,
+  ArchiveBoxArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/contexts/ToastContext";
@@ -272,6 +273,16 @@ export default function ComprasPage() {
                        <p className="text-[10px] text-emerald-100/50 uppercase font-black tracking-widest mt-1">Pendiente</p>
                    </div>
                 </div>
+
+                <Link href="/admin/reabastecimiento/recepcion">
+                    <button
+                        className="p-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white transition-colors shadow-lg shadow-emerald-900/40 flex items-center gap-2"
+                        title="Recepción Rápida con Escáner"
+                    >
+                        <ArchiveBoxArrowDownIcon className="h-6 w-6" />
+                        <span className="hidden sm:inline font-bold uppercase tracking-widest text-xs">Recepción</span>
+                    </button>
+                </Link>
 
                 <button
                     onClick={() => { loadLowStock(); loadOrders(); }}

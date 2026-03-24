@@ -47,6 +47,8 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     isActive: p.is_active ?? true,
     barcode: p.barcode,
     purchasePrice: p.purchase_price ? Number(p.purchase_price) : undefined,
+    minStock: p.min_stock ?? 5,
+    optimumStock: p.optimum_stock ?? 20,
   };
 }
 
@@ -101,6 +103,8 @@ export async function saveProduct(p: Partial<SupaProduct> & { barcode: string })
     offer_price: p.offer_price ?? null,
     is_active: p.is_active ?? false,
     tax_rate: p.tax_rate ?? 19,
+    min_stock: p.min_stock ?? 5,
+    optimum_stock: p.optimum_stock ?? 20,
   };
 
   const res = await fetch('/api/products', {

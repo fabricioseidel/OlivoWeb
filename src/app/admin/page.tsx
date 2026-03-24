@@ -10,6 +10,7 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   ArrowPathIcon,
+  LightBulbIcon
 } from "@heroicons/react/24/outline";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
@@ -24,6 +25,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState<LiveOrder[]>([]);
   const [lastSync, setLastSync] = useState<string>("");
   const [viewMode, setViewMode] = useState<'reception' | 'analytics'>('reception');
+  const [insights, setInsights] = useState<any[]>([]);
 
   // Cargar pedidos desde API
   const loadOrders = async () => {
@@ -66,6 +68,17 @@ export default function AdminDashboard() {
     }, 15000);
     return () => clearInterval(interval);
   }, [viewMode, orders.length]);
+
+  useEffect(() => {
+    if (viewMode === 'analytics') {
+      fetch('/api/admin/ai-insights')
+        .then(res => res.json())
+        .then(data => {
+           if (data.insights) setInsights(data.insights);
+        })
+        .catch(console.error);
+    }
+  }, [viewMode]);
 
   const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
     try {
@@ -214,6 +227,35 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <>
+            {/* AI Insights Card */}
+            {insights.length > 0 && (
+              <div className="mb-8 p-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-[2rem] shadow-lg shadow-amber-900/5 animate-in slide-in-from-bottom-5">
+                 <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/40">
+                       <LightBulbIcon className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-xl font-black text-amber-950 uppercase tracking-widest">IA Predictiva <span className="opacity-50 text-xs ml-2">BETA</span></h2>
+                 </div>
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {insights.map((insight, idx) => (
+                       <div key={idx} className="bg-white rounded-2xl p-4 border border-amber-100 flex gap-4 hover:shadow-md transition">
+                          {insight.image ? (
+                             <img src={insight.image} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                          ) : (
+                             <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 shrink-0">📦</div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                             <p className="text-xs font-bold text-gray-900 truncate mb-1">{insight.productName}</p>
+                             <p className="text-[10px] text-gray-500 font-medium leading-snug break-words">{insight.message}</p>
+                             <p className="text-[10px] text-amber-600 font-black mt-2 tracking-widest uppercase">{insight.actionMessage}</p>
+                          </div>
+                       </div>
+                    ))}
+                 </div>
+              </div>
+            )}
+            
             {/* Tarjetas de estadísticas Premium */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
             <StatCard title="Pedidos" value={metrics.totalOrders} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} color="emerald" helper="Confirmados" />
