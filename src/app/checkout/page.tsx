@@ -48,16 +48,6 @@ export default function CheckoutPage() {
     }
   }, [cartItems.length, router, status]);
 
-  const shippingMethods = useMemo(() => {
-    const list = [...baseShippingMethods];
-    if (dynamicShipping) return [dynamicShipping, ...list];
-    return list;
-  }, [dynamicShipping]);
-
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingCost = shippingMethods.find((method) => method.id === selectedShippingMethod)?.price || 0;
-  const total = subtotal + shippingCost;
-
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     fullName: "",
     email: "",
@@ -68,6 +58,16 @@ export default function CheckoutPage() {
     zipCode: "",
     country: "Chile",
   });
+
+  const shippingMethods = useMemo(() => {
+    const list = [...baseShippingMethods];
+    if (dynamicShipping) return [dynamicShipping, ...list];
+    return list;
+  }, [dynamicShipping]);
+
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const shippingCost = shippingMethods.find((method) => method.id === selectedShippingMethod)?.price || 0;
+  const total = subtotal + shippingCost;
 
   // Load settings
   useEffect(() => {
@@ -80,7 +80,7 @@ export default function CheckoutPage() {
     loadSettings();
   }, []);
 
-  // Autofill from session and last order
+  // Autofill and trigger shipping calc
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
       setShippingInfo(prev => ({
@@ -89,21 +89,27 @@ export default function CheckoutPage() {
         email: session.user.email || prev.email,
       }));
 
-      // Try to fetch last shipping address from previous orders
       const fetchLastAddress = async () => {
         try {
           const res = await fetch(`/api/user/last-order-address?email=${session.user?.email}`);
           if (res.ok) {
             const data = await res.json();
             if (data.address) {
+              const addr = data.address;
               setShippingInfo(prev => ({
                 ...prev,
-                address: data.address.address || prev.address,
-                city: data.address.city || prev.city,
-                state: data.address.state || prev.state,
-                zipCode: data.address.zipCode || prev.zipCode,
-                phone: data.address.phone || prev.phone,
+                address: addr.address || prev.address,
+                city: addr.city || prev.city,
+                state: addr.state || prev.state,
+                zipCode: addr.zipCode || prev.zipCode,
+                phone: addr.phone || prev.phone,
+                country: addr.country || prev.country
               }));
+
+              if (addr.lat && addr.lng) {
+                // Call calc directly to avoid dependence on handleAddressSelect during mount
+                triggerShippingCalculation(addr);
+              }
             }
           }
         } catch (e) {
@@ -112,21 +118,45 @@ export default function CheckoutPage() {
       };
       
       if (session.user.email) fetchLastAddress();
-    } else {
-        // Fallback to localStorage for guest users
-        try {
-          const profileRaw = localStorage.getItem('profile');
-          if (profileRaw) {
-            const { nombre, apellidos, email } = JSON.parse(profileRaw);
-            setShippingInfo(prev => ({
-              ...prev,
-              fullName: `${nombre || ''} ${apellidos || ''}`.trim() || prev.fullName,
-              email: email || prev.email,
-            }));
-          }
-        } catch { }
     }
   }, [session, status]);
+
+  const triggerShippingCalculation = async (addr: any) => {
+    const shipSettings = storeSettings?.shipping;
+    if (shipSettings?.enableDynamicShipping && addr.lat) {
+      if (!shipSettings.shippingOriginLat || !shipSettings.shippingOriginLng) return;
+
+      setIsCalculatingDistance(true);
+      try {
+        const result = await calculateDistance(
+          { lat: Number(shipSettings.shippingOriginLat), lng: Number(shipSettings.shippingOriginLng) },
+          { lat: Number(addr.lat), lng: Number(addr.lng) }
+        );
+
+        if (result.success && !isNaN(result.distanceKm)) {
+          const cost = calculateShippingCost(
+            result.distanceKm,
+            Number(shipSettings.shippingBaseFee || 0),
+            Number(shipSettings.shippingPricePerKm || 0)
+          );
+          
+          if (!isNaN(cost)) {
+            setDynamicShipping({
+              id: "dynamic",
+              name: `Envío a domicilio (${result.distanceKm.toFixed(1)} km)`,
+              price: Math.round(cost),
+              days: "Despacho propio (Agendable)"
+            });
+            setSelectedShippingMethod("dynamic");
+          }
+        }
+      } catch (err) { 
+        console.error("Error calculating shipping:", err); 
+      } finally { 
+        setIsCalculatingDistance(false); 
+      }
+    }
+  };
 
   const handleShippingInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -146,51 +176,11 @@ export default function CheckoutPage() {
         zipCode: val.postalCode || prev.zipCode,
         country: val.country || prev.country
       }));
-
-      const shipSettings = storeSettings?.shipping;
-      if (shipSettings?.enableDynamicShipping && (val as any).lat) {
-        // VALIDATION: Ensure we have origin coordinates
-        if (!shipSettings.shippingOriginLat || !shipSettings.shippingOriginLng) {
-          console.warn("Shipping origin not configured in admin settings.");
-          return;
-        }
-
-        setIsCalculatingDistance(true);
-        try {
-          const result = await calculateDistance(
-            { lat: Number(shipSettings.shippingOriginLat), lng: Number(shipSettings.shippingOriginLng) },
-            { lat: Number((val as any).lat), lng: Number((val as any).lng) }
-          );
-
-          if (result.success && !isNaN(result.distanceKm)) {
-            const cost = calculateShippingCost(
-              result.distanceKm,
-              Number(shipSettings.shippingBaseFee || 0),
-              Number(shipSettings.shippingPricePerKm || 0)
-            );
-            
-            if (!isNaN(cost)) {
-              const dynamicMethod: ShippingMethod = {
-                id: "dynamic",
-                name: `Envío a domicilio (${result.distanceKm.toFixed(1)} km)`,
-                price: Math.round(cost),
-                days: "Despacho propio (Agendable)"
-              };
-              setDynamicShipping(dynamicMethod);
-              setSelectedShippingMethod("dynamic");
-            }
-          }
-        } catch (err) { 
-          console.error("Error calculating shipping:", err); 
-        } finally { 
-          setIsCalculatingDistance(false); 
-        }
-      }
+      triggerShippingCalculation(val);
     }
   };
 
   const handleFinalizeOrder = async () => {
-    // Validaciones básicas
     if (!shippingInfo.fullName || !shippingInfo.email || !shippingInfo.address) {
        alert("Por favor, completa tus datos de contacto y dirección.");
        return;
@@ -198,11 +188,8 @@ export default function CheckoutPage() {
 
     setLoading(true);
     try {
-      // 1. Validación Inteligente de Stock y Precios
       const isCartValid = await validateCartWithServer();
-      
       if (!isCartValid) {
-        // El carrito se actualizará automáticamente y mostrará toasts de alerta
         setLoading(false);
         return;
       }
@@ -259,9 +246,7 @@ export default function CheckoutPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          {/* Formulario Unificado */}
           <div className="lg:col-span-8 space-y-8">
-            {/* Bloque 1: Datos Personales */}
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
               <div className="flex items-center gap-4 mb-8">
                  <div className="h-10 w-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center font-black">1</div>
@@ -304,7 +289,6 @@ export default function CheckoutPage() {
               </div>
             </section>
 
-            {/* Bloque 2: Despacho */}
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
                <div className="flex items-center gap-4 mb-8">
                  <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center font-black">2</div>
@@ -324,7 +308,6 @@ export default function CheckoutPage() {
               />
             </section>
 
-            {/* Bloque 3: Pago */}
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
                <div className="flex items-center gap-4 mb-8">
                  <div className="h-10 w-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center font-black">3</div>
@@ -341,17 +324,10 @@ export default function CheckoutPage() {
             </section>
           </div>
 
-          {/* Resumen Lateral Sticky */}
           <div className="lg:col-span-4 sticky top-10">
             <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-emerald-900/10 p-8 border-2 border-emerald-600/5 overflow-hidden relative">
-              {/* Decoración Fondo */}
               <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none opacity-50" />
               
-              <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-2">
-                <ShoppingBagIcon className="h-5 w-5 text-emerald-600" />
-                Resumen del Pedido
-              </h3>
-
               <OrderSummary
                 cartItems={cartItems}
                 subtotal={subtotal}
@@ -359,14 +335,12 @@ export default function CheckoutPage() {
                 total={total}
               />
 
-              {/* UpsellingSection removed */}
-
               <div className="mt-8 pt-8 border-t border-gray-100 space-y-4">
                 <Button 
                    fullWidth 
                    onClick={handleFinalizeOrder} 
                    loading={loading}
-                   className="h-16 rounded-2xl text-lg font-black bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 active:scale-95 transition-all"
+                   className="h-16 rounded-2xl text-lg font-black bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 active:scale-95 transition-all text-white"
                 >
                   {loading ? "Procesando..." : `Pagar $${total.toLocaleString('es-CL')}`}
                 </Button>
@@ -377,11 +351,16 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <div className="mt-6 px-4 py-6 bg-emerald-900 rounded-[2rem] text-white">
+            <div className="mt-6 px-6 py-8 bg-emerald-950 rounded-[2.5rem] text-white shadow-xl shadow-emerald-900/10 border border-emerald-800">
                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 mb-2">Ayuda Inmediata</p>
-               <p className="text-sm font-bold opacity-90 mb-4 font-serif italic">&quot;¿Tienes dudas con tu pedido? Estamos para apoyarte.&quot;</p>
-               <Link href={`https://wa.me/56912345678`} target="_blank" className="inline-flex items-center font-black text-emerald-300 hover:text-white transition-colors">
-                  Chat de Consultas WhatsApp →
+               <p className="text-base font-bold opacity-90 mb-4 font-serif italic leading-snug">&quot;¿Tienes dudas con tu pedido? Estamos para apoyarte en lo que necesites.&quot;</p>
+               <Link 
+                  href={`https://wa.me/56912345678?text=Hola!%20Tengo%20una%20consulta%20sobre%20mi%20pedido`} 
+                  target="_blank" 
+                  className="inline-flex items-center font-black text-emerald-300 hover:text-white transition-all text-sm group"
+               >
+                  Chat WhatsApp 
+                  <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
                </Link>
             </div>
           </div>

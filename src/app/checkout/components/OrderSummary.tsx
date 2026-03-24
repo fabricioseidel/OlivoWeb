@@ -1,5 +1,6 @@
 import React from 'react';
 import { CartItem } from '@/types';
+import { ShoppingBagIcon } from "@heroicons/react/24/outline";
 
 interface OrderSummaryProps {
   cartItems: CartItem[];
@@ -10,68 +11,71 @@ interface OrderSummaryProps {
 
 export default function OrderSummary({ cartItems, subtotal, shippingCost, total }: OrderSummaryProps) {
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 sticky top-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4 pb-4 border-b border-gray-200">
+    <div className="space-y-6">
+      <h3 className="text-xl font-black text-gray-900 flex items-center gap-2 mb-6">
+        <ShoppingBagIcon className="h-5 w-5 text-emerald-600" />
         Resumen del Pedido
-      </h2>
+      </h3>
 
-      {/* Items del carrito */}
-      <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
+      {/* Items del pedido */}
+      <div className="space-y-4 max-h-60 overflow-y-auto pr-2 scrollbar-hide">
         {cartItems.map((item) => (
-          <div key={item.id} className="flex items-center gap-3">
-            <div className="relative w-12 h-12 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+          <div key={item.id} className="flex gap-4 group">
+            <div className="relative h-14 w-14 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
               <img
                 src={item.image}
                 alt={item.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               />
-              <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
+              <span className="absolute -top-1 -right-1 bg-gray-900 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black border-2 border-white">
                 {item.quantity}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
-              <p className="text-xs text-gray-500">${item.price.toFixed(2)} c/u</p>
+              <p className="text-sm font-bold text-gray-900 truncate leading-tight mb-1">{item.name}</p>
+              <p className="text-xs text-gray-400 font-medium tracking-tight">
+                {item.quantity} x ${item.price.toLocaleString('es-CL')}
+              </p>
             </div>
-            <p className="text-sm font-semibold text-gray-900">
-              ${(item.price * item.quantity).toFixed(2)}
+            <p className="text-sm font-black text-gray-900">
+              ${(item.price * item.quantity).toLocaleString('es-CL')}
             </p>
           </div>
         ))}
       </div>
 
-      {/* Totales */}
-      <div className="space-y-3 pt-4 border-t border-gray-200">
-        <div className="flex justify-between text-sm">
-          <p className="text-gray-600">Subtotal</p>
-          <p className="font-medium text-gray-900">${subtotal.toFixed(2)}</p>
+      <div className="space-y-4 pt-6 border-t border-gray-100">
+        <div className="flex justify-between items-center text-sm">
+          <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Subtotal</p>
+          <p className="font-bold text-gray-900">${subtotal.toLocaleString('es-CL')}</p>
         </div>
 
-        <div className="flex justify-between text-sm">
-          <p className="text-gray-600">Envío</p>
-          <p className="font-medium text-gray-900">
-            {shippingCost === 0 ? (
-              <span className="text-green-600 font-medium">Gratis</span>
-            ) : (
-              `$${shippingCost.toFixed(2)}`
-            )}
+        <div className="flex justify-between items-center text-sm">
+          <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Envío</p>
+          <p className="font-black text-emerald-600">
+            {shippingCost === 0 ? "Gratis" : `$${shippingCost.toLocaleString('es-CL')}`}
           </p>
         </div>
 
-        <div className="pt-3 border-t border-gray-200 flex justify-between">
-          <p className="text-lg font-semibold text-gray-900">Total</p>
-          <p className="text-2xl font-bold text-emerald-600">${total.toFixed(2)}</p>
+        {/* Campo de Cupón Premium */}
+        <div className="py-2">
+          <div className="relative group">
+            <input 
+              type="text" 
+              placeholder="¿Tienes un cupón?" 
+              className="w-full h-12 px-5 pr-12 rounded-xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/10 focus:bg-white outline-none text-xs font-bold transition-all text-gray-900"
+            />
+            <button className="absolute right-2 top-2 h-8 px-4 bg-gray-900 text-white rounded-lg text-[10px] font-black hover:bg-emerald-600 transition-colors">
+              APLICAR
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Seguridad */}
-      <div className="mt-6 pt-6 border-t border-gray-200">
-        <div className="flex items-center text-xs text-gray-500">
-          <svg className="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-          Compra segura y cifrada
+        <div className="pt-4 border-t border-gray-100 flex justify-between items-end">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 leading-none">Total</span>
+            <span className="text-3xl font-black text-emerald-600 tracking-tighter leading-none">${total.toLocaleString('es-CL')}</span>
+          </div>
         </div>
       </div>
     </div>
