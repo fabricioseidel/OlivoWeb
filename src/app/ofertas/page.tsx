@@ -22,9 +22,10 @@ export default function OfertasPage() {
   const categories = useMemo(() => ["Todas", ...categoryNames], [categoryNames]);
 
   const loading = productsLoading || categoriesLoading;
+  const error = (loading === false && products.length === 0 && !productsLoading) ? "No se pudieron cargar los productos" : null;
 
   const filtered = offerProducts.filter(p => {
-    const catOk = category === "Todas" || (Array.isArray(p.categories) && p.categories.includes(category));
+    const catOk = category === "Todas" || (Array.isArray(p.categories) && p.categories.some(c => c.toLowerCase() === category.toLowerCase()));
     const searchOk = p.name.toLowerCase().includes(search.toLowerCase()) || 
                     (p.description?.toLowerCase().includes(search.toLowerCase()) ?? false);
     return catOk && searchOk;
@@ -36,6 +37,25 @@ export default function OfertasPage() {
         <div className="size-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
         <span className="text-gray-500 font-black uppercase tracking-widest text-[10px]">Cargando mejores ofertas...</span>
       </div>
+    );
+  }
+
+  if (!loading && products.length === 0) {
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
+            <div className="bg-white p-12 rounded-[3rem] shadow-xl text-center max-w-md border border-gray-100">
+                <div className="size-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Sparkles className="size-10 text-emerald-500" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 mb-2">Mantenimiento de Catálogo</h3>
+                <p className="text-gray-500 font-medium mb-8">Estamos actualizando nuestras ofertas para ti. Vuelve en unos minutos.</p>
+                <Link href="/productos">
+                    <button className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-700 transition-all">
+                        Ir al catálogo general
+                    </button>
+                </Link>
+            </div>
+        </div>
     );
   }
 

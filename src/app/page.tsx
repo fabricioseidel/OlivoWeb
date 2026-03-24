@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -91,7 +92,7 @@ export default function Home() {
                   <div className="text-[10px] font-black text-white uppercase tracking-[0.2em] mb-1">Rastrear Envío</div>
                   <div className="flex items-center gap-1.5 mt-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[8px] font-bold text-emerald-400">PEDIDO #1284</span>
+                    <span className="text-[8px] font-bold text-emerald-400">Ejemplo: #1284</span>
                   </div>
                 </Link>
 
