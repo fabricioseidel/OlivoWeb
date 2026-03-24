@@ -195,26 +195,21 @@ export const authOptions: NextAuthOptions = {
         }
       }
       
-      // Si el token no tiene role, intentar obtenerlo de la DB
-      if (!(token as any).role || !(token as any).uid) {
-        const email = (token.email || (user as any)?.email)?.toLowerCase();
-        if (email) {
-          try {
-            if (__dev) console.log("[JWT] Fetching user data for:", email);
-            const existing = await getUserByEmail(email);
-            if (existing) {
-              if (!(token as any).uid) {
-                (token as any).uid = existing.id;
-                token.sub = existing.id;
-              }
-              if (!(token as any).role) {
-                (token as any).role = existing.role || "USER";
-              }
-              if (__dev) console.log("[JWT] Token updated with role:", (token as any).role);
+      // Siempre sincronizar el rol real con la base de datos para evitar desincronizaciones de privilegios
+      const email = (token.email || (user as any)?.email)?.toLowerCase();
+      if (email) {
+        try {
+          const existing = await getUserByEmail(email);
+          if (existing) {
+            if (!(token as any).uid) {
+              (token as any).uid = existing.id;
+              token.sub = existing.id;
             }
-          } catch (err) {
-            if (__dev) console.warn("[JWT] Failed to fetch user:", err);
+            // SIEMPRE forzar el rol desde la base de datos
+            (token as any).role = existing.role || "USER";
           }
+        } catch (err) {
+          if (__dev) console.warn("[JWT] Failed to fetch user:", err);
         }
       }
       
