@@ -3,12 +3,23 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/config/auth.config';
 import { sendOrderConfirmation } from '@/server/email.service';
+import { recordCouponUsage, getCouponByCode } from '@/server/coupon.service';
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const body = await request.json();
-    const { items, shippingInfo, shippingMethod, paymentMethod, total, subtotal, shippingCost } = body;
+    const { 
+      items, 
+      shippingInfo, 
+      shippingMethod, 
+      paymentMethod, 
+      total, 
+      subtotal, 
+      shippingCost,
+      couponCode,
+      discountApplied
+    } = body;
 
     console.log('[Checkout Debug] Start processing order');
     console.log('[Checkout Debug] Session User:', session?.user);
@@ -32,7 +43,9 @@ export async function POST(request: NextRequest) {
         shipping_method: shippingMethod,
         shipping_address: shippingInfo,
         payment_method: paymentMethod,
-        payment_status: 'pending'
+        payment_status: 'pending',
+        coupon_code: couponCode || null,
+        discount_amount: discountApplied || 0
     };
     console.log('[Checkout Debug] Inserting Order:', orderData);
 
@@ -94,6 +107,23 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[Checkout Debug] Order processing complete');
+
+    // 4. Record Coupon Usage (if any)
+    if (couponCode) {
+       try {
+          const coupon = await getCouponByCode(couponCode);
+          if (coupon) {
+             await recordCouponUsage({
+                couponId: coupon.id,
+                customerEmail: shippingInfo?.email,
+                orderId: order.id,
+                discountApplied: discountApplied || 0
+             });
+          }
+       } catch (err) {
+          console.error('[Checkout Debug] Error recording coupon usage:', err);
+       }
+    }
 
     // 4. Send confirmation email (fire-and-forget)
     const customerEmail = shippingInfo?.email;
