@@ -39,7 +39,7 @@ export default function OrderSummary({
       } else {
         setFeedback({ type: 'error', msg: result.message });
       }
-    } catch (e) {
+    } catch {
       setFeedback({ type: 'error', msg: "Error al aplicar el cupón" });
     } finally {
       setIsValidating(false);

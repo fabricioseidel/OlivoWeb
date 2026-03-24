@@ -17,20 +17,9 @@ export default function CartPage() {
     removeFromCart,
     clearCart,
     subtotal,
-    total,
-    shippingCost
+    total
   } = useCart();
   const { trackOrderIntent } = useProducts();
-
-  const handleWhatsAppOrder = () => {
-    if (cartItems.length === 0) return;
-    cartItems.forEach(i => trackOrderIntent(i.id));
-    const link = buildWhatsAppOrderLink({
-      phone: WHATSAPP_PHONE,
-      items: cartItems.map(ci => ({ name: ci.name, quantity: ci.quantity, price: ci.price })),
-    });
-    window.open(link, '_blank');
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

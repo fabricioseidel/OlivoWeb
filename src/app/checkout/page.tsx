@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
@@ -44,7 +44,6 @@ export default function CheckoutPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("transbank");
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
   
-  // Coupon state
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
     discount: number;
@@ -65,7 +64,6 @@ export default function CheckoutPage() {
 
   const [coords, setCoords] = useState<{ lat: number, lng: number } | null>(null);
 
-  // Redirigir si el carrito está vacío
   useEffect(() => {
     if (status !== "loading" && cartItems.length === 0) {
       router.push("/carrito");
@@ -80,14 +78,12 @@ export default function CheckoutPage() {
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   
-  // Determine shipping cost based on method and coupon
   const rawShippingCost = shippingMethods.find((method) => method.id === selectedShippingMethod)?.price || 0;
   const shippingCost = appliedCoupon?.freeShipping ? 0 : rawShippingCost;
   
   const couponDiscount = appliedCoupon?.discount || 0;
   const total = Math.max(0, subtotal + shippingCost - couponDiscount);
 
-  // Load settings
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -98,48 +94,7 @@ export default function CheckoutPage() {
     loadSettings();
   }, []);
 
-  // Autofill and trigger shipping calc
-  useEffect(() => {
-    if (status === "authenticated" && session?.user) {
-      setShippingInfo(prev => ({
-        ...prev,
-        fullName: session.user.name || prev.fullName,
-        email: session.user.email || prev.email,
-      }));
-
-      const fetchLastAddress = async () => {
-        try {
-          const res = await fetch(`/api/user/last-order-address?email=${session.user?.email}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.address) {
-              const addr = data.address;
-              setShippingInfo(prev => ({
-                ...prev,
-                address: addr.address || prev.address,
-                city: addr.city || prev.city,
-                state: addr.state || prev.state,
-                zipCode: addr.zipCode || prev.zipCode,
-                phone: addr.phone || prev.phone,
-                country: addr.country || prev.country
-              }));
-
-              if (addr.lat && addr.lng) {
-                setCoords({ lat: Number(addr.lat), lng: Number(addr.lng) });
-                triggerShippingCalculation({ lat: Number(addr.lat), lng: Number(addr.lng) });
-              }
-            }
-          }
-        } catch (e) {
-          console.warn("Could not fetch last address:", e);
-        }
-      };
-      
-      if (session.user.email) fetchLastAddress();
-    }
-  }, [session, status]);
-
-  const triggerShippingCalculation = async (c: { lat: number, lng: number }) => {
+  const triggerShippingCalculation = useCallback(async (c: { lat: number, lng: number }) => {
     const shipSettings = storeSettings?.shipping;
     if (shipSettings?.enableDynamicShipping && c.lat) {
       if (!shipSettings.shippingOriginLat || !shipSettings.shippingOriginLng) return;
@@ -174,7 +129,48 @@ export default function CheckoutPage() {
         setIsCalculatingDistance(false); 
       }
     }
-  };
+  }, [storeSettings]);
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      setShippingInfo(prev => ({
+        ...prev,
+        fullName: session.user.name || prev.fullName,
+        email: session.user.email || prev.email,
+      }));
+
+      const fetchLastAddress = async () => {
+        try {
+          const res = await fetch(`/api/user/last-order-address?email=${session.user?.email}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.address) {
+              const addr = data.address;
+              setShippingInfo(prev => ({
+                ...prev,
+                address: addr.address || prev.address,
+                city: addr.city || prev.city,
+                state: addr.state || prev.state,
+                zipCode: addr.zipCode || prev.zipCode,
+                phone: addr.phone || prev.phone,
+                country: addr.country || prev.country
+              }));
+
+              if (addr.lat && addr.lng) {
+                const c = { lat: Number(addr.lat), lng: Number(addr.lng) };
+                setCoords(c);
+                triggerShippingCalculation(c);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Could not fetch last address:", e);
+        }
+      };
+      
+      if (session.user.email) fetchLastAddress();
+    }
+  }, [session, status, triggerShippingCalculation]);
 
   const handleApplyCoupon = async (code: string) => {
     try {
@@ -199,7 +195,8 @@ export default function CheckoutPage() {
       } else {
         return { valid: false, message: data.message, discount: 0 };
       }
-    } catch (error) {
+    } catch (err) {
+       console.error(err);
        return { valid: false, message: "Error de servidor al validar", discount: 0 };
     }
   };
@@ -280,17 +277,20 @@ export default function CheckoutPage() {
       if (!response.ok) throw new Error(data.error || 'Error al procesar el pedido');
       
       router.push(`/checkout/confirmacion?orderId=${data.orderId}`);
-    } catch (error: any) {
-      alert(error.message);
+    } catch (err: any) {
+      alert(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const originCoords = storeSettings?.shipping?.shippingOriginLat ? { 
-    lat: storeSettings.shipping.shippingOriginLat, 
-    lng: storeSettings.shipping.shippingOriginLng 
-  } : null;
+  const originCoords = useMemo(() => {
+    if (!storeSettings?.shipping?.shippingOriginLat) return null;
+    return { 
+      lat: storeSettings.shipping.shippingOriginLat, 
+      lng: storeSettings.shipping.shippingOriginLng 
+    };
+  }, [storeSettings]);
 
   const staticMapUrl = useMemo(() => {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -307,7 +307,6 @@ export default function CheckoutPage() {
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
-        {/* Header con Steps */}
         <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 overflow-hidden">
           <div className="flex-1">
             <Link href="/carrito" className="group inline-flex items-center text-sm font-bold text-gray-400 hover:text-emerald-600 transition-colors mb-4 uppercase tracking-widest">
@@ -318,7 +317,6 @@ export default function CheckoutPage() {
               Finalizar <span className="text-emerald-600">Pedido</span>
             </h1>
           </div>
-          
           <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm self-start">
              <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${step === 1 ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-gray-400'}`}>1. Entrega</div>
              <div className="h-0.5 w-6 bg-gray-100 rounded-full" />
