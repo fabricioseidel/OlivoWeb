@@ -190,24 +190,34 @@ export default function UsersPage() {
   }, []);
 
   // Eliminar usuario
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const deleteUser = async (userId: string) => {
     const user = users.find(u => u.id === userId);
     if (!user) return;
 
     const confirmed = await confirm({
       title: "Eliminar usuario",
-      message: `¿Estás seguro de que deseas eliminar a ${user.name}? Esta acción no se puede deshacer.`,
-      confirmText: "Eliminar",
+      message: `¿Estás seguro de que deseas eliminar a ${user.name || user.email}? Esta acción no se puede deshacer y borrará permanentemente sus datos y los registros huérfanos asociados.`,
+      confirmText: "Eliminar definitivamente",
       cancelText: "Cancelar",
       confirmButtonClass: "bg-red-600 hover:bg-red-700"
     });
 
     if (!confirmed) return;
 
-    const updatedUsers = users.filter((u) => u.id !== userId);
-    setUsers(updatedUsers);
-    showToast(`Usuario ${user.name} eliminado correctamente`, "success");
+    try {
+      const res = await fetch(`/api/admin/users?id=${userId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || 'Error eliminando usuario');
+      }
+      const updatedUsers = users.filter((u) => u.id !== userId);
+      setUsers(updatedUsers);
+      showToast(`Usuario ${user.name || user.email} eliminado correctamente`, "success");
+    } catch (error: any) {
+      showToast(`No se pudo eliminar: ${error.message}`, "error");
+    }
   };
 
   return (
@@ -308,12 +318,24 @@ export default function UsersPage() {
               </div>
 
               {session?.user?.role === 'ADMIN' && user.id !== session.user.id && (
-                <div className="pt-3 border-t border-gray-50 flex justify-end">
+                <div className="pt-3 border-t border-gray-50 flex gap-2 justify-end">
+                  <Link
+                    href={`/admin/usuarios/${user.id}/editar`}
+                    className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    Editar
+                  </Link>
                   <button
                     onClick={() => toggleUserRole(user.id, user.role)}
-                    className="text-xs font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors"
+                    className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 transition-colors"
                   >
-                    CAMBIAR ROL
+                    Rol
+                  </button>
+                  <button
+                    onClick={() => deleteUser(user.id)}
+                    className="text-xs font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    Eliminar
                   </button>
                 </div>
               )}
@@ -388,9 +410,17 @@ export default function UsersPage() {
                   </td>
                   <td className="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">
                     {session?.user?.role === 'ADMIN' && user.id !== session.user.id && (
-                      <button onClick={() => toggleUserRole(user.id, user.role)} className="inline-flex items-center px-4 py-2 border border-gray-200 rounded-xl shadow-sm text-xs font-bold text-emerald-600 bg-white hover:bg-emerald-50 hover:border-emerald-200 focus:outline-none transition-all">
-                        Cambiar Rol
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <Link href={`/admin/usuarios/${user.id}/editar`} className="inline-flex items-center px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm text-xs font-bold text-blue-600 bg-white hover:bg-blue-50 hover:border-blue-200 transition-all">
+                          Editar
+                        </Link>
+                        <button onClick={() => toggleUserRole(user.id, user.role)} className="inline-flex items-center px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm text-xs font-bold text-emerald-600 bg-white hover:bg-emerald-50 hover:border-emerald-200 transition-all">
+                          Toggle Rol
+                        </button>
+                        <button onClick={() => deleteUser(user.id)} className="inline-flex items-center px-3 py-1.5 border border-red-200 rounded-lg shadow-sm text-xs font-bold text-red-600 bg-white hover:bg-red-50 hover:border-red-200 transition-all">
+                          Eliminar
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

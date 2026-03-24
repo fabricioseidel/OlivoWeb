@@ -93,3 +93,64 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Error', detail: e.message }, { status: 500 });
   }
 }
+
+// PUT /api/admin/users (editar usuario)
+// body: { userId: string, name: string, email: string, password?: string, role: string }
+export async function PUT(req: NextRequest) {
+  const session: any = await getServerSession(authOptions as any);
+  const adminRole = (session as any)?.role || (session?.user as any)?.role || '';
+  if (!session || !String(adminRole).toUpperCase().includes('ADMIN')) {
+    return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
+  }
+  try {
+    const { userId, name, email, password, role } = await req.json();
+    if (!userId || !name || !email || !['USER', 'ADMIN'].includes(role)) {
+      return NextResponse.json({ message: 'Datos inválidos' }, { status: 400 });
+    }
+    const emailNorm = String(email).toLowerCase().trim();
+    
+    // Preparar objeto de actualización
+    const updateData: any = { name, email: emailNorm, role };
+    if (password && String(password).length >= 8) {
+       updateData.password_hash = await bcrypt.hash(String(password), 10);
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .update(updateData)
+      .eq('id', userId)
+      .select('id,name,email,role')
+      .maybeSingle();
+
+    if (error) throw error;
+    return NextResponse.json({ message: 'Usuario actualizado', user: data });
+  } catch (e: any) {
+    console.error('[ADMIN/USERS][PUT] Error:', e?.message || e);
+    return NextResponse.json({ message: 'Error', detail: e.message }, { status: 500 });
+  }
+}
+
+// DELETE /api/admin/users
+export async function DELETE(req: NextRequest) {
+  const session: any = await getServerSession(authOptions as any);
+  const adminRole = (session as any)?.role || (session?.user as any)?.role || '';
+  if (!session || !String(adminRole).toUpperCase().includes('ADMIN')) {
+    return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
+  }
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('id');
+    if (!userId) {
+      return NextResponse.json({ message: 'Falta ID' }, { status: 400 });
+    }
+    const { error } = await supabaseAdmin
+      .from('users')
+      .delete()
+      .eq('id', userId);
+    if (error) throw error;
+    return NextResponse.json({ message: 'Usuario eliminado' });
+  } catch (e: any) {
+    console.error('[ADMIN/USERS][DELETE] Error:', e?.message || e);
+    return NextResponse.json({ message: 'Error', detail: e.message }, { status: 500 });
+  }
+}

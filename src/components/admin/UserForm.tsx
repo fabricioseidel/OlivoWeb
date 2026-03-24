@@ -42,22 +42,27 @@ export default function UserForm({ userId }: UserFormProps) {
   // Cargar datos del usuario si estamos en modo edición
   useEffect(() => {
     if (isEditMode) {
-      // En una aplicación real, aquí cargaríamos los datos del usuario desde la API
-      // Por ahora, usaremos datos de ejemplo
       const fetchUser = async () => {
-        // Simular carga de datos
-        setTimeout(() => {
-          setFormData({
-            name: "Juan Pérez",
-            email: "juan.perez@ejemplo.com",
-            password: "",
-            confirmPassword: "",
-            role: "USER",
-            status: "ACTIVE",
-          });
-        }, 500);
+        try {
+          const res = await fetch('/api/admin/users');
+          if (res.ok) {
+            const users = await res.json();
+            const user = users.find((u: any) => u.id === userId);
+            if (user) {
+              setFormData({
+                name: user.name || "",
+                email: user.email || "",
+                password: "",
+                confirmPassword: "",
+                role: user.role || "USER",
+                status: "ACTIVE",
+              });
+            }
+          }
+        } catch (error) {
+           console.error("Error loading user data", error);
+        }
       };
-      
       fetchUser();
     }
   }, [isEditMode, userId]);
@@ -116,34 +121,43 @@ export default function UserForm({ userId }: UserFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
     
     setIsSubmitting(true);
     
     try {
-      // Enviar los datos a la API real
-      const res = await fetch('/api/admin/users', {
-        method: 'POST',
+      const url = '/api/admin/users';
+      const method = isEditMode ? 'PUT' : 'POST';
+      const bodyPayload: any = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        role: formData.role,
+      };
+      
+      if (isEditMode) {
+        bodyPayload.userId = userId;
+        if (formData.password) {
+          bodyPayload.password = formData.password;
+        }
+      } else {
+        bodyPayload.password = formData.password;
+      }
+      
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          email: formData.email.trim().toLowerCase(),
-          password: formData.password,
-          role: formData.role,
-        }),
+        body: JSON.stringify(bodyPayload),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const msg = (data && (data.message || data.detail)) || 'No se pudo crear el usuario';
+        const msg = (data && (data.message || data.detail)) || 'No se pudo guardar el usuario';
         throw new Error(msg);
       }
-      // Redirigir a la lista de usuarios después de guardar
+      
       router.push("/admin/usuarios");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al guardar usuario:", error);
-      alert("Ha ocurrido un error al guardar el usuario. Por favor, inténtalo de nuevo.");
+      alert(`Error: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
