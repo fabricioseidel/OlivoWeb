@@ -16,7 +16,7 @@ import {
   CheckCircleIcon
 } from "@heroicons/react/24/outline";
 
-type ProductChanges = { price?: number; stock?: number };
+type ProductChanges = { price?: number; offerPrice?: number | null; stock?: number; name?: string; categories?: string[] };
 
 export default function BulkEditProductsPage() {
   const { products, updateProduct } = useProducts();
@@ -45,14 +45,33 @@ export default function BulkEditProductsPage() {
     });
   }, [localProducts, searchTerm, filterLowStock]);
 
-  const handleInputChange = (productId: string, field: 'price' | 'stock', value: string) => {
-    const numValue = parseFloat(value);
-    
-    // Check if value actually changed from original
+  const handleInputChange = (productId: string, field: keyof ProductChanges, value: string | string[]) => {
     const originalProduct = products.find(p => p.id === productId);
-    const originalValue = field === 'price' ? originalProduct?.price : originalProduct?.stock;
-    
-    if (numValue === originalValue) {
+    let newValue: any = value;
+    let originalValue: any;
+
+    if (field === 'price') {
+      newValue = parseFloat(value as string);
+      originalValue = originalProduct?.price;
+    } else if (field === 'offerPrice') {
+      newValue = value === "" ? null : parseFloat(value as string);
+      originalValue = originalProduct?.offerPrice;
+    } else if (field === 'stock') {
+      newValue = parseInt(value as string, 10);
+      originalValue = originalProduct?.stock;
+    } else if (field === 'name') {
+      newValue = value;
+      originalValue = originalProduct?.name;
+    } else if (field === 'categories') {
+      newValue = typeof value === 'string' ? value.split(',').map(s => s.trim()).filter(Boolean) : value;
+      originalValue = originalProduct?.categories;
+    }
+
+    const isSame = Array.isArray(newValue) 
+      ? JSON.stringify(newValue.concat().sort()) === JSON.stringify((originalValue || []).concat().sort())
+      : newValue === originalValue;
+
+    if (isSame || (field === 'price' && isNaN(newValue)) || (field === 'offerPrice' && isNaN(newValue) && newValue !== null) || (field === 'stock' && isNaN(newValue))) {
       setEditedChanges(prev => {
         const next = { ...prev };
         if (next[productId]) {
@@ -64,13 +83,11 @@ export default function BulkEditProductsPage() {
       return;
     }
 
-    if (isNaN(numValue)) return;
-
     setEditedChanges(prev => ({
       ...prev,
       [productId]: {
         ...prev[productId],
-        [field]: numValue
+        [field]: newValue
       }
     }));
   };
@@ -123,7 +140,7 @@ export default function BulkEditProductsPage() {
       // Usamos una copia local para ir actualizando sin recargar
       for (const id of targetIds) {
         const changes = editedChanges[id];
-        await updateProduct(id, changes);
+        await updateProduct(id, changes as any);
         success++;
       }
       
@@ -251,10 +268,11 @@ export default function BulkEditProductsPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Producto / SKU</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Categoría</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-48 text-right">Precio ($)</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-48 text-right">Stock Act.</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-64 lg:w-80">Producto / SKU</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-48">Categorías (Comas)</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-right">Precio ($)</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-right">Oferta ($)</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-right">Stock Act.</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -327,13 +345,13 @@ export default function BulkEditProductsPage() {
 // ── Sub-components ──────────────────────────────────────────────────────
 
 function EditableRow({ product, changes, onChange }: { product: any, changes?: ProductChanges, onChange: any }) {
-  const isDirty = changes?.price !== undefined || changes?.stock !== undefined;
+  const isDirty = Object.keys(changes || {}).length > 0;
   
   return (
     <tr className={`hover:bg-emerald-50/10 transition-colors group ${isDirty ? 'bg-emerald-50/5' : ''}`}>
-      <td className="px-8 py-5">
+      <td className="px-6 py-5">
         <div className="flex items-center gap-4">
-          <div className="relative group-hover:scale-110 transition-transform">
+          <div className="relative group-hover:scale-110 transition-transform shrink-0 hidden sm:block">
              {product.image ? (
                <img src={product.image} className="w-10 h-10 rounded-xl object-cover shadow-sm bg-white border border-gray-100" />
              ) : (
@@ -341,44 +359,68 @@ function EditableRow({ product, changes, onChange }: { product: any, changes?: P
              )}
              {isDirty && <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full animate-pulse" />}
           </div>
-          <div>
-            <p className="text-sm font-bold text-gray-800 leading-tight mb-0.5 line-clamp-1">{product.name}</p>
-            <div className="flex items-center gap-2">
-               <span className="text-[9px] font-black text-gray-300 uppercase tracking-tighter">SKU: {product.id?.slice(0, 10)}</span>
-               {product.barcode && <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter border-l pl-2">{product.barcode}</span>}
-            </div>
+          <div className="flex-1 min-w-0">
+             <input 
+               type="text"
+               value={changes?.name ?? product.name}
+               onChange={(e) => onChange(product.id, 'name', e.target.value)}
+               className={`w-full text-sm font-bold leading-tight px-2 py-1 bg-transparent border-b-2 transition-all focus:outline-none focus:border-emerald-500 ${changes?.name !== undefined ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-gray-800 hover:border-gray-300'}`}
+             />
+             <div className="flex items-center gap-2 px-2 mt-1">
+                <span className="text-[9px] font-black text-gray-300 uppercase tracking-tighter">SKU: {product.id?.slice(0, 10)}</span>
+                {product.barcode && <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter border-l pl-2">{product.barcode}</span>}
+             </div>
           </div>
         </div>
       </td>
-      <td className="px-8 py-5">
-        <span className="px-2.5 py-1 bg-gray-100 rounded-lg text-[9px] font-black text-gray-400 uppercase tracking-[0.1em]">
-          {Array.isArray(product.categories) && product.categories.length > 0 ? product.categories[0] : 'General'}
-        </span>
+      <td className="px-6 py-5">
+         <input 
+           type="text"
+           value={changes?.categories ? changes.categories.join(", ") : (product.categories || []).join(", ")}
+           onChange={(e) => onChange(product.id, 'categories', e.target.value)}
+           placeholder="Categorías"
+           className={`w-full px-2 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[0.05em] transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${changes?.categories !== undefined ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-inner' : 'bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200'}`}
+         />
       </td>
-      <td className="px-8 py-5 text-right">
-        <div className="inline-flex items-center relative max-w-[140px] ml-auto">
-          <span className="absolute left-3 text-xs font-bold text-gray-400">$</span>
+      <td className="px-6 py-5 text-right w-32">
+        <div className="inline-flex items-center relative w-full justify-end">
+          <span className="absolute left-3 text-xs font-bold text-gray-400 pointer-events-none">$</span>
           <input 
             type="number"
             inputMode="decimal"
             value={changes?.price ?? product.price}
             onChange={(e) => onChange(product.id, 'price', e.target.value)}
-            className={`w-full h-11 bg-white text-right font-black text-lg rounded-xl border-2 px-3 pl-6 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
-              changes?.price !== undefined ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-gray-900 hover:border-gray-200'
+            className={`w-full h-11 bg-white text-right font-black text-sm rounded-xl border-2 px-3 pl-6 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
+              changes?.price !== undefined ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-gray-900 hover:border-gray-200 shadow-sm'
             }`}
           />
         </div>
       </td>
-      <td className="px-8 py-5 text-right">
-        <div className="inline-flex items-center relative max-w-[100px] ml-auto">
+      <td className="px-6 py-5 text-right w-32">
+        <div className="inline-flex items-center relative w-full justify-end">
+          <span className="absolute left-3 text-xs font-bold text-gray-400 pointer-events-none">$</span>
+          <input 
+            type="number"
+            inputMode="decimal"
+            placeholder="-"
+            value={changes?.offerPrice !== undefined ? changes.offerPrice : (product.offerPrice || '')}
+            onChange={(e) => onChange(product.id, 'offerPrice', e.target.value)}
+            className={`w-full h-11 bg-white text-right font-black text-sm rounded-xl border-2 px-3 pl-6 focus:ring-4 focus:ring-amber-500/10 transition-all ${
+              changes?.offerPrice !== undefined && changes?.offerPrice !== null ? 'border-amber-400 text-amber-700' : 'border-transparent text-gray-900 hover:border-gray-200 shadow-sm bg-gray-50/50'
+            }`}
+          />
+        </div>
+      </td>
+      <td className="px-6 py-5 text-right w-32">
+        <div className="inline-flex items-center relative w-full justify-end">
            <input 
              type="number"
              inputMode="numeric"
              value={changes?.stock ?? product.stock}
              onChange={(e) => onChange(product.id, 'stock', e.target.value)}
-             className={`w-full h-11 bg-white text-right font-black text-lg rounded-xl border-2 px-3 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
+             className={`w-full h-11 bg-white text-right font-black text-sm rounded-xl border-2 px-3 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
                changes?.stock !== undefined ? 'border-emerald-500 text-emerald-700' : 
-               (product.stock <= 5 ? 'border-amber-100 text-amber-600 bg-amber-50' : 'border-transparent text-gray-600 hover:border-gray-200')
+               (product.stock <= 5 ? 'border-amber-100 text-amber-600 bg-amber-50' : 'border-transparent text-gray-600 hover:border-gray-200 shadow-sm')
              }`}
            />
            {product.stock <= 5 && changes?.stock === undefined && (
@@ -391,63 +433,88 @@ function EditableRow({ product, changes, onChange }: { product: any, changes?: P
 }
 
 function EditableCard({ product, changes, onChange }: { product: any, changes?: ProductChanges, onChange: any }) {
-  const isDirty = changes?.price !== undefined || changes?.stock !== undefined;
+  const isDirty = Object.keys(changes || {}).length > 0;
   
   return (
-    <div className={`p-5 rounded-[2.5rem] border-2 transition-all ${
-      isDirty ? 'bg-emerald-50/30 border-emerald-500 shadow-lg shadow-emerald-500/5' : 'bg-white border-transparent'
+    <div className={`p-4 rounded-[2rem] border-2 transition-all ${
+      isDirty ? 'bg-emerald-50/30 border-emerald-500 shadow-lg shadow-emerald-500/5' : 'bg-white border-gray-100 shadow-sm'
     }`}>
-       <div className="flex items-center gap-4 mb-5">
-          <div className="relative">
+       <div className="flex items-start gap-3 mb-4">
+          <div className="relative shrink-0 mt-1">
              {product.image ? (
-               <img src={product.image} className="w-14 h-14 rounded-2xl object-cover shadow-sm bg-white border border-gray-100" />
+               <img src={product.image} className="w-12 h-12 rounded-xl object-cover shadow-sm bg-white border border-gray-100" />
              ) : (
-               <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400">📦</div>
+               <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">📦</div>
              )}
              {isDirty && (
                <div className="absolute -top-2 -right-2 bg-emerald-500 text-white p-1 rounded-full border-4 border-white shadow-lg">
-                 <CheckCircleIcon className="w-3 h-3" />
+                 <CheckCircleIcon className="w-2 h-2" />
                </div>
              )}
           </div>
-          <div className="flex-1 overflow-hidden">
-             <h3 className="text-sm font-black text-gray-900 leading-tight uppercase truncate">{product.name}</h3>
-             <p className="text-[10px] font-black text-gray-400 tracking-tighter uppercase truncate opacity-60">
+          <div className="flex-1 w-full min-w-0">
+             <input 
+               type="text"
+               value={changes?.name ?? product.name}
+               onChange={(e) => onChange(product.id, 'name', e.target.value)}
+               className={`w-full text-sm font-black leading-tight bg-transparent border-b-2 pb-1 transition-all focus:outline-none focus:border-emerald-500 truncate ${changes?.name !== undefined ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-gray-900 hover:border-gray-200'}`}
+             />
+             <p className="text-[10px] font-black text-gray-400 tracking-tighter uppercase truncate opacity-60 mt-1">
                SKU: {String(product.id).slice(0, 15)} 
              </p>
-             <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 rounded-md text-[8px] font-black text-gray-400 uppercase">
-                {product.categories?.[0] || 'General'}
-             </span>
+             <input 
+               type="text"
+               value={changes?.categories ? changes.categories.join(", ") : (product.categories || []).join(", ")}
+               onChange={(e) => onChange(product.id, 'categories', e.target.value)}
+               placeholder="Categorías"
+               className={`mt-2 w-full px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${changes?.categories !== undefined ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200'}`}
+             />
           </div>
        </div>
 
-       <div className="grid grid-cols-2 gap-3">
+       <div className="grid grid-cols-3 gap-2">
           <div className="space-y-1.5">
-             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-2">Precio ($)</label>
+             <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest px-1">Precio</label>
              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">$</span>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">$</span>
                 <input 
                    type="number"
                    inputMode="decimal"
                    value={changes?.price ?? product.price}
                    onChange={(e) => onChange(product.id, 'price', e.target.value)}
-                   className={`w-full h-14 rounded-2xl border-0 font-black text-lg pl-8 pr-4 shadow-inner ${
-                     changes?.price !== undefined ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-900 group-focus-within:bg-white'
+                   className={`w-full h-10 rounded-xl border border-gray-200 font-black text-xs pl-6 pr-2 -inner ${
+                     changes?.price !== undefined ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-gray-50 text-gray-900 focus-within:bg-white focus:border-emerald-500'
                    }`}
                 />
              </div>
           </div>
           <div className="space-y-1.5">
-             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-2">Existencias</label>
+             <label className="text-[8px] font-black text-amber-500/80 uppercase tracking-widest px-1">Oferta</label>
+             <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">$</span>
+                <input 
+                   type="number"
+                   inputMode="decimal"
+                   placeholder="-"
+                   value={changes?.offerPrice !== undefined ? changes.offerPrice : (product.offerPrice || '')}
+                   onChange={(e) => onChange(product.id, 'offerPrice', e.target.value)}
+                   className={`w-full h-10 rounded-xl border border-gray-200 font-black text-xs pl-6 pr-2 shadow-inner ${
+                     changes?.offerPrice !== undefined && changes?.offerPrice !== null ? 'bg-amber-50 border-amber-300 text-amber-800' : 'bg-gray-50 text-gray-900 focus-within:bg-white focus:border-amber-500'
+                   }`}
+                />
+             </div>
+          </div>
+          <div className="space-y-1.5">
+             <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest px-1">Stock</label>
              <div className="relative">
                 <input 
                    type="number"
                    inputMode="numeric"
                    value={changes?.stock ?? product.stock}
                    onChange={(e) => onChange(product.id, 'stock', e.target.value)}
-                   className={`w-full h-14 rounded-2xl border-0 font-black text-lg px-4 text-center shadow-inner ${
-                     changes?.stock !== undefined ? 'bg-emerald-100 text-emerald-800' : 
-                     (product.stock <= 5 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-900')
+                   className={`w-full h-10 rounded-xl border border-gray-200 font-black text-xs px-2 text-center shadow-inner ${
+                     changes?.stock !== undefined ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 
+                     (product.stock <= 5 ? 'bg-red-50 border-red-300 text-red-700' : 'bg-gray-50 text-gray-900 focus-within:bg-white focus:border-emerald-500')
                    }`}
                 />
              </div>

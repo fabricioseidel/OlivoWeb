@@ -135,7 +135,7 @@ export default function POSPage() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-full bg-slate-950 text-white overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)] bg-slate-950 text-white overflow-hidden">
       {/* ── Product Grid ── */}
       <div className={`flex-1 flex flex-col p-3 lg:p-4 ${showCart ? 'hidden lg:flex' : 'flex'}`}>
         {/* Search Bar */}

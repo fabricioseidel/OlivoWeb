@@ -94,6 +94,40 @@ export default function NewProductPage() {
     fetchSuppliers();
   }, []);
 
+  // --- Escáner Bluetooth / Lasers USB ---
+  useEffect(() => {
+    let barcodeBuffer = "";
+    let timeoutId: NodeJS.Timeout;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignorar si el usuario está escribiendo explícitamente en un input o textarea
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.length > 3) { // Código de barras mínimo
+          setFormData(prev => ({ ...prev, barcode: barcodeBuffer }));
+          showToast(`Código escaneado: ${barcodeBuffer}`, "success");
+        }
+        barcodeBuffer = "";
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        barcodeBuffer += e.key;
+        clearTimeout(timeoutId);
+        // Escáneres de pistola teclean rápido (10-30ms)
+        timeoutId = setTimeout(() => {
+          barcodeBuffer = "";
+        }, 100); 
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      clearTimeout(timeoutId);
+    };
+  }, [showToast]);
+
   // Estado para errores de validación
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -382,10 +416,10 @@ export default function NewProductPage() {
                     <button
                       type="button"
                       onClick={() => setShowScanner(true)}
-                      className="absolute top-[34px] right-2 p-1.5 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors"
+                      className="absolute top-[34px] right-2 p-2 h-10 w-10 flex items-center justify-center bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-200 transition-colors shadow-sm"
                       title="Escanear con cámara"
                     >
-                      <CameraIcon className="h-5 w-5" />
+                      <CameraIcon className="h-6 w-6" />
                     </button>
                   </div>
                   <div className="flex gap-4">
