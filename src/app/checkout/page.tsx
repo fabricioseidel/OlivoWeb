@@ -292,17 +292,10 @@ export default function CheckoutPage() {
     };
   }, [storeSettings]);
 
-  const staticMapUrl = useMemo(() => {
-    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!key || !coords) return null;
-
-    let markers = `markers=color:red|label:U|${coords.lat},${coords.lng}`;
-    if (originCoords) {
-      markers += `&markers=color:green|label:M|${originCoords.lat},${originCoords.lng}`;
-    }
-
-    return `https://maps.googleapis.com/maps/api/staticmap?center=${coords.lat},${coords.lng}&zoom=14&size=800x400&maptype=roadmap&${markers}&key=${key}`;
-  }, [coords, originCoords]);
+  const mapEmbedUrl = useMemo(() => {
+    if (!coords) return null;
+    return `https://maps.google.com/maps?q=${coords.lat},${coords.lng}&z=15&output=embed`;
+  }, [coords]);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -462,15 +455,17 @@ export default function CheckoutPage() {
                            )}
                         </div>
                         
-                        {staticMapUrl && (
+                        {mapEmbedUrl && (
                           <div className="md:w-1/2 relative bg-gray-100 rounded-[2rem] overflow-hidden border border-gray-200 aspect-video md:aspect-square">
-                            <img 
-                               src={staticMapUrl} 
-                               alt="Mapa de entrega" 
-                               className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 cursor-zoom-in" 
-                               onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${coords?.lat},${coords?.lng}`, '_blank')}
+                            <iframe 
+                               src={mapEmbedUrl} 
+                               title="Mapa de entrega" 
+                               className="w-full h-full grayscale hover:grayscale-0 transition-all duration-700" 
+                               style={{ border: 0 }}
+                               loading="lazy"
+                               referrerPolicy="no-referrer-when-downgrade"
                             />
-                            <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-gray-100/50">
+                            <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-gray-100/50 pointer-events-none">
                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Precisión de ubicación garantizada por Google Maps</p>
                             </div>
                           </div>

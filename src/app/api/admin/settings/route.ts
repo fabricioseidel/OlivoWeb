@@ -144,6 +144,11 @@ export async function GET() {
           localDeliveryTimeDays: 3,
           internationalShippingEnabled: false,
           internationalShippingFee: 15000,
+          enableDynamicShipping: true,
+          shippingBaseFee: 1500,
+          shippingPricePerKm: 250,
+          shippingOriginLat: -33.4312,
+          shippingOriginLng: -70.6166,
         },
         paymentMethods: {
           creditCard: true,
