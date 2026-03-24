@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import SingleImageUpload from "@/components/ui/SingleImageUpload";
 import MultiImageUpload from "@/components/ui/MultiImageUpload";
+import { uploadImageServerAction } from "@/actions/upload";
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useCategories } from "@/hooks/useCategories";
@@ -286,25 +287,20 @@ export default function NewProductPage() {
 
     try {
       // If image or gallery entries are data URLs, upload them to server to get /uploads/ URLs
-      const uploadIfDataUrl = async (img?: string) => {
-        if (!img) return img;
+      const uploadIfDataUrl = async (img?: string): Promise<string> => {
+        if (!img) return "";
         if (img.startsWith('data:image')) {
-          const res = await fetch('/api/admin/upload-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: img }),
-          });
-          if (res.ok) {
-            const j = await res.json().catch(() => null);
-            return j?.url || img;
+          const res = await uploadImageServerAction(img);
+          if (res.ok && res.url) {
+            return res.url;
           }
-          return img;
+          throw new Error(res.error || 'Upload failed');
         }
         return img;
       };
 
       const imageUrl = await uploadIfDataUrl(formData.image);
-      const galleryUrls = await Promise.all(formData.gallery.map(g => uploadIfDataUrl(g)));
+      const galleryUrls = (await Promise.all(formData.gallery.map(g => uploadIfDataUrl(g)))).filter(Boolean);
 
       // Generar un ID único (barcode) para el producto si no existe
       const generatedId = `PROD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;

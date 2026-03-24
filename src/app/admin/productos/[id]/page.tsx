@@ -11,6 +11,7 @@ import SingleImageUpload from "@/components/ui/SingleImageUpload";
 import MultiImageUpload from "@/components/ui/MultiImageUpload";
 import { TrashIcon, PlusIcon, CameraIcon } from "@heroicons/react/24/outline";
 import POSScanner from "@/components/admin/POSScanner";
+import { uploadImageServerAction } from "@/actions/upload";
 
 
 interface FormState {
@@ -234,25 +235,20 @@ export default function EditProductPage() {
 
     setSaving(true);
     try {
-      const uploadIfDataUrl = async (img?: string) => {
-        if (!img) return img;
+      const uploadIfDataUrl = async (img?: string): Promise<string> => {
+        if (!img) return "";
         if (img.startsWith('data:image')) {
-          const res = await fetch('/api/admin/upload-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: img }),
-          });
-          if (res.ok) {
-            const j = await res.json().catch(() => null);
-            return j?.url || img;
+          const res = await uploadImageServerAction(img);
+          if (res.ok && res.url) {
+            return res.url;
           }
-          return img;
+          throw new Error(res.error || 'Upload failed');
         }
         return img;
       };
 
       const imageUrl = await uploadIfDataUrl(form.image);
-      const galleryUrls = await Promise.all((form.gallery || []).map(g => uploadIfDataUrl(g)));
+      const galleryUrls = (await Promise.all((form.gallery || []).map(g => uploadIfDataUrl(g)))).filter(Boolean);
 
       await updateProduct(product.id, {
         name: form.name.trim(),

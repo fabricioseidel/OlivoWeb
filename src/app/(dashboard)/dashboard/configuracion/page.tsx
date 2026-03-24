@@ -18,6 +18,7 @@ import {
 import SingleImageUpload from "@/components/ui/SingleImageUpload";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import type { StoreSettings } from "@/app/api/admin/settings/route";
+import { uploadImageServerAction } from "@/actions/upload";
 
 const TABS = [
     { id: "general", label: "General", icon: Cog6ToothIcon, color: "blue" },
@@ -499,17 +500,9 @@ export default function SettingsPage() {
                                                             try {
                                                                 if (dataUrl.startsWith("data:image")) {
                                                                     // Simular subida o manejar lógica real si existe el endpoint
-                                                                    const resp = await fetch("/api/admin/upload-image", {
-                                                                        method: "POST",
-                                                                        headers: { "Content-Type": "application/json" },
-                                                                        body: JSON.stringify({
-                                                                            image: dataUrl,
-                                                                            oldUrl: settings.appearance?.bannerUrl,
-                                                                        }),
-                                                                    });
-                                                                    if (resp.ok) {
-                                                                        const json = await resp.json();
-                                                                        if (json?.url) handleChange(["appearance", "bannerUrl"], json.url);
+                                                                    const resp = await uploadImageServerAction(dataUrl, settings.appearance?.bannerUrl);
+                                                                    if (resp.ok && resp.url) {
+                                                                        handleChange(["appearance", "bannerUrl"], resp.url);
                                                                     }
                                                                 } else {
                                                                     handleChange(["appearance", "bannerUrl"], dataUrl);
