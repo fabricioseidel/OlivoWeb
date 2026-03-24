@@ -15,6 +15,7 @@ import {
   searchProducts,
   saveProduct,
   deleteProduct,
+  fetchProductDetails,
 } from '@/services/products';
 
 // Type alias for ProductUI to maintain consistency
@@ -29,6 +30,7 @@ interface ProductContextType {
   getProductById: (id: string) => Product | undefined;
   trackProductView: (id: string) => void;
   trackOrderIntent: (id: string) => void;
+  fetchDetails: (id: string) => Promise<Product>;
   // Back-compat alias expected by some admin pages
   addProduct: (productData: Partial<Product>) => Promise<void>;
   createProduct: (productData: Partial<Product>) => Promise<void>;
@@ -261,6 +263,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     getProductById,
   trackProductView,
   trackOrderIntent,
+  fetchDetails: fetchProductDetails,
   // Alias for compatibility
   addProduct: createProduct,
     createProduct,

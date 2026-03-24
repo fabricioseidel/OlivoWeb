@@ -4,8 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
-// Límite de tamaño: 2MB
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB en bytes
+// Límite de tamaño: 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB en bytes
 
 async function ensureUploadsBucket() {
   try {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       // Verificar tamaño
       if (file.size > MAX_FILE_SIZE) {
         return errorResponse(
-          new Error(`El archivo excede el límite de 2MB. Tamaño actual: ${(file.size / 1024 / 1024).toFixed(2)}MB`), 
+          new Error(`El archivo excede el límite de 10MB. Tamaño actual: ${(file.size / 1024 / 1024).toFixed(2)}MB`), 
           400
         );
       }
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
     // Verificar tamaño
     if (buffer.length > MAX_FILE_SIZE) {
       return errorResponse(
-        new Error(`El archivo excede el límite de 2MB. Tamaño actual: ${(buffer.length / 1024 / 1024).toFixed(2)}MB`), 
+        new Error(`El archivo excede el límite de 10MB. Tamaño actual: ${(buffer.length / 1024 / 1024).toFixed(2)}MB`), 
         400
       );
     }

@@ -14,7 +14,9 @@ import ProductCard from "@/components/ProductCard";
 
 export default function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const { products, loading, trackProductView, trackOrderIntent } = useProducts();
+  const { products, loading, trackProductView, trackOrderIntent, fetchDetails } = useProducts();
+  const [fullProduct, setFullProduct] = useState<Product | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
@@ -31,10 +33,17 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
     }
   }, [loading, product, trackProductView]);
 
-  // Reset selected image when product changes
+  // Reset selected image when product changes and fetch details
   useEffect(() => {
     setSelectedImage(0);
-  }, [product?.id]);
+    if (product?.id) {
+       setLoadingDetails(true);
+       fetchDetails(product.id)
+         .then(data => setFullProduct(data))
+         .catch(err => console.error("Error loading product details", err))
+         .finally(() => setLoadingDetails(false));
+    }
+  }, [product?.id, fetchDetails]);
 
   if (loading) {
     return (
@@ -87,6 +96,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
   const hasDiscount = !!(offerPrice && offerPrice > 0 && offerPrice < basePrice);
   const effectivePrice = hasDiscount ? offerPrice : basePrice;
 
+  const description = fullProduct?.description || product.description;
+  const gallery = fullProduct?.gallery || product.gallery || [];
+  const features = fullProduct?.features || product.features || [];
+
   // Manejar agregar al carrito
   const handleAddToCart = () => {
     const { id, name, image, slug } = product;
@@ -102,7 +115,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
   };
 
   // Combinar imagen principal con galería
-  const allImages = [product.image, ...(product.gallery || [])].filter(Boolean);
+  const allImages = [product.image, ...gallery].filter(Boolean);
 
   return (
     <div className="bg-white min-h-screen">
@@ -132,6 +145,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                 <div className="absolute top-8 right-8 bg-black/80 backdrop-blur-md text-white font-black px-4 py-2 rounded-2xl shadow-xl text-xs uppercase tracking-widest">
                   -{Math.round(((basePrice - offerPrice!) / basePrice) * 100)}% dcto
                 </div>
+              )}
+              {loadingDetails && (
+                 <div className="absolute inset-0 bg-white/50 backdrop-blur-[2px] flex items-center justify-center z-10">
+                    <div className="size-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                 </div>
               )}
             </div>
             
@@ -178,13 +196,25 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                         <span className="text-xl line-through font-bold text-gray-300">$ {basePrice.toLocaleString('es-CL')}</span>
                     )}
                 </div>
-                <p className="text-gray-500 leading-relaxed text-lg font-medium">{product.description}</p>
+                {loadingDetails && !description ? (
+                   <div className="space-y-2 animate-pulse mb-6">
+                      <div className="h-4 bg-gray-100 rounded w-full" />
+                      <div className="h-4 bg-gray-100 rounded w-5/6" />
+                      <div className="h-4 bg-gray-100 rounded w-4/6" />
+                   </div>
+                ) : (
+                   <p className="text-gray-500 leading-relaxed text-lg font-medium mb-6">{description}</p>
+                )}
             </div>
 
             {/* Características */}
-            {product.features && product.features.length > 0 && (
+            {(features.length > 0 || loadingDetails) && (
               <div className="mb-10 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {product.features.map((feature, index) => (
+                  {loadingDetails && features.length === 0 ? (
+                     Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="h-14 bg-gray-50 animate-pulse rounded-2xl border border-gray-100" />
+                     ))
+                  ) : features.map((feature, index) => (
                     <div key={index} className="flex items-center gap-3 p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
                       <div className="size-2 rounded-full bg-emerald-500" />
                       <span className="font-bold text-sm text-gray-700">{feature}</span>

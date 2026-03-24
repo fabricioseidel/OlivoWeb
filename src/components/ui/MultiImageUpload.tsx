@@ -6,10 +6,10 @@ interface MultiImageUploadProps {
   values: string[]; // data URLs
   onChange: (dataUrls: string[]) => void;
   maxImages?: number;
-  maxSizeKB?: number; // per image (default 2048KB = 2MB)
+  maxSizeKB?: number; // per image (default 10240KB = 10MB)
 }
 
-export default function MultiImageUpload({ label = "Galería", values, onChange, maxImages = 5, maxSizeKB = 2048 }: MultiImageUploadProps) {
+export default function MultiImageUpload({ label = "Galería", values, onChange, maxImages = 5, maxSizeKB = 10240 }: MultiImageUploadProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFiles = (fileList: FileList | null) => {

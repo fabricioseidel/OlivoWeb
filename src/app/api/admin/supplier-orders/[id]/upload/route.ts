@@ -39,10 +39,10 @@ export async function POST(
       );
     }
 
-    // Validar tamaño (5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validar tamaño (10MB)
+    if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json(
-        { error: 'El archivo no debe superar los 5MB' },
+        { error: 'El archivo no debe superar los 10MB' },
         { status: 400 }
       );
     }

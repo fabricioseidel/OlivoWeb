@@ -90,7 +90,8 @@ export default function POSPage() {
           quantity: item.quantity,
           unit_price: item.offerPrice || item.price,
           total_price: (item.offerPrice || item.price) * item.quantity
-        }))
+        })),
+        customerEmail: customerEmail || undefined
       });
       if (result.ok) {
         // Send receipt email if customer provided email

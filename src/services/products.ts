@@ -55,14 +55,24 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
 export async function fetchAllProducts(): Promise<ProductUI[]> {
   const { data, error } = await supabase
     .from('products')
-    .select('*')
+    .select('barcode, name, category, sale_price, offer_price, image_url, stock, featured, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold')
     .order('updated_at', { ascending: false })
     .limit(1000);
 
   if (error) throw error;
 
-  // Supabase returns data as any[], we cast to SupaProduct[] for safety
   return (data as unknown as SupaProduct[]).map(mapSupaToUI);
+}
+
+export async function fetchProductDetails(barcode: string): Promise<ProductUI> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('barcode', barcode)
+    .single();
+
+  if (error) throw error;
+  return mapSupaToUI(data as unknown as SupaProduct);
 }
 
 export async function searchProducts(query: string): Promise<ProductUI[]> {

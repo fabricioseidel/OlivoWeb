@@ -219,7 +219,7 @@ export default function UberEatsExportPage() {
   // ====== ESTADOS PARA SINCRONIZACIÓN Y SUBIDA DE IMÁGENES ======
   const [syncing, setSyncing] = useState(false);
   const [uploadingImage, setUploadingImage] = useState<string | null>(null); // barcode del producto subiendo
-  const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB en bytes
+  const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB en bytes
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedProductForUpload, setSelectedProductForUpload] = useState<string | null>(null);
 

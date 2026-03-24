@@ -76,9 +76,9 @@ export default function SupplierOrderDetailPage({
       return;
     }
 
-    // Validar tamaño (5MB máximo)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('El archivo no debe superar los 5MB');
+    // Validar tamaño (10MB máximo)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('El archivo no debe superar los 10MB');
       return;
     }
 
@@ -558,7 +558,7 @@ export default function SupplierOrderDetailPage({
             </div>
 
             <p className="text-xs text-gray-500 mt-3">
-              Formatos: JPG, PNG, PDF (máx. 5MB)
+              Formatos: JPG, PNG, PDF (máx. 10MB)
             </p>
           </div>
 

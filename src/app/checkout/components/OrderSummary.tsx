@@ -12,6 +12,11 @@ interface OrderSummaryProps {
   onApplyCoupon: (code: string) => Promise<{ valid: boolean; message: string; discount: number; freeShipping?: boolean }>;
   appliedCoupon?: { code: string; discount: number; freeShipping?: boolean } | null;
   onRemoveCoupon: () => void;
+  loyaltyPoints?: number;
+  redeemedPoints?: number;
+  onRedeemPoints?: (points: number) => void;
+  redemptionValue?: number;
+  minRedeem?: number;
 }
 
 export default function OrderSummary({ 
@@ -21,7 +26,12 @@ export default function OrderSummary({
   total, 
   onApplyCoupon, 
   appliedCoupon,
-  onRemoveCoupon
+  onRemoveCoupon,
+  loyaltyPoints = 0,
+  redeemedPoints = 0,
+  onRedeemPoints,
+  redemptionValue = 0,
+  minRedeem = 50,
 }: OrderSummaryProps) {
   const [couponCode, setCouponCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
@@ -112,6 +122,43 @@ export default function OrderSummary({
               {appliedCoupon.discount > 0 && (
                  <p className="font-black text-emerald-600">-${appliedCoupon.discount.toLocaleString('es-CL')}</p>
               )}
+           </div>
+        )}
+
+        {/* Canje de Puntos Loyalty */}
+        {loyaltyPoints >= minRedeem && onRedeemPoints && (
+           <div className="pt-2">
+              <div className={`p-4 rounded-2xl border-2 transition-all ${redeemedPoints > 0 ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100'}`}>
+                 <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                       <span className="text-amber-500">⭐</span>
+                       <span className="text-[10px] font-black uppercase tracking-widest text-gray-900">Tus Puntos: {loyaltyPoints}</span>
+                    </div>
+                    {redeemedPoints > 0 ? (
+                       <button 
+                          onClick={() => onRedeemPoints(0)}
+                          className="text-[10px] font-black text-amber-600 hover:text-amber-700 underline"
+                       >
+                          CANCELAR
+                       </button>
+                    ) : (
+                       <button 
+                          onClick={() => onRedeemPoints(loyaltyPoints)}
+                          className="text-[10px] font-black text-amber-600 hover:text-amber-700 underline"
+                       >
+                          USAR TODOS
+                       </button>
+                    )}
+                 </div>
+                 {redeemedPoints > 0 ? (
+                    <div className="flex justify-between items-center text-amber-700">
+                       <p className="text-xs font-bold">Descuento aplicado</p>
+                       <p className="font-black">-${(redeemedPoints * redemptionValue).toLocaleString('es-CL')}</p>
+                    </div>
+                 ) : (
+                    <p className="text-[9px] text-gray-400 font-medium">Puedes canjear tus puntos por un descuento de ${(loyaltyPoints * redemptionValue).toLocaleString('es-CL')}</p>
+                 )}
+              </div>
            </div>
         )}
 

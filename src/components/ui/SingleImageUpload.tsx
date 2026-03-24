@@ -7,7 +7,7 @@ interface SingleImageUploadProps {
   onChange: (dataUrl: string) => void;
   error?: string;
   required?: boolean;
-  maxSizeKB?: number; // default 2048 (2MB)
+  maxSizeKB?: number; // default 10240 (10MB)
   className?: string;
 }
 
@@ -17,7 +17,7 @@ export default function SingleImageUpload({
   onChange,
   error,
   required,
-  maxSizeKB = 2048,
+  maxSizeKB = 10240,
   className = ""
 }: SingleImageUploadProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);

@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabase-server";
+import { earnPoints } from "@/server/loyalty.service";
 
 /**
  * Creates a sale using DIRECT inserts (no RPC dependency).
@@ -26,6 +27,8 @@ export async function createQuickSale(data: {
   cashReceived?: number;
   changeGiven?: number;
   tax?: number;
+  customerEmail?: string;
+  customerName?: string;
 }) {
   // ── Step 1: Insert the sale with Column Fallback ────────────────────
   let salePayload: any = {
@@ -144,6 +147,21 @@ export async function createQuickSale(data: {
     }
   } catch (shiftErr) {
     console.warn("⚠️ Could not link sale to shift (non-critical):", shiftErr);
+  }
+
+  // ── Step 5: Reward Loyalty Points ────────────────────────────────────
+  if (data.customerEmail) {
+    try {
+      await earnPoints({
+        customerEmail: data.customerEmail,
+        amount: data.total,
+        referenceType: 'sale',
+        referenceId: saleId
+      });
+      console.log("✅ Step 5: Loyalty points credited to", data.customerEmail);
+    } catch (loyaltyErr) {
+      console.warn("⚠️ Could not credit loyalty points (non-critical):", loyaltyErr);
+    }
   }
 
   return { id: saleId, total: data.total, payment_method: data.paymentMethod };

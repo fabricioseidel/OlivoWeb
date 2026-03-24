@@ -22,6 +22,7 @@ import OrderSummary from "./components/OrderSummary";
 import { AddressResult } from "@/components/AddressAutocomplete";
 import { calculateDistance, calculateShippingCost } from "@/utils/shipping-calculator";
 import { StoreSettings } from "@/app/api/admin/settings/route";
+import { StarIcon } from "@heroicons/react/24/solid";
 
 const paymentMethods: PaymentMethod[] = [
   { id: "transbank", name: "Transbank" },
@@ -63,6 +64,10 @@ export default function CheckoutPage() {
   });
 
   const [coords, setCoords] = useState<{ lat: number, lng: number } | null>(null);
+  
+  const [loyaltyInfo, setLoyaltyInfo] = useState<any>(null);
+  const [redeemedPoints, setRedeemedPoints] = useState(0);
+  const [loyaltyConfig, setLoyaltyConfig] = useState<any>(null);
 
   useEffect(() => {
     if (status !== "loading" && cartItems.length === 0) {
@@ -82,13 +87,18 @@ export default function CheckoutPage() {
   const shippingCost = appliedCoupon?.freeShipping ? 0 : rawShippingCost;
   
   const couponDiscount = appliedCoupon?.discount || 0;
-  const total = Math.max(0, subtotal + shippingCost - couponDiscount);
+  const pointsDiscount = redeemedPoints * (loyaltyConfig?.redemption_value || 0);
+
+  const total = Math.max(0, subtotal + shippingCost - couponDiscount - pointsDiscount);
 
   useEffect(() => {
     const loadSettings = async () => {
       try {
         const res = await fetch('/api/admin/settings');
-        if (res.ok) setStoreSettings(await res.json());
+        if (res.ok) setStoreSettings(await res.ok ? await res.json() : null);
+        
+        const loyaltyRes = await fetch('/api/loyalty?action=config');
+        if (loyaltyRes.ok) setLoyaltyConfig(await loyaltyRes.json());
       } catch (e) { console.error(e); }
     };
     loadSettings();
@@ -168,7 +178,15 @@ export default function CheckoutPage() {
         }
       };
       
-      if (session.user.email) fetchLastAddress();
+      if (session.user.email) {
+        fetchLastAddress();
+        
+        // Fetch loyalty info
+        fetch(`/api/loyalty?email=${session.user.email}`)
+          .then(r => r.json())
+          .then(data => setLoyaltyInfo(data))
+          .catch(e => console.warn("Could not fetch loyalty info:", e));
+      }
     }
   }, [session, status, triggerShippingCalculation]);
 
@@ -264,7 +282,11 @@ export default function CheckoutPage() {
         subtotal,
         shippingCost,
         couponCode: appliedCoupon?.code,
-        discountApplied: total < (subtotal + shippingCost) ? (subtotal + shippingCost - total) : 0
+        discountApplied: (subtotal + shippingCost) - total,
+        loyaltyRedeemed: redeemedPoints > 0 ? {
+           points: redeemedPoints,
+           discount: pointsDiscount
+        } : null
       };
 
       const response = await fetch('/api/checkout/create-order', {
@@ -516,6 +538,11 @@ export default function CheckoutPage() {
                 onApplyCoupon={handleApplyCoupon}
                 appliedCoupon={appliedCoupon}
                 onRemoveCoupon={handleRemoveCoupon}
+                loyaltyPoints={loyaltyInfo?.points || 0}
+                redeemedPoints={redeemedPoints}
+                onRedeemPoints={setRedeemedPoints}
+                redemptionValue={loyaltyConfig?.redemption_value || 0}
+                minRedeem={loyaltyConfig?.min_points_redeem || 50}
               />
 
               <div className="mt-8 pt-8 border-t border-gray-100 space-y-4">

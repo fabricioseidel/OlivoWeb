@@ -28,6 +28,8 @@ export async function createSaleAction(data: {
   cashReceived?: number;
   changeGiven?: number;
   tax?: number;
+  customerEmail?: string;
+  customerName?: string;
 }): Promise<SaleActionState> {
   try {
     const session = await getServerSession(authOptions);
@@ -46,6 +48,8 @@ export async function createSaleAction(data: {
       tax: data.tax,
       sellerName,
       sellerEmail,
+      customerEmail: data.customerEmail,
+      customerName: data.customerName,
     });
 
     console.log("✅ Sale result:", result);
