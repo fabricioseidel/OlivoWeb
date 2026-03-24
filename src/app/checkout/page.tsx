@@ -17,21 +17,16 @@ import { useSession } from "next-auth/react";
 import ShippingForm, { ShippingInfo, ShippingMethod } from "./components/ShippingForm";
 import PaymentForm, { PaymentMethod } from "./components/PaymentForm";
 import OrderSummary from "./components/OrderSummary";
-import UpsellingSection from "./components/UpsellingSection";
 import { AddressResult } from "@/components/AddressAutocomplete";
 import { calculateDistance, calculateShippingCost } from "@/utils/shipping-calculator";
 import { StoreSettings } from "@/app/api/admin/settings/route";
 
 const paymentMethods: PaymentMethod[] = [
-  { id: "credit_card", name: "Tarjeta de Crédito" },
-  { id: "debit_card", name: "Tarjeta de Débito" },
-  { id: "mercadopago", name: "MercadoPago" },
   { id: "transbank", name: "Transbank" },
-  { id: "bank_transfer", name: "Transferencia Bancaria" },
+  { id: "mercadopago", name: "MercadoPago" },
 ];
 
 const baseShippingMethods: ShippingMethod[] = [
-  { id: "flash", name: "Envío Flash (Uber Eats)", price: 4500, days: "Llega en < 45 min" },
   { id: "pickup", name: "Retirar en Tienda (Providencia)", price: 0, days: "Listo en 1 hora (Gratis)" },
 ];
 
@@ -42,8 +37,8 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [dynamicShipping, setDynamicShipping] = useState<ShippingMethod | null>(null);
-  const [selectedShippingMethod, setSelectedShippingMethod] = useState("dynamic");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("credit_card");
+  const [selectedShippingMethod, setSelectedShippingMethod] = useState("pickup");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("transbank");
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
 
   // Redirigir si el carrito está vacío
@@ -133,7 +128,7 @@ export default function CheckoutPage() {
     }
   }, [session, status]);
 
-  const handleShippingInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleShippingInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setShippingInfo(prev => ({ ...prev, [name]: value }));
   };
@@ -179,7 +174,7 @@ export default function CheckoutPage() {
                 id: "dynamic",
                 name: `Envío a domicilio (${result.distanceKm.toFixed(1)} km)`,
                 price: Math.round(cost),
-                days: "Entrega express hoy o mañana"
+                days: "Despacho propio (Agendable)"
               };
               setDynamicShipping(dynamicMethod);
               setSelectedShippingMethod("dynamic");
@@ -364,7 +359,7 @@ export default function CheckoutPage() {
                 total={total}
               />
 
-              <UpsellingSection />
+              {/* UpsellingSection removed */}
 
               <div className="mt-8 pt-8 border-t border-gray-100 space-y-4">
                 <Button 

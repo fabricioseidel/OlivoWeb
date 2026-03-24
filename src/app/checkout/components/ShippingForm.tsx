@@ -11,6 +11,7 @@ export interface ShippingInfo {
   state: string;
   zipCode: string;
   country: string;
+  deliverySchedule?: string;
 }
 
 export interface ShippingMethod {
@@ -180,13 +181,7 @@ export default function ShippingForm({
                         </svg>
                       </div>
                     )}
-                    {method.id === 'flash' && (
-                      <div className="w-10 h-10 rounded-xl bg-amber-400 flex items-center justify-center mr-3 shadow-sm">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                      </div>
-                    )}
+                    {/* Envio Flash removed */}
                     {method.id === 'pickup' && (
                       <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center mr-3 shadow-sm">
                         <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,6 +209,34 @@ export default function ShippingForm({
             </label>
           ))}
         </div>
+
+        {selectedMethod === 'dynamic' && (
+          <div className="mt-8 p-6 bg-emerald-50 rounded-[2rem] border-2 border-emerald-100 animate-in fade-in slide-in-from-top duration-500">
+            <h4 className="text-sm font-black text-emerald-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Agendar Horario de Entrega
+            </h4>
+            <div className="grid grid-cols-1 gap-4">
+              <select
+                name="deliverySchedule"
+                value={shippingInfo.deliverySchedule || ''}
+                onChange={(e: any) => onChange(e)}
+                className="w-full h-14 px-6 rounded-2xl bg-white border-2 border-emerald-200 focus:border-emerald-500 transition-all outline-none font-bold text-gray-700 appearance-none cursor-pointer"
+              >
+                <option value="">Selecciona un bloque de horario...</option>
+                <option value="today_am">Hoy - Mañana (09:00 - 13:00)</option>
+                <option value="today_pm">Hoy - Tarde (14:00 - 19:00)</option>
+                <option value="tomorrow_am">Mañana - Mañana (09:00 - 13:00)</option>
+                <option value="tomorrow_pm">Mañana - Tarde (14:00 - 19:00)</option>
+              </select>
+              <p className="text-[10px] text-emerald-600/70 font-bold px-2 italic">
+                * Los horarios están sujetos a disponibilidad de ruta local.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

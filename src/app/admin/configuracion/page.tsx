@@ -425,6 +425,25 @@ export default function SettingsPage() {
                     checked={settings.appearance?.enableDarkMode || false}
                     onChange={(val) => handleChange(["appearance", "enableDarkMode"], val)}
                   />
+
+                  <div className="border-t border-slate-200 pt-6">
+                    <h3 className="font-semibold text-slate-900 mb-4">Contenido del Hero (Inicio)</h3>
+                    <div className="space-y-4">
+                      <InputField
+                        label="Título del Hero"
+                        value={settings.heroTitle || ""}
+                        onChange={(val) => handleChange(["heroTitle"], val)}
+                        placeholder="Sabor que te conecta con casa"
+                      />
+                      <TextAreaField
+                        label="Descripción del Hero"
+                        value={settings.heroDescription || ""}
+                        onChange={(val) => handleChange(["heroDescription"], val)}
+                        rows={3}
+                        placeholder="Llevamos lo mejor de Venezuela directo a tu puerta en Chile..."
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 

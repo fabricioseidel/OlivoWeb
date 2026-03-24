@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import type { StoreSettings } from "@/app/api/admin/settings/route";
 import Link from "next/link";
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -27,6 +29,23 @@ import {
 export default function Home() {
   const { products, loading: productsLoading } = useProducts();
   const { categories, loading: categoriesLoading } = useCategories();
+  const { status } = useSession();
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+
+  // Load settings for dynamic hero content
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/admin/settings');
+        if (res.ok) setStoreSettings(await res.json());
+      } catch (e) { console.error(e); }
+    };
+    loadSettings();
+  }, []);
+
+  const heroTitle = storeSettings?.heroTitle || "Sabor que te conecta con casa";
+  const heroDescription = storeSettings?.heroDescription || "Llevamos lo mejor de Venezuela directo a tu puerta en Chile. Calidad garantizada, frescura y el sabor que ya conoces.";
+  const isLoggedIn = status === "authenticated";
 
   // Filtrar productos destacados y activos
   const featuredProducts = products
@@ -49,14 +68,11 @@ export default function Home() {
                 <Sparkles className="w-4 h-4" />
                 <span>Productos venezolanos premium</span>
               </div>
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-8 text-white tracking-tighter leading-[0.95] md:leading-[1]">
-                Sabor que te <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-green-300 to-blue-400 animate-gradient-x">
-                  conecta con casa
-                </span>
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-8 text-white tracking-tighter leading-[0.95] md:leading-[1] whitespace-pre-line">
+                {heroTitle}
               </h1>
               <p className="text-lg md:text-2xl mb-12 text-emerald-100/70 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
-                Llevamos lo mejor de Venezuela directo a tu puerta en Chile. Calidad garantizada, frescura y el sabor que ya conoces.
+                {heroDescription}
               </p>
               <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start">
                 <Link href="/productos" className="w-full sm:w-auto">
@@ -81,9 +97,9 @@ export default function Home() {
                   <ShoppingBag className="w-48 h-48 sm:w-64 sm:h-64 text-emerald-400/20 rotate-12" />
                 </div>
 
-                {/* Elementos flotantes premium - Reposicionados y hechos más interactivos */}
+                {/* Elementos flotantes premium */}
                 <Link 
-                  href="/mis-pedidos" 
+                  href={isLoggedIn ? "/mi-cuenta/pedidos" : "/login"} 
                   className="absolute top-[12%] left-[10%] bg-emerald-900/40 backdrop-blur-2xl p-4 sm:p-6 rounded-[2rem] border border-white/10 shadow-2xl animate-float transition-all hover:scale-110 hover:bg-emerald-800/60 z-30 group/truck active:scale-95 cursor-pointer block"
                 >
                   <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30 group-hover/truck:rotate-6 transition-transform ring-4 ring-emerald-500/20">
@@ -119,7 +135,7 @@ export default function Home() {
 
               {/* Badge flotante extra - Ahora interactivo */}
               <Link 
-                href="/registro"
+                href={isLoggedIn ? "/productos" : "/registro"}
                 className="absolute -bottom-6 -left-6 bg-white/95 backdrop-blur-lg p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] hidden md:flex items-center gap-4 border border-white transition-all hover:scale-105 hover:shadow-2xl z-40 group/stats active:scale-95 cursor-pointer"
               >
                 <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover/stats:bg-emerald-600 group-hover/stats:text-white transition-all duration-300">

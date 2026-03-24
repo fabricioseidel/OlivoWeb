@@ -45,62 +45,10 @@ export default function PaymentForm({
           </div>
         </div>
         
-        {/* Campos específicos para tarjeta de crédito/débito */}
-        {(selectedMethod === "credit_card" || selectedMethod === "debit_card") && (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <Input
-                label="Número de tarjeta"
-                id="cardNumber"
-                name="cardNumber"
-                type="text"
-                placeholder="1234 5678 9012 3456"
-                required
-              />
-            </div>
-            
-            <div className="sm:col-span-2">
-              <Input
-                label="Nombre en la tarjeta"
-                id="cardName"
-                name="cardName"
-                type="text"
-                required
-              />
-            </div>
-            
-            <div>
-              <Input
-                label="Fecha de expiración (MM/AA)"
-                id="cardExpiry"
-                name="cardExpiry"
-                type="text"
-                placeholder="MM/AA"
-                required
-              />
-            </div>
-            
-            <div>
-              <Input
-                label="Código de seguridad (CVV)"
-                id="cardCvv"
-                name="cardCvv"
-                type="text"
-                placeholder="123"
-                required
-              />
-            </div>
-          </div>
-        )}
-        
-        {/* Campos específicos para transferencia */}
-        {selectedMethod === "bank_transfer" && (
-          <div className="bg-blue-50 p-4 rounded-md">
-            <p className="text-sm text-gray-700">
-              Después de completar el pedido, recibirás un correo electrónico con los datos bancarios para realizar la transferencia.
-            </p>
-          </div>
-        )}
+        {/* 
+            Los campos de tarjeta se han removido ya que el pago se procesa 
+            externamente a través de las pasarelas de Transbank o MercadoPago.
+        */}
       </div>
     </div>
   );

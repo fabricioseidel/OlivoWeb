@@ -99,6 +99,9 @@ export type StoreSettings = {
   maintenanceMode?: boolean;
   maintenanceMessage?: string;
 
+  heroTitle?: string;
+  heroDescription?: string;
+
   updatedAt?: string;
 };
 
@@ -153,6 +156,8 @@ export async function GET() {
         paymentTestMode: true,
         emailFromName: "OLIVOMARKET",
         emailFromAddress: "noreply@olivomarket.cl",
+        heroTitle: "Sabor que te conecta con casa",
+        heroDescription: "Llevamos lo mejor de Venezuela directo a tu puerta en Chile. Calidad garantizada, frescura y el sabor que ya conoces.",
       } as StoreSettings);
     }
 
@@ -216,6 +221,8 @@ export async function GET() {
       faqUrl: data.faq_url,
       maintenanceMode: data.maintenance_mode,
       maintenanceMessage: data.maintenance_message,
+      heroTitle: data.hero_title,
+      heroDescription: data.hero_description,
       updatedAt: data.updated_at,
     };
 
@@ -302,6 +309,8 @@ export async function PATCH(req: Request) {
       faq_url: body.faqUrl ?? null,
       maintenance_mode: body.maintenanceMode ?? false,
       maintenance_message: body.maintenanceMessage ?? null,
+      hero_title: body.heroTitle ?? null,
+      hero_description: body.heroDescription ?? null,
       updated_at: new Date().toISOString(),
     };
 
