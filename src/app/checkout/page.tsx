@@ -8,8 +8,10 @@ import {
   MapPinIcon, 
   CreditCardIcon, 
   UserIcon,
-  ShoppingBagIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  CheckBadgeIcon,
+  ClockIcon,
+  MapIcon
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import { useCart } from "@/contexts/CartContext";
@@ -33,20 +35,22 @@ const baseShippingMethods: ShippingMethod[] = [
 export default function CheckoutPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { cartItems, clearCart, validateCartWithServer } = useCart();
+  const { cartItems, validateCartWithServer } = useCart();
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [dynamicShipping, setDynamicShipping] = useState<ShippingMethod | null>(null);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState("pickup");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("transbank");
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
-
-  // Redirigir si el carrito está vacío
-  useEffect(() => {
-    if (status !== "loading" && cartItems.length === 0) {
-      router.push("/carrito");
-    }
-  }, [cartItems.length, router, status]);
+  
+  // Coupon state
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discount: number;
+    freeShipping?: boolean;
+    couponId?: number;
+  } | null>(null);
 
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     fullName: "",
@@ -59,6 +63,15 @@ export default function CheckoutPage() {
     country: "Chile",
   });
 
+  const [coords, setCoords] = useState<{ lat: number, lng: number } | null>(null);
+
+  // Redirigir si el carrito está vacío
+  useEffect(() => {
+    if (status !== "loading" && cartItems.length === 0) {
+      router.push("/carrito");
+    }
+  }, [cartItems.length, router, status]);
+
   const shippingMethods = useMemo(() => {
     const list = [...baseShippingMethods];
     if (dynamicShipping) return [dynamicShipping, ...list];
@@ -66,8 +79,13 @@ export default function CheckoutPage() {
   }, [dynamicShipping]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingCost = shippingMethods.find((method) => method.id === selectedShippingMethod)?.price || 0;
-  const total = subtotal + shippingCost;
+  
+  // Determine shipping cost based on method and coupon
+  const rawShippingCost = shippingMethods.find((method) => method.id === selectedShippingMethod)?.price || 0;
+  const shippingCost = appliedCoupon?.freeShipping ? 0 : rawShippingCost;
+  
+  const couponDiscount = appliedCoupon?.discount || 0;
+  const total = Math.max(0, subtotal + shippingCost - couponDiscount);
 
   // Load settings
   useEffect(() => {
@@ -107,8 +125,8 @@ export default function CheckoutPage() {
               }));
 
               if (addr.lat && addr.lng) {
-                // Call calc directly to avoid dependence on handleAddressSelect during mount
-                triggerShippingCalculation(addr);
+                setCoords({ lat: Number(addr.lat), lng: Number(addr.lng) });
+                triggerShippingCalculation({ lat: Number(addr.lat), lng: Number(addr.lng) });
               }
             }
           }
@@ -121,16 +139,16 @@ export default function CheckoutPage() {
     }
   }, [session, status]);
 
-  const triggerShippingCalculation = async (addr: any) => {
+  const triggerShippingCalculation = async (c: { lat: number, lng: number }) => {
     const shipSettings = storeSettings?.shipping;
-    if (shipSettings?.enableDynamicShipping && addr.lat) {
+    if (shipSettings?.enableDynamicShipping && c.lat) {
       if (!shipSettings.shippingOriginLat || !shipSettings.shippingOriginLng) return;
 
       setIsCalculatingDistance(true);
       try {
         const result = await calculateDistance(
           { lat: Number(shipSettings.shippingOriginLat), lng: Number(shipSettings.shippingOriginLng) },
-          { lat: Number(addr.lat), lng: Number(addr.lng) }
+          { lat: Number(c.lat), lng: Number(c.lng) }
         );
 
         if (result.success && !isNaN(result.distanceKm)) {
@@ -158,6 +176,38 @@ export default function CheckoutPage() {
     }
   };
 
+  const handleApplyCoupon = async (code: string) => {
+    try {
+      const response = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          cartTotal: subtotal,
+          customerEmail: shippingInfo.email
+        }),
+      });
+      const data = await response.json();
+      if (data.valid) {
+        setAppliedCoupon({
+          code: data.coupon.code,
+          discount: data.discount,
+          freeShipping: data.coupon.discount_type === 'free_shipping',
+          couponId: data.coupon.id
+        });
+        return { valid: true, message: data.message, discount: data.discount };
+      } else {
+        return { valid: false, message: data.message, discount: 0 };
+      }
+    } catch (error) {
+       return { valid: false, message: "Error de servidor al validar", discount: 0 };
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+  };
+
   const handleShippingInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setShippingInfo(prev => ({ ...prev, [name]: value }));
@@ -167,6 +217,7 @@ export default function CheckoutPage() {
     if (typeof val === 'string') {
       setShippingInfo(prev => ({ ...prev, address: val }));
       setDynamicShipping(null);
+      setCoords(null);
     } else {
       setShippingInfo(prev => ({
         ...prev,
@@ -176,16 +227,29 @@ export default function CheckoutPage() {
         zipCode: val.postalCode || prev.zipCode,
         country: val.country || prev.country
       }));
-      triggerShippingCalculation(val);
+      if (val.lat && val.lng) {
+        const c = { lat: Number(val.lat), lng: Number(val.lng) };
+        setCoords(c);
+        triggerShippingCalculation(c);
+      }
     }
   };
 
-  const handleFinalizeOrder = async () => {
+  const nextStep = () => {
     if (!shippingInfo.fullName || !shippingInfo.email || !shippingInfo.address) {
-       alert("Por favor, completa tus datos de contacto y dirección.");
+       alert("Por favor completa tus datos y dirección de entrega.");
        return;
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setStep(2);
+  };
 
+  const prevStep = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setStep(1);
+  };
+
+  const handleFinalizeOrder = async () => {
     setLoading(true);
     try {
       const isCartValid = await validateCartWithServer();
@@ -201,7 +265,9 @@ export default function CheckoutPage() {
         paymentMethod: selectedPaymentMethod,
         total,
         subtotal,
-        shippingCost
+        shippingCost,
+        couponCode: appliedCoupon?.code,
+        discountApplied: total < (subtotal + shippingCost) ? (subtotal + shippingCost - total) : 0
       };
 
       const response = await fetch('/api/checkout/create-order', {
@@ -221,107 +287,228 @@ export default function CheckoutPage() {
     }
   };
 
+  const originCoords = storeSettings?.shipping?.shippingOriginLat ? { 
+    lat: storeSettings.shipping.shippingOriginLat, 
+    lng: storeSettings.shipping.shippingOriginLng 
+  } : null;
+
+  const staticMapUrl = useMemo(() => {
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!key || !coords) return null;
+
+    let markers = `markers=color:red|label:U|${coords.lat},${coords.lng}`;
+    if (originCoords) {
+      markers += `&markers=color:green|label:M|${originCoords.lat},${originCoords.lng}`;
+    }
+
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${coords.lat},${coords.lng}&zoom=14&size=800x400&maptype=roadmap&${markers}&key=${key}`;
+  }, [coords, originCoords]);
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
-        <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
+        {/* Header con Steps */}
+        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 overflow-hidden">
+          <div className="flex-1">
             <Link href="/carrito" className="group inline-flex items-center text-sm font-bold text-gray-400 hover:text-emerald-600 transition-colors mb-4 uppercase tracking-widest">
               <ArrowLeftIcon className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-              Editar Carrito
+              Volver al Carrito
             </Link>
             <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter">
               Finalizar <span className="text-emerald-600">Pedido</span>
             </h1>
           </div>
-          <div className="flex items-center gap-4 bg-white px-6 py-4 rounded-3xl border border-gray-100 shadow-sm">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-              <ShieldCheckIcon className="h-7 w-7" />
-            </div>
-            <div>
-              <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Compra Segura</p>
-              <p className="text-sm font-bold text-gray-900">Encriptación SSL 256-bit</p>
-            </div>
+          
+          <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm self-start">
+             <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${step === 1 ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-gray-400'}`}>1. Entrega</div>
+             <div className="h-0.5 w-6 bg-gray-100 rounded-full" />
+             <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${step === 2 ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-gray-400'}`}>2. Pago</div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          <div className="lg:col-span-8 space-y-8">
-            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
-              <div className="flex items-center gap-4 mb-8">
-                 <div className="h-10 w-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center font-black">1</div>
-                 <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-                   <UserIcon className="h-6 w-6 text-gray-400" />
-                   Tus Datos
-                 </h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="space-y-2">
-                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label>
-                   <input 
-                     name="fullName" 
-                     value={shippingInfo.fullName} 
-                     onChange={handleShippingInfoChange}
-                     placeholder="Ej: Juan Pérez"
-                     className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold" 
-                   />
-                 </div>
-                 <div className="space-y-2">
-                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
-                   <input 
-                     name="email" 
-                     value={shippingInfo.email} 
-                     onChange={handleShippingInfoChange}
-                     placeholder="tu@email.com"
-                     className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold" 
-                   />
-                 </div>
-                 <div className="space-y-2 md:col-span-2">
-                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Teléfono</label>
-                   <input 
-                     name="phone" 
-                     value={shippingInfo.phone} 
-                     onChange={handleShippingInfoChange}
-                     placeholder="+56 9 1234 5678"
-                     className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold" 
-                   />
-                 </div>
-              </div>
-            </section>
+          <div className="lg:col-span-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {step === 1 ? (
+              <div className="space-y-8">
+                <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="h-10 w-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center font-black">1</div>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                      <UserIcon className="h-6 w-6 text-gray-400" />
+                      Tus Datos
+                    </h2>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label>
+                      <input 
+                        name="fullName" 
+                        value={shippingInfo.fullName} 
+                        onChange={handleShippingInfoChange}
+                        placeholder="Ej: Juan Pérez"
+                        className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
+                       <input 
+                         name="email" 
+                         value={shippingInfo.email} 
+                         onChange={handleShippingInfoChange}
+                         placeholder="tu@email.com"
+                         className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold" 
+                       />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Teléfono</label>
+                      <input 
+                        name="phone" 
+                        value={shippingInfo.phone} 
+                        onChange={handleShippingInfoChange}
+                        placeholder="+56 9 1234 5678"
+                        className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold" 
+                      />
+                    </div>
+                  </div>
+                </section>
 
-            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
-               <div className="flex items-center gap-4 mb-8">
-                 <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center font-black">2</div>
-                 <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-                   <MapPinIcon className="h-6 w-6 text-gray-400" />
-                   Despacho
-                 </h2>
-              </div>
-              <ShippingForm
-                shippingInfo={shippingInfo}
-                onChange={handleShippingInfoChange}
-                onAddressSelect={handleAddressSelect}
-                shippingMethods={shippingMethods}
-                selectedMethod={selectedShippingMethod}
-                onMethodChange={(e) => setSelectedShippingMethod(e.target.value)}
-                isCalculating={isCalculatingDistance}
-              />
-            </section>
+                <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center font-black">2</div>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                      <MapPinIcon className="h-6 w-6 text-gray-400" />
+                      Despacho
+                    </h2>
+                  </div>
+                  {!coords && shippingInfo.address && (
+                     <div className="mb-6 p-4 bg-amber-50 rounded-2xl border-2 border-amber-100 flex gap-4 items-start">
+                        <div className="h-10 w-10 rounded-full bg-amber-100 text-amber-600 shrink-0 flex items-center justify-center">⚠️</div>
+                        <div>
+                           <p className="text-sm font-black text-amber-900">Ubicación exacta requerida</p>
+                           <p className="text-xs font-bold text-amber-700/80 leading-relaxed">Por favor, selecciona tu dirección de la lista desplegable o usa el botón de GPS para calcular el costo de envío.</p>
+                        </div>
+                     </div>
+                  )}
+                  <ShippingForm
+                    shippingInfo={shippingInfo}
+                    onChange={handleShippingInfoChange}
+                    onAddressSelect={handleAddressSelect}
+                    shippingMethods={shippingMethods}
+                    selectedMethod={selectedShippingMethod}
+                    onMethodChange={(e) => setSelectedShippingMethod(e.target.value)}
+                    isCalculating={isCalculatingDistance}
+                  />
 
-            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
-               <div className="flex items-center gap-4 mb-8">
-                 <div className="h-10 w-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center font-black">3</div>
-                 <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-                   <CreditCardIcon className="h-6 w-6 text-gray-400" />
-                   Método de Pago
-                 </h2>
+                  <div className="mt-10 pt-8 border-t border-gray-100 flex justify-end">
+                     <Button 
+                        size="lg" 
+                        onClick={nextStep}
+                        className="rounded-2xl h-16 px-10 font-black shadow-xl shadow-emerald-600/20 active:scale-95 transition-all text-white bg-emerald-600 hover:bg-emerald-500"
+                     >
+                        Continuar a Fecha y Pago →
+                     </Button>
+                  </div>
+                </section>
               </div>
-              <PaymentForm
-                paymentMethods={paymentMethods}
-                selectedMethod={selectedPaymentMethod}
-                onMethodChange={(e) => setSelectedPaymentMethod(e.target.value)}
-              />
-            </section>
+            ) : (
+              <div className="space-y-8 animate-in slide-in-from-right-10 duration-500">
+                <button 
+                  onClick={prevStep} 
+                  className="inline-flex items-center text-xs font-black text-gray-400 hover:text-emerald-600 uppercase tracking-widest pl-2"
+                >
+                  ← Volver a Datos de Entrega
+                </button>
+
+                <section className="bg-white rounded-[2.5rem] p-1 shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+                   <div className="p-8 md:p-10">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center font-black">3</div>
+                        <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                          <MapIcon className="h-6 w-6 text-gray-400" />
+                          Confirmar Ruta
+                        </h2>
+                      </div>
+                      
+                      <div className="flex flex-col md:flex-row gap-6">
+                        <div className="flex-1 space-y-4">
+                           <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100">
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Dirección de Entrega</p>
+                              <p className="text-lg font-black text-gray-900 leading-tight">{shippingInfo.address}</p>
+                              {(shippingInfo.apartment || shippingInfo.tower) && (
+                                 <p className="text-sm font-bold text-gray-500 mt-2">
+                                    {shippingInfo.apartment && `Depto: ${shippingInfo.apartment} `}
+                                    {shippingInfo.tower && `| Torre: ${shippingInfo.tower}`}
+                                 </p>
+                              )}
+                           </div>
+                           
+                           {selectedShippingMethod === 'dynamic' && (
+                              <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100">
+                                 <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <ClockIcon className="h-3 w-3" />
+                                    Agenda tu Despacho
+                                 </p>
+                                 <select
+                                    name="deliverySchedule"
+                                    value={shippingInfo.deliverySchedule || ''}
+                                    onChange={(e: any) => handleShippingInfoChange(e)}
+                                    className="w-full h-14 px-6 rounded-2xl bg-white border-2 border-emerald-200 focus:border-emerald-500 transition-all outline-none font-bold text-gray-700 appearance-none cursor-pointer"
+                                  >
+                                    <option value="">Selecciona un bloque de horario...</option>
+                                    <option value="today_am">Hoy - Mañana (09:00 - 13:00)</option>
+                                    <option value="today_pm">Hoy - Tarde (14:00 - 19:00)</option>
+                                    <option value="tomorrow_am">Mañana - Mañana (09:00 - 13:00)</option>
+                                    <option value="tomorrow_pm">Mañana - Tarde (14:00 - 19:00)</option>
+                                  </select>
+                              </div>
+                           )}
+                        </div>
+                        
+                        {staticMapUrl && (
+                          <div className="md:w-1/2 relative bg-gray-100 rounded-[2rem] overflow-hidden border border-gray-200 aspect-video md:aspect-square">
+                            <img 
+                               src={staticMapUrl} 
+                               alt="Mapa de entrega" 
+                               className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 cursor-zoom-in" 
+                               onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${coords?.lat},${coords?.lng}`, '_blank')}
+                            />
+                            <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-gray-100/50">
+                               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Precisión de ubicación garantizada por Google Maps</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                   </div>
+                </section>
+
+                <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
+                   <div className="flex items-center gap-4 mb-8">
+                     <div className="h-10 w-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center font-black">4</div>
+                     <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                       <CreditCardIcon className="h-6 w-6 text-gray-400" />
+                       Método de Pago
+                     </h2>
+                  </div>
+                  <PaymentForm
+                    paymentMethods={paymentMethods}
+                    selectedMethod={selectedPaymentMethod}
+                    onMethodChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                  />
+                  
+                  <div className="mt-10 p-6 bg-gray-50 rounded-3xl border border-gray-100">
+                     <div className="flex gap-4">
+                        <div className="h-6 w-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-1">
+                           <CheckBadgeIcon className="h-4 w-4" />
+                        </div>
+                        <div>
+                           <p className="text-sm font-black text-gray-900 uppercase tracking-tight mb-1">Confirmación Final</p>
+                           <p className="text-xs font-bold text-gray-500 leading-relaxed">Al procesar el pago, serás redirigido de forma segura a la pasarela de pago seleccionada. Tu pedido será procesado de inmediato.</p>
+                        </div>
+                     </div>
+                  </div>
+                </section>
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-4 sticky top-10">
@@ -333,20 +520,35 @@ export default function CheckoutPage() {
                 subtotal={subtotal}
                 shippingCost={shippingCost}
                 total={total}
+                onApplyCoupon={handleApplyCoupon}
+                appliedCoupon={appliedCoupon}
+                onRemoveCoupon={handleRemoveCoupon}
               />
 
               <div className="mt-8 pt-8 border-t border-gray-100 space-y-4">
-                <Button 
-                   fullWidth 
-                   onClick={handleFinalizeOrder} 
-                   loading={loading}
-                   className="h-16 rounded-2xl text-lg font-black bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 active:scale-95 transition-all text-white"
-                >
-                  {loading ? "Procesando..." : `Pagar $${total.toLocaleString('es-CL')}`}
-                </Button>
+                {step === 1 ? (
+                   <Button 
+                    fullWidth 
+                    onClick={nextStep} 
+                    className="h-16 rounded-2xl text-lg font-black bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 active:scale-95 transition-all text-white border-none"
+                  >
+                    Resumen y Pago →
+                  </Button>
+                ) : (
+                  <Button 
+                    fullWidth 
+                    onClick={handleFinalizeOrder} 
+                    loading={loading}
+                    className="h-20 rounded-[1.5rem] text-xl font-black bg-emerald-600 hover:bg-emerald-500 shadow-2xl shadow-emerald-600/40 active:scale-95 transition-all text-white relative overflow-hidden group border-none"
+                  >
+                    <span className="relative z-10">{loading ? "Procesando..." : `Finalizar por $${total.toLocaleString('es-CL')}`}</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                  </Button>
+                )}
+                
                 <p className="text-[10px] text-center text-gray-400 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
                    <ShieldCheckIcon className="h-4 w-4" />
-                   Garantía de Satisfacción OlivoMarket
+                   Garantía OlivoMarket Premium
                 </p>
               </div>
             </div>

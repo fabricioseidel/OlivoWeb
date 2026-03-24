@@ -1,15 +1,51 @@
-import React from 'react';
+"use client";
+
+import React, { useState } from 'react';
 import { CartItem } from '@/types';
-import { ShoppingBagIcon } from "@heroicons/react/24/outline";
+import { ShoppingBagIcon, CheckCircleIcon, XCircleIcon, TicketIcon } from "@heroicons/react/24/outline";
 
 interface OrderSummaryProps {
   cartItems: CartItem[];
   subtotal: number;
   shippingCost: number;
   total: number;
+  onApplyCoupon: (code: string) => Promise<{ valid: boolean; message: string; discount: number; freeShipping?: boolean }>;
+  appliedCoupon?: { code: string; discount: number; freeShipping?: boolean } | null;
+  onRemoveCoupon: () => void;
 }
 
-export default function OrderSummary({ cartItems, subtotal, shippingCost, total }: OrderSummaryProps) {
+export default function OrderSummary({ 
+  cartItems, 
+  subtotal, 
+  shippingCost, 
+  total, 
+  onApplyCoupon, 
+  appliedCoupon,
+  onRemoveCoupon
+}: OrderSummaryProps) {
+  const [couponCode, setCouponCode] = useState("");
+  const [isValidating, setIsValidating] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'error' | 'success', msg: string } | null>(null);
+
+  const handleApply = async () => {
+    if (!couponCode.trim()) return;
+    setIsValidating(true);
+    setFeedback(null);
+    try {
+      const result = await onApplyCoupon(couponCode);
+      if (result.valid) {
+        setFeedback({ type: 'success', msg: result.message });
+        setCouponCode("");
+      } else {
+        setFeedback({ type: 'error', msg: result.message });
+      }
+    } catch (e) {
+      setFeedback({ type: 'error', msg: "Error al aplicar el cupón" });
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h3 className="text-xl font-black text-gray-900 flex items-center gap-2 mb-6">
@@ -52,24 +88,60 @@ export default function OrderSummary({ cartItems, subtotal, shippingCost, total 
 
         <div className="flex justify-between items-center text-sm">
           <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Envío</p>
-          <p className="font-black text-emerald-600">
-            {shippingCost === 0 ? "Gratis" : `$${shippingCost.toLocaleString('es-CL')}`}
-          </p>
-        </div>
-
-        {/* Campo de Cupón Premium */}
-        <div className="py-2">
-          <div className="relative group">
-            <input 
-              type="text" 
-              placeholder="¿Tienes un cupón?" 
-              className="w-full h-12 px-5 pr-12 rounded-xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/10 focus:bg-white outline-none text-xs font-bold transition-all text-gray-900"
-            />
-            <button className="absolute right-2 top-2 h-8 px-4 bg-gray-900 text-white rounded-lg text-[10px] font-black hover:bg-emerald-600 transition-colors">
-              APLICAR
-            </button>
+          <div className="text-right">
+             <p className={`font-black ${appliedCoupon?.freeShipping ? 'line-through text-gray-300 text-xs' : 'text-emerald-600'}`}>
+                {shippingCost === 0 ? "Gratis" : `$${shippingCost.toLocaleString('es-CL')}`}
+             </p>
+             {appliedCoupon?.freeShipping && (
+                <p className="text-emerald-600 font-black text-sm">Gratis (Cupón)</p>
+             )}
           </div>
         </div>
+
+        {appliedCoupon && (
+           <div className="flex justify-between items-center text-sm animate-in fade-in zoom-in duration-300">
+              <div className="flex items-center gap-2">
+                 <TicketIcon className="h-4 w-4 text-emerald-600" />
+                 <span className="text-emerald-600 font-black uppercase tracking-[0.1em] text-[10px]">
+                    CUPÓN: {appliedCoupon.code}
+                 </span>
+                 <button onClick={onRemoveCoupon} className="text-red-400 hover:text-red-600 ml-1">
+                    <XCircleIcon className="h-4 w-4" />
+                 </button>
+              </div>
+              {appliedCoupon.discount > 0 && (
+                 <p className="font-black text-emerald-600">-${appliedCoupon.discount.toLocaleString('es-CL')}</p>
+              )}
+           </div>
+        )}
+
+        {/* Campo de Cupón Premium */}
+        {!appliedCoupon && (
+           <div className="py-2">
+            <div className="relative group">
+              <input 
+                type="text" 
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                placeholder="¿Tienes un cupón?" 
+                className={`w-full h-12 px-5 pr-12 rounded-xl bg-gray-50 border-2 outline-none text-xs font-bold transition-all text-gray-900 ${feedback?.type === 'error' ? 'border-red-100 focus:border-red-300' : 'border-transparent focus:border-emerald-500/10 focus:bg-white'}`}
+              />
+              <button 
+                onClick={handleApply}
+                disabled={isValidating || !couponCode.trim()}
+                className="absolute right-2 top-2 h-8 px-4 bg-gray-900 text-white rounded-lg text-[10px] font-black hover:bg-emerald-600 transition-colors disabled:opacity-50"
+              >
+                {isValidating ? "..." : "APLICAR"}
+              </button>
+            </div>
+            {feedback && (
+               <p className={`text-[10px] font-black mt-2 px-1 flex items-center gap-1 ${feedback.type === 'success' ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {feedback.type === 'success' ? <CheckCircleIcon className="h-3 w-3" /> : <XCircleIcon className="h-3 w-3" />}
+                  {feedback.msg}
+               </p>
+            )}
+          </div>
+        )}
 
         <div className="pt-4 border-t border-gray-100 flex justify-between items-end">
           <div className="flex flex-col">

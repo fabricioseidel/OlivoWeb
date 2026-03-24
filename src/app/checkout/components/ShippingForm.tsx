@@ -11,6 +11,8 @@ export interface ShippingInfo {
   state: string;
   zipCode: string;
   country: string;
+  apartment?: string;
+  tower?: string;
   deliverySchedule?: string;
 }
 
@@ -42,7 +44,7 @@ export default function ShippingForm({
 }: ShippingFormProps) {
   return (
     <div className="p-6">
-      <h2 className="text-lg font-medium text-gray-900 mb-6">Información de Envío</h2>
+      <h2 className="text-lg font-black text-gray-900 mb-6">Información de Envío</h2>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="sm:col-span-2">
@@ -82,7 +84,7 @@ export default function ShippingForm({
         </div>
 
         <div className="sm:col-span-2">
-          <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+          <label htmlFor="address" className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Dirección</label>
           <AddressAutocomplete
             id="address"
             name="address"
@@ -141,102 +143,115 @@ export default function ShippingForm({
             onChange={onChange}
           />
         </div>
+
+        <div>
+          <Input
+            label="Depto / Oficina (Opcional)"
+            id="apartment"
+            name="apartment"
+            type="text"
+            value={shippingInfo.apartment || ''}
+            placeholder="Ej: 402, B-3"
+            onChange={onChange}
+          />
+        </div>
+
+        <div>
+          <Input
+            label="Torre / Bloque (Opcional)"
+            id="tower"
+            name="tower"
+            type="text"
+            value={shippingInfo.tower || ''}
+            placeholder="Ej: Torre A"
+            onChange={onChange}
+          />
+        </div>
       </div>
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Método de Envío</h3>
+      <div className="mt-10">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-black text-gray-900 tracking-tight">Método de Envío</h3>
           {isCalculating && (
-            <div className="flex items-center text-sm text-blue-600">
-              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2" />
+            <div className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full animate-pulse">
+              <div className="animate-spin h-3.3 w-3.5 border-2 border-emerald-600 border-t-transparent rounded-full mr-2" />
               Calculando distancia...
             </div>
           )}
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {(!shippingMethods.find(m => m.id === 'dynamic')) && (
+            <div className="flex items-center justify-between p-5 border-2 border-dashed border-gray-100 rounded-[1.5rem] bg-gray-50/50 opacity-80">
+              <div className="flex items-center">
+                <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mr-4 border border-gray-200">
+                  <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-gray-400 font-black uppercase tracking-[0.15em] text-[10px] mb-1">Envío a Domicilio</div>
+                  <div className="text-gray-400 text-xs font-bold italic line-clamp-1">Esperando dirección para calcular costo...</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest bg-gray-200/50 px-2 py-1 rounded-lg">Pendiente</span>
+              </div>
+            </div>
+          )}
+
           {shippingMethods.map((method) => (
             <label
               key={method.id}
               htmlFor={method.id}
-              className={`flex items-center justify-between p-4 border-2 rounded-2xl cursor-pointer transition-all ${selectedMethod === method.id ? 'border-emerald-600 bg-emerald-50' : 'border-gray-100 hover:border-emerald-200 bg-white shadow-sm'}`}
+              className={`flex items-center justify-between p-5 border-2 rounded-[1.5rem] cursor-pointer transition-all duration-300 ${selectedMethod === method.id ? 'border-emerald-600 bg-emerald-50/50 shadow-lg shadow-emerald-900/5 translate-y-[-2px]' : 'border-gray-50 hover:border-emerald-200 bg-white shadow-sm'}`}
             >
-              <div className="flex items-center">
-                <input
-                  id={method.id}
-                  name="shippingMethod"
-                  type="radio"
-                  value={method.id}
-                  checked={selectedMethod === method.id}
-                  onChange={onMethodChange}
-                  className="h-5 w-5 text-emerald-600 border-gray-300 focus:ring-emerald-500"
-                />
-                <div className="ml-3">
-                  <div className="flex items-center">
-                    {method.id === 'dynamic' && (
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center mr-3 shadow-sm">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                    )}
-                    {/* Envio Flash removed */}
-                    {method.id === 'pickup' && (
-                      <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center mr-3 shadow-sm">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                      </div>
-                    )}
-                    {method.id === 'standard' && (
-                      <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              <div className="flex items-center flex-1">
+                <div className="relative flex items-center justify-center">
+                   <input
+                    id={method.id}
+                    name="shippingMethod"
+                    type="radio"
+                    value={method.id}
+                    checked={selectedMethod === method.id}
+                    onChange={onMethodChange}
+                    className="h-5 w-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer"
+                  />
+                </div>
+                
+                <div className="ml-5 flex items-center gap-4">
+                  {method.id === 'dynamic' && (
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                    )}
-                    <span className="text-gray-900 font-medium">{method.name}</span>
+                    </div>
+                  )}
+                  {method.id === 'pickup' && (
+                    <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-gray-900 font-black tracking-tight leading-none mb-1">{method.name}</p>
+                    <p className="text-gray-500 text-[11px] font-bold uppercase tracking-widest">{method.days}</p>
                   </div>
-                  <div className="text-gray-500 text-sm mt-1">{method.days}</div>
                 </div>
               </div>
+              
               <div className="text-right">
                 {method.price === 0 ? (
-                  <span className="text-green-600 font-semibold">Gratis</span>
+                  <span className="text-emerald-600 font-black text-lg">Gratis</span>
                 ) : (
-                  <span className="text-gray-900 font-semibold">${(method.price || 0).toLocaleString('es-CL')}</span>
+                  <span className="text-gray-900 font-black text-lg">${method.price.toLocaleString('es-CL')}</span>
                 )}
               </div>
             </label>
           ))}
         </div>
-
-        {selectedMethod === 'dynamic' && (
-          <div className="mt-8 p-6 bg-emerald-50 rounded-[2rem] border-2 border-emerald-100 animate-in fade-in slide-in-from-top duration-500">
-            <h4 className="text-sm font-black text-emerald-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Agendar Horario de Entrega
-            </h4>
-            <div className="grid grid-cols-1 gap-4">
-              <select
-                name="deliverySchedule"
-                value={shippingInfo.deliverySchedule || ''}
-                onChange={(e: any) => onChange(e)}
-                className="w-full h-14 px-6 rounded-2xl bg-white border-2 border-emerald-200 focus:border-emerald-500 transition-all outline-none font-bold text-gray-700 appearance-none cursor-pointer"
-              >
-                <option value="">Selecciona un bloque de horario...</option>
-                <option value="today_am">Hoy - Mañana (09:00 - 13:00)</option>
-                <option value="today_pm">Hoy - Tarde (14:00 - 19:00)</option>
-                <option value="tomorrow_am">Mañana - Mañana (09:00 - 13:00)</option>
-                <option value="tomorrow_pm">Mañana - Tarde (14:00 - 19:00)</option>
-              </select>
-              <p className="text-[10px] text-emerald-600/70 font-bold px-2 italic">
-                * Los horarios están sujetos a disponibilidad de ruta local.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
