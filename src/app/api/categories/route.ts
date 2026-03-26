@@ -34,22 +34,16 @@ export async function GET() {
 
   const mapped = (data || []).map((c: any) => {
     const rawName = (c.name || "").toLowerCase().trim();
-    // Intenta buscar por nombre de categoría en el mapeo de productos
+    // Buscar por nombre de categoría en el mapeo de productos
     const count = productCounts[rawName] || 0;
 
-    // Convert to Title Case (e.g. "aceites y grasas" -> "Aceites y Grasas")
-    const titleCaseName = (c.name || "")
-      .split(" ")
-      .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(" ");
-
     return {
-      id: String(c.id ?? c.name ?? ""),
-      name: titleCaseName,
+      id: String(c.id ?? ""),
+      name: c.name ?? "",
       slug:
         c.slug ?? c.sku ?? (c.name ? String(c.name).toLowerCase().replace(/[^a-z0-9]+/gi, "-") : undefined),
       description: c.description ?? c.desc ?? undefined,
-      image: c.image ?? c.img ?? c.image_url ?? undefined,
+      image: c.image_url ?? c.image ?? c.img ?? undefined,
       isActive:
         typeof c.is_active === "boolean"
           ? c.is_active
@@ -58,7 +52,7 @@ export async function GET() {
             : true,
       productsCount: count,
     };
-  }).filter(cat => cat.productsCount > 0); // Ocultar categorías vacías
+  }); // Mostrar TODAS las categorías en admin (sin filtrar por productsCount)
 
   return NextResponse.json(mapped);
 }

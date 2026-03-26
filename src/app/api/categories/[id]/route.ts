@@ -88,9 +88,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     } catch (e: any) {
       console.error('Error saving category image:', e?.message || e);
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { name, slug, description, isActive, image } = body;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const normalizeSlug = (value: string) => value
       .toLowerCase()
       .normalize("NFD")
@@ -100,11 +98,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "");
 
-    // Build update payload using only existing columns (based on schema check: id, name, is_active, image_url)
+    // Build update payload using existing columns
     const updatePayload: any = {};
 
     if (name !== undefined) {
       updatePayload.name = String(name).trim();
+    }
+
+    if (slug !== undefined) {
+      updatePayload.slug = slug ? normalizeSlug(String(slug)) : null;
+    }
+
+    if (description !== undefined) {
+      updatePayload.description = description || null;
     }
 
     if (image !== undefined) {
@@ -115,12 +121,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updatePayload.is_active = Boolean(isActive); // Use correct column name  
     }
 
-    // Note: slug and description columns don't exist in the actual table schema
-    // Only include them if we confirm they exist
+    // Note: updated_at is handled automatically by the DB trigger (trg_categories_set_updated_at)
     console.log("Updating category with payload:", updatePayload);
-
-    // Attempt to set updated_at if column exists; harmless if ignored by schema
-    (updatePayload as any).updated_at = new Date().toISOString();
 
     const { data: updated, error } = await supabaseAdmin
       .from('categories')
