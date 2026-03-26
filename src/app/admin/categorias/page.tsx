@@ -106,7 +106,7 @@ export default function CategoriesPage() {
     setFormData({
       name: category.name,
       slug: category.slug,
-      description: category.description,
+      description: category.description || "",
       image: category.image || "",
       isActive: category.isActive
     });
@@ -169,7 +169,7 @@ export default function CategoriesPage() {
           body: JSON.stringify({
             name: formData.name.trim(),
             slug: finalSlug,
-            description: formData.description.trim(),
+            description: (formData.description || '').trim(),
             image: formData.image,
             isActive: formData.isActive,
           }),
@@ -189,7 +189,7 @@ export default function CategoriesPage() {
           body: JSON.stringify({
             name: formData.name.trim(),
             slug: finalSlug,
-            description: formData.description.trim(),
+            description: (formData.description || '').trim(),
             image: formData.image,
             isActive: formData.isActive,
           }),
@@ -353,7 +353,20 @@ export default function CategoriesPage() {
                   <td className="px-8 py-6 text-right">
                     <div className="flex justify-end gap-2">
                       <button onClick={() => handleEditCategory(cat)} className="p-3 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"><PencilIcon className="size-5" /></button>
-                      <button onClick={() => handleDeleteCategory(cat.id)} disabled={cat.productsCount > 0} className="p-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all disabled:opacity-20"><TrashIcon className="size-5" /></button>
+                      <button
+                        onClick={() => cat.productsCount > 0
+                          ? showToast(`No se puede eliminar: tiene ${cat.productsCount} producto(s)`, 'error')
+                          : handleDeleteCategory(cat.id)
+                        }
+                        title={cat.productsCount > 0 ? `Tiene ${cat.productsCount} productos` : 'Eliminar'}
+                        className={`p-3 rounded-xl transition-all ${
+                          cat.productsCount > 0
+                            ? 'text-gray-300 cursor-not-allowed'
+                            : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+                        }`}
+                      >
+                        <TrashIcon className="size-5" />
+                      </button>
                     </div>
                   </td>
                 </tr>

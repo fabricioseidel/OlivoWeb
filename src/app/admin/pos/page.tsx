@@ -131,12 +131,17 @@ export default function POSPage() {
       } else {
         showToast(result.toastMessage || "Error en la venta", "error");
       }
-    } catch { showToast("Error crítico al procesar venta", "error"); }
+    } catch (err: any) { 
+      const msg = err?.message || "Error desconocido";
+      showToast(`Error crítico: ${msg}`, "error"); 
+      console.error("POS CHECKOUT CRASH:", err);
+    } 
+
     finally { setProcessing(false); }
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)] bg-slate-950 text-white overflow-hidden">
+    <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-80px)] bg-slate-950 text-white overflow-x-hidden lg:overflow-hidden">
       {/* ── Product Grid ── */}
       <div className={`flex-1 flex flex-col p-3 lg:p-4 ${showCart ? 'hidden lg:flex' : 'flex'}`}>
         {/* Search Bar */}
@@ -186,7 +191,7 @@ export default function POSPage() {
                   return;
                 }
                 addToCart(p); 
-                showToast(`+ ${p.name}`, "success"); 
+                showToast(`+ ${p.name}`, "success", 1500); 
               }}
               className={`group bg-slate-900 rounded-xl p-2 border transition-all active:scale-95 text-left flex flex-col h-full ${
                 p.stock <= 0 ? 'opacity-50 grayscale border-slate-800 cursor-not-allowed' : 'border-slate-800 hover:border-emerald-500'
@@ -219,7 +224,7 @@ export default function POSPage() {
       </div>
 
       {/* ── Cart & Checkout ── */}
-      <div className={`w-full lg:w-[380px] h-full flex flex-col bg-slate-900 border-l border-slate-800 ${showCart ? 'flex flex-1' : 'hidden lg:flex'}`}>
+      <div className={`w-full lg:w-[380px] lg:h-full flex flex-col bg-slate-900 border-l border-slate-800 ${showCart ? 'flex flex-1' : 'hidden lg:flex'}`}>
         {/* Mobile back button */}
         <div className="p-4 border-b border-slate-800 flex justify-between items-center">
           <button onClick={() => setShowCart(false)} className="lg:hidden text-slate-400 text-sm font-bold">← Productos</button>
