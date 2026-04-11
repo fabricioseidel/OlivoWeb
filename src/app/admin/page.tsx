@@ -10,7 +10,8 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   ArrowPathIcon,
-  LightBulbIcon
+  LightBulbIcon,
+  CurrencyDollarIcon
 } from "@heroicons/react/24/outline";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
@@ -26,6 +27,7 @@ export default function AdminDashboard() {
   const [lastSync, setLastSync] = useState<string>("");
   const [viewMode, setViewMode] = useState<'reception' | 'analytics'>('reception');
   const [insights, setInsights] = useState<any[]>([]);
+  const [posSales, setPosSales] = useState<any[]>([]);
 
   // Cargar pedidos desde API
   const loadOrders = async () => {
@@ -60,12 +62,28 @@ export default function AdminDashboard() {
     } catch (e) { console.error(e); }
   };
 
+  const loadPosSales = async () => {
+    try {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const res = await fetch(`/api/sales?startDate=${today.toISOString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.sales) {
+          setPosSales(data.sales);
+        }
+      }
+    } catch (e) { console.error(e); }
+  };
+
   useEffect(() => {
     loadOrders();
-    // Auto-refresh every 15 seconds
+    loadPosSales();
+    // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       loadOrders();
-    }, 15000);
+      loadPosSales();
+    }, 30000);
     return () => clearInterval(interval);
   }, [viewMode, orders.length]);
 
@@ -99,19 +117,48 @@ export default function AdminDashboard() {
   };
 
   const metrics = useMemo(() => {
+    // Web metrics definitions
     const totalViews = products.reduce((sum, p) => sum + (p.viewCount || 0), 0);
     const totalOrderIntents = products.reduce((sum, p) => sum + (p.orderClicks || 0), 0);
     const lowStock = products.filter(p => p.stock > 0 && p.stock <= 5).length;
-    const totalOrders = orders.length;
-    const grossRevenue = orders.reduce((s, o) => s + (Number(o.total) || 0), 0);
-    const itemsSold = orders.reduce((s, o) => s + (o.productos || (Array.isArray(o.items) ? o.items.reduce((acc: number, it: any) => acc + (Number(it.quantity) || 0), 0) : 0)), 0);
-    const avgOrder = totalOrders ? grossRevenue / totalOrders : 0;
-    // Conversión basada en intentos de pedido -> pedidos confirmados
-    const intentConversion = totalOrderIntents ? (totalOrders / totalOrderIntents) * 100 : 0;
-    // Conversión de visitas (opcional) pedidos / vistas
-    const viewConversion = totalViews ? (totalOrders / totalViews) * 100 : 0;
-    return { totalViews, totalOrderIntents, lowStock, totalOrders, grossRevenue, itemsSold, avgOrder, intentConversion, viewConversion };
-  }, [products, orders]);
+    const totalWebOrders = orders.length;
+    const webRevenue = orders.reduce((s, o) => s + (Number(o.total) || 0), 0);
+    const itemsSold = orders.reduce((s, o) => s + (o.productos || (Array.isArray(o.items) ? (o.items as any[]).reduce((acc: number, it: any) => acc + (Number(it.quantity) || 0), 0) : 0)), 0);
+    const intentConversion = totalOrderIntents ? (totalWebOrders / totalOrderIntents) * 100 : 0;
+    const viewConversion = totalViews ? (totalWebOrders / totalViews) * 100 : 0;
+
+    // Combined metrics
+    const webPendingTransfers = orders.filter(o => 
+      o.paymentMethod?.toLowerCase().includes('transfer') && 
+      (o.paymentStatus?.toLowerCase().includes('pending') || o.paymentStatus?.toLowerCase().includes('waiting'))
+    ).length;
+
+    const posPendingTransfers = posSales.filter(s => 
+      s.payment_method?.toLowerCase().includes('transfer') && 
+      s.transfer_status === 'pending'
+    ).length;
+
+    const todayWebCount = orders.filter(o => {
+      const d = o.createdAt ? new Date(o.createdAt).toISOString().split('T')[0] : '';
+      return d === new Date().toISOString().split('T')[0];
+    }).length;
+
+    const todayPosCount = posSales.length;
+    const totalTodayCount = todayWebCount + todayPosCount;
+
+    const posRevenue = posSales.reduce((s, o) => s + (Number(o.total) || 0), 0);
+    const totalGrossRevenue = webRevenue + posRevenue;
+    const totalAllOrders = totalWebOrders + posSales.length;
+    const avgOrder = totalAllOrders ? totalGrossRevenue / totalAllOrders : 0;
+
+    return { 
+      totalViews, totalOrderIntents, lowStock, totalOrders: totalAllOrders, 
+      grossRevenue: totalGrossRevenue, 
+      itemsSold, avgOrder, intentConversion, viewConversion, 
+      pendingTransfers: webPendingTransfers + posPendingTransfers, 
+      todaySales: totalTodayCount 
+    };
+  }, [products, orders, posSales]);
 
   const topViewed = useMemo(() => {
     return [...products]
@@ -258,12 +305,12 @@ export default function AdminDashboard() {
             
             {/* Tarjetas de estadísticas Premium */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
-            <StatCard title="Pedidos" value={metrics.totalOrders} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} color="emerald" helper="Confirmados" />
-            <StatCard title="Ingresos" value={`$ ${metrics.grossRevenue.toLocaleString('es-CL')}`} icon={<ArrowUpIcon className="h-6 w-6" />} color="blue" helper="Suma total ventas" />
-            <StatCard title="Ticket Medio" value={`$ ${metrics.avgOrder.toLocaleString('es-CL')}`} icon={<ArrowDownIcon className="h-6 w-6" />} color="teal" helper="Promedio por pedido" />
+            <StatCard title="Ventas Hoy" value={metrics.todaySales} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} color="emerald" helper="Web + POS" />
+            <StatCard title="Ingresos" value={`$ ${metrics.grossRevenue.toLocaleString('es-CL')}`} icon={<ArrowUpIcon className="h-6 w-6" />} color="blue" helper="Suma Total" />
+            <StatCard title="Transf. Pendientes" value={metrics.pendingTransfers} icon={<CurrencyDollarIcon className="h-6 w-6" />} color="rose" helper="Revisión pendiente" />
+            <StatCard title="Ticket Medio" value={`$ ${metrics.avgOrder.toLocaleString('es-CL')}`} icon={<ArrowDownIcon className="h-6 w-6" />} color="teal" helper="Promedio web" />
             <StatCard title="Items Vendidos" value={metrics.itemsSold} icon={<Squares2X2Icon className="h-6 w-6" />} color="indigo" helper="Unidades totales" />
             <StatCard title="Vistas" value={metrics.totalViews} icon={<EyeIcon className="h-6 w-6" />} color="emerald" helper="Visitas a productos" />
-            <StatCard title="Intentos" value={metrics.totalOrderIntents} icon={<CursorArrowRaysIcon className="h-6 w-6" />} color="blue" helper="Clicks en comprar" />
             <StatCard title="Conversión" value={`${metrics.intentConversion.toFixed(1)}%`} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} color="amber" helper="Intentos vs Pedidos" />
             <StatCard title="Bajo Stock" value={metrics.lowStock} icon={<Squares2X2Icon className="h-6 w-6" />} color="rose" helper="Menos de 5 unids." />
         </div>

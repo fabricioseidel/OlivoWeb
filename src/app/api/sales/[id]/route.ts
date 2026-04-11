@@ -80,3 +80,47 @@ export async function GET(
     );
   }
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await req.json();
+    
+    // Whitelist allowed fields to update
+    const allowed = ['transfer_status', 'transfer_receipt_uri', 'transfer_receipt_name', 'notes'];
+    const patch: any = {};
+    
+    for (const key of allowed) {
+      if (body[key] !== undefined) {
+        patch[key] = body[key];
+      }
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json({ error: 'No se proporcionan campos válidos para actualizar' }, { status: 400 });
+    }
+
+    const { data, error } = await supabaseServer
+      .from('sales')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating sale:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, data });
+  } catch (error) {
+    console.error('Error in sale PATCH API:', error);
+    return NextResponse.json(
+      { error: 'Error al actualizar la venta' },
+      { status: 500 }
+    );
+  }
+}

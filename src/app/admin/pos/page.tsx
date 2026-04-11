@@ -32,6 +32,7 @@ export default function POSPage() {
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const { showToast } = useToast();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [transferReceipt, setTransferReceipt] = useState<File | null>(null);
 
   const change = useMemo(() => Math.max(0, cashReceived - finalTotal), [cashReceived, finalTotal]);
 
@@ -123,10 +124,19 @@ export default function POSPage() {
             setSendingReceipt(false);
           }
         }
+        if (paymentMethod === "transfer" && result.saleId) {
+          if (transferReceipt) {
+            await uploadReceipt(result.saleId);
+          } else {
+            await markAsPending(result.saleId);
+          }
+        }
+
         clearCart();
         setCashReceived(0);
         setCustomerEmail("");
         setPaymentMethod("cash");
+        setTransferReceipt(null);
         showToast("✓ Venta registrada con éxito", "success");
       } else {
         showToast(result.toastMessage || "Error en la venta", "error");
@@ -138,6 +148,37 @@ export default function POSPage() {
     } 
 
     finally { setProcessing(false); }
+  };
+
+  const uploadReceipt = async (saleId: string | number) => {
+    if (!transferReceipt) return;
+    try {
+      const fd = new FormData();
+      fd.append('file', transferReceipt);
+      const res = await fetch(`/api/sales/${saleId}/upload-receipt`, {
+        method: 'POST',
+        body: fd
+      });
+      if (res.ok) {
+        showToast('✓ Comprobante adjuntado', 'success', 2000);
+      } else {
+        showToast('Error al subir comprobante', 'error');
+      }
+    } catch (err) {
+      console.error('Error uploading receipt:', err);
+    }
+  };
+
+  const markAsPending = async (saleId: string | number) => {
+    try {
+      await fetch(`/api/sales/${saleId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transfer_status: 'pending' }),
+      });
+    } catch (err) {
+      console.error('Error marking as pending:', err);
+    }
   };
 
   return (
@@ -324,6 +365,41 @@ export default function POSPage() {
               </button>
             ))}
           </div>
+
+          {/* Transfer receipt upload */}
+          {paymentMethod === 'transfer' && cart.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">
+                Comprobante de transferencia (opcional)
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer bg-slate-900 border border-dashed border-slate-800 hover:border-emerald-500 rounded-xl p-3 transition-all">
+                <CameraIcon className="h-4 w-4 text-slate-400 shrink-0" />
+                <span className="text-xs text-slate-400 truncate flex-1">
+                  {transferReceipt ? transferReceipt.name : 'Subir imagen del comprobante...'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setTransferReceipt(e.target.files?.[0] || null)}
+                />
+                {transferReceipt && (
+                  <button 
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); setTransferReceipt(null); }}
+                    className="text-slate-500 hover:text-red-400"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                )}
+              </label>
+              {!transferReceipt && (
+                <p className="text-[9px] text-amber-500/80 font-bold px-1 italic">
+                  ⚠️ Sin comprobante → quedará como &quot;Verificación Pendiente&quot;
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Cash received & change */}
           {paymentMethod === "cash" && cart.length > 0 && (

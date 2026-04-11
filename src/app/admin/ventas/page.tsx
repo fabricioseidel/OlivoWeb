@@ -455,7 +455,48 @@ export default function VentasPage() {
              </div>
           )}
           
-          <div className="overflow-x-auto">
+          {/* Vista Móvil (Cards) */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {filteredSales.map((sale) => {
+              const isTransfer = sale.payment_method?.toLowerCase().includes('transfer');
+              const hasReceipt = !!sale.transfer_receipt_uri;
+              return (
+                <div key={sale.id} className="p-4 flex flex-col gap-3" onClick={() => handleSaleClick(sale)}>
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-gray-900 line-clamp-1">#{sale.id}</span>
+                      <span className="text-[10px] text-gray-400 font-medium">{new Date(sale.ts).toLocaleString()}</span>
+                    </div>
+                    <span className="text-base font-black text-gray-900">${sale.total.toLocaleString()}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                       <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-[10px] uppercase border border-blue-100">
+                         {(sale.seller_name || 'A')[0]}
+                       </div>
+                       <span className="text-xs font-bold text-gray-700">{sale.seller_name || 'N/A'}</span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-lg border ${getMethodBadge(sale.payment_method)}`}>
+                        {sale.payment_method || 'N/A'}
+                      </span>
+                      {isTransfer && (
+                         <span className={`text-[8px] font-bold tracking-widest uppercase ${hasReceipt ? 'text-emerald-500' : 'text-rose-500'}`}>
+                           {hasReceipt ? '✓ CON comprobante' : '⚠ Faltan datos'}
+                         </span>
+                       )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {filteredSales.length === 0 && !loading && (
+              <div className="py-10 text-center text-gray-400 text-xs">Ninguna venta encontrada</div>
+            )}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50/80">
                 <tr>

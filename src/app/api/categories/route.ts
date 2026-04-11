@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -59,6 +61,12 @@ export async function GET() {
 
 // POST /api/categories { name }
 export async function POST(req: Request) {
+  const session: any = await getServerSession(authOptions as any);
+  const role = session?.role || session?.user?.role || "";
+  if (!session || !String(role).toUpperCase().includes("ADMIN")) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => ({} as any));
   const cleanName = String(body?.name || "").trim();
   if (!cleanName) {
@@ -98,6 +106,12 @@ export async function POST(req: Request) {
 
 // DELETE /api/categories?name=...
 export async function DELETE(req: Request) {
+  const session: any = await getServerSession(authOptions as any);
+  const role = session?.role || session?.user?.role || "";
+  if (!session || !String(role).toUpperCase().includes("ADMIN")) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const name = searchParams.get("name");
   if (!name) {
