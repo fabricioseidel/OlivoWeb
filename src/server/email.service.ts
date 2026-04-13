@@ -100,6 +100,27 @@ export function renderTemplate(
   return result;
 }
 
+/** Fetch template from DB or return fallback */
+export async function getTemplate(slug: string, fallbackSubject: string, fallbackHtml: string) {
+  try {
+    const { data, error } = await supabaseServer
+      .from("email_templates")
+      .select("subject, body_html")
+      .eq("slug", slug)
+      .single();
+
+    if (error || !data) {
+      console.warn(`[Email] Template slug "${slug}" not found in DB. Using fallback.`);
+      return { subject: fallbackSubject, html: fallbackHtml };
+    }
+
+    return { subject: data.subject, html: data.body_html };
+  } catch (err) {
+    console.error(`[Email] Error fetching template "${slug}":`, err);
+    return { subject: fallbackSubject, html: fallbackHtml };
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // INLINE TEMPLATES (HTML emails)
 // ═══════════════════════════════════════════════════════════════════════
@@ -262,6 +283,34 @@ const ABANDONED_CART_TEMPLATE = `<!DOCTYPE html>
 </div>
 </body></html>`;
 
+const ORDER_STATUS_TEMPLATE = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
+<body>
+<div class="container">
+  <div class="header">
+    <div style="background:rgba(255,255,255,0.2); padding:6px 14px; border-radius:100px; display:inline-block; font-size:12px; font-weight:bold; margin-bottom:15px;">ACTUALIZACIÓN DE PEDIDO</div>
+    <h1 style="margin:0; font-size:28px; letter-spacing:-1px;">Tu pedido está {{status}}</h1>
+  </div>
+  <div class="content">
+    <p style="font-size:18px; font-weight:bold; color:#111827;">Hola {{customerName}},</p>
+    <p>Tu pedido <strong>#{{orderId}}</strong> ha cambiado de estado a: <strong style="color:#10B981; text-transform:uppercase;">{{status}}</strong>.</p>
+    
+    <div style="margin:30px 0; border:1px solid #edf2f7; border-radius:16px; padding:25px; background-color:#f9fafb;">
+      <p style="margin:0; font-size:12px; color:#6b7280; text-transform:uppercase; font-weight:bold;">Detalles de la Entrega</p>
+      <p style="margin:10px 0 0; font-size:14px;"><strong>Dirección:</strong> {{address}}</p>
+    </div>
+
+    <div style="text-align:center; margin-top:30px;">
+      <a href="https://olivomarket.cl/mi-cuenta/pedidos/{{orderId}}" class="button">Ver seguimiento</a>
+    </div>
+  </div>
+  <div class="footer">
+    <p style="font-weight:bold; color:#374151;">OlivoMarket Gourmet</p>
+    <p>© {{year}} OlivoMarket. Todos los derechos reservados.</p>
+  </div>
+</div>
+</body></html>`;
+
 const REVIEW_REQUEST_TEMPLATE = `<!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
 <body>
@@ -367,7 +416,13 @@ export async function sendOrderConfirmation(data: {
     )
     .join("");
 
-  const html = renderTemplate(ORDER_CONFIRMATION_TEMPLATE, {
+  const { subject: dbSubject, html: dbHtml } = await getTemplate(
+    "order_confirmation",
+    `✅ Pedido confirmado #${data.orderId}`,
+    ORDER_CONFIRMATION_TEMPLATE
+  );
+
+  const html = renderTemplate(dbHtml, {
     customerName: data.customerName,
     orderId: data.orderId,
     total: `$${data.total.toLocaleString("es-CL")}`,
@@ -381,7 +436,7 @@ export async function sendOrderConfirmation(data: {
   return sendEmail({
     to: data.to,
     toName: data.customerName,
-    subject: `✅ Pedido confirmado #${data.orderId}`,
+    subject: renderTemplate(dbSubject, { orderId: data.orderId }),
     html,
     templateSlug: "order_confirmation",
     metadata: { orderId: data.orderId, total: data.total },
@@ -449,7 +504,13 @@ export async function sendWelcomeEmail(data: {
       </div>`
     : "";
 
-  const html = renderTemplate(WELCOME_TEMPLATE, {
+  const { subject: dbSubject, html: dbHtml } = await getTemplate(
+    "welcome",
+    "¡Bienvenido/a a OlivoMarket! 🌿",
+    WELCOME_TEMPLATE
+  );
+
+  const html = renderTemplate(dbHtml, {
     customerName: data.customerName,
     couponBlock,
     pointsBlock: data.bonusPoints ? `<p style="text-align:center;">🌟 ¡Ganaste ${data.bonusPoints} puntos!</p>` : "",
@@ -459,7 +520,7 @@ export async function sendWelcomeEmail(data: {
   return sendEmail({
     to: data.to,
     toName: data.customerName,
-    subject: `¡Bienvenido/a a OlivoMarket! 🌿`,
+    subject: dbSubject,
     html,
     templateSlug: "welcome",
   });
@@ -527,6 +588,38 @@ export async function sendReviewRequest(data: {
     subject: `⭐ ¿Cómo estuvo tu pedido #${data.orderId}?`,
     html,
     templateSlug: "review_request",
+  });
+}
+
+/** Order Status Update */
+export async function sendOrderStatusEmail(data: {
+  to: string;
+  customerName: string;
+  orderId: string;
+  status: string;
+  address: string;
+}): Promise<EmailResult> {
+  const { subject: dbSubject, html: dbHtml } = await getTemplate(
+    "order_status_update",
+    `📦 Actualización de tu pedido #${data.orderId}`,
+    ORDER_STATUS_TEMPLATE
+  );
+
+  const html = renderTemplate(dbHtml, {
+    customerName: data.customerName,
+    orderId: data.orderId,
+    status: data.status,
+    address: data.address,
+    year: new Date().getFullYear(),
+  });
+
+  return sendEmail({
+    to: data.to,
+    toName: data.customerName,
+    subject: renderTemplate(dbSubject, { orderId: data.orderId, status: data.status }),
+    html,
+    templateSlug: "order_status_update",
+    metadata: { orderId: data.orderId, status: data.status },
   });
 }
 

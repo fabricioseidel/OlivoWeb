@@ -71,7 +71,7 @@ const menuGroups: MenuGroup[] = [
       { name: "Central Marketing", href: "/admin/marketing", icon: MegaphoneIcon },
       { name: "Cupones", href: "/admin/marketing/cupones", icon: TicketIcon },
       { name: "Programa Puntos", href: "/admin/marketing/puntos", icon: StarIcon },
-      { name: "Campañas Email", href: "/admin/marketing/campanas", icon: EnvelopeIcon },
+      { name: "Plantillas Email", href: "/admin/marketing/emails", icon: EnvelopeIcon },
       { name: "Newsletter", href: "/admin/marketing/newsletter", icon: NewspaperIcon },
     ],
   },

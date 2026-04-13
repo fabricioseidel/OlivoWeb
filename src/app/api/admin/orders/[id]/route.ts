@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { sendOrderStatusEmail } from '@/server/email.service';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -40,6 +41,36 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         if (error) {
             console.error('Error updating order:', error);
             return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
+        }
+
+        // Trigger email notification if status changed
+        if (status) {
+            try {
+                // Fetch customer details for the email
+                const { data: order, error: fetchError } = await supabaseAdmin
+                    .from('orders')
+                    .select('*, shipping_address')
+                    .eq('id', id)
+                    .single();
+
+                if (!fetchError && order) {
+                    const addressData = typeof order.shipping_address === 'string' 
+                        ? JSON.parse(order.shipping_address) 
+                        : order.shipping_address;
+                    
+                    const fullAddress = `${addressData.address}, ${addressData.city}`;
+
+                    await sendOrderStatusEmail({
+                        to: addressData.email,
+                        customerName: addressData.fullName || 'Cliente',
+                        orderId: id,
+                        status: status,
+                        address: fullAddress
+                    });
+                }
+            } catch (emailError) {
+                console.warn('[Email] Failed to send status update email:', emailError);
+            }
         }
         
         return NextResponse.json({ success: true });
