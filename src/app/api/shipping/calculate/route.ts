@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     }
 
     const route = data.routes[0];
-    const distanceKm = route.distanceMeters / 1000;
+    const distanceKm = (route.distanceMeters || 0) / 1000;
     
     // Convert duration string "1234s" to a readable format
     const durationSeconds = parseInt(route.duration?.replace('s', '') || "0", 10);
