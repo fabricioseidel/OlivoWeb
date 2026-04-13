@@ -366,7 +366,7 @@ export default function VentasPage() {
                 />
             </div>
 
-            <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0 scrollbar-hide">
+            <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0 scrollbar-hide snap-x snap-mandatory">
               <div className="relative min-w-[150px]">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <CalendarIcon className="h-4 w-4 text-emerald-500" />

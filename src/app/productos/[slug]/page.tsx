@@ -154,7 +154,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             </div>
             
             {allImages.length > 1 && (
-              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
                 {allImages.map((image, index) => (
                   <button
                     key={index}

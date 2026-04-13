@@ -50,3 +50,9 @@ public/uploads
 
 # old project files
 Mejorar proyecto*/
+
+# AI generated logs and dev logs
+*.log
+*.txt
+tmp_checkout.html
+node-bin/

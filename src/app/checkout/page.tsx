@@ -298,7 +298,12 @@ export default function CheckoutPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Error al procesar el pedido');
       
-      router.push(`/checkout/confirmacion?orderId=${data.orderId}`);
+      if (data.initPoint) {
+        // Redirigir a MercadoPago
+        window.location.href = data.initPoint;
+      } else {
+        router.push(`/checkout/confirmacion?orderId=${data.orderId}`);
+      }
     } catch (err: any) {
       alert(err.message);
     } finally {

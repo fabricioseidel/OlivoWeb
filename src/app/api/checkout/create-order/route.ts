@@ -5,6 +5,7 @@ import { authOptions } from '@/config/auth.config';
 import { sendOrderConfirmation } from '@/server/email.service';
 import { recordCouponUsage, getCouponByCode } from '@/server/coupon.service';
 import { earnPoints, redeemPoints } from '@/server/loyalty.service';
+import { createPaymentPreference } from '@/server/payments.service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -167,7 +168,23 @@ export async function POST(request: NextRequest) {
       })();
     }
 
-    return NextResponse.json({ success: true, orderId: order.id });
+    // 6. Create MercadoPago Preference
+    let initPoint = null;
+    try {
+      const mpResult = await createPaymentPreference({
+        orderId: order.id,
+        items,
+        customerEmail: customerEmail || 'anon@olivomarket.cl',
+        total
+      });
+      initPoint = mpResult.initPoint;
+      console.log(`[Checkout] Preference created: ${mpResult.id}`);
+    } catch (err) {
+      console.error('[Checkout] MercadoPago preference failed:', err);
+      // We still return success as the order was created in DB
+    }
+
+    return NextResponse.json({ success: true, orderId: order.id, initPoint });
 
   } catch (error) {
     console.error('[Checkout Debug] Critical error:', error);
