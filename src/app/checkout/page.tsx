@@ -504,20 +504,17 @@ export default function CheckoutPage() {
                               <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100">
                                  <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                                     <ClockIcon className="h-3 w-3" />
-                                    Agenda tu Despacho
+                                    Despacho Programado
                                  </p>
-                                 <select
-                                    name="deliverySchedule"
-                                    value={shippingInfo.deliverySchedule || ''}
-                                    onChange={(e: any) => handleShippingInfoChange(e)}
-                                    className="w-full h-14 px-6 rounded-2xl bg-white border-2 border-emerald-200 focus:border-emerald-500 transition-all outline-none font-bold text-gray-700 appearance-none cursor-pointer"
-                                  >
-                                    <option value="">Selecciona un bloque de horario...</option>
-                                    <option value="today_am">Hoy - Mañana (09:00 - 13:00)</option>
-                                    <option value="today_pm">Hoy - Tarde (14:00 - 19:00)</option>
-                                    <option value="tomorrow_am">Mañana - Mañana (09:00 - 13:00)</option>
-                                    <option value="tomorrow_pm">Mañana - Tarde (14:00 - 19:00)</option>
-                                  </select>
+                                 <div className="w-full p-4 rounded-2xl bg-white border border-emerald-200 shadow-sm flex items-center gap-3">
+                                   <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black">
+                                      <ClockIcon className="h-5 w-5" />
+                                   </div>
+                                   <div>
+                                     <p className="text-gray-900 font-bold mb-0.5">{shippingInfo.deliveryDate || 'No especificado'}</p>
+                                     <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">{shippingInfo.deliveryTimeSlot || ''}</p>
+                                   </div>
+                                 </div>
                               </div>
                            )}
                         </div>
