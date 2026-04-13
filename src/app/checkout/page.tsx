@@ -111,9 +111,10 @@ export default function CheckoutPage() {
           { lat: Number(c.lat), lng: Number(c.lng) }
         );
 
-        if (result.success && !isNaN(result.distanceKm)) {
+        if (result.success && typeof result.distanceKm === 'number' && !isNaN(result.distanceKm)) {
+          const dist = result.distanceKm;
           const cost = calculateShippingCost(
-            result.distanceKm,
+            dist,
             Number(shipSettings.shippingBaseFee || 0),
             Number(shipSettings.shippingPricePerKm || 0)
           );
@@ -121,14 +122,21 @@ export default function CheckoutPage() {
           if (!isNaN(cost)) {
             setDynamicShipping({
               id: "dynamic",
-              name: `Envío a domicilio (${result.distanceKm.toFixed(1)} km)`,
+              name: `Envío a domicilio (${dist.toFixed(1)} km)`,
               price: Math.round(cost),
               days: "Despacho propio (Agendable)"
             });
             setSelectedShippingMethod("dynamic");
           }
         } else {
-          console.error("Distance calculation failed:", result.error);
+          console.error("Distance calculation failed or returned invalid data:", result);
+          // Set a dummy dynamic shipping to prevent infinite retries
+          setDynamicShipping({ 
+            id: "error", 
+            name: "Error al calcular envío", 
+            price: 0, 
+            days: "Contactar soporte" 
+          });
         }
       } catch (err) { 
         console.error("Error calculating shipping:", err); 
