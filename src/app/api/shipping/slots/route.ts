@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     const isToday = requestedDateStr === todayStr;
     const isAfter1PM = currentHour >= 13;
     
-    let availableSlots = TIME_SLOTS.map(slot => {
+    const availableSlots = TIME_SLOTS.map(slot => {
       const currentCount = slotCounts[slot.id] || 0;
       const hasCapacity = currentCount < MAX_ORDERS_PER_SLOT;
       
