@@ -67,6 +67,9 @@ export type StoreSettings = {
     shippingPricePerKm?: number;
     shippingOriginLat?: number;
     shippingOriginLng?: number;
+
+    // Alta Demanda
+    isHighDemand?: boolean;
   };
 
   // Pagos
@@ -173,6 +176,7 @@ export async function GET() {
           shippingPricePerKm: 250,
           shippingOriginLat: -33.4312,
           shippingOriginLng: -70.6166,
+          isHighDemand: false,
         },
         paymentMethods: {
           creditCard: true,

@@ -366,6 +366,24 @@ export default function CheckoutPage() {
           </div>
         </div>
 
+        {storeSettings?.shipping?.isHighDemand && (
+          <div className="mb-8 p-4 rounded-3xl bg-amber-50 border-2 border-amber-200 shadow-lg shadow-amber-900/5 flex items-start gap-4">
+            <div className="h-10 w-10 flex-shrink-0 bg-amber-100/80 rounded-2xl flex items-center justify-center border border-amber-200 mt-1">
+               <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+               </svg>
+            </div>
+            <div>
+              <h3 className="text-amber-900 font-black text-lg tracking-tight">Alta demanda activa</h3>
+              <p className="text-amber-700/80 text-sm font-medium leading-relaxed mt-1">
+                Actualmente estamos experimentando gran volumen de pedidos. Algunas franjas horarias 
+                podrían agotar sus cupos rápidamente. Te sugerimos reservar tu entrega pronto y seleccionar
+                horarios de despachos en los días siguientes.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           <div className="lg:col-span-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {step === 1 ? (

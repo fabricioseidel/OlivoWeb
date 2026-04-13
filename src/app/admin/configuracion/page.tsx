@@ -455,6 +455,21 @@ export default function SettingsPage() {
                     onChange={(val) => handleChange(["shipping", "enableShipping"], val)}
                   />
 
+                  <div className="border-l-4 border-red-500 bg-red-50 p-4 rounded">
+                    <h3 className="font-semibold text-red-900 mb-4 flex items-center gap-2">
+                      <XCircleIcon className="h-5 w-5 text-red-600" />
+                      Modo Alta Demanda
+                    </h3>
+                    <CheckBoxField
+                      label="Activar alerta de Alta Demanda"
+                      checked={settings.shipping?.isHighDemand || false}
+                      onChange={(val) => handleChange(["shipping", "isHighDemand"], val)}
+                    />
+                    <p className="mt-2 text-xs text-red-700">
+                      Cuando esté activo, los clientes verán una alerta visible en el Checkout y se les incentivará a escoger el siguiente bloque horario. Usar en momentos críticos (lluvia, saturación, feriados).
+                    </p>
+                  </div>
+
                   <div className="border-l-4 border-emerald-500 bg-emerald-50 p-4 rounded">
                     <h3 className="font-semibold text-emerald-900 mb-4 flex items-center gap-2">
                       <SparklesIcon className="h-5 w-5 text-emerald-600" />

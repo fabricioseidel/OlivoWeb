@@ -6,6 +6,12 @@ import { sendOrderConfirmation } from '@/server/email.service';
 import { recordCouponUsage, getCouponByCode } from '@/server/coupon.service';
 import { earnPoints, redeemPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
+import { format, getHours } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+
+const MAX_ORDERS_PER_SLOT = 5;
+const TIMEZONE = "America/Santiago";
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +37,49 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = (session?.user as any)?.id || null;
+
+    // Extra Validation for Delivery Slots (Only for dynamic shipping = home delivery)
+    if (shippingMethod === "dynamic") {
+      const { deliveryDate, deliveryTimeSlot } = shippingInfo;
+      if (!deliveryDate || !deliveryTimeSlot) {
+         return NextResponse.json({ error: 'Debe seleccionar una fecha y bloque horario para el envío a domicilio.' }, { status: 400 });
+      }
+
+      // 0a: Verify slot hasn't reached maximum capacity dynamically
+      const { data: slotOrders, error: slotErr } = await supabaseAdmin
+        .from('orders')
+        .select('shipping_address')
+        .neq('status', 'cancelled');
+        
+      if (!slotErr && slotOrders) {
+        let count = 0;
+        slotOrders.forEach(o => {
+          const addr = o.shipping_address as any;
+          if (addr && addr.deliveryDate === deliveryDate && addr.deliveryTimeSlot === deliveryTimeSlot) {
+            count++;
+          }
+        });
+        
+        if (count >= MAX_ORDERS_PER_SLOT) {
+          return NextResponse.json({ error: 'Lo sentimos, este bloque horario acaba de llenarse. Por favor seleccione otro.' }, { status: 400 });
+        }
+      }
+
+      // 0b: Validate same day logic
+      const nowUtc = new Date();
+      const nowInChile = toZonedTime(nowUtc, TIMEZONE);
+      const currentHour = getHours(nowInChile);
+      const todayStr = format(nowInChile, "yyyy-MM-dd");
+
+      if (deliveryDate === todayStr) {
+        if (currentHour >= 13) {
+           return NextResponse.json({ error: 'Ya pasó la hora límite (1 PM) para envíos del mismo día. Seleccione mañana.' }, { status: 400 });
+        }
+        if (deliveryTimeSlot !== "18:00-21:00") {
+           return NextResponse.json({ error: 'Para el mismo día solo está disponible el horario de 18:00 a 21:00 hrs.' }, { status: 400 });
+        }
+      }
+    }
 
     // 1. Create Order
     const orderData = {
