@@ -29,6 +29,8 @@ export default function MiCuentaPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [displayName, setDisplayName] = useState("");
+  const [totalOrders, setTotalOrders] = useState<number>(0);
+  const [totalCoupons, setTotalCoupons] = useState<number>(0);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loyalty, setLoyalty] = useState<any>(null);
   const [savedProfile] = useLocalStorage<any>('profile', {} as any);
@@ -60,6 +62,7 @@ export default function MiCuentaPage() {
               status: mapStatus(o.status),
               items: o.items_count || 0
             }));
+            setTotalOrders(formatted.length);
             setRecentOrders(formatted.slice(0, 3));
           }
         } catch (error) {
@@ -177,14 +180,14 @@ export default function MiCuentaPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <p className="text-2xl font-black text-emerald-600">{recentOrders.length}</p>
+                <Link href="/mi-cuenta/pedidos" className="p-4 bg-gray-50 rounded-2xl border border-gray-100 block hover:bg-emerald-50 hover:border-emerald-200 transition-all cursor-pointer">
+                  <p className="text-2xl font-black text-emerald-600">{totalOrders}</p>
                   <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest leading-none mt-1">Pedidos</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <p className="text-2xl font-black text-emerald-600">2</p>
+                </Link>
+                <Link href="/mi-cuenta" className="p-4 bg-gray-50 rounded-2xl border border-gray-100 block hover:bg-emerald-50 hover:border-emerald-200 transition-all cursor-pointer">
+                  <p className="text-2xl font-black text-emerald-600">{totalCoupons}</p>
                   <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest leading-none mt-1">Cupones</p>
-                </div>
+                </Link>
               </div>
             </div>
           </div>

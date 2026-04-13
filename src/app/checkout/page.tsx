@@ -463,7 +463,7 @@ export default function CheckoutPage() {
                         onClick={nextStep}
                         className="rounded-2xl h-16 px-10 font-black shadow-xl shadow-emerald-600/20 active:scale-95 transition-all text-white bg-emerald-600 hover:bg-emerald-500"
                      >
-                        Continuar a Fecha y Pago →
+                        Continuar a Pago →
                      </Button>
                   </div>
                 </section>
@@ -524,7 +524,7 @@ export default function CheckoutPage() {
                             <iframe 
                                src={mapEmbedUrl} 
                                title="Mapa de entrega" 
-                               className="w-full h-full grayscale hover:grayscale-0 transition-all duration-700" 
+                               className="w-full h-full transition-all duration-700" 
                                style={{ border: 0 }}
                                loading="lazy"
                                referrerPolicy="no-referrer-when-downgrade"
