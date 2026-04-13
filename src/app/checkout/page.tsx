@@ -24,6 +24,8 @@ import { calculateDistance, calculateShippingCost } from "@/utils/shipping-calcu
 import { StoreSettings } from "@/app/api/admin/settings/route";
 import { StarIcon } from "@heroicons/react/24/solid";
 
+import { useStoreSettings } from "@/hooks/useStoreSettings";
+
 const paymentMethods: PaymentMethod[] = [
   { id: "transbank", name: "Transbank" },
   { id: "mercadopago", name: "MercadoPago" },
@@ -37,9 +39,10 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const { cartItems, validateCartWithServer } = useCart();
+  const { settings: storeSettings, loading: settingsLoading } = useStoreSettings();
+  
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [dynamicShipping, setDynamicShipping] = useState<ShippingMethod | null>(null);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState("pickup");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("transbank");
@@ -91,26 +94,18 @@ export default function CheckoutPage() {
 
   const total = Math.max(0, subtotal + shippingCost - couponDiscount - pointsDiscount);
 
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const res = await fetch('/api/admin/settings');
-        if (res.ok) setStoreSettings(await res.ok ? await res.json() : null);
-        
-        const loyaltyRes = await fetch('/api/loyalty?action=config');
-        if (loyaltyRes.ok) setLoyaltyConfig(await loyaltyRes.json());
-      } catch (e) { console.error(e); }
-    };
-    loadSettings();
-  }, []);
 
   const triggerShippingCalculation = useCallback(async (c: { lat: number, lng: number }) => {
     const shipSettings = storeSettings?.shipping;
-    if (shipSettings?.enableDynamicShipping && c.lat) {
-      if (!shipSettings.shippingOriginLat || !shipSettings.shippingOriginLng) return;
+    if (shipSettings?.enableDynamicShipping && c.lat && c.lng) {
+      if (!shipSettings.shippingOriginLat || !shipSettings.shippingOriginLng) {
+        console.warn("Shipping calculation skipped: Origin coordinates missing in settings.");
+        return;
+      }
 
       setIsCalculatingDistance(true);
       try {
+        console.log(`Calculating shipping from (${shipSettings.shippingOriginLat}, ${shipSettings.shippingOriginLng}) to (${c.lat}, ${c.lng})`);
         const result = await calculateDistance(
           { lat: Number(shipSettings.shippingOriginLat), lng: Number(shipSettings.shippingOriginLng) },
           { lat: Number(c.lat), lng: Number(c.lng) }
@@ -132,6 +127,8 @@ export default function CheckoutPage() {
             });
             setSelectedShippingMethod("dynamic");
           }
+        } else {
+          console.error("Distance calculation failed:", result.error);
         }
       } catch (err) { 
         console.error("Error calculating shipping:", err); 
@@ -140,6 +137,23 @@ export default function CheckoutPage() {
       }
     }
   }, [storeSettings]);
+
+  // Effect to trigger calculation when settings or coordinates are available
+  useEffect(() => {
+    if (coords && storeSettings?.shipping?.enableDynamicShipping && !dynamicShipping && !isCalculatingDistance) {
+      triggerShippingCalculation(coords);
+    }
+  }, [coords, storeSettings, dynamicShipping, isCalculatingDistance, triggerShippingCalculation]);
+
+  useEffect(() => {
+    const loadLoyalty = async () => {
+      try {
+        const loyaltyRes = await fetch('/api/loyalty?action=config');
+        if (loyaltyRes.ok) setLoyaltyConfig(await loyaltyRes.json());
+      } catch (e) { console.error(e); }
+    };
+    loadLoyalty();
+  }, []);
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {

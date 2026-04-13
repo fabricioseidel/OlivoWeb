@@ -75,17 +75,24 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
     };
     const street = getComp(["route"]) || null;
     const streetNumber = getComp(["street_number"]) || null;
-    // City logic: Try locality (City/Comuna) -> sublocality -> admin_area_2 (Province)
-    const city = getComp(["locality"]) || getComp(["sublocality"]) || getComp(["administrative_area_level_2"]) || null;
-    // District logic: Try admin_area_3 (Comuna specific) -> locality -> sublocality
-    const district = getComp(["administrative_area_level_3"]) || getComp(["locality"]) || getComp(["sublocality"]) || null;
+    
+    // City logic for Chile:
+    // 1. administrative_area_level_3 (usually the Comuna in Chile)
+    // 2. locality
+    // 3. sublocality
+    // 4. administrative_area_level_2 (Province)
+    const city = getComp(["administrative_area_level_3"]) || getComp(["locality"]) || getComp(["sublocality"]) || getComp(["administrative_area_level_2"]) || null;
+    
+    // District/Comuna: same as above for Chile
+    const district = getComp(["administrative_area_level_3"]) || getComp(["locality"]) || null;
 
     const state = getComp(["administrative_area_level_1"]) || null;
     const postal = getComp(["postal_code"]) || null;
     const countryComp = getComp(["country"]) || null;
-    const lat = place.geometry?.location?.lat?.() ?? null;
-    const lng = place.geometry?.location?.lng?.() ?? null;
+    const lat = place.geometry?.location?.lat?.() || (typeof place.geometry?.location?.lat === 'number' ? place.geometry.location.lat : null);
+    const lng = place.geometry?.location?.lng?.() || (typeof place.geometry?.location?.lng === 'number' ? place.geometry.location.lng : null);
 
+    addLog(`Parsed place: ${formatted} (Lat: ${lat}, Lng: ${lng})`);
     return { formattedAddress: formatted, street, streetNumber, city, state, postalCode: postal, country: countryComp, lat, lng, district };
   };
 
@@ -188,7 +195,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
             logger.warn("AddressAutocomplete: google places init failed", e);
             setFallback(true);
           }
-        }, 1000); // Increased delay to 1s for debugging
+        }, 100); // Reduced delay to 100ms
       })
       .catch((err) => {
         addLog(`Script load error: ${err.message}`);
