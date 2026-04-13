@@ -217,33 +217,35 @@ export async function redeemPoints(data: {
 
 // ── Get customer points ─────────────────────────────────────────────────
 export async function getCustomerPoints(email: string): Promise<number> {
-  const { data } = await supabaseServer
-    .from("customers")
-    .select("loyalty_points")
-    .eq("email", email)
-    .maybeSingle();
+  const { data: txs } = await supabaseServer
+    .from("loyalty_transactions")
+    .select("points")
+    .eq("customer_email", email);
 
-  return data?.loyalty_points || 0;
+  if (!txs) return 0;
+  return txs.reduce((acc, tx) => acc + (tx.points || 0), 0);
 }
 
 // ── Get customer loyalty info ───────────────────────────────────────────
 export async function getCustomerLoyalty(email: string): Promise<CustomerLoyalty> {
   const config = await getLoyaltyConfig();
-  const points = await getCustomerPoints(email);
-  const tierInfo = getCustomerTier(points, config.tiers);
 
-  // Sum earned and redeemed
   const { data: txs } = await supabaseServer
     .from("loyalty_transactions")
-    .select("type, points")
+    .select("points")
     .eq("customer_email", email);
 
+  let points = 0;
   let totalEarned = 0;
   let totalRedeemed = 0;
+
   (txs || []).forEach((tx: any) => {
+    points += tx.points;
     if (tx.points > 0) totalEarned += tx.points;
     else totalRedeemed += Math.abs(tx.points);
   });
+
+  const tierInfo = getCustomerTier(points, config.tiers);
 
   return {
     points,
