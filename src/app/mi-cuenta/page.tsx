@@ -30,6 +30,7 @@ export default function MiCuentaPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [displayName, setDisplayName] = useState("");
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [loyalty, setLoyalty] = useState<any>(null);
   const [savedProfile] = useLocalStorage<any>('profile', {} as any);
 
   // Redirigir si no está autenticado
@@ -63,12 +64,23 @@ export default function MiCuentaPage() {
           }
         } catch (error) {
           console.error("Error fetching orders:", error);
-        } finally {
-          setIsLoading(false);
         }
       };
 
-      fetchOrders();
+      const fetchLoyalty = async () => {
+        if (session?.user?.email) {
+          try {
+            const res = await fetch(`/api/loyalty?email=${session.user.email}`);
+            if (res.ok) {
+              setLoyalty(await res.json());
+            }
+          } catch (error) {
+            console.error("Error fetching loyalty:", error);
+          }
+        }
+      };
+
+      Promise.all([fetchOrders(), fetchLoyalty()]).finally(() => setIsLoading(false));
     }
   }, [status, router, session, savedProfile]);
 
@@ -149,13 +161,17 @@ export default function MiCuentaPage() {
                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full blur-2xl -mr-5 -mt-5" />
                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Mis Puntos Acumulados</p>
                  <div className="flex items-end justify-between">
-                    <p className="text-4xl font-black">1.250 <span className="text-xs opacity-60 font-medium tracking-normal">pts</span></p>
-                    <div className="bg-white/20 px-3 py-1 rounded-full backdrop-blur-md">
-                       <p className="text-[10px] font-black uppercase tracking-wider">Socio Oro</p>
+                    <p className="text-4xl font-black">{loyalty?.points || 0} <span className="text-xs opacity-60 font-medium tracking-normal">pts</span></p>
+                    <div className="bg-white/20 px-3 py-1 rounded-full backdrop-blur-md" style={{ backgroundColor: loyalty?.tier?.color ? `${loyalty.tier.color}40` : '' }}>
+                       <p className="text-[10px] font-black uppercase tracking-wider">{loyalty?.tier?.name || 'Socio'}</p>
                     </div>
                  </div>
                  <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-                    <p className="text-[8px] font-bold opacity-60 uppercase tracking-widest">Vencen en: 12/2026</p>
+                    <p className="text-[8px] font-bold opacity-60 uppercase tracking-widest">
+                      {loyalty?.nextTier 
+                        ? `Faltan ${loyalty.pointsToNextTier} pts para ${loyalty.nextTier.name}`
+                        : "¡Nivel Máximo!"}
+                    </p>
                     <Link href="/mi-cuenta/puntos" className="text-[10px] font-black uppercase tracking-tighter hover:text-emerald-300 transition-colors">Ver Beneficios →</Link>
                  </div>
               </div>
