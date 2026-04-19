@@ -15,7 +15,7 @@ import {
   ShoppingBagIcon,
   DocumentArrowDownIcon,
 } from "@heroicons/react/24/outline";
-import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
+import { exportToExcel, exportToPDF, exportToCSV } from "@/lib/exportUtils";
 import Button from "@/components/ui/Button";
 import { useProducts } from "@/contexts/ProductContext";
 import ImageWithFallback from '@/components/ui/ImageWithFallback';
@@ -155,28 +155,47 @@ export default function AdminProductsPage() {
                     Control total sobre el catálogo de Olivo Market
                 </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
                 <button 
-                    onClick={() => exportToExcel(products)}
-                    className="px-6 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
+                    onClick={() => {
+                        const suffix = onlyEditedToday ? '-editados-hoy' : (searchTerm || selectedCategory !== 'Todas' ? '-filtrado' : '');
+                        exportToExcel(filteredProducts, `inventario-olivo${suffix}.xlsx`);
+                    }}
+                    className="px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
+                    title="Exportar a Excel"
                 >
                     <DocumentArrowDownIcon className="size-4 text-emerald-400" />
                     Excel
                 </button>
                 <button 
-                    onClick={() => exportToPDF(products)}
-                    className="px-6 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
+                    onClick={() => {
+                        const suffix = onlyEditedToday ? '-editados-hoy' : (searchTerm || selectedCategory !== 'Todas' ? '-filtrado' : '');
+                        exportToCSV(filteredProducts, `inventario-olivo${suffix}.csv`);
+                    }}
+                    className="px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
+                    title="Exportar a CSV"
+                >
+                    <DocumentArrowDownIcon className="size-4 text-blue-400" />
+                    CSV
+                </button>
+                <button 
+                    onClick={() => {
+                        const suffix = onlyEditedToday ? '-editados-hoy' : (searchTerm || selectedCategory !== 'Todas' ? '-filtrado' : '');
+                        exportToPDF(filteredProducts, `inventario-olivo${suffix}.pdf`);
+                    }}
+                    className="px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
+                    title="Exportar a PDF"
                 >
                     <DocumentArrowDownIcon className="size-4 text-rose-400" />
                     PDF
                 </button>
                 <Link href="/admin/productos/edicion-masiva">
-                    <button className="px-6 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2">
-                        📋 Edición Masiva
+                    <button className="px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2">
+                        📋 Masivo
                     </button>
                 </Link>
                 <Link href="/admin/productos/nuevo">
-                    <button className="px-6 py-3 bg-emerald-500 rounded-2xl text-emerald-950 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2">
+                    <button className="px-5 py-3 bg-emerald-500 rounded-2xl text-emerald-950 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2">
                         <PlusIcon className="size-4" />
                         Nuevo
                     </button>

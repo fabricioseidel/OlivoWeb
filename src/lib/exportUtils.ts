@@ -40,6 +40,44 @@ export const exportToExcel = (products: ProductUI[], filename: string = 'inventa
 };
 
 /**
+ * Exporta una lista de productos a un archivo CSV (.csv)
+ */
+export const exportToCSV = (products: ProductUI[], filename: string = 'inventario-olivo-market.csv') => {
+  // Mapear los datos a un formato plano
+  const data = products.map(p => ({
+    'ID_SKU': p.id,
+    'Nombre': p.name,
+    'Categoría': Array.isArray(p.categories) ? p.categories.join('|') : '',
+    'Precio': p.price,
+    'Stock': p.stock,
+    'Activo': p.isActive ? 1 : 0,
+    'Unidad': p.measurementUnit || '',
+    'Valor': p.measurementValue || '',
+    'Precio_Compra': p.purchasePrice || 0,
+    'Ultima_Actualizacion': p.createdAt || ''
+  }));
+
+  // Crear hoja de trabajo
+  const worksheet = utils.json_to_sheet(data);
+  
+  // Generar CSV
+  const csvOutput = utils.sheet_to_csv(worksheet);
+  
+  // Descargar archivo (vía Blob en navegador)
+  const blob = new Blob([csvOutput], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+};
+
+/**
  * Exporta una lista de productos a un archivo PDF (.pdf)
  */
 export const exportToPDF = (products: ProductUI[], filename: string = 'inventario-olivo-market.pdf') => {
