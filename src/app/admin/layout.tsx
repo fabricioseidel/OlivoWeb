@@ -27,6 +27,7 @@ import {
   EnvelopeIcon,
   NewspaperIcon,
   SparklesIcon,
+  BoltIcon,
 } from "@heroicons/react/24/outline";
 import { Dialog, Transition } from "@headlessui/react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -55,6 +56,7 @@ const menuGroups: MenuGroup[] = [
     label: "Inventario",
     items: [
       { name: "Productos", href: "/admin/productos", icon: ShoppingBagIcon },
+      { name: "Creación Rápida", href: "/admin/productos/creacion-rapida", icon: BoltIcon },
       { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
     ],
   },
