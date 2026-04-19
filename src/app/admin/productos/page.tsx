@@ -32,6 +32,7 @@ export default function AdminProductsPage() {
   const { categories, loading: categoriesLoading } = useCategories();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todas");
+  const [onlyEditedToday, setOnlyEditedToday] = useState(false);
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,9 +44,18 @@ export default function AdminProductsPage() {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory === "Todas" || (Array.isArray(product.categories) && product.categories.includes(selectedCategory));
-      return matchesSearch && matchesCategory;
+      
+      let matchesEditedToday = true;
+      if (onlyEditedToday) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const updateDate = product.createdAt ? new Date(product.createdAt) : null;
+        matchesEditedToday = updateDate ? updateDate >= today : false;
+      }
+
+      return matchesSearch && matchesCategory && matchesEditedToday;
     })
-  ), [products, searchTerm, selectedCategory]);
+  ), [products, searchTerm, selectedCategory, onlyEditedToday]);
 
   // Ordenar productos
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -211,9 +221,19 @@ export default function AdminProductsPage() {
                     </select>
                 </div>
 
-                <div className="flex items-center gap-3 justify-end">
+                <div className="flex items-center gap-3">
                     <button
-                        onClick={() => { setSearchTerm(""); setSelectedCategory("Todas"); setCurrentPage(1); showToast('Filtros limpiados', 'info'); }}
+                        onClick={() => setOnlyEditedToday(!onlyEditedToday)}
+                        className={`flex-1 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                            onlyEditedToday 
+                            ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20' 
+                            : 'bg-gray-50 text-gray-500 border-transparent hover:bg-gray-100'
+                        }`}
+                    >
+                        {onlyEditedToday ? '✓ Editados Hoy' : 'Editados Hoy'}
+                    </button>
+                    <button
+                        onClick={() => { setSearchTerm(""); setSelectedCategory("Todas"); setOnlyEditedToday(false); setCurrentPage(1); showToast('Filtros limpiados', 'info'); }}
                         className="px-6 py-4 bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-gray-200 transition-all"
                     >
                         Limpiar
@@ -401,7 +421,22 @@ export default function AdminProductsPage() {
                         <ImageWithFallback className="h-full w-full object-contain mix-blend-multiply" src={product.image} alt={product.name} />
                       </div>
                       <div className="ml-6">
-                        <div className="text-sm font-black text-gray-900 tracking-tight">{product.name}</div>
+                        <div className="flex items-center gap-2">
+                            <div className="text-sm font-black text-gray-900 tracking-tight">{product.name}</div>
+                            {(() => {
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const updateDate = product.createdAt ? new Date(product.createdAt) : null;
+                                if (updateDate && updateDate >= today) {
+                                    return (
+                                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-600 text-[8px] font-black uppercase tracking-tighter rounded-md animate-pulse">
+                                            Editado Hoy
+                                        </span>
+                                    );
+                                }
+                                return null;
+                            })()}
+                        </div>
                         <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1 opacity-0 group-hover:opacity-100 transition-opacity">ID: {product.id.substring(0, 8)}</div>
                       </div>
                     </div>
