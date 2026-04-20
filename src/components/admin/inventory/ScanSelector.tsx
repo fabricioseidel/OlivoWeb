@@ -28,6 +28,7 @@ export default function ScanSelector({ onScan, isProcessing = false }: ScanSelec
 
   const handleExternalScanSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isProcessing) return; // Bloqueo de estado para la pistola
     if (inputValue.trim()) {
       onScan(inputValue.trim());
       setInputValue(""); // Limpiar para el siguiente escaneo
@@ -40,10 +41,18 @@ export default function ScanSelector({ onScan, isProcessing = false }: ScanSelec
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [camError, setCamError] = useState<string | null>(null);
   const [camStarted, setCamStarted] = useState(false);
+  
+  // Referencias para evitar Race Conditions (Lecturas infinitas)
+  const isProcessingRef = useRef(false);
+  const lastScanRef = useRef<{ code: string, time: number }>({ code: "", time: 0 });
+
+  // Sincronizar prop con ref para acceso síncrono en callbacks
+  useEffect(() => {
+    isProcessingRef.current = isProcessing;
+  }, [isProcessing]);
 
   useEffect(() => {
     if (mode !== "CAMERA" || typeof window === "undefined") {
-      // Si cambiamos de modo, asegurar que la cámara se apague
       if (scannerRef.current?.isScanning) {
         scannerRef.current.stop().catch(() => {});
       }
@@ -62,12 +71,21 @@ export default function ScanSelector({ onScan, isProcessing = false }: ScanSelec
             qrbox: { width: 250, height: 250 },
           },
           (decodedText) => {
-            // A diferencia del POS, aquí no cerramos la cámara para permitir escaneo continuo
-            // Pero usamos la misma configuración básica de lectura
-            onScan(decodedText);
+            const now = Date.now();
+
+            // 1. Bloqueo de Estado: Si la API está guardando, ignorar la cámara
+            if (isProcessingRef.current) return;
+
+            // 2. Debounce/Throttling: Ignorar cualquier lectura nueva por 2 segundos
+            if (now - lastScanRef.current.time < 2000) return;
+
+            // Registrar esta lectura como la última válida
+            lastScanRef.current = { code: decodedText, time: now };
             
-            // Pausa visual táctil
             if ("vibrate" in navigator) navigator.vibrate(50);
+            
+            // Disparar la acción
+            onScan(decodedText);
           },
           () => {} // Silent scan attempts
         );
