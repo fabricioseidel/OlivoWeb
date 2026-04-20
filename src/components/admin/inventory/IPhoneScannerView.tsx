@@ -33,13 +33,7 @@ export default function IPhoneScannerView({ onScan, isProcessing = false }: IPho
     const startCamera = async () => {
       try {
         await scanner.start(
-          { 
-            facingMode: "environment",
-            // Forzar resolución HD para optimización de fotogramas (60fps teóricos)
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            aspectRatio: 1.0 
-          },
+          { facingMode: "environment" },
           {
             fps: 20, // Aumentado a 20 FPS dado que forzamos resolución óptima
             qrbox: { width: 250, height: 250 },
