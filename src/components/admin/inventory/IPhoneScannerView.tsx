@@ -32,44 +32,59 @@ export default function IPhoneScannerView({ onScan, isProcessing = false }: IPho
 
     const startCamera = async () => {
       try {
-        await scanner.start(
-          { 
-            facingMode: "environment",
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
-          {
-            fps: 15,
-            qrbox: { width: 320, height: 160 },
-          },
-          (decodedText) => {
-            // 1. Bloqueo de Estado Externo (API)
-            if (isProcessingRef.current) return;
+        // Estrategia 2: Pedir permisos explicitamente primero obteniendo las cámaras
+        const devices = await Html5Qrcode.getCameras();
+        
+        if (devices && devices.length > 0) {
+          // Intentar encontrar la cámara trasera
+          const backCamera = devices.find(device => 
+            device.label.toLowerCase().includes('back') || 
+            device.label.toLowerCase().includes('trasera') ||
+            device.label.toLowerCase().includes('environment')
+          );
+          
+          // Si no hay trasera etiquetada claramente, tomamos la última (suele ser la trasera en móviles)
+          const cameraId = backCamera ? backCamera.id : devices[devices.length - 1].id;
 
-            // 2. Protocolo Anti-Bucle Interno
-            if (isLocked.current) return;
+          await scanner.start(
+            cameraId,
+            {
+              fps: 15,
+              // Al usar el ID, dejamos que la cámara decida su mejor resolución por defecto
+              // Quitamos el qrbox restrictivo para que escanee todo el frame de video.
+              // Esto permite alejar el celular y evitar el problema de enfoque macro.
+            },
+            (decodedText) => {
+              // 1. Bloqueo de Estado Externo (API)
+              if (isProcessingRef.current) return;
 
-            // Bloquear inmediatamente
-            isLocked.current = true;
-            setShowSuccessVisual(true);
-            
-            if ("vibrate" in navigator) navigator.vibrate(50);
-            
-            // Disparar acción
-            onScan(decodedText);
+              // 2. Protocolo Anti-Bucle Interno
+              if (isLocked.current) return;
 
-            // Rearmado en 1.2 segundos
-            setTimeout(() => {
-              isLocked.current = false;
-              setShowSuccessVisual(false);
-            }, 1200);
-          },
-          () => {} // Ignorar fotogramas vacíos
-        );
-        setCamStarted(true);
+              // Bloquear inmediatamente
+              isLocked.current = true;
+              setShowSuccessVisual(true);
+              
+              if ("vibrate" in navigator) navigator.vibrate(50);
+              
+              // Disparar acción
+              onScan(decodedText);
+
+              // Rearmado en 1.2 segundos
+              setTimeout(() => {
+                isLocked.current = false;
+                setShowSuccessVisual(false);
+              }, 1200);
+            },
+            () => {} // Ignorar fotogramas vacíos
+          );
+          setCamStarted(true);
+        } else {
+          setCamError("No se encontraron cámaras en el dispositivo.");
+        }
       } catch (err: any) {
         console.error("Scanner start error:", err);
-        setCamError("Error al iniciar cámara. Permite el acceso.");
+        setCamError("Permiso denegado o error de cámara.");
       }
     };
 

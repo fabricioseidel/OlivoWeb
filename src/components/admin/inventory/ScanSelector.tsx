@@ -64,39 +64,48 @@ export default function ScanSelector({ onScan, isProcessing = false }: ScanSelec
 
     const startCamera = async () => {
       try {
-        await scanner.start(
-          { 
-            facingMode: "environment",
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
-          {
-            fps: 15,
-            qrbox: { width: 320, height: 160 },
-          },
-          (decodedText) => {
-            const now = Date.now();
+        const devices = await Html5Qrcode.getCameras();
+        
+        if (devices && devices.length > 0) {
+          const backCamera = devices.find(device => 
+            device.label.toLowerCase().includes('back') || 
+            device.label.toLowerCase().includes('trasera') ||
+            device.label.toLowerCase().includes('environment')
+          );
+          
+          const cameraId = backCamera ? backCamera.id : devices[devices.length - 1].id;
 
-            // 1. Bloqueo de Estado: Si la API está guardando, ignorar la cámara
-            if (isProcessingRef.current) return;
+          await scanner.start(
+            cameraId,
+            {
+              fps: 15,
+            },
+            (decodedText) => {
+              const now = Date.now();
 
-            // 2. Debounce/Throttling: Ignorar cualquier lectura nueva por 2 segundos
-            if (now - lastScanRef.current.time < 2000) return;
+              // 1. Bloqueo de Estado: Si la API está guardando, ignorar la cámara
+              if (isProcessingRef.current) return;
 
-            // Registrar esta lectura como la última válida
-            lastScanRef.current = { code: decodedText, time: now };
-            
-            if ("vibrate" in navigator) navigator.vibrate(50);
-            
-            // Disparar la acción
-            onScan(decodedText);
-          },
-          () => {} // Silent scan attempts
-        );
-        setCamStarted(true);
+              // 2. Debounce/Throttling: Ignorar cualquier lectura nueva por 2 segundos
+              if (now - lastScanRef.current.time < 2000) return;
+
+              // Registrar esta lectura como la última válida
+              lastScanRef.current = { code: decodedText, time: now };
+              
+              if ("vibrate" in navigator) navigator.vibrate(50);
+              
+              // Disparar la acción
+              onScan(decodedText);
+            },
+            () => {} // Silent scan attempts
+          );
+          setCamStarted(true);
+        } else {
+          setCamError("No se encontraron cámaras.");
+        }
       } catch (err: any) {
         console.error("Scanner start error:", err);
-        setCamError("Error al iniciar cámara. Verifica permisos.");
+        setCamError("Permiso denegado. Verifica los ajustes del navegador.");
       }
     };
 
