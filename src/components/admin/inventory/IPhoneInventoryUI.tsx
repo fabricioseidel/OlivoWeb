@@ -14,13 +14,13 @@ import {
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useQuickInventory, InventoryMode } from "@/hooks/useQuickInventory";
-import ScanSelector from "./ScanSelector";
+import IPhoneScannerView from "./IPhoneScannerView";
 
-interface QuickInventoryUIProps {
+interface IPhoneInventoryUIProps {
   mode: InventoryMode;
 }
 
-export default function QuickInventoryUI({ mode }: QuickInventoryUIProps) {
+export default function IPhoneInventoryUI({ mode }: IPhoneInventoryUIProps) {
   const {
     items,
     addItem,
@@ -37,7 +37,7 @@ export default function QuickInventoryUI({ mode }: QuickInventoryUIProps) {
   const isSale = mode === "SALE";
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#0a0a0a] text-white rounded-[2rem] overflow-hidden relative shadow-2xl">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#000000] text-white rounded-[3rem] overflow-hidden relative shadow-2xl">
       {/* Header */}
       <div className={`p-6 sm:p-8 ${isSale ? "bg-red-950/20" : "bg-emerald-950/20"} border-b border-white/5 relative shrink-0`}>
         <div className={`absolute top-0 right-0 w-64 h-64 ${isSale ? "bg-red-500/10" : "bg-emerald-500/10"} rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none`} />
@@ -49,10 +49,10 @@ export default function QuickInventoryUI({ mode }: QuickInventoryUIProps) {
               Volver
             </Link>
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight mb-2 uppercase italic flex items-center gap-3">
-              {isSale ? "Venta Rápida" : "Compra Rápida"}
+              {isSale ? "Venta iPhone" : "Compra iPhone"}
             </h1>
-            <p className="text-sm text-white/40 font-medium italic">
-              {isSale ? "Descuenta stock escaneando." : "Suma stock de nuevos ingresos."}
+            <p className="text-sm text-emerald-500/70 font-medium italic mt-1">
+              Optimizado para cámara iOS
             </p>
           </div>
           
@@ -92,9 +92,9 @@ export default function QuickInventoryUI({ mode }: QuickInventoryUIProps) {
         )}
 
         {/* ========================================= */}
-        {/* HYBRID SCAN SELECTOR                      */}
+        {/* DEDICATED IPHONE CAMERA                   */}
         {/* ========================================= */}
-        <ScanSelector 
+        <IPhoneScannerView 
           onScan={addItem} 
           isProcessing={isScanning} 
         />
@@ -170,7 +170,7 @@ export default function QuickInventoryUI({ mode }: QuickInventoryUIProps) {
       </div>
 
       {/* Action Bar - Sticky Bottom */}
-      <div className="sticky bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/90 to-transparent pt-12 z-40 shrink-0">
+      <div className="sticky bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-[#000000] via-[#000000]/90 to-transparent pt-12 z-40 shrink-0">
         <div className="max-w-2xl mx-auto flex gap-3 sm:gap-4">
           {/* Confirm Button Only */}
           <button 

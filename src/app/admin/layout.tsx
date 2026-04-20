@@ -28,6 +28,7 @@ import {
   NewspaperIcon,
   SparklesIcon,
   BoltIcon,
+  CameraIcon,
 } from "@heroicons/react/24/outline";
 import { Dialog, Transition } from "@headlessui/react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -49,6 +50,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { name: "Punto de Venta", href: "/admin/pos", icon: UserCircleIcon },
       { name: "Venta Rápida", href: "/admin/productos/venta-rapida", icon: BoltIcon },
+      { name: "Venta iPhone", href: "/admin/productos/venta-rapida-iphone", icon: CameraIcon },
       { name: "Caja (Arqueo)", href: "/admin/caja", icon: BanknotesIcon },
       { name: "Historial Ventas", href: "/admin/ventas", icon: CurrencyDollarIcon },
     ],
@@ -59,6 +61,7 @@ const menuGroups: MenuGroup[] = [
       { name: "Productos", href: "/admin/productos", icon: ShoppingBagIcon },
       { name: "Creación Rápida", href: "/admin/productos/creacion-rapida", icon: SparklesIcon },
       { name: "Compra Rápida", href: "/admin/productos/compra-rapida", icon: ArrowPathIcon },
+      { name: "Compra iPhone", href: "/admin/productos/compra-rapida-iphone", icon: CameraIcon },
       { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
     ],
   },
