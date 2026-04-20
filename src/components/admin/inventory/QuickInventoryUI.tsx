@@ -14,7 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useQuickInventory, InventoryMode } from "@/hooks/useQuickInventory";
-import ScanSelector from "./ScanSelector";
+import IPhoneScannerView from "./IPhoneScannerView";
 
 interface QuickInventoryUIProps {
   mode: InventoryMode;
@@ -37,7 +37,7 @@ export default function QuickInventoryUI({ mode }: QuickInventoryUIProps) {
   const isSale = mode === "SALE";
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#0a0a0a] text-white rounded-[2rem] overflow-hidden relative shadow-2xl">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#000000] text-white rounded-[3rem] overflow-hidden relative shadow-2xl">
       {/* Header */}
       <div className={`p-6 sm:p-8 ${isSale ? "bg-red-950/20" : "bg-emerald-950/20"} border-b border-white/5 relative shrink-0`}>
         <div className={`absolute top-0 right-0 w-64 h-64 ${isSale ? "bg-red-500/10" : "bg-emerald-500/10"} rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none`} />
@@ -92,9 +92,9 @@ export default function QuickInventoryUI({ mode }: QuickInventoryUIProps) {
         )}
 
         {/* ========================================= */}
-        {/* HYBRID SCAN SELECTOR                      */}
+        {/* DEDICATED IPHONE CAMERA                   */}
         {/* ========================================= */}
-        <ScanSelector 
+        <IPhoneScannerView 
           onScan={addItem} 
           isProcessing={isScanning} 
         />
