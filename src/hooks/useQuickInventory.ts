@@ -114,32 +114,7 @@ export function useQuickInventory(mode: InventoryMode) {
     }
   }, [items, mode]);
 
-  // Global Keyboard Listener for physical scanners
-  useEffect(() => {
-    let buffer = "";
-    let lastTime = Date.now();
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
-      const now = Date.now();
-      if (now - lastTime > 100) buffer = "";
-      lastTime = now;
-
-      if (e.key === "Enter") {
-        if (buffer.length > 2) {
-          addItem(buffer);
-        }
-        buffer = "";
-      } else if (e.key.length === 1) {
-        buffer += e.key;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [addItem]);
+  // Global Keyboard Listener removed to avoid conflicts with ScanSelector input
 
   return {
     items,
