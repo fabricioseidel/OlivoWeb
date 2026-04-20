@@ -60,6 +60,7 @@ export default function ScanSelector({ onScan, isProcessing = false }: ScanSelec
     }
 
     const scanner = new Html5Qrcode("hybrid-reader", {
+      verbose: false,
       experimentalFeatures: { useBarCodeDetectorIfSupported: true }
     });
     scannerRef.current = scanner;

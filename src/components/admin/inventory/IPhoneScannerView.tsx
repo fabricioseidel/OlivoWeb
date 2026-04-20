@@ -28,6 +28,7 @@ export default function IPhoneScannerView({ onScan, isProcessing = false }: IPho
     if (typeof window === "undefined") return;
 
     const scanner = new Html5Qrcode("iphone-reader", { 
+      verbose: false,
       experimentalFeatures: { useBarCodeDetectorIfSupported: true } 
     });
     scannerRef.current = scanner;
