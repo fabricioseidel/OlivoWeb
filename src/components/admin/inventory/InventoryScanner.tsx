@@ -27,13 +27,8 @@ export default function InventoryScanner({ onScan, onClose }: InventoryScannerPr
         await scanner.start(
           { facingMode: "environment" },
           {
-            fps: 20, // Faster for iPhone 14
-            qrbox: (viewfinderWidth, viewfinderHeight) => {
-               const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-               const size = Math.floor(minEdge * 0.7);
-               return { width: size, height: size / 2 };
-            },
-            aspectRatio: 1.0
+            fps: 10, // 10 is more stable for autofocus on most phones
+            qrbox: 250 // Fixed size is generally safer for mapping
           },
           (decodedText) => {
             const now = Date.now();
@@ -67,7 +62,7 @@ export default function InventoryScanner({ onScan, onClose }: InventoryScannerPr
 
   return (
     <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center">
-       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10 bg-gradient-to-b from-black/80 to-transparent">
+       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-20 bg-gradient-to-b from-black/80 to-transparent">
           <div className="flex items-center gap-2">
              <div className="p-2 bg-emerald-500 rounded-lg animate-pulse">
                 <BoltIcon className="w-5 h-5 text-white" />
@@ -82,7 +77,8 @@ export default function InventoryScanner({ onScan, onClose }: InventoryScannerPr
           </button>
        </div>
        
-       <div id="inventory-reader" className="w-full h-full object-cover" />
+       {/* Removed object-cover to prevent coordinate mapping issues */}
+       <div id="inventory-reader" className="w-full h-full flex items-center justify-center overflow-hidden [&>video]:max-w-full [&>video]:max-h-full" />
        
        {!isStarted && !error && (
          <div className="absolute inset-0 flex flex-col items-center justify-center text-white gap-4">
