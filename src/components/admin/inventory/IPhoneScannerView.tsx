@@ -33,10 +33,14 @@ export default function IPhoneScannerView({ onScan, isProcessing = false }: IPho
     const startCamera = async () => {
       try {
         await scanner.start(
-          { facingMode: "environment" },
+          { 
+            facingMode: "environment",
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
           {
-            fps: 20, // Aumentado a 20 FPS dado que forzamos resolución óptima
-            qrbox: { width: 250, height: 250 },
+            fps: 15,
+            qrbox: { width: 320, height: 160 },
           },
           (decodedText) => {
             // 1. Bloqueo de Estado Externo (API)

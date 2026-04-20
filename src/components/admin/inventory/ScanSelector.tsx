@@ -65,10 +65,14 @@ export default function ScanSelector({ onScan, isProcessing = false }: ScanSelec
     const startCamera = async () => {
       try {
         await scanner.start(
-          { facingMode: "environment" },
+          { 
+            facingMode: "environment",
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
           {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
+            fps: 15,
+            qrbox: { width: 320, height: 160 },
           },
           (decodedText) => {
             const now = Date.now();
