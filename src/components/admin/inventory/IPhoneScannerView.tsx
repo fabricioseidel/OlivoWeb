@@ -27,7 +27,9 @@ export default function IPhoneScannerView({ onScan, isProcessing = false }: IPho
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const scanner = new Html5Qrcode("iphone-reader");
+    const scanner = new Html5Qrcode("iphone-reader", { 
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true } 
+    });
     scannerRef.current = scanner;
 
     const startCamera = async () => {
@@ -126,6 +128,13 @@ export default function IPhoneScannerView({ onScan, isProcessing = false }: IPho
              )}
 
              <div id="iphone-reader" className="w-full min-h-[300px] object-cover" />
+             
+             {/* Línea roja de guía visual (Laser) */}
+             {camStarted && !showSuccessVisual && (
+               <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+                 <div className="w-3/4 h-[2px] bg-red-500 shadow-[0_0_10px_rgba(239,68,68,1)] animate-pulse" />
+               </div>
+             )}
              
              {/* Estados de Carga y Error */}
              {!camStarted && !camError && (

@@ -59,7 +59,9 @@ export default function ScanSelector({ onScan, isProcessing = false }: ScanSelec
       return;
     }
 
-    const scanner = new Html5Qrcode("hybrid-reader");
+    const scanner = new Html5Qrcode("hybrid-reader", {
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    });
     scannerRef.current = scanner;
 
     const startCamera = async () => {
@@ -185,6 +187,13 @@ export default function ScanSelector({ onScan, isProcessing = false }: ScanSelec
              <div className="relative w-full max-w-md mx-auto bg-black rounded-[2rem] overflow-hidden border-4 border-emerald-500/30">
                <div id="hybrid-reader" className="w-full min-h-[300px]" />
                
+               {/* Línea roja de guía visual (Laser) */}
+               {camStarted && (
+                 <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+                   <div className="w-3/4 h-[2px] bg-red-500 shadow-[0_0_10px_rgba(239,68,68,1)] animate-pulse" />
+                 </div>
+               )}
+
                {!camStarted && !camError && (
                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500 mb-2"></div>
