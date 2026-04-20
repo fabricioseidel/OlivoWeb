@@ -14,6 +14,12 @@ export default function InventoryScanner({ onScan, onClose }: InventoryScannerPr
   const [error, setError] = useState<string | null>(null);
   const [isStarted, setIsStarted] = useState(false);
   const lastScanRef = useRef<{ code: string, time: number }>({ code: "", time: 0 });
+  
+  // Aislar el callback del render cycle
+  const onScanRef = useRef(onScan);
+  useEffect(() => {
+    onScanRef.current = onScan;
+  }, [onScan]);
 
   useEffect(() => {
     // Only browser side
@@ -22,43 +28,53 @@ export default function InventoryScanner({ onScan, onClose }: InventoryScannerPr
     const scanner = new Html5Qrcode("inventory-reader");
     scannerRef.current = scanner;
 
-    const start = async () => {
+    const startScanner = async () => {
       try {
         await scanner.start(
-          { facingMode: "environment" },
+          { 
+             facingMode: "environment",
+             // Fase 2: Forzar Auto-focus avanzado en dispositivos compatibles (Android/iOS)
+             advanced: [{ focusMode: "continuous" } as any] 
+          },
           {
-            fps: 10, // 10 is more stable for autofocus on most phones
-            qrbox: 250 // Fixed size is generally safer for mapping
+            fps: 10,
+            // Eliminado el qrbox: ahora el escáner usa el 100% de la pantalla para máxima velocidad
           },
           (decodedText) => {
             const now = Date.now();
-            // Debounce same code for 2 seconds, but different code allowed immediately
+            // Debouncer: 2 segundos de bloqueo para el MISMO código.
             if (lastScanRef.current.code === decodedText && now - lastScanRef.current.time < 2000) {
               return;
             }
-            
             lastScanRef.current = { code: decodedText, time: now };
             
             if ("vibrate" in navigator) navigator.vibrate(100);
-            onScan(decodedText);
+            
+            // Usar la referencia inmutable para evitar triggers del useEffect
+            onScanRef.current(decodedText);
           },
-          () => {} // Silent
+          () => {} // Fallos de lectura silenciosos (esperados en cada frame)
         );
         setIsStarted(true);
       } catch (err: any) {
         console.error("Scanner error:", err);
-        setError("Error al iniciar cámara. Permite el acceso para escanear.");
+        setError("Error al iniciar cámara. Permite el acceso o intenta recargar la página.");
       }
     };
 
-    start();
+    startScanner();
 
+    // Fase 3: Limpieza asíncrona segura para evitar bloqueos de hardware en Xiaomi
     return () => {
       if (scanner.isScanning) {
-        scanner.stop().catch(e => console.error("Error stopping", e));
+        scanner.stop()
+          .then(() => scanner.clear())
+          .catch(e => console.error("Error crítico al detener cámara", e));
+      } else {
+        scanner.clear();
       }
     };
-  }, [onScan]);
+  }, []); // Dependencias vacías: Inicialización 100% aislada.
 
   return (
     <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center">
