@@ -40,7 +40,25 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       const errData = await response.json();
-      return NextResponse.json({ error: errData.error?.message || "Routes API error" }, { status: response.status });
+      console.warn("[SHIPPING_CALCULATE] Google API falló, usando fallback de línea recta (Haversine). Error original:", errData.error?.message);
+      
+      // Fallback: Haversine distance
+      const R = 6371; // km
+      const dLat = (destination.lat - origin.lat) * Math.PI / 180;
+      const dLon = (destination.lng - origin.lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(origin.lat * Math.PI / 180) * Math.cos(destination.lat * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      // Multiplicamos por 1.3 para aproximar la distancia real en calles vs línea recta
+      const distanceKm = R * c * 1.3;
+      
+      return NextResponse.json({
+        distanceKm,
+        durationText: "Aprox.",
+        success: true,
+        fallback: true
+      });
     }
 
     const data = await response.json();
