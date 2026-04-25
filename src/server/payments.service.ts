@@ -1,17 +1,5 @@
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 
-// ── MercadoPago Client Initialization ──────────────────────────────────────────
-
-const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
-if (!accessToken && process.env.NODE_ENV === 'production') {
-  console.warn('[MercadoPago] ⚠️ AVISO: MERCADOPAGO_ACCESS_TOKEN no está definido.');
-}
-
-export const client = new MercadoPagoConfig({ 
-  accessToken,
-  options: { timeout: 10000 }
-});
-
 // ── Preference Creation ────────────────────────────────────────────────────────
 
 interface CreatePreferenceParams {
@@ -29,28 +17,56 @@ interface CreatePreferenceParams {
 
 /**
  * Creates a MercadoPago Preference for a specific order.
- * Returns the init_point (checkout URL).
+ * The MercadoPago client is instantiated HERE (not at module level)
+ * to ensure the access token is always read from the environment at runtime.
  */
 export async function createPaymentPreference(params: CreatePreferenceParams) {
-  const { orderId, items, customerEmail } = params;
+  const { orderId, items, customerEmail, total } = params;
 
-  // Use the production URL if available, otherwise fallback to localhost for dev
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-  
-  // Log token verification (masked for security)
-  const token = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
-  console.log(`[MercadoPago] Token configurado: ${token.slice(0, 10)}...${token.slice(-6)} | SiteURL: ${siteUrl}`);
+  // ── Read env vars at runtime (critical for Vercel) ──
+  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://olivomarket.cl';
 
+  // ── Validate token ──
+  if (!accessToken) {
+    throw new Error(
+      '[MercadoPago] MERCADOPAGO_ACCESS_TOKEN no está definido. ' +
+      'Agrégalo en Vercel → Project → Settings → Environment Variables.'
+    );
+  }
+
+  // Log verification (masked)
+  console.log(
+    `[MercadoPago] Token: ${accessToken.slice(0, 12)}...${accessToken.slice(-6)} | ` +
+    `Tipo: ${accessToken.startsWith('APP_USR-') ? 'PRODUCCIÓN ✅' : 'SANDBOX/TEST ⚠️'} | ` +
+    `SiteURL: ${siteUrl}`
+  );
+
+  // ── Validate items prices ──
+  const invalidItems = items.filter(i => !i.price || Number(i.price) <= 0);
+  if (invalidItems.length > 0) {
+    const names = invalidItems.map(i => i.name).join(', ');
+    throw new Error(
+      `[MercadoPago] Los siguientes productos tienen precio inválido ($0 o vacío): ${names}. ` +
+      `MercadoPago requiere unit_price > 0.`
+    );
+  }
+
+  // ── Create client at runtime (NOT at module level) ──
+  const client = new MercadoPagoConfig({
+    accessToken,
+    options: { timeout: 15000 },
+  });
   const preference = new Preference(client);
 
   try {
     const body = {
       items: items.map(item => ({
         id: String(item.id),
-        title: item.name,
+        title: String(item.name).substring(0, 256), // MP max 256 chars
         quantity: Number(item.quantity),
         unit_price: Number(item.price),
-        currency_id: 'CLP', // Estándar para Chile
+        currency_id: 'CLP' as const,
         picture_url: item.image || undefined,
       })),
       payer: {
@@ -61,7 +77,7 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
         failure: `${siteUrl}/checkout/confirmacion?orderId=${orderId}&payment=failure`,
         pending: `${siteUrl}/checkout/confirmacion?orderId=${orderId}&payment=pending`,
       },
-      // auto_return solo funciona con URLs HTTPS públicas (no localhost)
+      // auto_return solo funciona con HTTPS
       ...(siteUrl.startsWith('https://') ? { auto_return: 'approved' as const } : {}),
       notification_url: `${siteUrl}/api/payments/webhook`,
       external_reference: String(orderId),
@@ -69,27 +85,31 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
       expires: false,
     };
 
-    console.log('[MercadoPago] Creando preferencia con payload:', JSON.stringify(body, null, 2));
+    console.log('[MercadoPago] Creando preferencia:', JSON.stringify(body, null, 2));
     const result = await preference.create({ body });
-    
-    // Siempre usar init_point (producción real). sandbox_init_point es solo para referencia.
-    console.log(`[MercadoPago] ✅ Preferencia creada. ID: ${result.id}`);
-    console.log(`[MercadoPago] init_point (REAL): ${result.init_point}`);
-    console.log(`[MercadoPago] sandbox_init_point (REFERENCIA): ${result.sandbox_init_point}`);
 
     if (!result.init_point) {
-      throw new Error('MercadoPago no retornó un init_point válido. Verifica el Access Token de producción.');
+      throw new Error(
+        `[MercadoPago] La API respondió OK pero no retornó init_point. ` +
+        `Preference ID: ${result.id}. Verifica que el token sea de PRODUCCIÓN (APP_USR-), no de SANDBOX.`
+      );
     }
+
+    console.log(`[MercadoPago] ✅ Preferencia creada exitosamente.`);
+    console.log(`[MercadoPago] Preference ID : ${result.id}`);
+    console.log(`[MercadoPago] init_point    : ${result.init_point}`);
+    console.log(`[MercadoPago] sandbox_point : ${result.sandbox_init_point}`);
 
     return {
       id: result.id,
-      initPoint: result.init_point,           // URL real de checkout (producción)
-      sandboxInitPoint: result.sandbox_init_point // Solo referencia
+      initPoint: result.init_point,
+      sandboxInitPoint: result.sandbox_init_point,
     };
   } catch (error: any) {
-    console.error('[MercadoPago] Error creating preference:', error?.message || error);
+    console.error('[MercadoPago] ❌ Error al crear preferencia:');
+    console.error('  Mensaje:', error?.message);
     if (error?.cause) {
-      console.error('[MercadoPago] Detalles del error:', JSON.stringify(error.cause, null, 2));
+      console.error('  Causa:', JSON.stringify(error.cause, null, 2));
     }
     throw error;
   }

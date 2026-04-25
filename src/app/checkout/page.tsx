@@ -289,6 +289,13 @@ export default function CheckoutPage() {
         setLoading(false);
         return;
       }
+
+      // Validación extra: MercadoPago no acepta total = 0
+      if (selectedPaymentMethod === 'mercadopago' && total <= 0) {
+        alert('❌ El total del pedido debe ser mayor a $0 para procesar el pago con MercadoPago.');
+        setLoading(false);
+        return;
+      }
       
       const payload = {
         items: cartItems,
@@ -306,6 +313,8 @@ export default function CheckoutPage() {
         } : null
       };
 
+      console.log('[Checkout] Enviando orden con método de pago:', selectedPaymentMethod);
+
       const response = await fetch('/api/checkout/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -313,24 +322,42 @@ export default function CheckoutPage() {
       });
 
       const data = await response.json();
+      console.log('[Checkout] Respuesta del servidor:', { status: response.status, data });
+
       if (!response.ok) {
-        // If MP failed but order was created, show specific message
-        if (response.status === 502 && data.orderId) {
-          alert(`⚠️ ${data.error}`);
+        // MP falló pero la orden fue creada en la DB
+        if (data.orderId) {
+          alert(`❌ Error en el pago:\n\n${data.error}\n\nTu pedido #${data.orderId} fue registrado pero NO está pagado. Contáctanos por WhatsApp.`);
+        } else {
+          throw new Error(data.error || `Error del servidor (${response.status})`);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // ── CASO MERCADOPAGO: DEBE existir initPoint ──
+      if (selectedPaymentMethod === 'mercadopago') {
+        if (!data.initPoint) {
+          // NUNCA ir a confirmación si MP no generó el link de pago
+          alert(
+            '❌ Error de configuración: MercadoPago no generó el link de pago.\n\n' +
+            'Verifica en Vercel que la variable MERCADOPAGO_ACCESS_TOKEN esté configurada.\n\n' +
+            `Pedido #${data.orderId} creado pero NO pagado.`
+          );
           setLoading(false);
           return;
         }
-        throw new Error(data.error || 'Error al procesar el pedido');
-      }
-      
-      if (data.initPoint) {
-        // Redirigir a MercadoPago
+        // ✅ Redirigir al gateway real de MercadoPago
+        console.log('[Checkout] Redirigiendo a MercadoPago:', data.initPoint);
         window.location.href = data.initPoint;
-      } else {
-        router.push(`/checkout/confirmacion?orderId=${data.orderId}`);
+        return;
       }
+
+      // Otros métodos de pago (si hubiera)
+      router.push(`/checkout/confirmacion?orderId=${data.orderId}`);
+
     } catch (err: any) {
-      console.error("[Checkout] Error fatal:", err);
+      console.error('[Checkout] Error fatal:', err);
       alert(`❌ Error al procesar pedido: ${err.message}`);
     } finally {
       setLoading(false);

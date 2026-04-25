@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Payment } from 'mercadopago';
-import { client } from '@/server/payments.service';
+import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST(request: NextRequest) {
@@ -15,7 +14,15 @@ export async function POST(request: NextRequest) {
 
     if (type === 'payment' && paymentId) {
       console.log(`[MP Webhook] Processing payment ID: ${paymentId}`);
-      
+
+      // Create client at runtime to ensure token is read from env
+      const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
+      if (!accessToken) {
+        console.error('[MP Webhook] ❌ MERCADOPAGO_ACCESS_TOKEN no está definido');
+        return NextResponse.json({ error: 'Token no configurado' }, { status: 500 });
+      }
+
+      const client = new MercadoPagoConfig({ accessToken, options: { timeout: 10000 } });
       const payment = new Payment(client);
       const paymentData = await payment.get({ id: paymentId });
 
@@ -30,7 +37,7 @@ export async function POST(request: NextRequest) {
           .from('orders')
           .update({ 
             payment_status: 'paid',
-            status: 'processing', // Move from pending to processing once paid
+            status: 'processing',
             updated_at: new Date().toISOString()
           })
           .eq('id', orderId);
@@ -44,11 +51,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Always return 200/201 to MercadoPago to avoid retries
+    // Always return 200 to MercadoPago to avoid retries
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
     console.error('[MP Webhook] Error processing webhook:', error);
-    // Even on error, we might want to return 200 to stop MP from spamming if it's a persistent code error
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
+
