@@ -221,9 +221,8 @@ export async function POST(request: NextRequest) {
     let initPoint = null;
     if (paymentMethod === 'mercadopago') {
       try {
-        console.log(`[Checkout] Creating MP preference for order ${order.id}, total: ${total}`);
-        console.log(`[Checkout] Access token present: ${!!process.env.MERCADOPAGO_ACCESS_TOKEN}`);
-        console.log(`[Checkout] Site URL: ${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}`);
+        console.log(`[Checkout] 💳 Iniciando creación de preferencia MP para orden ${order.id}`);
+        console.log(`[Checkout] Detalle: Total=${total}, Items=${items.length}, Email=${customerEmail}`);
         
         const mpResult = await createPaymentPreference({
           orderId: order.id,
@@ -232,13 +231,18 @@ export async function POST(request: NextRequest) {
           total
         });
         initPoint = mpResult.initPoint;
-        console.log(`[Checkout] ✅ MP Preference created: ${mpResult.id} | initPoint: ${initPoint}`);
+        console.log(`[Checkout] ✅ Preferencia MP creada con éxito: ${mpResult.id}`);
       } catch (err: any) {
-        console.error('[Checkout] ❌ MercadoPago preference failed:', err?.message || err);
-        console.error('[Checkout] MP Error details:', JSON.stringify(err, null, 2));
-        // Order was created in DB but MP preference failed - return error so user knows
+        console.error('[Checkout] ❌ ERROR CRÍTICO MERCADOPAGO:', err?.message || err);
+        
+        // Extraer detalles del error del SDK si existen
+        if (err.cause) {
+          console.error('[Checkout] Causa del error MP:', JSON.stringify(err.cause, null, 2));
+        }
+
         return NextResponse.json({ 
-          error: 'Error al conectar con MercadoPago. Tu pedido fue creado pero el pago no pudo procesarse. Contacta soporte con el ID: ' + order.id,
+          error: 'Mercado Pago no pudo procesar la transacción: ' + (err?.message || 'Error de conexión'),
+          details: err?.cause || null,
           orderId: order.id 
         }, { status: 502 });
       }

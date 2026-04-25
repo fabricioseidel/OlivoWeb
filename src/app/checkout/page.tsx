@@ -27,7 +27,6 @@ import { StarIcon } from "@heroicons/react/24/solid";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 
 const paymentMethods: PaymentMethod[] = [
-  { id: "transbank", name: "Transbank" },
   { id: "mercadopago", name: "MercadoPago" },
 ];
 
@@ -45,7 +44,7 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(1);
   const [dynamicShipping, setDynamicShipping] = useState<ShippingMethod | null>(null);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState("pickup");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("transbank");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("mercadopago");
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
   
   const [appliedCoupon, setAppliedCoupon] = useState<{
@@ -129,17 +128,13 @@ export default function CheckoutPage() {
             setSelectedShippingMethod("dynamic");
           }
         } else {
-          console.error("Distance calculation failed or returned invalid data:", result);
-          // Set a dummy dynamic shipping to prevent infinite retries
-          setDynamicShipping({ 
-            id: "error", 
-            name: "Error al calcular envío", 
-            price: 0, 
-            days: "Contactar soporte" 
-          });
+          console.error("Distance calculation failed:", result.error);
+          alert(`⚠️ No pudimos calcular el costo de envío: ${result.error || 'Verifica tu dirección'}. Por favor, selecciona una dirección sugerida por el buscador.`);
+          setDynamicShipping(null);
         }
-      } catch (err) { 
-        console.error("Error calculating shipping:", err); 
+      } catch (err: any) { 
+        console.error("Error calculating shipping:", err);
+        alert("Error de conexión al calcular el envío.");
       } finally { 
         setIsCalculatingDistance(false); 
       }
@@ -335,7 +330,8 @@ export default function CheckoutPage() {
         router.push(`/checkout/confirmacion?orderId=${data.orderId}`);
       }
     } catch (err: any) {
-      alert(err.message);
+      console.error("[Checkout] Error fatal:", err);
+      alert(`❌ Error al procesar pedido: ${err.message}`);
     } finally {
       setLoading(false);
     }

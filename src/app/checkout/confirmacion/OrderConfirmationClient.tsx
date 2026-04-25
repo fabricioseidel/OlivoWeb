@@ -21,6 +21,7 @@ export default function OrderConfirmationClient() {
   const [order, setOrder] = useState<any | null>(null);
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
+  const paymentStatus = searchParams.get("payment"); // 'success' | 'failure' | 'pending'
 
   useEffect(() => {
     if (orderId) {
@@ -64,10 +65,22 @@ export default function OrderConfirmationClient() {
             </div>
 
             <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-4 tracking-tighter">
-               ¡Pago <span className="text-emerald-600">Completado!</span>
+               {paymentStatus === 'failure' ? (
+                 <>Pago <span className="text-red-500">Fallido</span></>
+               ) : paymentStatus === 'pending' ? (
+                 <>Pago <span className="text-amber-500">Pendiente</span></>
+               ) : (
+                 <>¡Pago <span className="text-emerald-600">Completado!</span></>
+               )}
             </h1>
             <p className="text-lg text-gray-500 font-medium max-w-lg mx-auto leading-relaxed">
-              Es oficial, el pedido <strong>#{orderId}</strong> ya está en nuestro radar. Te hemos enviado un email con todos los detalles de tu compra.
+              {paymentStatus === 'failure' ? (
+                <>Tu pago no pudo procesarse. El pedido <strong>#{orderId}</strong> fue registrado pero está pendiente de pago. Puedes volver a intentarlo o contactarnos.</>
+              ) : paymentStatus === 'pending' ? (
+                <>Tu pago está siendo procesado. El pedido <strong>#{orderId}</strong> será confirmado una vez acreditado el pago.</>
+              ) : (
+                <>Es oficial, el pedido <strong>#{orderId}</strong> ya está en nuestro radar. Te hemos enviado un email con todos los detalles de tu compra.</>
+              )}
             </p>
 
             {/* Timeline simple */}
