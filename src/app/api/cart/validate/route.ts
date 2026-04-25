@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     // Obtener datos reales de los productos desde la base de datos
     const { data: dbProducts, error } = await supabaseServer
       .from("products")
-      .select("id, name, price, stock, is_active")
+      .select("id, name, sale_price, stock, is_active")
       .in("id", itemIds);
 
     if (error) {
@@ -49,10 +49,10 @@ export async function POST(req: NextRequest) {
       }
 
       // Validar Precio
-      if (dbProduct.price !== item.price) {
+      if (dbProduct.sale_price !== item.price) {
         needsUpdate = true;
         updatePayload.priceChanged = true;
-        updatePayload.newPrice = dbProduct.price;
+        updatePayload.newPrice = dbProduct.sale_price;
       }
 
       if (needsUpdate) {

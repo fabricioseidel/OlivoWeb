@@ -217,20 +217,31 @@ export async function POST(request: NextRequest) {
       })();
     }
 
-    // 6. Create MercadoPago Preference
+    // 6. Create MercadoPago Preference (only if payment method is mercadopago)
     let initPoint = null;
-    try {
-      const mpResult = await createPaymentPreference({
-        orderId: order.id,
-        items,
-        customerEmail: customerEmail || 'anon@olivomarket.cl',
-        total
-      });
-      initPoint = mpResult.initPoint;
-      console.log(`[Checkout] Preference created: ${mpResult.id}`);
-    } catch (err) {
-      console.error('[Checkout] MercadoPago preference failed:', err);
-      // We still return success as the order was created in DB
+    if (paymentMethod === 'mercadopago') {
+      try {
+        console.log(`[Checkout] Creating MP preference for order ${order.id}, total: ${total}`);
+        console.log(`[Checkout] Access token present: ${!!process.env.MERCADOPAGO_ACCESS_TOKEN}`);
+        console.log(`[Checkout] Site URL: ${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}`);
+        
+        const mpResult = await createPaymentPreference({
+          orderId: order.id,
+          items,
+          customerEmail: customerEmail || 'anon@olivomarket.cl',
+          total
+        });
+        initPoint = mpResult.initPoint;
+        console.log(`[Checkout] ✅ MP Preference created: ${mpResult.id} | initPoint: ${initPoint}`);
+      } catch (err: any) {
+        console.error('[Checkout] ❌ MercadoPago preference failed:', err?.message || err);
+        console.error('[Checkout] MP Error details:', JSON.stringify(err, null, 2));
+        // Order was created in DB but MP preference failed - return error so user knows
+        return NextResponse.json({ 
+          error: 'Error al conectar con MercadoPago. Tu pedido fue creado pero el pago no pudo procesarse. Contacta soporte con el ID: ' + order.id,
+          orderId: order.id 
+        }, { status: 502 });
+      }
     }
 
     return NextResponse.json({ success: true, orderId: order.id, initPoint });

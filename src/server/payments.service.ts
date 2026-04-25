@@ -57,7 +57,8 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
         failure: `${siteUrl}/checkout/confirmacion?orderId=${orderId}&payment=failure`,
         pending: `${siteUrl}/checkout/confirmacion?orderId=${orderId}&payment=pending`,
       },
-      auto_return: 'approved' as const,
+      // auto_return only works with public HTTPS URLs (not localhost)
+      ...(siteUrl.startsWith('https://') ? { auto_return: 'approved' as const } : {}),
       notification_url: `${siteUrl}/api/payments/webhook`,
       external_reference: orderId,
       statement_descriptor: 'OLIVOMARKET',

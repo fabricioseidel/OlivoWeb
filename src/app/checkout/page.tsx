@@ -318,7 +318,15 @@ export default function CheckoutPage() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Error al procesar el pedido');
+      if (!response.ok) {
+        // If MP failed but order was created, show specific message
+        if (response.status === 502 && data.orderId) {
+          alert(`⚠️ ${data.error}`);
+          setLoading(false);
+          return;
+        }
+        throw new Error(data.error || 'Error al procesar el pedido');
+      }
       
       if (data.initPoint) {
         // Redirigir a MercadoPago
