@@ -124,7 +124,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('cartItems');
   }, []);
 
-  // Validación con el servidor
+  // Validación con el servidor — solo informativa, NUNCA bloquea el checkout
   const validateCartWithServer = useCallback(async () => {
     if (cartItems.length === 0) return true;
     
@@ -137,38 +137,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
 
       const data = await response.json();
+      console.log('[Cart Validate] Respuesta del servidor:', data);
 
       if (data.updates && data.updates.length > 0) {
-        let needsUpdate = false;
+        let priceUpdated = false;
         const newItems = cartItems.map(item => {
           const update = data.updates.find((u: any) => u.id === item.id);
           if (update) {
-            needsUpdate = true;
-            if (update.priceChanged) showToast(`El precio de ${item.name} ha cambiado`, "info");
+            // Solo actualizar precio si cambió (informativo)
+            if (update.priceChanged) {
+              showToast(`El precio de ${item.name} ha cambiado a $${update.newPrice}`, "info");
+              priceUpdated = true;
+              return { ...item, price: update.newPrice };
+            }
+            // Stock bajo — avisar pero NO eliminar del carrito
             if (update.insufficientStock) {
               if (update.availableQty === 0) {
-                showToast(`${item.name} se ha agotado`, "error");
+                showToast(`⚠️ ${item.name} puede tener stock limitado`, "warning");
               } else {
                 showToast(`Stock ajustado para ${item.name} (${update.availableQty} disp.)`, "warning");
               }
+              // NO cambiar la cantidad, solo informar
             }
-            
-            return { 
-              ...item, 
-              price: update.newPrice ?? item.price,
-              quantity: update.availableQty ?? item.quantity 
-            };
           }
           return item;
-        }).filter(item => item.quantity > 0);
+        });
 
-        if (needsUpdate) setCartItems(newItems);
-        return false; // False significa que hubo cambios (no puede continuar el checkout tal cual)
+        // Solo actualizar carrito si hubo cambio de precios
+        if (priceUpdated) setCartItems(newItems);
       }
-      return true; // OK
+      // SIEMPRE retornar true — el servidor de create-order hará la validación final
+      return true;
     } catch (error) {
       console.error("Cart validation failed", error);
-      return true; // No bloqueamos si falla el server, asumimos true localmente
+      return true; // No bloqueamos si falla el server
     } finally {
       setIsSyncing(false);
     }
