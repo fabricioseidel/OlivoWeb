@@ -1,5 +1,5 @@
 /**
- * Utility to calculate shipping distance and cost using Google Maps Distance Matrix
+ * Utility to calculate shipping distance and cost using Haversine formula (no external APIs)
  */
 
 export interface DistanceResult {

@@ -61,7 +61,7 @@ export type StoreSettings = {
     internationalShippingEnabled?: boolean;
     internationalShippingFee?: number;
 
-    // Configuración Dinámica (Google Maps)
+    // Configuración Dinámica (Haversine)
     enableDynamicShipping?: boolean;
     shippingBaseFee?: number;
     shippingPricePerKm?: number;

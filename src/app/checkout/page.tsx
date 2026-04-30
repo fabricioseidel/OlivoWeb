@@ -372,10 +372,7 @@ export default function CheckoutPage() {
     };
   }, [storeSettings]);
 
-  const mapEmbedUrl = useMemo(() => {
-    if (!coords) return null;
-    return `https://maps.google.com/maps?q=${coords.lat},${coords.lng}&z=15&output=embed`;
-  }, [coords]);
+  const mapEmbedUrl = null;
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -561,7 +558,7 @@ export default function CheckoutPage() {
                                referrerPolicy="no-referrer-when-downgrade"
                             />
                             <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-gray-100/50 pointer-events-none">
-                               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Precisión de ubicación garantizada por Google Maps</p>
+                               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Ubicación de entrega confirmada</p>
                             </div>
                           </div>
                         )}

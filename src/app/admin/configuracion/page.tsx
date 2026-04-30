@@ -473,7 +473,7 @@ export default function SettingsPage() {
                   <div className="border-l-4 border-emerald-500 bg-emerald-50 p-4 rounded">
                     <h3 className="font-semibold text-emerald-900 mb-4 flex items-center gap-2">
                       <SparklesIcon className="h-5 w-5 text-emerald-600" />
-                      Cálculo por Distancia (Google Maps)
+                      Cálculo por Distancia (Haversine)
                     </h3>
                     <CheckBoxField
                       label="Habilitar calculadora dinámica de envíos"
