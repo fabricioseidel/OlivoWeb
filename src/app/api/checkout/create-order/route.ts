@@ -81,32 +81,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 1. Create Order
-    const orderData = {
-        user_id: userId,
-        status: 'pending',
-        total,
-        subtotal,
-        shipping_cost: shippingCost,
-        shipping_method: shippingMethod,
-        shipping_address: shippingInfo,
-        payment_method: paymentMethod,
-        payment_status: 'pending',
-        coupon_code: couponCode || null,
-        discount_amount: discountApplied || 0
-    };
-
-    const { data: order, error: orderError } = await supabaseAdmin
-      .from('orders')
-      .insert(orderData)
-      .select()
-      .single();
-
-    if (orderError) {
-      return NextResponse.json({ error: 'Failed to create order', details: orderError }, { status: 500 });
-    }
-
-    // 2. Validate Products & Prices
+    // 1. Validate Products & Prices
     const { data: dbProducts, error: productsErr } = await supabaseAdmin
       .from('products')
       .select('id, stock, name, sale_price, is_active')
@@ -203,7 +178,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create order items', details: itemsError }, { status: 500 });
     }
 
-    // 4. Record Coupon Usage (if any)
+    // 6. Record Coupon Usage (if any)
     if (couponCode) {
        try {
           const coupon = await getCouponByCode(couponCode);
@@ -220,7 +195,7 @@ export async function POST(request: NextRequest) {
        }
     }
 
-    // 5. Post-order processing (Email, Customers, Loyalty)
+    // 7. Post-order processing (Email, Customers, Loyalty)
     const customerEmail = shippingInfo?.email;
     const customerName = shippingInfo?.fullName || 'Cliente';
 
@@ -279,7 +254,7 @@ export async function POST(request: NextRequest) {
       })();
     }
 
-    // 6. Create MercadoPago Preference (only if payment method is mercadopago)
+    // 8. Create MercadoPago Preference (only if payment method is mercadopago)
     let initPoint = null;
     if (paymentMethod === 'mercadopago') {
       try {
