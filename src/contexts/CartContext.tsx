@@ -146,8 +146,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const nextItems = cartItems.map(item => {
           const update = data.updates.find((u: any) => u.id === item.id);
           if (!update) return item;
-
-          let updatedItem = { ...item };
+          const updatedItem = { ...item };
 
           // 1. Validar Precio
           if (update.priceChanged) {
