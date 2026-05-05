@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     // Validaciones iniciales
     for (const item of items) {
-      const dbProduct = dbProducts.find(p => p.id === item.id);
+      const dbProduct = dbProducts.find(p => String(p.id) === String(item.id));
       if (!dbProduct) return NextResponse.json({ error: `Producto no encontrado: ${item.name}` }, { status: 400 });
       if (!dbProduct.is_active) return NextResponse.json({ error: `El producto ${dbProduct.name} ya no está disponible.` }, { status: 400 });
       

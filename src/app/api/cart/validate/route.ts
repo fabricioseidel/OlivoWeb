@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const updates: any[] = [];
 
     items.forEach((item: any) => {
-      const dbProduct = dbProducts?.find((p) => p.id === item.id);
+      const dbProduct = dbProducts?.find((p) => String(p.id) === String(item.id));
 
       // Si el producto no existe o está inactivo, marcar como stock insuficiente (0)
       if (!dbProduct || !dbProduct.is_active) {
