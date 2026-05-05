@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       console.log(`[MP Webhook] Order: ${orderId} | Status: ${status}`);
 
       if (orderId && (status === 'approved' || status === 'authorized')) {
-        // Update Order Status in Supabase
+        // Update Order Status in Supabase to PAID
         const { error } = await supabaseAdmin
           .from('orders')
           .update({ 
@@ -48,6 +48,40 @@ export async function POST(request: NextRequest) {
         }
 
         console.log(`[MP Webhook] ✅ Order ${orderId} marked as PAID`);
+      } else if (orderId && (status === 'rejected' || status === 'cancelled' || status === 'refunded' || status === 'in_mediation')) {
+        console.log(`[MP Webhook] 🔄 Restaurando stock para orden ${orderId} debido a estado: ${status}`);
+        
+        // 1. Obtener items de la orden
+        const { data: items, error: itemsErr } = await supabaseAdmin
+          .from('order_items')
+          .select('product_id, quantity')
+          .eq('order_id', orderId);
+
+        if (!itemsErr && items) {
+          // 2. Devolver stock a cada producto
+          for (const item of items) {
+            try {
+              await supabaseAdmin.rpc('increment_product_stock', { 
+                p_product_id: item.product_id, 
+                p_quantity: item.quantity 
+              });
+            } catch (err) {
+              console.error(`[MP Webhook] Error incrementando stock para prod ${item.product_id}:`, err);
+            }
+          }
+        }
+
+        // 3. Marcar orden como cancelada/fallida
+        await supabaseAdmin
+          .from('orders')
+          .update({ 
+            payment_status: status,
+            status: status === 'refunded' ? 'refunded' : 'cancelled',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderId);
+          
+        console.log(`[MP Webhook] ❌ Orden ${orderId} actualizada a ${status} y stock restaurado.`);
       }
     }
 

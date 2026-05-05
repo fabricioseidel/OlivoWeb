@@ -106,39 +106,101 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create order', details: orderError }, { status: 500 });
     }
 
-    // 2. Create Order Items
-    const orderItems = items.map((item: any) => ({
-      order_id: order.id,
-      product_id: item.id,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      image: item.image
+    // 2. Validate Products & Prices
+    const { data: dbProducts, error: productsErr } = await supabaseAdmin
+      .from('products')
+      .select('id, stock, name, sale_price, is_active')
+      .in('id', items.map((i: any) => i.id));
+
+    if (productsErr || !dbProducts) {
+       return NextResponse.json({ error: 'No se pudo validar el stock de los productos.' }, { status: 500 });
+    }
+
+    let calculatedSubtotal = 0;
+    const validatedOrderItems = [];
+
+    // Validaciones iniciales
+    for (const item of items) {
+      const dbProduct = dbProducts.find(p => p.id === item.id);
+      if (!dbProduct) return NextResponse.json({ error: `Producto no encontrado: ${item.name}` }, { status: 400 });
+      if (!dbProduct.is_active) return NextResponse.json({ error: `El producto ${dbProduct.name} ya no está disponible.` }, { status: 400 });
+      
+      calculatedSubtotal += dbProduct.sale_price * item.quantity;
+      validatedOrderItems.push({
+        product_id: dbProduct.id,
+        name: dbProduct.name,
+        price: dbProduct.sale_price,
+        quantity: item.quantity,
+        image: item.image
+      });
+    }
+
+    // 3. ATOMIC STOCK RESERVATION (Phase 1: Subtract)
+    const successfullSubtractions = [];
+    try {
+      for (const item of items) {
+        const { data: success, error: rpcErr } = await supabaseAdmin.rpc('decrement_stock_atomic', { 
+          p_product_id: item.id, 
+          p_quantity: item.quantity 
+        });
+
+        if (rpcErr || !success) {
+           throw new Error(`Stock insuficiente para ${item.name}. Por favor actualiza tu carrito.`);
+        }
+        successfullSubtractions.push(item);
+      }
+    } catch (err: any) {
+      // ROLLBACK: Restaurar stock de los que ya se habían descontado en este bucle
+      for (const item of successfullSubtractions) {
+        await supabaseAdmin.rpc('increment_product_stock', { 
+          p_product_id: item.id, 
+          p_quantity: item.quantity 
+        });
+      }
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+
+    // 4. Create Order
+    const orderData = {
+        user_id: userId,
+        status: 'pending',
+        total: (calculatedSubtotal + shippingCost) - (discountApplied || 0) - (loyaltyRedeemed?.discount || 0),
+        subtotal: calculatedSubtotal,
+        shipping_cost: shippingCost,
+        shipping_method: shippingMethod,
+        shipping_address: shippingInfo,
+        payment_method: paymentMethod,
+        payment_status: 'pending',
+        coupon_code: couponCode || null,
+        discount_amount: (discountApplied || 0) + (loyaltyRedeemed?.discount || 0)
+    };
+
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from('orders')
+      .insert(orderData)
+      .select()
+      .single();
+
+    if (orderError) {
+      // Si falla la creación de la orden, devolvemos el stock
+      for (const item of items) {
+        await supabaseAdmin.rpc('increment_product_stock', { p_product_id: item.id, p_quantity: item.quantity });
+      }
+      return NextResponse.json({ error: 'Failed to create order', details: orderError }, { status: 500 });
+    }
+
+    // 5. Create Order Items
+    const finalOrderItems = validatedOrderItems.map(item => ({
+      ...item,
+      order_id: order.id
     }));
 
     const { error: itemsError } = await supabaseAdmin
       .from('order_items')
-      .insert(orderItems);
+      .insert(finalOrderItems);
 
     if (itemsError) {
       return NextResponse.json({ error: 'Failed to create order items', details: itemsError }, { status: 500 });
-    }
-
-    // 3. Update Stock
-    for (const item of items) {
-      const { data: product } = await supabaseAdmin
-        .from('products')
-        .select('stock')
-        .eq('id', item.id)
-        .single();
-        
-      if (product) {
-        const newStock = Math.max(0, product.stock - item.quantity);
-        await supabaseAdmin
-          .from('products')
-          .update({ stock: newStock })
-          .eq('id', item.id);
-      }
     }
 
     // 4. Record Coupon Usage (if any)

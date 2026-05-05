@@ -124,7 +124,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('cartItems');
   }, []);
 
-  // Validación con el servidor — solo informativa, NUNCA bloquea el checkout
+  // Validación con el servidor — actualiza el carrito si hay cambios de stock o precio
   const validateCartWithServer = useCallback(async () => {
     if (cartItems.length === 0) return true;
     
@@ -140,37 +140,56 @@ export function CartProvider({ children }: { children: ReactNode }) {
       console.log('[Cart Validate] Respuesta del servidor:', data);
 
       if (data.updates && data.updates.length > 0) {
-        let priceUpdated = false;
-        const newItems = cartItems.map(item => {
+        let cartChanged = false;
+        const messages: string[] = [];
+        
+        const nextItems = cartItems.map(item => {
           const update = data.updates.find((u: any) => u.id === item.id);
-          if (update) {
-            // Solo actualizar precio si cambió (informativo)
-            if (update.priceChanged) {
-              showToast(`El precio de ${item.name} ha cambiado a $${update.newPrice}`, "info");
-              priceUpdated = true;
-              return { ...item, price: update.newPrice };
-            }
-            // Stock bajo — avisar pero NO eliminar del carrito
-            if (update.insufficientStock) {
-              if (update.availableQty === 0) {
-                showToast(`⚠️ ${item.name} puede tener stock limitado`, "warning");
-              } else {
-                showToast(`Stock ajustado para ${item.name} (${update.availableQty} disp.)`, "warning");
-              }
-              // NO cambiar la cantidad, solo informar
+          if (!update) return item;
+
+          let updatedItem = { ...item };
+
+          // 1. Validar Precio
+          if (update.priceChanged) {
+            updatedItem.price = update.newPrice;
+            messages.push(`El precio de ${item.name} cambió.`);
+            cartChanged = true;
+          }
+
+          // 2. Validar Stock
+          if (update.insufficientStock) {
+            if (update.availableQty <= 0) {
+              messages.push(`${item.name} se agotó y fue quitado del carrito.`);
+              cartChanged = true;
+              return null; // Marcar para eliminar
+            } else if (item.quantity > update.availableQty) {
+              updatedItem.quantity = update.availableQty;
+              messages.push(`Ajustamos ${item.name} a ${update.availableQty} unidades por stock.`);
+              cartChanged = true;
             }
           }
-          return item;
-        });
 
-        // Solo actualizar carrito si hubo cambio de precios
-        if (priceUpdated) setCartItems(newItems);
+          return updatedItem;
+        }).filter(Boolean) as CartItem[];
+
+        if (cartChanged) {
+          setCartItems(nextItems);
+          
+          // Mostrar alertas consolidadas si hay muchos cambios
+          if (messages.length > 2) {
+            showToast("Varios productos en tu carrito fueron actualizados por cambios en stock o precio.", "warning");
+          } else {
+            messages.forEach(m => showToast(m, "warning"));
+          }
+          
+          return false; // Indicamos que el carrito cambió, el usuario debe revisar
+        }
       }
-      // SIEMPRE retornar true — el servidor de create-order hará la validación final
+      
       return true;
     } catch (error) {
       console.error("Cart validation failed", error);
-      return true; // No bloqueamos si falla el server
+      return true; // No bloqueamos si falla el server por red
     } finally {
       setIsSyncing(false);
     }
