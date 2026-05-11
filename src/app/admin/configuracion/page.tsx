@@ -348,19 +348,84 @@ export default function SettingsPage() {
 
                   <div className="border-t border-slate-200 pt-6">
                     <h3 className="font-semibold text-slate-900 mb-4">Imágenes</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <InputField
-                        label="URL del logo"
-                        value={settings.appearance?.logoUrl || ""}
-                        onChange={(val) => handleChange(["appearance", "logoUrl"], val)}
-                        placeholder="/logo.png"
-                      />
-                      <InputField
-                        label="URL del favicon"
-                        value={settings.appearance?.faviconUrl || ""}
-                        onChange={(val) => handleChange(["appearance", "faviconUrl"], val)}
-                        placeholder="/favicon.ico"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Logo */}
+                      <div className="space-y-3">
+                        <label className="block text-sm font-medium text-slate-900">Logo de la tienda</label>
+                        {settings.appearance?.logoUrl && (
+                          <div className="flex items-center justify-center h-20 bg-slate-50 rounded-lg border border-slate-200 p-2">
+                            <img
+                              src={settings.appearance.logoUrl}
+                              alt="Logo"
+                              className="max-h-full max-w-full object-contain"
+                            />
+                          </div>
+                        )}
+                        <SingleImageUpload
+                          label={settings.appearance?.logoUrl ? "Cambiar logo" : "Subir logo"}
+                          value={settings.appearance?.logoUrl || ""}
+                          onChange={async (dataUrl) => {
+                            try {
+                              if (dataUrl.startsWith("data:image")) {
+                                const resp = await uploadImageServerAction(dataUrl, settings.appearance?.logoUrl || undefined);
+                                if (resp.ok && resp.url) {
+                                  handleChange(["appearance", "logoUrl"], resp.url);
+                                  await saveSettings();
+                                }
+                              } else {
+                                handleChange(["appearance", "logoUrl"], dataUrl);
+                              }
+                            } catch (e) {
+                              console.error(e);
+                            }
+                          }}
+                        />
+                        <InputField
+                          label="O ingresa URL manual"
+                          value={settings.appearance?.logoUrl || ""}
+                          onChange={(val) => handleChange(["appearance", "logoUrl"], val)}
+                          placeholder="/logo.png"
+                        />
+                      </div>
+
+                      {/* Favicon */}
+                      <div className="space-y-3">
+                        <label className="block text-sm font-medium text-slate-900">Favicon</label>
+                        {settings.appearance?.faviconUrl && (
+                          <div className="flex items-center justify-center h-20 bg-slate-50 rounded-lg border border-slate-200 p-2">
+                            <img
+                              src={settings.appearance.faviconUrl}
+                              alt="Favicon"
+                              className="max-h-12 max-w-12 object-contain"
+                            />
+                          </div>
+                        )}
+                        <SingleImageUpload
+                          label={settings.appearance?.faviconUrl ? "Cambiar favicon" : "Subir favicon"}
+                          value={settings.appearance?.faviconUrl || ""}
+                          onChange={async (dataUrl) => {
+                            try {
+                              if (dataUrl.startsWith("data:image")) {
+                                const resp = await uploadImageServerAction(dataUrl, settings.appearance?.faviconUrl || undefined);
+                                if (resp.ok && resp.url) {
+                                  handleChange(["appearance", "faviconUrl"], resp.url);
+                                  await saveSettings();
+                                }
+                              } else {
+                                handleChange(["appearance", "faviconUrl"], dataUrl);
+                              }
+                            } catch (e) {
+                              console.error(e);
+                            }
+                          }}
+                        />
+                        <InputField
+                          label="O ingresa URL manual"
+                          value={settings.appearance?.faviconUrl || ""}
+                          onChange={(val) => handleChange(["appearance", "faviconUrl"], val)}
+                          placeholder="/favicon.ico"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -373,14 +438,14 @@ export default function SettingsPage() {
                       <CheckBoxField
                         label="Habilitar"
                         checked={!!settings.appearance?.bannerUrl}
-                        onChange={() => {
-                          if (settings.appearance?.bannerUrl) {
+                        onChange={(checked) => {
+                          if (!checked) {
                             handleChange(["appearance", "bannerUrl"], null);
                           }
                         }}
                       />
                     </div>
-                    {settings.appearance?.bannerUrl && (
+                    {settings.appearance?.bannerUrl ? (
                       <>
                         <div className="mb-4 relative w-full h-48 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
                           <div
@@ -390,11 +455,11 @@ export default function SettingsPage() {
                         </div>
                         <SingleImageUpload
                           label="Cambiar banner"
-                          value={settings.appearance.bannerUrl || ""}
+                          value={settings.appearance.bannerUrl}
                           onChange={async (dataUrl) => {
                             try {
                               if (dataUrl.startsWith("data:image")) {
-                                const resp = await uploadImageServerAction(dataUrl, settings.appearance?.bannerUrl);
+                                const resp = await uploadImageServerAction(dataUrl, settings.appearance?.bannerUrl || undefined);
                                 if (resp.ok && resp.url) {
                                   handleChange(["appearance", "bannerUrl"], resp.url);
                                   await saveSettings();
@@ -408,6 +473,26 @@ export default function SettingsPage() {
                           }}
                         />
                       </>
+                    ) : (
+                      <SingleImageUpload
+                        label="Subir banner"
+                        value=""
+                        onChange={async (dataUrl) => {
+                          try {
+                            if (dataUrl.startsWith("data:image")) {
+                              const resp = await uploadImageServerAction(dataUrl, undefined);
+                              if (resp.ok && resp.url) {
+                                handleChange(["appearance", "bannerUrl"], resp.url);
+                                await saveSettings();
+                              }
+                            } else {
+                              handleChange(["appearance", "bannerUrl"], dataUrl);
+                            }
+                          } catch (e) {
+                            console.error(e);
+                          }
+                        }}
+                      />
                     )}
                   </div>
 
