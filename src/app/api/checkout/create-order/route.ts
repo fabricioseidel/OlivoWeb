@@ -82,24 +82,28 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Validate Products & Prices
+    // CartItem.id corresponde al barcode del producto (ver mapSupaToUI en services/products.ts)
     const { data: dbProducts, error: productsErr } = await supabaseAdmin
       .from('products')
-      .select('id, stock, name, sale_price, is_active')
-      .in('id', items.map((i: any) => i.id));
+      .select('id, barcode, stock, name, sale_price, is_active')
+      .in('barcode', items.map((i: any) => i.id));
 
     if (productsErr || !dbProducts) {
        return NextResponse.json({ error: 'No se pudo validar el stock de los productos.' }, { status: 500 });
     }
+
+    // Mapa barcode → id entero para las llamadas RPC que requieren el id numérico
+    const barcodeToProductId = new Map(dbProducts.map((p: any) => [String(p.barcode), p.id as number]));
 
     let calculatedSubtotal = 0;
     const validatedOrderItems = [];
 
     // Validaciones iniciales
     for (const item of items) {
-      const dbProduct = dbProducts.find(p => String(p.id) === String(item.id));
+      const dbProduct = dbProducts.find((p: any) => String(p.barcode) === String(item.id));
       if (!dbProduct) return NextResponse.json({ error: `Producto no encontrado: ${item.name}` }, { status: 400 });
       if (!dbProduct.is_active) return NextResponse.json({ error: `El producto ${dbProduct.name} ya no está disponible.` }, { status: 400 });
-      
+
       calculatedSubtotal += dbProduct.sale_price * item.quantity;
       validatedOrderItems.push({
         product_id: dbProduct.id,
@@ -114,9 +118,10 @@ export async function POST(request: NextRequest) {
     const successfullSubtractions = [];
     try {
       for (const item of items) {
-        const { data: success, error: rpcErr } = await supabaseAdmin.rpc('decrement_stock_atomic', { 
-          p_product_id: item.id, 
-          p_quantity: item.quantity 
+        const productId = barcodeToProductId.get(String(item.id));
+        const { data: success, error: rpcErr } = await supabaseAdmin.rpc('decrement_stock_atomic', {
+          p_product_id: productId,
+          p_quantity: item.quantity
         });
 
         if (rpcErr || !success) {
@@ -127,9 +132,10 @@ export async function POST(request: NextRequest) {
     } catch (err: any) {
       // ROLLBACK: Restaurar stock de los que ya se habían descontado en este bucle
       for (const item of successfullSubtractions) {
-        await supabaseAdmin.rpc('increment_product_stock', { 
-          p_product_id: item.id, 
-          p_quantity: item.quantity 
+        const productId = barcodeToProductId.get(String(item.id));
+        await supabaseAdmin.rpc('increment_product_stock', {
+          p_product_id: productId,
+          p_quantity: item.quantity
         });
       }
       return NextResponse.json({ error: err.message }, { status: 400 });
@@ -159,7 +165,8 @@ export async function POST(request: NextRequest) {
     if (orderError) {
       // Si falla la creación de la orden, devolvemos el stock
       for (const item of items) {
-        await supabaseAdmin.rpc('increment_product_stock', { p_product_id: item.id, p_quantity: item.quantity });
+        const productId = barcodeToProductId.get(String(item.id));
+        await supabaseAdmin.rpc('increment_product_stock', { p_product_id: productId, p_quantity: item.quantity });
       }
       return NextResponse.json({ error: 'Failed to create order', details: orderError }, { status: 500 });
     }

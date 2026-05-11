@@ -13,10 +13,11 @@ export async function POST(req: NextRequest) {
     const itemIds = items.map((i: any) => i.id);
 
     // Obtener datos reales de los productos desde la base de datos
+    // Los CartItem.id corresponden al barcode del producto (ver mapSupaToUI en services/products.ts)
     const { data: dbProducts, error } = await supabaseServer
       .from("products")
-      .select("id, name, sale_price, stock, is_active")
-      .in("id", itemIds);
+      .select("id, barcode, name, sale_price, stock, is_active")
+      .in("barcode", itemIds);
 
     if (error) {
       console.error("Error validando carrito:", error);
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     const updates: any[] = [];
 
     items.forEach((item: any) => {
-      const dbProduct = dbProducts?.find((p) => String(p.id) === String(item.id));
+      const dbProduct = dbProducts?.find((p) => String(p.barcode) === String(item.id));
 
       // Si el producto no existe o está inactivo, marcar como stock insuficiente (0)
       if (!dbProduct || !dbProduct.is_active) {
