@@ -71,15 +71,15 @@ export function SettingsInjector() {
       document.title = settings.seoTitle;
     }
 
-    // Inyectar favicon
-    if (settings.appearance?.faviconUrl) {
-      let link = document.querySelector("link[rel='icon']") as HTMLLinkElement;
-      if (!link) {
-        link = document.createElement("link");
-        link.rel = "icon";
-        document.head.appendChild(link);
-      }
-      link.href = settings.appearance.faviconUrl;
+    // Inyectar favicon — solo URLs absolutas para evitar 404 por rutas relativas obsoletas
+    const faviconUrl = settings.appearance?.faviconUrl;
+    if (faviconUrl && (faviconUrl.startsWith('https://') || faviconUrl.startsWith('http://'))) {
+      // Eliminar todos los link de icono existentes para evitar referencias obsoletas
+      document.querySelectorAll("link[rel='icon'], link[rel='shortcut icon']").forEach(el => el.remove());
+      const link = document.createElement("link");
+      link.rel = "icon";
+      link.href = faviconUrl;
+      document.head.appendChild(link);
     }
   }, [settings]);
 
