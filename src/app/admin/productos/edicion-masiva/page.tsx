@@ -20,7 +20,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 
-type ProductChanges = { price?: number; offerPrice?: number | null; stock?: number; minStock?: number; optimumStock?: number; name?: string; categories?: string[] };
+type ProductChanges = { price?: number; offerPrice?: number | null; stock?: number; minStock?: number; optimumStock?: number; name?: string; categories?: string[]; description?: string };
 
 interface ProductSnapshot {
   id: string;
@@ -32,6 +32,7 @@ interface ProductSnapshot {
   minStock: number;
   optimumStock: number;
   categories: string[];
+  description: string;
 }
 
 interface Backup {
@@ -72,6 +73,7 @@ function createBackup(products: any[], label: string): Backup {
       minStock: p.minStock ?? 5,
       optimumStock: p.optimumStock ?? 20,
       categories: p.categories || [],
+      description: p.description || "",
     })),
   };
 }
@@ -118,6 +120,9 @@ const COLUMN_MAP: Record<string, keyof ProductChanges | "barcode"> = {
   categorias: "categories",
   categories: "categories",
   categoria: "categories",
+  descripcion: "description",
+  description: "description",
+  desc: "description",
 };
 
 export default function BulkEditProductsPage() {
@@ -349,6 +354,9 @@ export default function BulkEditProductsPage() {
             if (v.length > 0 && JSON.stringify(v.sort()) !== JSON.stringify([...(product.categories || [])].sort())) {
               changes.categories = v;
             }
+          } else if (field === "description") {
+            const v = String(raw).trim();
+            if (v && v !== (product.description || "")) changes.description = v;
           }
         }
 
@@ -389,6 +397,7 @@ export default function BulkEditProductsPage() {
       if (snap.minStock !== (current.minStock ?? 5)) changes.minStock = snap.minStock;
       if (snap.optimumStock !== (current.optimumStock ?? 20)) changes.optimumStock = snap.optimumStock;
       if (snap.name !== current.name) changes.name = snap.name;
+      if (snap.description !== (current.description || "")) changes.description = snap.description;
       if (JSON.stringify([...snap.categories].sort()) !== JSON.stringify([...(current.categories || [])].sort())) {
         changes.categories = snap.categories;
       }
