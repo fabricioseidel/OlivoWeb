@@ -1,6 +1,32 @@
 import { useState, useEffect, useCallback } from "react";
 import type { StoreSettings } from "@/app/api/admin/settings/route";
 
+// Module-level cache — shared across ALL instances of the hook so the
+// network request fires only once per session (or after settings:updated).
+let _cache: { data: StoreSettings; ts: number } | null = null;
+let _pending: Promise<StoreSettings> | null = null;
+const CACHE_TTL = 30_000;
+
+async function _fetchOnce(): Promise<StoreSettings> {
+  if (_cache && Date.now() - _cache.ts < CACHE_TTL) return _cache.data;
+  if (_pending) return _pending;
+  _pending = fetch("/api/admin/settings", { cache: "no-store" })
+    .then((r) => {
+      if (!r.ok) throw new Error(r.statusText);
+      return r.json() as Promise<StoreSettings>;
+    })
+    .then((data) => {
+      _cache = { data, ts: Date.now() };
+      _pending = null;
+      return data;
+    })
+    .catch((err) => {
+      _pending = null;
+      throw err;
+    });
+  return _pending;
+}
+
 const DEFAULT_SETTINGS: StoreSettings = {
   storeName: "OLIVOMARKET",
   storeEmail: "contacto@olivomarket.cl",
@@ -55,31 +81,15 @@ export function useStoreSettings(): UseStoreSettingsReturn {
   const [error, setError] = useState<string | null>(null);
 
   const fetchSettings = useCallback(async () => {
+    if (typeof process !== "undefined" && (process.env.VITEST || process.env.NODE_ENV === "test")) {
+      setSettings(DEFAULT_SETTINGS);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
-
-      // During unit tests (vitest) or in Node where a relative fetch URL is invalid,
-      // avoid making a network call. Use defaults instead. This prevents errors like
-      // "Failed to parse URL from /api/admin/settings" when running tests.
-      if (typeof process !== "undefined" && (process.env.VITEST || process.env.NODE_ENV === "test")) {
-        setSettings(DEFAULT_SETTINGS);
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch("/api/admin/settings", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
-        throw new Error(json.error || response.statusText);
-      }
-
-      const data = (await response.json()) as StoreSettings;
+      const data = await _fetchOnce();
       setSettings({ ...DEFAULT_SETTINGS, ...data });
     } catch (err: any) {
       console.error("[useStoreSettings]", err);
@@ -98,6 +108,7 @@ export function useStoreSettings(): UseStoreSettingsReturn {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handler = () => {
+      _cache = null; // invalidar cache para que el próximo fetch sea real
       fetchSettings();
     };
     window.addEventListener("settings:updated", handler as EventListener);

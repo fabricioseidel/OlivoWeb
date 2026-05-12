@@ -5,6 +5,7 @@ import React, {
   useContext,
   useEffect,
   useState,
+  useMemo,
   ReactNode,
   useCallback,
 } from 'react';
@@ -254,24 +255,23 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const contextValue: ProductContextType = {
+  const contextValue = useMemo<ProductContextType>(() => ({
     products,
     loading,
     error,
     refresh,
     search,
     getProductById,
-  trackProductView,
-  trackOrderIntent,
-  fetchDetails: fetchProductDetails,
-  // Alias for compatibility
-  addProduct: createProduct,
+    trackProductView,
+    trackOrderIntent,
+    fetchDetails: fetchProductDetails,
+    addProduct: createProduct,
     createProduct,
     updateProduct,
     deleteProduct: deleteProductFn,
-  toggleFeatured,
-  toggleActive,
-  };
+    toggleFeatured,
+    toggleActive,
+  }), [products, loading, error]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <ProductContext.Provider value={contextValue}>

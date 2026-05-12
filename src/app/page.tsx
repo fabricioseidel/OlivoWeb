@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
-import type { StoreSettings } from "@/app/api/admin/settings/route";
 import Link from "next/link";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
 import ProductCard from "@/components/ProductCard";
@@ -30,18 +30,7 @@ export default function Home() {
   const { products, loading: productsLoading } = useProducts();
   const { categories, loading: categoriesLoading } = useCategories();
   const { status } = useSession();
-  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
-
-  // Load settings for dynamic hero content
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const res = await fetch('/api/admin/settings');
-        if (res.ok) setStoreSettings(await res.json());
-      } catch (e) { console.error(e); }
-    };
-    loadSettings();
-  }, []);
+  const { settings: storeSettings } = useStoreSettings();
 
   const heroTitle = storeSettings?.heroTitle || "Sabor que te conecta con casa";
   const heroDescription = storeSettings?.heroDescription || "Llevamos lo mejor de Venezuela directo a tu puerta en Chile. Calidad garantizada, frescura y el sabor que ya conoces.";

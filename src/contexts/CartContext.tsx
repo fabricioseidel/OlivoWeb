@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { CartItem } from '@/types';
 import { useToast } from "./ToastContext";
 
@@ -77,16 +77,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [cartItems, mounted]);
 
   // Calcular subtotal
-  const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-
-  // Calcular costo de envío (0 por defecto, se calcula en Checkout)
+  const subtotal = useMemo(
+    () => cartItems.reduce((total, item) => total + item.price * item.quantity, 0),
+    [cartItems]
+  );
   const shippingCost = 0;
-
-  // Calcular total
   const total = subtotal + shippingCost;
-
-  // Contar el número total de artículos
-  const itemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
+  const itemCount = useMemo(
+    () => cartItems.reduce((count, item) => count + item.quantity, 0),
+    [cartItems]
+  );
 
   // Agregar producto al carrito
   const addToCart = useCallback((product: Omit<CartItem, "quantity">, quantity: number = 1) => {
@@ -194,7 +194,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [cartItems, showToast]);
 
-  const contextValue: CartContextType = {
+  const contextValue = useMemo<CartContextType>(() => ({
     cartItems,
     addToCart,
     removeFromCart,
@@ -206,7 +206,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     shippingCost,
     itemCount,
     isSyncing,
-  };
+  }), [cartItems, addToCart, removeFromCart, updateQuantity, clearCart, validateCartWithServer, subtotal, total, itemCount, isSyncing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>;
 }
