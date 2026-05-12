@@ -140,6 +140,44 @@ export async function saveProduct(p: Partial<SupaProduct> & { barcode: string })
   }
 }
 
+export async function saveProductsBulk(products: (Partial<SupaProduct> & { barcode: string })[]) {
+  const payloads = products.map(p => ({
+    barcode: p.barcode,
+    name: p.name ?? null,
+    category: p.category ?? null,
+    purchase_price: p.purchase_price ?? 0,
+    sale_price: p.sale_price ?? 0,
+    expiry_date: p.expiry_date ?? null,
+    stock: p.stock ?? 0,
+    updated_at: new Date().toISOString(),
+    image_url: p.image_url ?? null,
+    gallery: Array.isArray(p.gallery) ? p.gallery : null,
+    featured: p.featured,
+    reorder_threshold: p.reorder_threshold ?? null,
+    description: p.description ?? null,
+    features: Array.isArray(p.features) ? p.features : null,
+    measurement_unit: p.measurement_unit ?? null,
+    measurement_value: p.measurement_value ?? null,
+    suggested_price: p.suggested_price ?? null,
+    offer_price: p.offer_price ?? null,
+    is_active: p.is_active ?? false,
+    tax_rate: p.tax_rate ?? 19,
+    min_stock: p.min_stock ?? 5,
+    optimum_stock: p.optimum_stock ?? 20,
+  }));
+
+  const res = await fetch('/api/products', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items: payloads }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Error saving products bulk');
+  }
+}
+
 export async function deleteProduct(barcode: string) {
   const res = await fetch(`/api/products?id=${encodeURIComponent(barcode)}`, {
     method: 'DELETE',

@@ -15,6 +15,7 @@ import {
   fetchAllProducts,
   searchProducts,
   saveProduct,
+  saveProductsBulk,
   deleteProduct,
   fetchProductDetails,
 } from '@/services/products';
@@ -36,6 +37,7 @@ interface ProductContextType {
   addProduct: (productData: Partial<Product>) => Promise<void>;
   createProduct: (productData: Partial<Product>) => Promise<void>;
   updateProduct: (id: string, productData: Partial<Product>) => Promise<void>;
+  updateProductsBulk: (updates: Record<string, Partial<Product>>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   toggleFeatured: (id: string, value: boolean) => Promise<void>;
   toggleActive: (id: string, value: boolean) => Promise<void>;
@@ -183,6 +185,43 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     await load();
   };
 
+  const updateProductsBulk = async (updates: Record<string, Partial<Product>>) => {
+    const ids = Object.keys(updates);
+    if (ids.length === 0) return;
+
+    const productsToSave = ids.map(id => {
+      const barcode = String(id).trim();
+      const existing = fullProducts.find(p => String(p.id) === barcode);
+      if (!existing) return null;
+
+      const merged = { ...existing, ...updates[id] };
+      return {
+        barcode,
+        name: merged.name,
+        category: Array.isArray(merged.categories)
+          ? merged.categories.join(', ')
+          : (merged as any).category ?? '',
+        purchase_price: Number(merged.purchasePrice ?? 0),
+        sale_price: Number(merged.price ?? 0),
+        stock: Number(merged.stock ?? 0),
+        image_url: merged.image,
+        gallery: merged.gallery,
+        featured: merged.featured,
+        is_active: merged.isActive,
+        measurement_unit: merged.measurementUnit,
+        measurement_value: merged.measurementValue,
+        suggested_price: merged.suggestedPrice,
+        offer_price: merged.offerPrice,
+        description: merged.description,
+      };
+    }).filter(Boolean) as any[];
+
+    if (productsToSave.length > 0) {
+      await saveProductsBulk(productsToSave);
+      await load();
+    }
+  };
+
   const deleteProductFn = async (id: string) => {
     await deleteProduct(String(id));
     await load();
@@ -261,6 +300,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     addProduct: createProduct,
     createProduct,
     updateProduct,
+    updateProductsBulk,
     deleteProduct: deleteProductFn,
     toggleFeatured,
     toggleActive,

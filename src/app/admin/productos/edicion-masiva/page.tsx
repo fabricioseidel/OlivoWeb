@@ -126,7 +126,7 @@ const COLUMN_MAP: Record<string, keyof ProductChanges | "barcode"> = {
 };
 
 export default function BulkEditProductsPage() {
-  const { products, updateProduct } = useProducts();
+  const { products, updateProduct, updateProductsBulk } = useProducts();
   const { showToast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -258,19 +258,13 @@ export default function BulkEditProductsPage() {
     setBackups(updatedBackups);
 
     setIsSaving(true);
-    let success = 0;
-
+    
     try {
-      for (const id of targetIds) {
-        const changes = editedChanges[id];
-        await updateProduct(id, changes as any);
-        success++;
-      }
-
-      showToast(`¡${success} productos actualizados con éxito!`, "success");
+      await updateProductsBulk(editedChanges as any);
+      showToast(`¡${updateCount} productos actualizados con éxito!`, "success");
       setEditedChanges({});
-    } catch {
-      showToast("Ocurrió un error al guardar algunos cambios", "error");
+    } catch (error) {
+      showToast("Ocurrió un error al guardar los cambios", "error");
     } finally {
       setIsSaving(false);
     }
