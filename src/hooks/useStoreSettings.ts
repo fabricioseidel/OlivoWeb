@@ -8,8 +8,16 @@ let _pending: Promise<StoreSettings> | null = null;
 const CACHE_TTL = 30_000;
 
 async function _fetchOnce(): Promise<StoreSettings> {
-  if (_cache && Date.now() - _cache.ts < CACHE_TTL) return _cache.data;
-  if (_pending) return _pending;
+  if (_cache && Date.now() - _cache.ts < CACHE_TTL) {
+    console.log("[OLIVO:settings] ✅ CACHE HIT — usando datos en memoria, no se hizo fetch", { age_ms: Date.now() - _cache.ts, ttl_ms: CACHE_TTL });
+    return _cache.data;
+  }
+  if (_pending) {
+    console.log("[OLIVO:settings] ⏳ fetch ya en curso — esperando promise compartida");
+    return _pending;
+  }
+  console.group("[OLIVO:settings] 🌐 FETCH /api/admin/settings");
+  const t0 = Date.now();
   _pending = fetch("/api/admin/settings", { cache: "no-store" })
     .then((r) => {
       if (!r.ok) throw new Error(r.statusText);
@@ -18,10 +26,14 @@ async function _fetchOnce(): Promise<StoreSettings> {
     .then((data) => {
       _cache = { data, ts: Date.now() };
       _pending = null;
+      console.log(`[OLIVO:settings] ✅ OK en ${Date.now() - t0}ms`, { storeName: (data as any).store_name, logoUrl: (data as any).logo_url, blocks: ((data as any).blocks ?? []).length + " bloques" });
+      console.groupEnd();
       return data;
     })
     .catch((err) => {
       _pending = null;
+      console.error("[OLIVO:settings] ❌ Error:", err.message);
+      console.groupEnd();
       throw err;
     });
   return _pending;

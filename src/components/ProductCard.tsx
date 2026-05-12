@@ -51,6 +51,7 @@ export default function ProductCard({ product }: Props) {
   const handleAddOne = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log(`[OLIVO:card] 👆 CLICK ADD "${product.name}" | qtyActual:${quantityInCart} | precio:$${effectivePrice} | stock:${product.stock}`);
     setIsAdding(true);
     addToCart({
       id: product.id,
@@ -70,6 +71,7 @@ export default function ProductCard({ product }: Props) {
   const handleRemoveOne = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log(`[OLIVO:card] 👆 CLICK REMOVE "${product.name}" | qtyActual:${quantityInCart}`);
     if (quantityInCart > 1) {
       addToCart({
         id: product.id,

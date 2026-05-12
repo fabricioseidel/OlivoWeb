@@ -6,23 +6,27 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const items = body.items;
 
+    console.log("[OLIVO:api:validate] 📥 Items recibidos:", items?.length, items?.map((i: any) => `${i.id}(x${i.quantity}@$${i.price})`));
+
     if (!Array.isArray(items) || items.length === 0) {
+      console.log("[OLIVO:api:validate] carrito vacío, retornando updates:[]");
       return NextResponse.json({ updates: [] });
     }
 
     const itemIds = items.map((i: any) => i.id);
+    console.log("[OLIVO:api:validate] Buscando barcodes en DB:", itemIds);
 
-    // Obtener datos reales de los productos desde la base de datos
-    // Los CartItem.id corresponden al barcode del producto (ver mapSupaToUI en services/products.ts)
     const { data: dbProducts, error } = await supabaseServer
       .from("products")
       .select("id, barcode, name, sale_price, stock, is_active")
       .in("barcode", itemIds);
 
     if (error) {
-      console.error("Error validando carrito:", error);
+      console.error("[OLIVO:api:validate] ❌ Error Supabase:", error);
       return NextResponse.json({ updates: [] }, { status: 500 });
     }
+
+    console.log("[OLIVO:api:validate] 🗄️ Productos encontrados en DB:", dbProducts?.length, dbProducts?.map((p: any) => `${p.barcode}:stock=${p.stock},precio=$${p.sale_price},activo=${p.is_active}`));
 
     const updates: any[] = [];
 
@@ -61,9 +65,10 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    console.log("[OLIVO:api:validate] 📤 Respuesta final:", { updates_count: updates.length, updates });
     return NextResponse.json({ updates });
   } catch (error) {
-    console.error("Error en validación de carrito:", error);
+    console.error("[OLIVO:api:validate] ❌ Error fatal:", error);
     return NextResponse.json({ updates: [] }, { status: 500 });
   }
 }

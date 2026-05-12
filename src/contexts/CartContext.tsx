@@ -32,8 +32,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Carga inicial del carrito desde localStorage (solo en el cliente)
   useEffect(() => {
     setMounted(true);
+    console.group("[OLIVO:cart] 🛍️ Inicializando carrito desde localStorage");
     try {
       const storedCart = localStorage.getItem("cart");
+      console.log("[OLIVO:cart] raw localStorage:", storedCart ? `${storedCart.length} chars` : "vacío");
       if (storedCart) {
         const parsedCart = JSON.parse(storedCart);
         if (Array.isArray(parsedCart)) {
@@ -54,18 +56,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
             slug: item.slug || '',
             quantity: item.quantity
           }));
+          console.log(`[OLIVO:cart] ✅ ${validatedCart.length} items cargados`, validatedCart.map(i => `${i.name} x${i.quantity} $${i.price}`));
           setCartItems(validatedCart);
         } else {
-          // Si no es un array, inicializar con un array vacío
+          console.warn("[OLIVO:cart] ⚠️ localStorage no era array, reiniciando");
           setCartItems([]);
           localStorage.setItem("cart", JSON.stringify([]));
         }
+      } else {
+        console.log("[OLIVO:cart] carrito vacío");
       }
     } catch (error) {
-      console.error("Error parsing cart data:", error);
-      // En caso de error, reiniciar el carrito
+      console.error("[OLIVO:cart] ❌ Error parseando carrito:", error);
       setCartItems([]);
       localStorage.setItem("cart", JSON.stringify([]));
+    } finally {
+      console.groupEnd();
     }
   }, []);
 
@@ -94,10 +100,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === product.id);
       if (existingItem) {
+        const newQty = existingItem.quantity + qty;
+        console.log(`[OLIVO:cart] ➕ UPDATE "${product.name}" → qty ${existingItem.quantity} → ${newQty} (precio: $${product.price})`);
         return prevItems.map(item =>
-          item.id === product.id ? { ...item, quantity: item.quantity + qty } : item
+          item.id === product.id ? { ...item, quantity: newQty } : item
         );
       } else {
+        console.log(`[OLIVO:cart] 🆕 ADD "${product.name}" qty:${qty} precio:$${product.price} id:${product.id}`);
         return [...prevItems, { ...product, quantity: qty }];
       }
     });
@@ -105,7 +114,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Eliminar producto del carrito
   const removeFromCart = useCallback((id: string) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== id));
+    setCartItems(prevItems => {
+      const item = prevItems.find(i => i.id === id);
+      console.log(`[OLIVO:cart] 🗑️ REMOVE "${item?.name ?? id}"`);
+      return prevItems.filter(i => i.id !== id);
+    });
   }, []);
 
   // Actualizar cantidad de un producto
@@ -126,8 +139,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Validación con el servidor — actualiza el carrito si hay cambios de stock o precio
   const validateCartWithServer = useCallback(async () => {
-    if (cartItems.length === 0) return true;
-    
+    if (cartItems.length === 0) {
+      console.log("[OLIVO:cart:validate] carrito vacío, skip validación");
+      return true;
+    }
+    console.group(`[OLIVO:cart:validate] 🔍 Validando ${cartItems.length} items con servidor`);
+    console.table(cartItems.map(i => ({ id: i.id, nombre: i.name, qty: i.quantity, precio: i.price })));
     setIsSyncing(true);
     try {
       const response = await fetch('/api/cart/validate', {
@@ -137,7 +154,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
 
       const data = await response.json();
-      console.log('[Cart Validate] Respuesta del servidor:', data);
+      console.log('[OLIVO:cart:validate] 📦 Respuesta servidor:', { updates: data.updates?.length ?? 0, detalle: data.updates });
 
       if (data.updates && data.updates.length > 0) {
         let cartChanged = false;
@@ -172,23 +189,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }).filter(Boolean) as CartItem[];
 
         if (cartChanged) {
+          console.warn("[OLIVO:cart:validate] ⚠️ Carrito modificado:", messages);
           setCartItems(nextItems);
-          
-          // Mostrar alertas consolidadas si hay muchos cambios
           if (messages.length > 2) {
             showToast("Varios productos en tu carrito fueron actualizados por cambios en stock o precio.", "warning");
           } else {
             messages.forEach(m => showToast(m, "warning"));
           }
-          
-          return false; // Indicamos que el carrito cambió, el usuario debe revisar
+          console.groupEnd();
+          return false;
         }
       }
-      
+      console.log("[OLIVO:cart:validate] ✅ Carrito válido, sin cambios");
+      console.groupEnd();
       return true;
     } catch (error) {
-      console.error("Cart validation failed", error);
-      return true; // No bloqueamos si falla el server por red
+      console.error("[OLIVO:cart:validate] ❌ Error de red:", error);
+      console.groupEnd();
+      return true;
     } finally {
       setIsSyncing(false);
     }

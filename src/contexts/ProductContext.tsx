@@ -57,27 +57,29 @@ export function ProductProvider({ children }: { children: ReactNode }) {
 
   const load = useCallback(async () => {
     let mounted = true;
+    console.group("[OLIVO:products] 🛒 Cargando catálogo de productos...");
+    const t0 = Date.now();
     try {
       setLoading(true);
       setError(undefined);
       const data = await fetchAllProducts();
       if (mounted) {
         const normalized = normalize(data);
+        const activos = normalized.filter(p => p.isActive).length;
+        const destacados = normalized.filter(p => p.featured).length;
+        console.log(`[OLIVO:products] ✅ ${normalized.length} productos en ${Date.now() - t0}ms`, { activos, destacados, inactivos: normalized.length - activos });
+        console.table(normalized.slice(0, 5).map(p => ({ id: p.id, nombre: p.name, precio: p.price, stock: p.stock, activo: p.isActive, destacado: p.featured })));
         setProducts(normalized);
         setFullProducts(normalized);
       }
     } catch (e: any) {
-      if (mounted) {
-        setError(e?.message || 'Error cargando productos');
-      }
+      console.error("[OLIVO:products] ❌ Error al cargar productos:", e?.message);
+      if (mounted) setError(e?.message || 'Error cargando productos');
     } finally {
-      if (mounted) {
-        setLoading(false);
-      }
+      if (mounted) setLoading(false);
+      console.groupEnd();
     }
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
   useEffect(() => {

@@ -268,10 +268,18 @@ export default function CheckoutPage() {
   };
 
   const nextStep = () => {
+    console.group("[OLIVO:checkout] ➡️ Avanzar a Paso 2");
+    console.log("shippingInfo:", shippingInfo);
+    console.log("cartItems:", cartItems.length, cartItems.map(i => `${i.name} x${i.quantity}`));
+    console.log("subtotal:", subtotal, "| shipping:", shippingCost, "| total:", total);
     if (!shippingInfo.fullName || !shippingInfo.email || !shippingInfo.address) {
-       alert("Por favor completa tus datos y dirección de entrega.");
-       return;
+      console.warn("[OLIVO:checkout] ❌ Faltan campos requeridos");
+      console.groupEnd();
+      alert("Por favor completa tus datos y dirección de entrega.");
+      return;
     }
+    console.log("[OLIVO:checkout] ✅ Validación OK, avanzando");
+    console.groupEnd();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setStep(2);
   };
@@ -313,7 +321,9 @@ export default function CheckoutPage() {
         } : null
       };
 
-      console.log('[Checkout] Enviando orden con método de pago:', selectedPaymentMethod);
+      console.group("[OLIVO:checkout] 🚀 Enviando orden");
+      console.log("Método de pago:", selectedPaymentMethod);
+      console.log("Payload completo:", JSON.stringify(payload, null, 2));
 
       const response = await fetch('/api/checkout/create-order', {
         method: 'POST',
@@ -322,7 +332,8 @@ export default function CheckoutPage() {
       });
 
       const data = await response.json();
-      console.log('[Checkout] Respuesta del servidor:', { status: response.status, data });
+      console.log("[OLIVO:checkout] 📨 Respuesta servidor:", { status: response.status, ok: response.ok, orderId: data.orderId, initPoint: data.initPoint, error: data.error });
+      console.groupEnd();
 
       if (!response.ok) {
         // MP falló pero la orden fue creada en la DB
