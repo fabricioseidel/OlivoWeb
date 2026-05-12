@@ -79,13 +79,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadOrders();
     loadPosSales();
-    // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       loadOrders();
       loadPosSales();
     }, 30000);
     return () => clearInterval(interval);
-  }, [viewMode, orders.length]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
 
   useEffect(() => {
     if (viewMode === 'analytics') {

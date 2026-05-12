@@ -26,7 +26,7 @@ async function _fetchOnce(): Promise<StoreSettings> {
     .then((data) => {
       _cache = { data, ts: Date.now() };
       _pending = null;
-      console.log(`[OLIVO:settings] ✅ OK en ${Date.now() - t0}ms`, { storeName: (data as any).store_name, logoUrl: (data as any).logo_url, blocks: ((data as any).blocks ?? []).length + " bloques" });
+      console.log(`[OLIVO:settings] ✅ OK en ${Date.now() - t0}ms`, { storeName: data.storeName, logoUrl: data.appearance?.logoUrl, blocks: (data.appearance?.blocks ?? []).length + " bloques" });
       console.groupEnd();
       return data;
     })
