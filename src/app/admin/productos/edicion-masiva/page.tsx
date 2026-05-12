@@ -84,7 +84,11 @@ function addBackup(existing: Backup[], newBackup: Backup): Backup[] {
 }
 
 function normalizeHeader(h: string): string {
-  return String(h).toLowerCase().trim().replace(/[\s_\-]/g, "");
+  return String(h)
+    .toLowerCase()
+    .trim()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "") // quita tildes
+    .replace(/[^a-z0-9]/g, ""); // solo letras y números
 }
 
 const COLUMN_MAP: Record<string, keyof ProductChanges | "barcode"> = {
@@ -116,6 +120,7 @@ const COLUMN_MAP: Record<string, keyof ProductChanges | "barcode"> = {
   categorias: "categories",
   categories: "categories",
   categoria: "categories",
+  categorias: "categories",
 };
 
 export default function BulkEditProductsPage() {
@@ -415,7 +420,6 @@ export default function BulkEditProductsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10 pb-32">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
           <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-2 uppercase">
@@ -485,7 +489,6 @@ export default function BulkEditProductsPage() {
         </div>
       </div>
 
-      {/* Panel de Historial */}
       {showHistory && (
         <div className="mb-6 bg-white rounded-[2rem] border border-violet-100 shadow-xl shadow-violet-100/30 overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-violet-50 bg-violet-50/50">
@@ -540,7 +543,6 @@ export default function BulkEditProductsPage() {
         </div>
       )}
 
-      {/* Toolbar & Filters */}
       <div className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl shadow-gray-200/50 border border-gray-100 mb-6 sticky top-4 z-30">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
