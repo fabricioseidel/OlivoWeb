@@ -97,7 +97,7 @@ export default function Navbar() {
                     className="h-8 w-auto group-hover:scale-105 transition-transform duration-300"
                     src={settings.appearance.logoUrl}
                     alt={settings.storeName || 'Tienda'}
-                    fallback="/logo.png"
+                    fallback="/file.svg"
                   />
                 ) : (
                   <span className="text-xl font-bold text-emerald-600 tracking-tight group-hover:text-emerald-700 transition-colors">

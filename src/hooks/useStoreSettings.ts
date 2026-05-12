@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS: StoreSettings = {
     primaryColor: "#10B981",
     secondaryColor: "#059669",
     accentColor: "#047857",
-    logoUrl: "/logo.png",
+    logoUrl: undefined,
     enableDarkMode: false,
   },
   shipping: {

@@ -152,7 +152,7 @@ export async function GET() {
           primaryColor: "#10B981",
           secondaryColor: "#059669",
           accentColor: "#047857",
-          logoUrl: "/logo.png",
+          logoUrl: undefined,
           enableDarkMode: false,
           blocks: [
             { id: 'b1', type: 'hero', enabled: true, title: 'Sabor que te conecta con casa', description: 'Llevamos lo mejor de Venezuela directo a tu puerta en Chile.' },
