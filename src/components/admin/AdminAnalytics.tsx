@@ -1,0 +1,280 @@
+"use client";
+
+import { useMemo } from "react";
+import {
+  EyeIcon,
+  ArrowTrendingUpIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  Squares2X2Icon,
+  ArrowPathIcon,
+  LightBulbIcon,
+  CurrencyDollarIcon,
+} from "@heroicons/react/24/outline";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell,
+} from "recharts";
+import type { LiveOrder } from "./LiveReceptionBoard";
+
+interface Props {
+  orders: LiveOrder[];
+  products: any[];
+  posSales: any[];
+  insights: any[];
+  lastSync: string;
+  onRefresh: () => void;
+  onExportCSV: () => void;
+}
+
+const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'];
+
+export default function AdminAnalytics({ orders, products, posSales, insights, lastSync, onRefresh, onExportCSV }: Props) {
+  const metrics = useMemo(() => {
+    const totalViews = products.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+    const totalOrderIntents = products.reduce((sum, p) => sum + (p.orderClicks || 0), 0);
+    const lowStock = products.filter(p => p.stock > 0 && p.stock <= 5).length;
+    const totalWebOrders = orders.length;
+    const webRevenue = orders.reduce((s, o) => s + (Number(o.total) || 0), 0);
+    const itemsSold = orders.reduce((s, o) => s + (o.productos || (Array.isArray(o.items) ? (o.items as any[]).reduce((acc: number, it: any) => acc + (Number(it.quantity) || 0), 0) : 0)), 0);
+    const intentConversion = totalOrderIntents ? (totalWebOrders / totalOrderIntents) * 100 : 0;
+    const webPendingTransfers = orders.filter(o =>
+      o.paymentMethod?.toLowerCase().includes('transfer') &&
+      (o.paymentStatus?.toLowerCase().includes('pending') || o.paymentStatus?.toLowerCase().includes('waiting'))
+    ).length;
+    const posPendingTransfers = posSales.filter(s =>
+      s.payment_method?.toLowerCase().includes('transfer') && s.transfer_status === 'pending'
+    ).length;
+    const todayWebCount = orders.filter(o => {
+      const d = o.createdAt ? new Date(o.createdAt).toISOString().split('T')[0] : '';
+      return d === new Date().toISOString().split('T')[0];
+    }).length;
+    const posRevenue = posSales.reduce((s, o) => s + (Number(o.total) || 0), 0);
+    const totalGrossRevenue = webRevenue + posRevenue;
+    const totalAllOrders = totalWebOrders + posSales.length;
+    const avgOrder = totalAllOrders ? totalGrossRevenue / totalAllOrders : 0;
+    return {
+      totalViews, totalOrderIntents, lowStock, totalOrders: totalAllOrders,
+      grossRevenue: totalGrossRevenue, itemsSold, avgOrder, intentConversion,
+      pendingTransfers: webPendingTransfers + posPendingTransfers,
+      todaySales: todayWebCount + posSales.length,
+    };
+  }, [products, orders, posSales]);
+
+  const salesByDay = useMemo(() => {
+    const grouped = orders.reduce((acc, o) => {
+      const d = o.createdAt ? new Date(o.createdAt).toISOString().split('T')[0] : 'N/A';
+      acc[d] = (acc[d] || 0) + (o.total || 0);
+      return acc;
+    }, {} as Record<string, number>);
+    return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([date, Ventas]) => ({ date, Ventas }));
+  }, [orders]);
+
+  const topCategories = useMemo(() => {
+    const catMap: Record<string, number> = {};
+    products.forEach(p => {
+      if (Array.isArray(p.categories)) p.categories.forEach((c: string) => { catMap[c] = (catMap[c] || 0) + 1; });
+    });
+    return Object.entries(catMap).map(([name, count]) => ({ name, Productos: count })).sort((a, b) => b.Productos - a.Productos).slice(0, 5);
+  }, [products]);
+
+  const ordersByStatus = useMemo(() => {
+    const statusMap: Record<string, number> = {};
+    orders.forEach(o => { const s = o.estado || 'desconocido'; statusMap[s] = (statusMap[s] || 0) + 1; });
+    return Object.entries(statusMap).map(([name, value]) => ({ name, value }));
+  }, [orders]);
+
+  const topViewed = useMemo(() => [...products].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0)).slice(0, 5), [products]);
+  const topOrderIntents = useMemo(() => [...products].sort((a, b) => (b.orderClicks || 0) - (a.orderClicks || 0)).slice(0, 5), [products]);
+
+  return (
+    <>
+      {insights.length > 0 && (
+        <div className="mb-8 p-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-[2rem] shadow-lg shadow-amber-900/5 animate-in slide-in-from-bottom-5">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/40">
+              <LightBulbIcon className="w-6 h-6" />
+            </div>
+            <h2 className="text-xl font-black text-amber-950 uppercase tracking-widest">IA Predictiva <span className="opacity-50 text-xs ml-2">BETA</span></h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {insights.map((insight, idx) => (
+              <div key={idx} className="bg-white rounded-2xl p-4 border border-amber-100 flex gap-4 hover:shadow-md transition">
+                {insight.image ? (
+                  <img src={insight.image} className="w-12 h-12 rounded-xl object-cover shrink-0" alt="" />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 shrink-0">📦</div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-gray-900 truncate mb-1">{insight.productName}</p>
+                  <p className="text-[10px] text-gray-500 font-medium leading-snug break-words">{insight.message}</p>
+                  <p className="text-[10px] text-amber-600 font-black mt-2 tracking-widest uppercase">{insight.actionMessage}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
+        <StatCard title="Ventas Hoy" value={metrics.todaySales} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} color="emerald" helper="Web + POS" />
+        <StatCard title="Ingresos" value={`$ ${metrics.grossRevenue.toLocaleString('es-CL')}`} icon={<ArrowUpIcon className="h-6 w-6" />} color="blue" helper="Suma Total" />
+        <StatCard title="Transf. Pendientes" value={metrics.pendingTransfers} icon={<CurrencyDollarIcon className="h-6 w-6" />} color="rose" helper="Revisión pendiente" />
+        <StatCard title="Ticket Medio" value={`$ ${metrics.avgOrder.toLocaleString('es-CL')}`} icon={<ArrowDownIcon className="h-6 w-6" />} color="teal" helper="Promedio web" />
+        <StatCard title="Items Vendidos" value={metrics.itemsSold} icon={<Squares2X2Icon className="h-6 w-6" />} color="indigo" helper="Unidades totales" />
+        <StatCard title="Vistas" value={metrics.totalViews} icon={<EyeIcon className="h-6 w-6" />} color="emerald" helper="Visitas a productos" />
+        <StatCard title="Conversión" value={`${metrics.intentConversion.toFixed(1)}%`} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} color="amber" helper="Intentos vs Pedidos" />
+        <StatCard title="Bajo Stock" value={metrics.lowStock} icon={<Squares2X2Icon className="h-6 w-6" />} color="rose" helper="Menos de 5 unids." />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
+          <h3 className="text-sm font-medium text-gray-900 mb-4">Ventas Diarias</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={salesByDay}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
+                <YAxis tickFormatter={(val) => `$${val}`} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
+                <Tooltip formatter={(val: any) => [`$${Number(val).toFixed(2)}`, "Ventas"]} />
+                <Line type="monotone" dataKey="Ventas" stroke="#10B981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
+          <h3 className="text-sm font-medium text-gray-900 mb-4">Top 5 Categorías (Volumen de Productos)</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topCategories} layout="vertical" margin={{ left: 40, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#374151', textAnchor: 'end' }} />
+                <Tooltip />
+                <Bar dataKey="Productos" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={24} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md overflow-hidden p-6 lg:col-span-2">
+          <h3 className="text-sm font-medium text-gray-900 mb-4">Distribución de Estados de Pedidos Web</h3>
+          <div className="h-64 flex items-center justify-center">
+            {ordersByStatus.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={ordersByStatus} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" label={({ name, percent = 0 }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                    {ordersByStatus.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(val: number | undefined) => [val || 0, 'Pedidos']} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-gray-400 text-sm">No hay suficientes datos</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-medium text-gray-900">Top productos</h2>
+        <div className="flex items-center gap-3 text-xs text-gray-500">
+          <button onClick={onExportCSV} className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-500 font-medium">
+            <ArrowPathIcon className="h-4 w-4" /> Exportar CSV
+          </button>
+          <button onClick={onRefresh} className="text-sm text-gray-600 hover:text-gray-800">Refrescar pedidos</button>
+          <span>Sync: {lastSync || '—'}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+        <MetricTable
+          title="Más vistos"
+          rows={topViewed.map(p => ({ id: p.id, nombre: p.name, categoria: Array.isArray(p.categories) ? p.categories.slice(0, 2).join(', ') : '', valor: p.viewCount || 0, extra: p.orderClicks || 0 }))}
+          headerValor="Vistas" headerExtra="Intentos"
+        />
+        <MetricTable
+          title="Más intentos pedido"
+          rows={topOrderIntents.map(p => ({ id: p.id, nombre: p.name, categoria: Array.isArray(p.categories) ? p.categories.slice(0, 2).join(', ') : '', valor: p.orderClicks || 0, extra: p.viewCount || 0 }))}
+          headerValor="Intentos" headerExtra="Vistas"
+        />
+      </div>
+    </>
+  );
+}
+
+interface StatCardProps { title: string; value: string | number; icon: React.ReactNode; color: 'emerald' | 'blue' | 'indigo' | 'amber' | 'rose' | 'teal'; helper?: string; }
+function StatCard({ title, value, icon, color, helper }: StatCardProps) {
+  const colorMap = { emerald: "bg-emerald-50 text-emerald-600 border-emerald-100", blue: "bg-blue-50 text-blue-600 border-blue-100", indigo: "bg-indigo-50 text-indigo-600 border-indigo-100", amber: "bg-amber-50 text-amber-600 border-amber-100", rose: "bg-rose-50 text-red-600 border-red-100", teal: "bg-teal-50 text-teal-600 border-teal-100" };
+  const iconBgMap = { emerald: "bg-emerald-600 shadow-emerald-200", blue: "bg-blue-600 shadow-blue-200", indigo: "bg-indigo-600 shadow-indigo-200", amber: "bg-amber-600 shadow-amber-200", rose: "bg-rose-600 shadow-red-200", teal: "bg-teal-600 shadow-teal-200" };
+  return (
+    <div className="p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 group relative overflow-hidden">
+      <div className={`absolute top-0 right-0 w-24 h-24 ${colorMap[color].split(' ')[0]} rounded-full blur-3xl opacity-50 -mr-12 -mt-12 group-hover:opacity-100 transition-opacity`} />
+      <div className="relative z-10">
+        <div className="flex justify-between items-start mb-4">
+          <div className={`p-3 rounded-2xl ${iconBgMap[color]} text-white shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-500`}>{icon}</div>
+          {helper && <span className="text-[10px] font-black uppercase tracking-widest text-gray-300 italic">{helper}</span>}
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">{title}</h3>
+          <p className="text-3xl font-black text-gray-900 tracking-tight">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface MetricTableProps { title: string; rows: { id: string; nombre: string; categoria: string; valor: number; extra: number }[]; headerValor: string; headerExtra: string; }
+function MetricTable({ title, rows, headerValor, headerExtra }: MetricTableProps) {
+  return (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-sm font-medium text-gray-900">{title}</h3>
+      </div>
+      <div className="md:hidden divide-y divide-gray-100">
+        {rows.length === 0 ? <div className="px-6 py-10 text-center text-gray-400 text-xs">Sin datos todavía</div> : rows.map(r => (
+          <div key={r.id} className="p-4 flex flex-col gap-2">
+            <div className="flex justify-between items-start gap-2">
+              <span className="text-sm font-bold text-gray-900 line-clamp-2 flex-1">{r.nombre}</span>
+              <div className="flex flex-col items-end shrink-0">
+                <span className="text-xs font-black text-emerald-600">{r.valor}</span>
+                <span className="text-[10px] text-gray-400 uppercase font-bold">{headerValor}</span>
+              </div>
+            </div>
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium truncate max-w-[150px]">{r.categoria || 'Sin categoría'}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-gray-400">{headerExtra}:</span>
+                <span className="text-[10px] font-bold text-gray-700">{r.extra}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="hidden md:block overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerValor}</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerExtra}</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200 text-sm">
+            {rows.map(r => (
+              <tr key={r.id}>
+                <td className="px-4 py-2 font-medium text-gray-900 line-clamp-1 max-w-[160px]">{r.nombre}</td>
+                <td className="px-4 py-2 text-gray-500">{r.categoria}</td>
+                <td className="px-4 py-2 text-gray-900">{r.valor}</td>
+                <td className="px-4 py-2 text-gray-500">{r.extra}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td className="px-4 py-6 text-center text-gray-400 text-xs" colSpan={4}>Sin datos todavía</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
