@@ -1,4 +1,4 @@
-import { fetchAllProducts } from "@/services/products";
+import { fetchAllProducts, isProductVisible } from "@/services/products";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -69,8 +69,10 @@ async function upsertProductsWithColumnFallback(payloadsInput: any[]) {
 export async function GET() {
   try {
     const items = await fetchAllProducts();
-    // Using fallback images since products table doesn't have image_url column
-    const result = (items || []).map((p) => ({
+    // Solo productos visibles: activos y con nombre, categoría, precio y foto
+    const result = (items || [])
+      .filter((p) => p.isActive !== false && isProductVisible(p))
+      .map((p) => ({
       id: p.id,
       name: p.name,
       slug: p.slug,

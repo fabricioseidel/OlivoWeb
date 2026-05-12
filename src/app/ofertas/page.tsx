@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, Sparkles } from "lucide-react";
 import { useProducts } from "@/contexts/ProductContext";
+import { isProductVisible } from "@/services/products";
 import { useCategoryNames } from "@/hooks/useCategories";
 import ProductCard from "@/components/ProductCard";
 
@@ -15,7 +16,7 @@ export default function OfertasPage() {
 
   // Criterio de oferta: tiene offerPrice < price e isActive
   const offerProducts = useMemo(() =>
-    products.filter(p => p.isActive && !!(p.offerPrice && p.offerPrice > 0 && p.offerPrice < p.price)),
+    products.filter(p => p.isActive && isProductVisible(p) && !!(p.offerPrice && p.offerPrice > 0 && p.offerPrice < p.price)),
     [products]);
 
   // Usar las categorías oficiales de la API

@@ -8,6 +8,7 @@ import { Sparkles, X } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useProducts, Product } from "@/contexts/ProductContext";
+import { isProductVisible } from "@/services/products";
 import { buildSingleProductLink } from "@/utils/whatsapp";
 import { WHATSAPP_PHONE } from "@/config/constants";
 import ProductCard from "@/components/ProductCard";
@@ -74,7 +75,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
 
   // Obtener productos relacionados
   const relatedProducts: Product[] = products
-    .filter(p => p.isActive && p.id !== product.id && p.categories?.some(cat => product.categories?.includes(cat)))
+    .filter(p => p.isActive && isProductVisible(p) && p.id !== product.id && p.categories?.some(cat => product.categories?.includes(cat)))
     .slice(0, 4);
 
   // Manejar la cantidad

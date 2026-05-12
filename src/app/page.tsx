@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useProducts } from "@/contexts/ProductContext";
+import { isProductVisible } from "@/services/products";
 import { useToast } from "@/contexts/ToastContext";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
@@ -38,7 +39,7 @@ export default function Home() {
 
   // Filtrar productos destacados y activos
   const featuredProducts = products
-    .filter(p => p.isActive && p.featured)
+    .filter(p => p.isActive && p.featured && isProductVisible(p))
     .slice(0, 8); // Mostrar max 8 destacados
 
   return (
@@ -120,7 +121,7 @@ export default function Home() {
               );
             case 'products':
               const limit = block.itemsToShow || 8;
-              const productsToDisplay = products.filter(p => p.isActive && p.featured).slice(0, limit);
+              const productsToDisplay = products.filter(p => p.isActive && p.featured && isProductVisible(p)).slice(0, limit);
               return (
                 <section key={block.id} className="py-16 bg-gray-50/50">
                   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -3,14 +3,18 @@
 import React, { useMemo } from "react";
 import ProductGrid from "@/components/ProductGrid";
 import { useProducts } from "@/contexts/ProductContext";
+import { isProductVisible } from "@/services/products";
 
 import { Sparkles } from "lucide-react";
 
 export default function ProductsPage() {
   const { products, loading, error } = useProducts();
 
-  // Filter only active products for the public store
-  const activeProducts = useMemo(() => products.filter(p => p.isActive !== false), [products]);
+  // Solo productos activos y completos (nombre, categoría, precio, foto)
+  const activeProducts = useMemo(
+    () => products.filter(p => p.isActive !== false && isProductVisible(p)),
+    [products]
+  );
 
   return (
     <div className="bg-white min-h-screen">

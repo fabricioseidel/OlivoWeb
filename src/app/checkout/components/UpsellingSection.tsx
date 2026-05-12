@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import Image from "next/image";
 import { useCart } from "@/contexts/CartContext";
 import { useProducts } from "@/contexts/ProductContext";
+import { isProductVisible } from "@/services/products";
 import { PlusIcon, SparklesIcon } from "@heroicons/react/24/outline";
 
 export default function UpsellingSection() {
@@ -27,7 +28,7 @@ export default function UpsellingSection() {
 
     // Score products
     const scoredProducts = products
-      .filter((p) => !cartItemIds.has(p.id) && p.stock > 0)
+      .filter((p) => !cartItemIds.has(p.id) && p.stock > 0 && p.isActive !== false && isProductVisible(p))
       .map((p) => {
         let score = p.viewCount || 0;
         let matchCategories = 0;

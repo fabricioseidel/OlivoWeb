@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useProducts } from "@/contexts/ProductContext";
+import { isProductVisible } from "@/services/products";
 import ProductGrid from "@/components/ProductGrid";
 
 export default function CategoryDetailPage() {
@@ -13,6 +14,8 @@ export default function CategoryDetailPage() {
 
   const filtered = useMemo(() => {
     return products.filter((p) =>
+      p.isActive !== false &&
+      isProductVisible(p) &&
       (p.categories || []).some((c) => c.toLowerCase() === target)
     );
   }, [products, target]);

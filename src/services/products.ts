@@ -6,6 +6,17 @@ import { SupaProduct, ProductUI } from '@/types';
 // won't be present in Vercel unless committed, causing 404/next-image 400.
 const DEFAULT_IMAGE = "/file.svg";
 
+// Un producto es visible en la tienda pública solo si tiene los 4 campos mínimos:
+// nombre real, al menos una categoría, precio > 0 y foto distinta al placeholder.
+export function isProductVisible(p: ProductUI): boolean {
+  const name = (p.name ?? "").trim();
+  if (!name || name === "(Sin nombre)") return false;
+  if (!Array.isArray(p.categories) || p.categories.length === 0) return false;
+  if (!p.price || Number(p.price) <= 0) return false;
+  if (!p.image || p.image === DEFAULT_IMAGE) return false;
+  return true;
+}
+
 export function mapSupaToUI(p: SupaProduct): ProductUI {
   const name = p.name ?? '(Sin nombre)';
   const category = p.category ?? '';
