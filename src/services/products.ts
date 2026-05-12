@@ -66,7 +66,7 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
 export async function fetchAllProducts(): Promise<ProductUI[]> {
   const { data, error } = await supabase
     .from('products')
-    .select('barcode, name, category, sale_price, offer_price, image_url, stock, featured, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold')
+    .select('barcode, name, category, sale_price, offer_price, image_url, stock, featured, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold, description')
     .order('updated_at', { ascending: false })
     .limit(1000);
 
@@ -150,4 +150,3 @@ export async function deleteProduct(barcode: string) {
     throw new Error(err.error || 'Error deleting product');
   }
 }
-
