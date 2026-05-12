@@ -1,6 +1,6 @@
 "use client";
 import { ReactNode } from "react";
-import { Menu, MenuButton, MenuItems, MenuItem, Transition } from "@headlessui/react";
+import { Menu, MenuButton, MenuItems, MenuItem } from "@headlessui/react";
 import Link from "next/link";
 
 export interface DropdownItem {
@@ -31,16 +31,9 @@ const Dropdown = ({
       <MenuButton className={triggerClassName}>
         {trigger}
       </MenuButton>
-      <Transition
-        enter="transition ease-out duration-200"
-        enterFrom="transform opacity-0 scale-95"
-        enterTo="transform opacity-100 scale-100"
-        leave="transition ease-in duration-150"
-        leaveFrom="transform opacity-100 scale-100"
-        leaveTo="transform opacity-0 scale-95"
-      >
         <MenuItems
-          className={`absolute ${align === "right" ? "right-0" : "left-0"} mt-2 w-56 rounded-lg shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50`}
+          transition
+          className={`absolute ${align === "right" ? "right-0" : "left-0"} mt-2 w-56 rounded-lg shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50 origin-top transition ease-out data-[closed]:scale-95 data-[closed]:opacity-0 data-[enter]:duration-200 data-[leave]:duration-150 data-[leave]:ease-in`}
         >
           {items.map((item, idx) => (
             <MenuItem key={idx}>
@@ -81,7 +74,6 @@ const Dropdown = ({
             </MenuItem>
           ))}
         </MenuItems>
-      </Transition>
     </Menu>
   );
 };

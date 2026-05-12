@@ -56,3 +56,4 @@ Mejorar proyecto*/
 *.txt
 tmp_checkout.html
 node-bin/
+.env*.local

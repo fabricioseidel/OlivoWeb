@@ -39,22 +39,25 @@ export function SettingsInjector() {
       root.classList.remove("dark");
     }
 
-    // Actualizar meta tags SEO
+    // Solo tocar tags marcados como inyectados por nosotros (NUNCA los que Next.js renderiza,
+    // porque al removerlos React pierde la referencia y revienta con removeChild on null al navegar)
     const updateMetaTag = (name: string, content: string) => {
-      let tag = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement;
+      let tag = document.querySelector(`meta[name="${name}"][data-injected="settings"]`) as HTMLMetaElement | null;
       if (!tag) {
         tag = document.createElement("meta");
         tag.setAttribute("name", name);
+        tag.setAttribute("data-injected", "settings");
         document.head.appendChild(tag);
       }
       tag.setAttribute("content", content);
     };
 
     const updateOpenGraphTag = (property: string, content: string) => {
-      let tag = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
+      let tag = document.querySelector(`meta[property="${property}"][data-injected="settings"]`) as HTMLMetaElement | null;
       if (!tag) {
         tag = document.createElement("meta");
         tag.setAttribute("property", property);
+        tag.setAttribute("data-injected", "settings");
         document.head.appendChild(tag);
       }
       tag.setAttribute("content", content);
@@ -71,15 +74,17 @@ export function SettingsInjector() {
       document.title = settings.seoTitle;
     }
 
-    // Inyectar favicon — solo URLs absolutas para evitar 404 por rutas relativas obsoletas
+    // Favicon: solo actualizar/crear NUESTRO link (no tocar el de Next.js, eso rompe React)
     const faviconUrl = settings.appearance?.faviconUrl;
     if (faviconUrl && (faviconUrl.startsWith('https://') || faviconUrl.startsWith('http://'))) {
-      // Eliminar todos los link de icono existentes para evitar referencias obsoletas
-      document.querySelectorAll("link[rel='icon'], link[rel='shortcut icon']").forEach(el => el.remove());
-      const link = document.createElement("link");
-      link.rel = "icon";
-      link.href = faviconUrl;
-      document.head.appendChild(link);
+      let link = document.querySelector("link[rel='icon'][data-injected='settings']") as HTMLLinkElement | null;
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        link.setAttribute("data-injected", "settings");
+        document.head.appendChild(link);
+      }
+      if (link.href !== faviconUrl) link.href = faviconUrl;
     }
   }, [settings]);
 

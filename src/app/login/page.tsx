@@ -90,17 +90,7 @@ function LoginForm() {
     signIn("google", { callbackUrl: callbackUrl });
   };
 
-  // No mostrar el formulario si ya estamos autenticados (el useEffect ya está haciendo el redirect)
-  if (status === "authenticated") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-500 mb-4">Ya has iniciado sesión. Redirigiendo...</p>
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500 mx-auto"></div>
-        </div>
-      </div>
-    );
-  }
+  if (status === "authenticated") return null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
