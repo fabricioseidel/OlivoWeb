@@ -93,11 +93,12 @@ export default function Navbar() {
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="flex items-center gap-3 group">
                 {settings.appearance?.logoUrl ? (
-                  <ImageWithFallback
-                    className="h-8 w-auto group-hover:scale-105 transition-transform duration-300"
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
                     src={settings.appearance.logoUrl}
                     alt={settings.storeName || 'Tienda'}
-                    fallback="/file.svg"
+                    className="w-auto object-contain group-hover:scale-105 transition-transform duration-300"
+                    style={{ height: '2rem' }}
                   />
                 ) : (
                   <span className="text-xl font-bold text-emerald-600 tracking-tight group-hover:text-emerald-700 transition-colors">
