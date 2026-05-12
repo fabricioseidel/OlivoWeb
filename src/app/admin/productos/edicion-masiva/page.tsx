@@ -9,7 +9,6 @@ import {
   MagnifyingGlassIcon,
   ArrowPathIcon,
   CloudArrowUpIcon,
-  FunnelIcon,
   ExclamationCircleIcon,
   PlusIcon,
   MinusIcon,
@@ -19,7 +18,6 @@ import {
   ClockIcon,
   ArrowUturnLeftIcon,
   XMarkIcon,
-  DocumentArrowDownIcon,
 } from "@heroicons/react/24/outline";
 
 type ProductChanges = { price?: number; offerPrice?: number | null; stock?: number; minStock?: number; optimumStock?: number; name?: string; categories?: string[] };
@@ -87,8 +85,8 @@ function normalizeHeader(h: string): string {
   return String(h)
     .toLowerCase()
     .trim()
-    .normalize("NFD").replace(/[̀-ͯ]/g, "") // quita tildes
-    .replace(/[^a-z0-9]/g, ""); // solo letras y números
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]/g, "");
 }
 
 const COLUMN_MAP: Record<string, keyof ProductChanges | "barcode"> = {
@@ -120,7 +118,6 @@ const COLUMN_MAP: Record<string, keyof ProductChanges | "barcode"> = {
   categorias: "categories",
   categories: "categories",
   categoria: "categories",
-  categorias: "categories",
 };
 
 export default function BulkEditProductsPage() {
@@ -727,7 +724,7 @@ function EditableRow({ product, changes, onChange }: { product: any; changes?: P
         <div className="flex items-center gap-4">
           <div className="relative group-hover:scale-110 transition-transform shrink-0 hidden sm:block">
             {product.image ? (
-              <img src={product.image} className="w-10 h-10 rounded-xl object-cover shadow-sm bg-white border border-gray-100" />
+              <img src={product.image} alt={product.name} className="w-10 h-10 rounded-xl object-cover shadow-sm bg-white border border-gray-100" />
             ) : (
               <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-xs">📦</div>
             )}
@@ -859,7 +856,7 @@ function EditableCard({ product, changes, onChange }: { product: any; changes?: 
       <div className="flex items-start gap-3 mb-4">
         <div className="relative shrink-0 mt-1">
           {product.image ? (
-            <img src={product.image} className="w-12 h-12 rounded-xl object-cover shadow-sm bg-white border border-gray-100" />
+            <img src={product.image} alt={product.name} className="w-12 h-12 rounded-xl object-cover shadow-sm bg-white border border-gray-100" />
           ) : (
             <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">📦</div>
           )}
