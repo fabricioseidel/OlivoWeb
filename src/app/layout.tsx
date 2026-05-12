@@ -1,25 +1,21 @@
-"use client";
-
 import "./globals.css";
-import React from "react";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { usePathname } from "next/navigation";
-
 import { Analytics } from "@vercel/analytics/react";
 import Providers from "./providers";
-import Navbar from "@/components/layout/Navbar";
-import BottomNav from "@/components/layout/BottomNav";
+import ShopShell from "@/components/layout/ShopShell";
 import { SettingsInjector } from "@/components/admin/SettingsInjector";
-
 import { ProductProvider } from "@/contexts/ProductContext";
 import { CategoryProvider } from "@/contexts/CategoryContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isAdmin = pathname?.startsWith("/admin");
+export const metadata: Metadata = {
+  title: "Olivo Market",
+  description: "Productos venezolanos premium en Chile",
+};
 
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className="h-full">
       <body className={`${inter.className} h-full bg-gray-50 antialiased`}>
@@ -27,15 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SettingsInjector />
           <ProductProvider>
             <CategoryProvider>
-              <div className="min-h-screen flex flex-col">
-                {!isAdmin && (
-                  <header className="sticky top-0 z-50 bg-white shadow">
-                    <Navbar />
-                  </header>
-                )}
-                <main className={`flex-1 ${isAdmin ? '' : 'bg-white pb-20 md:pb-0'}`}>{children}</main>
-                {!isAdmin && <BottomNav />}
-              </div>
+              <ShopShell>{children}</ShopShell>
             </CategoryProvider>
           </ProductProvider>
         </Providers>
@@ -44,4 +32,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
-

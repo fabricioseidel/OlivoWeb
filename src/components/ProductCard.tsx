@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { memo, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
@@ -11,9 +11,17 @@ import { getCategoryStyle } from '@/utils/categoryStyles';
 
 import { ProductUI } from '@/types';
 
+const formatter = new Intl.NumberFormat('es-CL', {
+  style: 'currency',
+  currency: 'CLP',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+const formatCurrency = (value: number) => formatter.format(value);
+
 type Props = { product: ProductUI };
 
-export default function ProductCard({ product }: Props) {
+function ProductCard({ product }: Props) {
   const { addToCart, cartItems, removeFromCart } = useCart();
   const { showToast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
@@ -39,19 +47,9 @@ export default function ProductCard({ product }: Props) {
     ? Math.round(((basePrice - offerPrice!) / basePrice) * 100)
     : 0;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
   const handleAddOne = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log(`[OLIVO:card] 👆 CLICK ADD "${product.name}" | qtyActual:${quantityInCart} | precio:$${effectivePrice} | stock:${product.stock}`);
     setIsAdding(true);
     addToCart({
       id: product.id,
@@ -71,7 +69,6 @@ export default function ProductCard({ product }: Props) {
   const handleRemoveOne = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log(`[OLIVO:card] 👆 CLICK REMOVE "${product.name}" | qtyActual:${quantityInCart}`);
     if (quantityInCart > 1) {
       addToCart({
         id: product.id,
@@ -212,3 +209,5 @@ export default function ProductCard({ product }: Props) {
     </div>
   );
 }
+
+export default memo(ProductCard);
