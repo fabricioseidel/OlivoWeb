@@ -185,6 +185,16 @@ html {
   }
 }
 
+/* Fix doble-tap en móvil: deshabilita zoom por doble-tap en elementos interactivos */
+button,
+a,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+label {
+  touch-action: manipulation;
+}
+
 /* Prevent horizontal overflow on mobile */
 body {
   overflow-x: hidden;
