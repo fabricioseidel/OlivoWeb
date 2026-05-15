@@ -14,7 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useQuickInventory, InventoryMode } from "@/hooks/useQuickInventory";
-import ScanSelector from "./ScanSelector";
+import UnifiedScanner from "../scanner/UnifiedScanner";
 
 interface QuickInventoryUIProps {
   mode: InventoryMode;
@@ -94,9 +94,9 @@ export default function QuickInventoryUI({ mode }: QuickInventoryUIProps) {
         {/* ========================================= */}
         {/* HYBRID SCAN SELECTOR                      */}
         {/* ========================================= */}
-        <ScanSelector 
-          onScan={addItem} 
-          isProcessing={isScanning} 
+        <UnifiedScanner
+          onDetected={addItem}
+          isProcessing={isScanning}
         />
 
         {/* List of Scanned Items */}

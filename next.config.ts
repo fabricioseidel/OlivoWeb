@@ -17,6 +17,15 @@ const nextConfig = {
       { protocol: "https", hostname: "res.cloudinary.com" },
     ],
   },
+  async redirects() {
+    return [
+      // Sales workflow consolidated into the POS page
+      { source: "/admin/productos/venta-rapida", destination: "/admin/pos", permanent: true },
+      { source: "/admin/productos/venta-rapida-iphone", destination: "/admin/pos", permanent: true },
+      // Purchase workflow consolidated — keep regular compra-rapida as canonical
+      { source: "/admin/productos/compra-rapida-iphone", destination: "/admin/productos/compra-rapida", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

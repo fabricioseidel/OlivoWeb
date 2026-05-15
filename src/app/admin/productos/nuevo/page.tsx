@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeftIcon, TrashIcon, PlusIcon, CameraIcon } from "@heroicons/react/24/outline";
-import POSScanner from "@/components/admin/POSScanner";
+import { ArrowLeftIcon, TrashIcon, PlusIcon, CameraIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import UnifiedScanner from "@/components/admin/scanner/UnifiedScanner";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import SingleImageUpload from "@/components/ui/SingleImageUpload";
@@ -762,13 +762,24 @@ export default function NewProductPage() {
         </form>
       </div>
       {showScanner && (
-        <POSScanner
-          onScan={(barcode) => {
-            setFormData(prev => ({ ...prev, barcode }));
-            setShowScanner(false);
-          }}
-          onClose={() => setShowScanner(false)}
-        />
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4">
+          <div className="w-full max-w-md relative">
+            <button
+              onClick={() => setShowScanner(false)}
+              className="absolute -top-12 right-0 p-2 bg-white/10 rounded-xl hover:bg-red-500 text-white transition-colors z-10"
+              aria-label="Cerrar"
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+            <UnifiedScanner
+              initialMode="CAMERA"
+              onDetected={(barcode: string) => {
+                setFormData(prev => ({ ...prev, barcode }));
+                setShowScanner(false);
+              }}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
