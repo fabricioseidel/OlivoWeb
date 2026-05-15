@@ -11,6 +11,7 @@ import {
 import { useBarcodeStream } from "./useBarcodeStream";
 import { useLaserScanner } from "./useLaserScanner";
 import ZoomTorchOverlay from "./ZoomTorchOverlay";
+import CameraPicker from "./CameraPicker";
 import type { BarcodeFormat, ScannerSource } from "@/types/scanner";
 
 interface UnifiedScannerProps {
@@ -72,6 +73,9 @@ export default function UnifiedScanner({
     toggleTorch,
     focusAt,
     retry,
+    cameras,
+    currentCameraId,
+    setCamera,
   } = useBarcodeStream({
     videoElementId: containerId,
     onDetected: (code, format) => handle(code, "camera", format),
@@ -110,6 +114,10 @@ export default function UnifiedScanner({
     };
   }, []);
 
+  const macroCam = cameras.find((c) => c.kind === "macro");
+  const hasMacroSuggestion =
+    !!macroCam && currentCameraId !== macroCam.deviceId && isRunning;
+
   return (
     <div
       className={`w-full bg-[#0a0a0a] rounded-[2rem] border border-white/10 overflow-hidden ${className}`}
@@ -119,6 +127,22 @@ export default function UnifiedScanner({
           <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-[2rem]">
             <ArrowPathIcon className="w-8 h-8 text-emerald-400 animate-spin" />
           </div>
+        )}
+
+        <CameraPicker
+          cameras={cameras}
+          currentCameraId={currentCameraId}
+          onPick={setCamera}
+        />
+
+        {hasMacroSuggestion && (
+          <button
+            type="button"
+            onClick={() => setCamera(macroCam!.deviceId)}
+            className="w-full mb-3 mt-1 px-3 py-2 bg-emerald-500/10 border border-emerald-500/40 rounded-xl text-[10px] font-black uppercase tracking-widest text-emerald-300 hover:bg-emerald-500/20 active:scale-[0.98] transition-all"
+          >
+            ¿Código pequeño? Cambia al lente Macro
+          </button>
         )}
 
         <div

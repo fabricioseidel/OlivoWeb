@@ -4,6 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import type { BarcodeFormat, ScannerCapabilities } from "@/types/scanner";
 
+export type CameraKind = "main" | "wide" | "ultrawide" | "macro" | "tele" | "front" | "unknown";
+
+export interface CameraInfo {
+  deviceId: string;
+  label: string;
+  kind: CameraKind;
+  /** Position in the device list — useful as a tie-breaker. */
+  index: number;
+}
+
 interface UseBarcodeStreamOptions {
   videoElementId: string;
   onDetected: (code: string, format?: BarcodeFormat) => void;
@@ -24,6 +34,9 @@ interface UseBarcodeStreamResult {
   toggleTorch: () => void;
   focusAt: (xRatio: number, yRatio: number) => void;
   retry: () => void;
+  cameras: CameraInfo[];
+  currentCameraId: string | null;
+  setCamera: (deviceId: string) => void;
 }
 
 const DEFAULT_FORMATS: BarcodeFormat[] = [
@@ -42,6 +55,8 @@ const NULL_CAPS: ScannerCapabilities = {
   hasBarcodeDetector: false,
 };
 
+const STORAGE_KEY = "scanner.cameraId.v1";
+
 const isPermissionDenied = (err: unknown): boolean => {
   if (!err) return false;
   const e = err as { name?: string; message?: string };
@@ -52,10 +67,46 @@ const isPermissionDenied = (err: unknown): boolean => {
   );
 };
 
+const classifyCamera = (rawLabel: string): CameraKind => {
+  const l = rawLabel.toLowerCase();
+  if (!l) return "unknown";
+  if (/front|frontal|user|selfie/.test(l)) return "front";
+  if (/macro/.test(l)) return "macro";
+  if (/ultra[\s-]?wide|gran[\s-]?angular|wide[\s-]?angle|0\.5x|fisheye/.test(l)) return "ultrawide";
+  if (/tele|2x|3x|5x|10x|periscop/.test(l)) return "tele";
+  if (/back|trasera|rear|environment|world|wide|main|principal/.test(l)) return "main";
+  return "unknown";
+};
+
+const isLikelyBackCamera = (label: string): boolean => {
+  const l = label.toLowerCase();
+  if (!l) return true; // assume usable when labels are empty (pre-permission)
+  if (/front|frontal|user|selfie/.test(l)) return false;
+  return true;
+};
+
+const FRIENDLY_LABEL: Record<CameraKind, string> = {
+  main: "Principal",
+  wide: "Gran angular",
+  ultrawide: "Ultragran angular",
+  macro: "Macro",
+  tele: "Tele",
+  front: "Frontal",
+  unknown: "Cámara",
+};
+
+const labelize = (info: { label: string; kind: CameraKind; index: number }) => {
+  if (info.kind !== "unknown") return FRIENDLY_LABEL[info.kind];
+  // Strip the noisy "camera2 0, facing back" prefix Chrome shows on Android.
+  const clean = info.label.replace(/^camera2 \d+,?\s*/i, "").replace(/\s+/g, " ").trim();
+  return clean || `Cámara ${info.index + 1}`;
+};
+
 /**
  * Pulls frames from the rear camera at high resolution with continuous autofocus,
  * uses the native BarcodeDetector when available and falls back to html5-qrcode.
- * Exposes zoom/torch controls when the device supports them, plus tap-to-focus.
+ * Exposes zoom/torch controls when the device supports them, plus tap-to-focus
+ * and a lens picker for multi-camera phones.
  */
 export function useBarcodeStream({
   videoElementId,
@@ -72,6 +123,11 @@ export function useBarcodeStream({
   const [zoom, setZoomState] = useState(1);
   const [torchOn, setTorchOn] = useState(false);
   const [retryNonce, setRetryNonce] = useState(0);
+  const [cameras, setCameras] = useState<CameraInfo[]>([]);
+  const [currentCameraId, setCurrentCameraId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try { return window.localStorage.getItem(STORAGE_KEY); } catch { return null; }
+  });
 
   const streamRef = useRef<MediaStream | null>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
@@ -97,9 +153,9 @@ export function useBarcodeStream({
     [cooldownMs]
   );
 
-  // Applies the most aggressive focus + macro constraints supported by the track.
-  // Critical for reading small barcodes up close (Chrome Android ignores the
-  // initial `focusMode` in getUserMedia, so we re-apply here after the track is live).
+  // Re-apply focus constraints after the track is alive. Chrome Android ignores
+  // the initial `focusMode` hint inside getUserMedia constraints, and even
+  // continuous mode can quietly disengage — so we keep nudging it.
   const applyFocusConstraints = useCallback(async (track: MediaStreamTrack) => {
     const caps = (track.getCapabilities?.() ?? {}) as MediaTrackCapabilities;
     const advanced: MediaTrackConstraintSet[] = [];
@@ -111,8 +167,6 @@ export function useBarcodeStream({
       advanced.push({ focusMode: "auto" });
     }
 
-    // On some Android devices, forcing min focus distance enables macro-style
-    // close-up focus that the "continuous" mode otherwise won't engage.
     if (caps.focusDistance) {
       advanced.push({ focusDistance: caps.focusDistance.min });
     }
@@ -121,7 +175,6 @@ export function useBarcodeStream({
     try {
       await track.applyConstraints({ advanced });
     } catch {
-      // Some constraints (focusDistance especially) are picky — fall back to focusMode only.
       const fmOnly = advanced.filter((c) => c.focusMode);
       if (fmOnly.length) {
         try { await track.applyConstraints({ advanced: fmOnly }); } catch { /* noop */ }
@@ -129,12 +182,43 @@ export function useBarcodeStream({
     }
   }, []);
 
+  const refreshCameras = useCallback(async (preferredId?: string | null) => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const list: CameraInfo[] = devices
+        .filter((d) => d.kind === "videoinput")
+        .map((d, i) => ({
+          deviceId: d.deviceId,
+          label: d.label,
+          kind: classifyCamera(d.label),
+          index: i,
+        }))
+        .filter((c) => isLikelyBackCamera(c.label));
+      setCameras(list);
+
+      // If no camera is selected yet, pick a sensible default.
+      if (!preferredId && !currentCameraId) {
+        const main = list.find((c) => c.kind === "main") ?? list[0];
+        if (main) setCurrentCameraId(main.deviceId);
+      }
+    } catch {
+      // enumerateDevices can fail on private contexts; we just skip the picker.
+    }
+  }, [currentCameraId]);
+
+  const setCamera = useCallback((deviceId: string) => {
+    setCurrentCameraId(deviceId);
+    try { window.localStorage.setItem(STORAGE_KEY, deviceId); } catch { /* noop */ }
+  }, []);
+
   useEffect(() => {
     if (!enabled || typeof window === "undefined") return;
 
     let cancelled = false;
+    let focusHeartbeat: ReturnType<typeof setInterval> | null = null;
 
     const stop = async () => {
+      if (focusHeartbeat !== null) clearInterval(focusHeartbeat);
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
@@ -155,24 +239,28 @@ export function useBarcodeStream({
       }
     };
 
+    const buildVideoConstraints = (): MediaTrackConstraints => {
+      const base: MediaTrackConstraints = {
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        advanced: [{ focusMode: "continuous" }, { focusMode: "auto" }],
+      };
+      if (currentCameraId) {
+        return { ...base, deviceId: { exact: currentCameraId } };
+      }
+      return { ...base, facingMode: { ideal: "environment" } };
+    };
+
     const requestStream = async () => {
-      // Try high-res with autofocus hint first; if that fails (some Android cams
-      // can't deliver 1080p), retry without resolution constraint.
       try {
         return await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            advanced: [
-              { focusMode: "continuous" },
-              { focusMode: "auto" },
-            ],
-          },
+          video: buildVideoConstraints(),
           audio: false,
         });
       } catch (err) {
         if (isPermissionDenied(err)) throw err;
+        // A specific deviceId may not be available right now — fall back to
+        // generic back camera so the user isn't stranded.
         return await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: "environment" } },
           audio: false,
@@ -185,9 +273,12 @@ export function useBarcodeStream({
       const track = stream.getVideoTracks()[0];
       trackRef.current = track;
 
-      // Re-apply focus constraints after the track is alive — this is the
-      // actual fix for the close-up blur issue on Chrome Android.
       await applyFocusConstraints(track);
+
+      const settings = track.getSettings?.() ?? {};
+      if (settings.deviceId && settings.deviceId !== currentCameraId) {
+        setCurrentCameraId(settings.deviceId);
+      }
 
       const caps = (track.getCapabilities?.() ?? {}) as MediaTrackCapabilities;
       setCapabilities({
@@ -222,12 +313,20 @@ export function useBarcodeStream({
             emit(codes[0].rawValue, codes[0].format);
           }
         } catch {
-          // Detection failures are expected when frames have no codes
+          /* expected when frames have no codes */
         }
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
       setIsRunning(true);
+
+      // Heartbeat: re-engage focus every 4 s in case the browser silently
+      // dropped continuous mode (we've seen this on Android when the track
+      // is throttled by tab visibility transitions).
+      focusHeartbeat = setInterval(() => {
+        const t = trackRef.current;
+        if (t) void applyFocusConstraints(t);
+      }, 4000);
     };
 
     const startFallback = async (container: HTMLElement) => {
@@ -245,21 +344,23 @@ export function useBarcodeStream({
       });
       html5Ref.current = scanner;
 
-      const devices = await Html5Qrcode.getCameras();
-      if (!devices.length) throw new Error("No se encontraron cámaras");
-      const back =
-        devices.find((d) =>
-          /back|trasera|environment|rear/i.test(d.label)
-        ) || devices[devices.length - 1];
+      const startConfig = { fps: 24, aspectRatio: 1.7777 };
+      if (currentCameraId) {
+        await scanner.start(
+          { deviceId: { exact: currentCameraId } },
+          startConfig,
+          (decoded) => emit(decoded),
+          () => {}
+        );
+      } else {
+        const devices = await Html5Qrcode.getCameras();
+        if (!devices.length) throw new Error("No se encontraron cámaras");
+        const back =
+          devices.find((d) => /back|trasera|environment|rear/i.test(d.label)) ||
+          devices[devices.length - 1];
+        await scanner.start(back.id, startConfig, (decoded) => emit(decoded), () => {});
+      }
 
-      await scanner.start(
-        back.id,
-        { fps: 24, aspectRatio: 1.7777 },
-        (decoded) => emit(decoded),
-        () => {}
-      );
-
-      // Read capabilities + re-apply focus after html5-qrcode opens the stream.
       setTimeout(async () => {
         const video = container.querySelector("video") as HTMLVideoElement | null;
         const stream = (video?.srcObject as MediaStream | null) || null;
@@ -277,6 +378,11 @@ export function useBarcodeStream({
             hasBarcodeDetector: false,
           });
           if (caps.zoom) setZoomState(caps.zoom.min || 1);
+
+          focusHeartbeat = setInterval(() => {
+            const t = trackRef.current;
+            if (t) void applyFocusConstraints(t);
+          }, 4000);
         }
       }, 400);
 
@@ -305,6 +411,9 @@ export function useBarcodeStream({
         } else {
           await startFallback(container);
         }
+
+        // Permission is granted now; enumerate cameras (labels are populated).
+        void refreshCameras(currentCameraId);
       } catch (err) {
         if (isPermissionDenied(err)) {
           setIsPermissionError(true);
@@ -327,7 +436,7 @@ export function useBarcodeStream({
       setIsRunning(false);
       stop();
     };
-  }, [enabled, videoElementId, acceptedFormats, emit, applyFocusConstraints, retryNonce]);
+  }, [enabled, videoElementId, acceptedFormats, emit, applyFocusConstraints, retryNonce, currentCameraId, refreshCameras]);
 
   const setZoom = useCallback((value: number) => {
     const track = trackRef.current;
@@ -346,7 +455,6 @@ export function useBarcodeStream({
     });
   }, [torchOn]);
 
-  // Single-shot focus on a tapped point (xRatio/yRatio are 0..1 of the video).
   const focusAt = useCallback((xRatio: number, yRatio: number) => {
     const track = trackRef.current;
     if (!track) return;
@@ -367,7 +475,6 @@ export function useBarcodeStream({
       track.applyConstraints({ advanced }).catch(() => {});
     }
 
-    // Re-engage continuous focus shortly after to keep tracking.
     setTimeout(() => {
       void applyFocusConstraints(track);
     }, 1500);
@@ -389,5 +496,10 @@ export function useBarcodeStream({
     toggleTorch,
     focusAt,
     retry,
+    cameras,
+    currentCameraId,
+    setCamera,
   };
 }
+
+export { labelize as labelizeCamera };
