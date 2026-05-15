@@ -14,7 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useQuickInventory, InventoryMode } from "@/hooks/useQuickInventory";
-import IPhoneScannerView from "./IPhoneScannerView";
+import UnifiedScanner from "../scanner/UnifiedScanner";
 
 interface IPhoneInventoryUIProps {
   mode: InventoryMode;
@@ -94,9 +94,10 @@ export default function IPhoneInventoryUI({ mode }: IPhoneInventoryUIProps) {
         {/* ========================================= */}
         {/* DEDICATED IPHONE CAMERA                   */}
         {/* ========================================= */}
-        <IPhoneScannerView 
-          onScan={addItem} 
-          isProcessing={isScanning} 
+        <UnifiedScanner
+          onDetected={addItem}
+          isProcessing={isScanning}
+          initialMode="CAMERA"
         />
 
         {/* List of Scanned Items */}

@@ -1,8 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { ProductUI } from "@/types";
-import { searchProducts } from "@/services/products";
 
 interface POSItem extends ProductUI {
   quantity: number;
@@ -29,13 +28,10 @@ const POSContext = createContext<POSContextType | undefined>(undefined);
 
 export function POSProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<POSItem[]>([]);
-  const [isScanning, setIsScanning] = useState(false);
-  const [lastScannedBarcode, setLastScannedBarcode] = useState<string | null>(null);
-
-  // Buffer for barcode scanner input (which behaves like a keyboard)
-  const [scanBuffer, setScanBuffer] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [discount, setDiscount] = useState<number>(0);
+  const isScanning = false;
+  const lastScannedBarcode: string | null = null;
 
   const total = cart.reduce((acc, item) => acc + (item.offerPrice || item.price) * item.quantity, 0);
   const finalTotal = Math.max(0, total - discount);
@@ -70,75 +66,6 @@ export function POSProvider({ children }: { children: ReactNode }) {
     setAppliedCoupon(null);
     setDiscount(0);
   }, []);
-
-  // Global Key Listener for physical barcode scanners
-  useEffect(() => {
-    let timeout: NodeJS.Timeout;
-
-    const handleKeyDown = async (e: KeyboardEvent) => {
-      // Ignore if typing in an input field (unless it's the scanning mode)
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      if (e.key === "Enter") {
-        if (scanBuffer.length > 3) {
-          setIsScanning(true);
-          try {
-            // Check if it's a coupon format (heuristic: contains 'CUPON' or 'DESC')
-            if (scanBuffer.toUpperCase().includes("CUPON") || scanBuffer.toUpperCase().includes("DESC") || scanBuffer.length > 15) {
-              const res = await fetch(`/api/coupons/validate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code: scanBuffer, cartTotal: total })
-              });
-              if (res.ok) {
-                const data = await res.json();
-                if (data.isValid && data.coupon) {
-                   setAppliedCoupon(data.coupon.code);
-                   setDiscount(data.discountAmount || 0);
-                   setIsScanning(false);
-                   setScanBuffer("");
-                   return; // Stop here if coupon applied
-                }
-              }
-            }
-
-            // Otherwise, it's a product
-            const results = await searchProducts(scanBuffer);
-            const found = results.find(p => p.id === scanBuffer);
-            if (found) {
-              setCart(prev => {
-                const existing = prev.find(item => item.id === found.id);
-                if (existing) {
-                  return prev.map(item => item.id === found.id ? { ...item, quantity: item.quantity + 1 } : item);
-                }
-                return [...prev, { ...found, quantity: 1 }];
-              });
-              setLastScannedBarcode(scanBuffer);
-            }
-          } catch (err) {
-            console.error("Scan error", err);
-          } finally {
-            setIsScanning(false);
-            setScanBuffer("");
-          }
-        }
-      } else if (e.key.length === 1) {
-        setScanBuffer(prev => prev + e.key);
-        
-        // Clear buffer if no input for 200ms (typical of human typing vs scanner)
-        clearTimeout(timeout);
-        timeout = setTimeout(() => setScanBuffer(""), 200);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      clearTimeout(timeout);
-    };
-  }, [scanBuffer, addToCart]);
 
   return (
     <POSContext.Provider value={{

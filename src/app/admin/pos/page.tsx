@@ -12,7 +12,7 @@ import {
 import Image from "next/image";
 import { createSaleAction } from "@/actions/sales";
 import { useToast } from "@/contexts/ToastContext";
-import POSScanner from "@/components/admin/POSScanner";
+import UnifiedScanner from "@/components/admin/scanner/UnifiedScanner";
 
 const PRODUCTS_PER_PAGE = 40;
 
@@ -448,11 +448,30 @@ export default function POSPage() {
       </div>
       
       {showScanner && (
-        <POSScanner onScan={(barcode) => {
-          const found = allProducts.find(p => p.id === barcode);
-          if (found) { addToCart(found); showToast(`Añadido: ${found.name}`, "success"); }
-          else showToast(`No encontrado: ${barcode}`, "error");
-        }} onClose={() => setShowScanner(false)} />
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4">
+          <div className="w-full max-w-md relative">
+            <button
+              onClick={() => setShowScanner(false)}
+              className="absolute -top-12 right-0 p-2 bg-white/10 rounded-xl hover:bg-red-500 text-white transition-colors z-10"
+              aria-label="Cerrar"
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+            <UnifiedScanner
+              initialMode="CAMERA"
+              onDetected={(barcode) => {
+                const found = allProducts.find((p) => p.id === barcode);
+                if (found) {
+                  addToCart(found);
+                  showToast(`Añadido: ${found.name}`, "success");
+                  setShowScanner(false);
+                } else {
+                  showToast(`No encontrado: ${barcode}`, "error");
+                }
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {isScanning && (
