@@ -27,11 +27,15 @@ declare global {
     zoom?: { min: number; max: number; step: number };
     torch?: boolean;
     focusMode?: string[];
+    focusDistance?: { min: number; max: number; step: number };
+    pointsOfInterest?: { x: number; y: number }[];
   }
   interface MediaTrackConstraintSet {
     zoom?: number;
     torch?: boolean;
     focusMode?: string;
+    focusDistance?: number;
+    pointsOfInterest?: { x: number; y: number }[];
   }
 
   class BarcodeDetector {
