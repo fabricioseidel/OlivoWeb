@@ -1,5 +1,112 @@
 import { supabaseServer } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { earnPoints } from "@/server/loyalty.service";
+
+export type SalePaymentMethod = "CASH" | "DEBIT" | "CREDIT" | "TRANSFER" | "WALLET" | "OTHER";
+
+export interface SalePaymentInput {
+  method: SalePaymentMethod;
+  amount: number;
+  reference?: string | null;
+}
+
+export interface CreateSaleInput {
+  branchId?: string | null;
+  shiftId?: string | null;
+  total: number;
+  discount?: number;
+  tax?: number;
+  notes?: string;
+  cashReceived?: number;
+  changeGiven?: number;
+  sellerName?: string;
+  customerEmail?: string;
+  transferReceiptUri?: string;
+  transferReceiptName?: string;
+  clientSaleId?: string;
+  payments: SalePaymentInput[];
+  items: Array<{
+    barcode: string;
+    name?: string;
+    qty: number;
+    unit_price: number;
+    subtotal: number;
+    discount?: number;
+  }>;
+}
+
+/**
+ * Crea una venta usando el RPC apply_sale: una sola transacción que inserta
+ * sales + sale_items + sale_payments, decrementa branch_stock, mantiene
+ * products.stock en sync y registra inventory_movements (OUT) por ítem.
+ *
+ * Soporta pago mixto (varios SalePaymentInput sumando el total) y respeta
+ * branchId / shiftId. Idempotente vía clientSaleId.
+ */
+export async function createSale(input: CreateSaleInput): Promise<{ id: number }> {
+  const clientSaleId = input.clientSaleId ?? `web-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+  // Validación rápida: suma de pagos debe coincidir con el total
+  const paymentSum = input.payments.reduce((acc, p) => acc + Number(p.amount), 0);
+  if (Math.abs(paymentSum - input.total) > 0.01) {
+    throw new Error(`Suma de pagos ($${paymentSum}) no coincide con el total ($${input.total})`);
+  }
+
+  // Payment method principal (para sales.payment_method legacy)
+  const primary = input.payments[0]?.method?.toLowerCase() ?? "cash";
+
+  const { data, error } = await supabaseAdmin.rpc("apply_sale", {
+    p_total: input.total,
+    p_payment_method: primary,
+    p_cash_received: input.cashReceived ?? 0,
+    p_change_given: input.changeGiven ?? 0,
+    p_discount: input.discount ?? 0,
+    p_tax: input.tax ?? 0,
+    p_notes: input.notes ?? null,
+    p_device_id: "web",
+    p_client_sale_id: clientSaleId,
+    p_items: input.items.map((it) => ({
+      barcode: it.barcode,
+      name: it.name ?? "Producto",
+      qty: it.qty,
+      unit_price: it.unit_price,
+      subtotal: it.subtotal,
+      discount: it.discount ?? 0,
+    })),
+    p_seller_name: input.sellerName ?? null,
+    p_transfer_receipt_uri: input.transferReceiptUri ?? null,
+    p_transfer_receipt_name: input.transferReceiptName ?? null,
+    p_branch_id: input.branchId ?? null,
+    p_payments: input.payments.map((p) => ({
+      method: p.method,
+      amount: p.amount,
+      reference: p.reference ?? null,
+    })),
+    p_shift_id: input.shiftId ?? null,
+  });
+
+  if (error) throw new Error(`apply_sale falló: ${error.message}`);
+  const saleId = Number(data);
+  if (!Number.isFinite(saleId) || saleId <= 0) {
+    throw new Error("apply_sale no devolvió un id válido");
+  }
+
+  // Loyalty points (no-crítico)
+  if (input.customerEmail) {
+    try {
+      await earnPoints({
+        customerEmail: input.customerEmail,
+        amount: input.total,
+        referenceType: "sale",
+        referenceId: String(saleId),
+      });
+    } catch (e) {
+      console.warn("loyalty points (no-crítico):", e);
+    }
+  }
+
+  return { id: saleId };
+}
 
 /**
  * Creates a sale using DIRECT inserts (no RPC dependency).

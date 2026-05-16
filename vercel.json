@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/auto-close-shifts",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

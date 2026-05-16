@@ -11,10 +11,29 @@ import UnifiedScanner from "@/components/admin/scanner/UnifiedScanner";
 import {
   MagnifyingGlassIcon, XMarkIcon, TrashIcon, MinusIcon, PlusIcon,
   BanknotesIcon, CreditCardIcon, ArrowPathIcon, CheckCircleIcon,
-  ShoppingBagIcon, CameraIcon,
+  ShoppingBagIcon, CameraIcon, PlusCircleIcon,
 } from "@heroicons/react/24/outline";
 
 const PRODUCTS_PER_PAGE = 40;
+
+type PaymentMethod = "CASH" | "DEBIT" | "CREDIT" | "TRANSFER" | "WALLET" | "OTHER";
+
+interface PaymentRow {
+  id: string;
+  method: PaymentMethod;
+  amount: number;
+  reference?: string;
+}
+
+const METHOD_LABEL: Record<PaymentMethod, string> = {
+  CASH: "Efectivo", DEBIT: "Débito", CREDIT: "Crédito",
+  TRANSFER: "Transf.", WALLET: "Billetera", OTHER: "Otro",
+};
+
+const METHOD_ICONS: Record<PaymentMethod, typeof BanknotesIcon> = {
+  CASH: BanknotesIcon, DEBIT: CreditCardIcon, CREDIT: CreditCardIcon,
+  TRANSFER: ArrowPathIcon, WALLET: CreditCardIcon, OTHER: CreditCardIcon,
+};
 
 export default function SaleMode() {
   const { cart, addToCart, updateQuantity, removeFromCart, clearCart, total, discount, finalTotal, appliedCoupon, setAppliedCoupon, applyDiscount } = usePOS();
@@ -24,15 +43,25 @@ export default function SaleMode() {
   const [allProducts, setAllProducts] = useState<ProductUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "transfer">("cash");
-  const [cashReceived, setCashReceived] = useState(0);
+  const [payments, setPayments] = useState<PaymentRow[]>([
+    { id: "p1", method: "CASH", amount: 0 },
+  ]);
   const [processing, setProcessing] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [view, setView] = useState<"products" | "cart">("products");
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const change = useMemo(() => Math.max(0, cashReceived - finalTotal), [cashReceived, finalTotal]);
+  const paymentSum = useMemo(() => payments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0), [payments]);
+  const remaining = useMemo(() => Math.max(0, finalTotal - paymentSum), [finalTotal, paymentSum]);
+  const cashPaid = useMemo(() => payments.filter(p => p.method === "CASH").reduce((a, p) => a + (Number(p.amount) || 0), 0), [payments]);
+  const change = useMemo(() => {
+    // Vuelto solo aplica si hay sobrepago en efectivo
+    const nonCash = paymentSum - cashPaid;
+    const cashOwed = Math.max(0, finalTotal - nonCash);
+    return Math.max(0, cashPaid - cashOwed);
+  }, [paymentSum, cashPaid, finalTotal]);
+  const paymentsOk = Math.abs(paymentSum - change - finalTotal) < 0.01 && paymentSum >= finalTotal;
   const products = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return q ? allProducts.filter(p => p.name.toLowerCase().includes(q) || p.id.includes(q)) : allProducts;
@@ -54,18 +83,52 @@ export default function SaleMode() {
     }
   }, [products.length]);
 
+  // Auto-rellenar el monto del primer pago cuando hay 1 sola fila y total cambia
+  useEffect(() => {
+    if (payments.length === 1 && finalTotal > 0 && payments[0].amount === 0) {
+      setPayments([{ ...payments[0], amount: finalTotal }]);
+    }
+  }, [finalTotal, payments]);
+
+  const setPaymentAt = (idx: number, patch: Partial<PaymentRow>) => {
+    setPayments(p => p.map((row, i) => i === idx ? { ...row, ...patch } : row));
+  };
+  const addPaymentRow = () => {
+    setPayments(p => [...p, { id: `p${Date.now()}`, method: "CASH", amount: remaining }]);
+  };
+  const removePaymentRow = (idx: number) => {
+    setPayments(p => p.filter((_, i) => i !== idx));
+  };
+
   const handleCheckout = async () => {
     if (cart.length === 0 || processing) return;
-    if (paymentMethod === "cash" && cashReceived < finalTotal) {
-      showToast("El efectivo recibido es menor al total", "error"); return;
+    if (!paymentsOk) {
+      showToast(remaining > 0 ? `Faltan $${remaining.toLocaleString()}` : "Pagos inválidos", "error");
+      return;
     }
     setProcessing(true);
     try {
+      // Si hay sobrepago (cambio), ajustar las filas CASH para que la suma exacta sea el total
+      const nonCash = payments.filter(p => p.method !== "CASH").reduce((a, p) => a + p.amount, 0);
+      const cashApplied = Math.max(0, finalTotal - nonCash);
+      const cashRowIdx = payments.findIndex(p => p.method === "CASH");
+
+      const payloadPayments: { method: PaymentMethod; amount: number; reference?: string }[] = payments
+        .map((p, i): { method: PaymentMethod; amount: number; reference?: string } | null => {
+          if (p.method !== "CASH") return { method: p.method, amount: p.amount, reference: p.reference };
+          // Distribuye cashApplied al primer CASH; los demás CASH se descartan (raro pero por seguridad)
+          if (i === cashRowIdx) return { method: "CASH", amount: cashApplied };
+          return null;
+        })
+        .filter((p): p is { method: PaymentMethod; amount: number; reference?: string } => p !== null && p.amount > 0);
+
       const result = await createSaleAction({
-        total: finalTotal, paymentMethod,
-        cashReceived: paymentMethod === "cash" ? cashReceived : finalTotal,
-        changeGiven: paymentMethod === "cash" ? change : 0,
+        total: finalTotal,
+        branchId: currentBranch?.id ?? null,
+        cashReceived: payments.filter(p => p.method === "CASH").reduce((a, p) => a + p.amount, 0),
+        changeGiven: change,
         tax: 0,
+        payments: payloadPayments,
         items: cart.map(item => ({
           product_id: item.id, name: item.name, quantity: item.quantity,
           unit_price: item.offerPrice || item.price,
@@ -73,7 +136,8 @@ export default function SaleMode() {
         })),
       });
       if (result.ok) {
-        clearCart(); setCashReceived(0); setPaymentMethod("cash");
+        clearCart();
+        setPayments([{ id: "p1", method: "CASH", amount: 0 }]);
         setView("products");
         showToast("✓ Venta registrada", "success");
       } else {
@@ -201,53 +265,71 @@ export default function SaleMode() {
                 <span className="text-3xl font-black">$ {finalTotal.toLocaleString()}</span>
               </div>
 
-              {/* Payment method */}
-              <div className="grid grid-cols-3 gap-2">
-                {[{ id: "cash", icon: BanknotesIcon, label: "Efectivo" },
-                  { id: "card", icon: CreditCardIcon, label: "Tarjeta" },
-                  { id: "transfer", icon: ArrowPathIcon, label: "Transf." }
-                ].map(m => (
-                  <button key={m.id} onClick={() => { setPaymentMethod(m.id as any); if (m.id !== "cash") setCashReceived(0); }}
-                    className={`flex flex-col items-center p-2.5 rounded-xl border transition-all text-[9px] font-black uppercase ${
-                      paymentMethod === m.id ? "bg-emerald-500 border-emerald-400 text-black" : "bg-white/5 border-white/10 text-white/50"
-                    }`}>
-                    <m.icon className="h-4 w-4 mb-0.5" />
-                    {m.label}
-                  </button>
-                ))}
-              </div>
+              {/* Payment rows */}
+              <div className="space-y-2">
+                {payments.map((row, idx) => {
+                  const Icon = METHOD_ICONS[row.method];
+                  return (
+                    <div key={row.id} className="flex gap-2 items-stretch">
+                      <select value={row.method} onChange={e => setPaymentAt(idx, { method: e.target.value as PaymentMethod })}
+                        className="bg-black border border-white/10 rounded-xl px-2 py-2 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-emerald-500 shrink-0">
+                        {(Object.keys(METHOD_LABEL) as PaymentMethod[]).map(m => (
+                          <option key={m} value={m}>{METHOD_LABEL[m]}</option>
+                        ))}
+                      </select>
+                      <div className="relative flex-1">
+                        <Icon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+                        <input type="number" inputMode="numeric" placeholder="0" value={row.amount || ""}
+                          onChange={e => setPaymentAt(idx, { amount: Number(e.target.value) || 0 })}
+                          className="w-full bg-black border border-white/10 rounded-xl pl-8 pr-3 py-2 text-base font-black text-white outline-none focus:border-emerald-500" />
+                      </div>
+                      {payments.length > 1 && (
+                        <button onClick={() => removePaymentRow(idx)} className="px-3 text-red-400 hover:bg-red-500/10 rounded-xl border border-red-500/20">
+                          <XMarkIcon className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
 
-              {paymentMethod === "cash" && (
-                <div className="space-y-2">
-                  <input type="number" placeholder="Efectivo recibido" value={cashReceived || ""}
-                    onChange={e => setCashReceived(Number(e.target.value))}
-                    className="w-full bg-black border border-white/10 rounded-xl p-3 text-lg font-black text-white outline-none focus:border-emerald-500" />
-                  <div className="grid grid-cols-4 gap-1">
-                    {[1000, 2000, 5000, 10000].map(v => (
-                      <button key={v} onClick={() => setCashReceived(v)}
-                        className={`text-[10px] font-bold py-2 rounded-lg transition-colors ${cashReceived === v ? "bg-emerald-500 text-black" : "bg-white/5 text-white/50"}`}>
-                        ${v / 1000}k
+                <div className="flex gap-2 items-center">
+                  <button onClick={addPaymentRow}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/60">
+                    <PlusCircleIcon className="h-3.5 w-3.5" /> Añadir pago
+                  </button>
+                  {payments.length === 1 && payments[0].method === "CASH" && (
+                    <div className="flex gap-1 flex-1 justify-end">
+                      {[1000, 2000, 5000, 10000].map(v => (
+                        <button key={v} onClick={() => setPaymentAt(0, { amount: v })}
+                          className="text-[9px] font-bold py-1.5 px-2 rounded-lg bg-white/5 text-white/50 hover:bg-white/10">
+                          ${v / 1000}k
+                        </button>
+                      ))}
+                      <button onClick={() => setPaymentAt(0, { amount: finalTotal })}
+                        className="text-[9px] font-bold py-1.5 px-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20">
+                        Exacto
                       </button>
-                    ))}
-                  </div>
-                  {cashReceived > 0 && (
-                    <div className={`flex justify-between p-3 rounded-xl ${change >= 0 ? "bg-emerald-500/10 border border-emerald-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Vuelto</span>
-                      <span className={`text-lg font-black ${change >= 0 ? "text-emerald-400" : "text-red-400"}`}>$ {change.toLocaleString()}</span>
                     </div>
                   )}
-                  <button onClick={() => setCashReceived(finalTotal)} className="w-full text-[10px] font-bold py-2 rounded-lg bg-white/5 text-white/50">
-                    Monto exacto
-                  </button>
                 </div>
-              )}
+              </div>
+
+              {/* Summary: remaining or change */}
+              <div className={`flex justify-between items-center p-3 rounded-xl border text-sm ${
+                remaining > 0 ? "bg-red-500/10 border-red-500/30 text-red-400" :
+                change > 0   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
+                               "bg-white/5 border-white/10 text-white/40"
+              }`}>
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  {remaining > 0 ? "Falta" : change > 0 ? "Vuelto" : "Cuadrado"}
+                </span>
+                <span className="text-lg font-black">$ {(remaining > 0 ? remaining : change).toLocaleString()}</span>
+              </div>
 
               <button onClick={handleCheckout}
-                disabled={cart.length === 0 || processing || (paymentMethod === "cash" && cashReceived < finalTotal)}
+                disabled={cart.length === 0 || processing || !paymentsOk}
                 className={`w-full h-14 rounded-2xl flex items-center justify-center gap-2 text-sm font-black uppercase tracking-widest transition-all ${
-                  processing || (paymentMethod === "cash" && cashReceived < finalTotal)
-                    ? "bg-white/5 text-white/20"
-                    : "bg-emerald-500 text-black active:bg-emerald-600"
+                  processing || !paymentsOk ? "bg-white/5 text-white/20" : "bg-emerald-500 text-black active:bg-emerald-600"
                 }`}>
                 {processing ? <ArrowPathIcon className="h-5 w-5 animate-spin" /> : (
                   <><CheckCircleIcon className="h-5 w-5" /> Confirmar Venta</>
