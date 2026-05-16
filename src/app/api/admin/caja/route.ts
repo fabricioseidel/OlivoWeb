@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         .order('created_at', { ascending: false }),
       supabaseServer
         .from('sales')
-        .select('id, total, payment_method, ts')
+        .select('id, total, payment_method, ts, sale_payments(method, amount, reference)')
         .eq('shift_id', shiftId)
         .order('ts', { ascending: false }),
     ]);

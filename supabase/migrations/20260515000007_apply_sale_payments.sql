@@ -1,0 +1,2 @@
+-- Fase 3: apply_sale acepta p_payments[] (jsonb) + p_shift_id, inserta sale_payments
+-- Ver migration completa via MCP

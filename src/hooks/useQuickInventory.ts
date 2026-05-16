@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { ProductUI } from "@/types";
 import { searchProducts } from "@/services/products";
+import { createReceptionAction } from "@/actions/reception";
+import { useBranch } from "@/contexts/BranchContext";
 
 export interface InventoryItem {
   product: ProductUI;
@@ -11,7 +13,15 @@ export interface InventoryItem {
 
 export type InventoryMode = "SALE" | "PURCHASE";
 
+/**
+ * Manage a queue of scanned items + confirm them as a real DB operation.
+ * - PURCHASE: inserts inventory_movements (IN) and increments branch_stock
+ *   via apply_reception RPC.
+ * - SALE: deprecated path — sales should go through /admin/pos which uses
+ *   createSaleAction (full sales + sale_items + sale_payments).
+ */
 export function useQuickInventory(mode: InventoryMode) {
+  const { currentBranch } = useBranch();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -24,52 +34,49 @@ export function useQuickInventory(mode: InventoryMode) {
     setSuccess(null);
 
     try {
-      // Check if already in list
-      const existingIndex = items.findIndex(item => item.product.barcode === barcode || item.product.id === barcode);
-      
+      const existingIndex = items.findIndex(
+        (item) => item.product.barcode === barcode || item.product.id === barcode
+      );
+
       if (existingIndex >= 0) {
-        const newItems = [...items];
-        newItems[existingIndex].quantity += 1;
-        setItems(newItems);
-        setIsScanning(false);
+        const next = [...items];
+        next[existingIndex].quantity += 1;
+        setItems(next);
         return true;
       }
 
-      // Search product
       const results = await searchProducts(barcode);
-      const found = results.find(p => p.barcode === barcode || p.id === barcode);
+      const found = results.find((p) => p.barcode === barcode || p.id === barcode);
 
-      if (found) {
-        setItems(prev => [...prev, { product: found, quantity: 1 }]);
-        setIsScanning(false);
-        return true;
-      } else {
-        // Even if not found, we could allow adding a "placeholder" but user 
-        // specifically said "lo que va a hacer es anotar el producto escaneado"
-        // and "aunque aun no hayan imagenes y precios el inventario no se desactualizara".
-        // This implies the product MUST exist in the DB (even with minimal info).
-        // If not found, we show an error.
+      if (!found) {
         setError(`Producto no encontrado: ${barcode}`);
-        setIsScanning(false);
         return false;
       }
-    } catch (err: any) {
+
+      setItems((prev) => [...prev, { product: found, quantity: 1 }]);
+      return true;
+    } catch {
       setError("Error al buscar el producto");
-      setIsScanning(false);
       return false;
+    } finally {
+      setIsScanning(false);
     }
   }, [items]);
 
   const updateQuantity = useCallback((barcode: string, quantity: number) => {
     if (quantity <= 0) {
-      setItems(prev => prev.filter(item => item.product.barcode !== barcode && item.product.id !== barcode));
+      setItems((prev) =>
+        prev.filter((i) => i.product.barcode !== barcode && i.product.id !== barcode)
+      );
       return;
     }
-    setItems(prev => prev.map(item => 
-      (item.product.barcode === barcode || item.product.id === barcode) 
-        ? { ...item, quantity } 
-        : item
-    ));
+    setItems((prev) =>
+      prev.map((i) =>
+        i.product.barcode === barcode || i.product.id === barcode
+          ? { ...i, quantity }
+          : i
+      )
+    );
   }, []);
 
   const clear = useCallback(() => {
@@ -84,37 +91,31 @@ export function useQuickInventory(mode: InventoryMode) {
     setError(null);
 
     try {
-      const payloads = items.map(item => {
-        const currentStock = item.product.stock || 0;
-        const newStock = mode === "SALE" 
-          ? currentStock - item.quantity 
-          : currentStock + item.quantity;
-        
-        return {
-          barcode: item.product.barcode || item.product.id,
-          stock: newStock,
-          updated_at: new Date().toISOString()
-        };
-      });
+      if (mode === "PURCHASE") {
+        const result = await createReceptionAction({
+          items: items.map((i) => ({
+            barcode: i.product.barcode || i.product.id,
+            qty: i.quantity,
+            name: i.product.name,
+          })),
+          branchId: currentBranch?.id ?? null,
+          notes: "RECEPTION",
+        });
 
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: payloads })
-      });
+        if (!result.ok) throw new Error(result.error);
+        setSuccess(`Recepción registrada: ${result.count} producto${result.count === 1 ? "" : "s"}`);
+      } else {
+        // SALE: deprecated path. Surface a clear error so the operator uses /admin/pos
+        throw new Error("Las ventas rápidas se procesan ahora desde el Punto de Venta. Usa /admin/operaciones (modo Venta).");
+      }
 
-      if (!res.ok) throw new Error("Error al actualizar inventario");
-
-      setSuccess(mode === "SALE" ? "Venta registrada con éxito" : "Compra registrada con éxito");
       setItems([]);
     } catch (err: any) {
-      setError(err.message || "Error al procesar la operación");
+      setError(err?.message || "Error al procesar la operación");
     } finally {
       setIsSaving(false);
     }
-  }, [items, mode]);
-
-  // Global Keyboard Listener removed to avoid conflicts with ScanSelector input
+  }, [items, mode, currentBranch?.id]);
 
   return {
     items,
@@ -126,6 +127,6 @@ export function useQuickInventory(mode: InventoryMode) {
     isSaving,
     error,
     success,
-    totalItems: items.reduce((acc, item) => acc + item.quantity, 0)
+    totalItems: items.reduce((acc, item) => acc + item.quantity, 0),
   };
 }

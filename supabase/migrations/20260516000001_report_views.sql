@@ -1,0 +1,2 @@
+-- Fase 4: vistas para reportes (v_sales_summary, v_top_products, v_shifts_history)
+-- + RPC report_sales_range(p_from, p_to, p_branch_id). Ver migration aplicada vía MCP.

@@ -27,10 +27,13 @@ import {
   EnvelopeIcon,
   NewspaperIcon,
   SparklesIcon,
+  BoltIcon,
 } from "@heroicons/react/24/outline";
 import { Dialog, Transition } from "@headlessui/react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { POSProvider } from "@/contexts/POSContext";
+import { BranchProvider } from "@/contexts/BranchContext";
+import BranchSelector from "@/components/admin/BranchSelector";
 
 // ── Sidebar Groups ──────────────────────────────────────────────────────
 type MenuItem = { name: string; href: string; icon: typeof ChartBarIcon };
@@ -46,9 +49,11 @@ const menuGroups: MenuGroup[] = [
   {
     label: "Ventas",
     items: [
-      { name: "Punto de Venta", href: "/admin/pos", icon: UserCircleIcon },
-      { name: "Caja (Arqueo)", href: "/admin/caja", icon: BanknotesIcon },
+      { name: "Operaciones", href: "/admin/operaciones", icon: BoltIcon },
+      { name: "Punto de Venta (legacy)", href: "/admin/pos", icon: UserCircleIcon },
+      { name: "Caja (legacy)", href: "/admin/caja", icon: BanknotesIcon },
       { name: "Historial Ventas", href: "/admin/ventas", icon: CurrencyDollarIcon },
+      { name: "Reportes", href: "/admin/reportes", icon: ChartBarIcon },
     ],
   },
   {
@@ -141,6 +146,7 @@ export default function AdminLayout({
   const NavContent = ({ mobile = false }: { mobile?: boolean }) => (
     <>
       <nav className={`flex-1 overflow-y-auto ${mobile ? 'px-4 py-4' : 'px-3 py-2'}`}>
+        <BranchSelector collapsed={isCollapsed && !mobile} />
         {menuGroups.map((group) => (
           <div key={group.label} className="mb-4">
             {!isCollapsed && (
@@ -183,7 +189,7 @@ export default function AdminLayout({
     </>
   );
 
-  // Content wrapper: only POS gets POSProvider
+  // Content wrapper
   const wrappedContent = isPOS ? (
     <POSProvider>
       <ErrorBoundary>{children}</ErrorBoundary>
@@ -193,6 +199,7 @@ export default function AdminLayout({
   );
 
   return (
+    <BranchProvider>
     <div className={`flex min-h-screen ${isPOS ? 'bg-black' : 'bg-[#fcfdfd]'}`}>
       {/* ── Mobile Sidebar (Slide-over) ── */}
       <Transition.Root show={mobileMenuOpen} as={Fragment}>
@@ -264,5 +271,6 @@ export default function AdminLayout({
         </main>
       </div>
     </div>
+    </BranchProvider>
   );
 }

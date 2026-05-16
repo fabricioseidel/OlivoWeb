@@ -1,11 +1,21 @@
 import { supabaseServer } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export type ShiftStatus = 'OPEN' | 'CLOSED';
+
+export type ShiftPaymentMethod = "CASH" | "DEBIT" | "CREDIT" | "TRANSFER" | "WALLET" | "OTHER";
+
+export interface ShiftMethodBreakdown {
+  expected: number;
+  actual: number;
+  difference: number;
+}
 
 export interface CashShift {
   id: string;
   seller_id?: string | null;
   user_id?: string | null;
+  branch_id?: string | null;
   started_at: string;
   ended_at?: string | null;
   starting_cash: number;
@@ -14,13 +24,17 @@ export interface CashShift {
   difference?: number | null;
   status: ShiftStatus;
   notes?: string | null;
+  auto_close_at?: string | null;
+  closed_by_method?: Record<string, ShiftMethodBreakdown> | null;
 }
 
 export async function openShift(data: {
   starting_cash: number;
   seller_id?: string;
   user_id?: string;
+  branch_id?: string | null;
   notes?: string;
+  auto_close_at?: string | null;
 }): Promise<CashShift> {
   const { data: shift, error } = await supabaseServer
     .from("cash_shifts")
@@ -29,6 +43,8 @@ export async function openShift(data: {
       expected_cash: data.starting_cash,
       ...(data.seller_id ? { seller_id: data.seller_id } : {}),
       ...(data.user_id ? { user_id: data.user_id } : {}),
+      ...(data.branch_id ? { branch_id: data.branch_id } : {}),
+      ...(data.auto_close_at ? { auto_close_at: data.auto_close_at } : {}),
       status: 'OPEN',
       notes: data.notes
     })
@@ -42,56 +58,40 @@ export async function openShift(data: {
   return shift;
 }
 
-export async function closeShift(shiftId: string, actualCash: number, notes?: string): Promise<CashShift> {
-  // First, calculate expected cash before closing
-  const { data: shift, error: fetchError } = await supabaseServer
-    .from("cash_shifts")
-    .select("starting_cash")
-    .eq("id", shiftId)
-    .single();
+/**
+ * Cierra un turno usando el RPC `close_shift` que calcula el cuadre por
+ * método de pago (CASH, DEBIT, CREDIT, TRANSFER, WALLET, OTHER) comparando
+ * sale_payments + cash_movements contra los conteos físicos.
+ *
+ * `counts` es un objeto con el monto contado por método: { CASH: 50000, DEBIT: 12000 }.
+ * Si solo se pasa CASH, el método legacy sigue funcionando.
+ */
+export async function closeShift(
+  shiftId: string,
+  counts: Partial<Record<ShiftPaymentMethod, number>> | number,
+  notes?: string
+): Promise<CashShift & { breakdown?: Record<string, ShiftMethodBreakdown> }> {
+  // Backward compat: si pasan un número, lo tratamos como conteo de CASH
+  const countsObj: Partial<Record<ShiftPaymentMethod, number>> =
+    typeof counts === "number" ? { CASH: counts } : counts;
 
+  const { data: breakdown, error: rpcError } = await supabaseAdmin.rpc("close_shift", {
+    p_shift_id: shiftId,
+    p_counts: countsObj,
+  });
+
+  if (rpcError) throw new Error(`close_shift falló: ${rpcError.message}`);
+
+  // Opcional: persistir notas si vienen
+  if (notes) {
+    await supabaseAdmin.from("cash_shifts").update({ notes }).eq("id", shiftId);
+  }
+
+  const { data: closed, error: fetchError } = await supabaseServer
+    .from("cash_shifts").select("*").eq("id", shiftId).single();
   if (fetchError) throw fetchError;
 
-  // Sum cash sales for this shift
-  const { data: sales, error: salesError } = await supabaseServer
-    .from("sales")
-    .select("total")
-    .eq("shift_id", shiftId)
-    .eq("payment_method", "cash");
-
-  if (salesError) throw salesError;
-
-  // Sum cash movements
-  const { data: movements, error: movementsError } = await supabaseServer
-    .from("cash_movements")
-    .select("amount, type")
-    .eq("shift_id", shiftId);
-
-  if (movementsError) throw movementsError;
-
-  const totalSales = sales?.reduce((acc, s) => acc + Number(s.total), 0) || 0;
-  const totalIn = movements?.filter(m => m.type === 'IN').reduce((acc, m) => acc + Number(m.amount), 0) || 0;
-  const totalOut = movements?.filter(m => m.type === 'OUT').reduce((acc, m) => acc + Number(m.amount), 0) || 0;
-
-  const expectedCash = Number(shift.starting_cash) + totalSales + totalIn - totalOut;
-  const difference = actualCash - expectedCash;
-
-  const { data: closedShift, error: closeError } = await supabaseServer
-    .from("cash_shifts")
-    .update({
-      actual_cash: actualCash,
-      expected_cash: expectedCash,
-      difference: difference,
-      status: 'CLOSED',
-      ended_at: new Date().toISOString(),
-      notes: notes
-    })
-    .eq("id", shiftId)
-    .select("*")
-    .single();
-
-  if (closeError) throw closeError;
-  return closedShift;
+  return { ...(closed as CashShift), breakdown: breakdown as Record<string, ShiftMethodBreakdown> };
 }
 
 export async function getCurrentShift(sellerId?: string): Promise<CashShift | null> {

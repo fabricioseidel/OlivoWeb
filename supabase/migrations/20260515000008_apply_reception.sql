@@ -1,0 +1,2 @@
+-- Fase 3: apply_reception(p_items, p_branch_id, p_reference, p_notes)
+-- Incrementa branch_stock + inventory_movements (IN). Ver via MCP.

@@ -60,3 +60,31 @@ export interface CartItem {
   slug: string;
   quantity: number;
 }
+
+// ── Multi-sucursal ──────────────────────────────────────────────
+export interface Branch {
+  id: string;
+  code: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  is_default: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BranchStock {
+  branch_id: string;
+  product_barcode: string;
+  stock: number;
+  min_stock: number;
+  updated_at: string;
+}
+
+export interface SellerBranch {
+  seller_id: string;
+  branch_id: string;
+  is_primary: boolean;
+  created_at: string;
+}
