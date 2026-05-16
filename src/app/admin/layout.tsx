@@ -53,6 +53,7 @@ const menuGroups: MenuGroup[] = [
       { name: "Punto de Venta (legacy)", href: "/admin/pos", icon: UserCircleIcon },
       { name: "Caja (legacy)", href: "/admin/caja", icon: BanknotesIcon },
       { name: "Historial Ventas", href: "/admin/ventas", icon: CurrencyDollarIcon },
+      { name: "Reportes", href: "/admin/reportes", icon: ChartBarIcon },
     ],
   },
   {
