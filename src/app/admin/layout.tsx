@@ -50,8 +50,6 @@ const menuGroups: MenuGroup[] = [
     label: "Ventas",
     items: [
       { name: "Operaciones", href: "/admin/operaciones", icon: BoltIcon },
-      { name: "Punto de Venta (legacy)", href: "/admin/pos", icon: UserCircleIcon },
-      { name: "Caja (legacy)", href: "/admin/caja", icon: BanknotesIcon },
       { name: "Historial Ventas", href: "/admin/ventas", icon: CurrencyDollarIcon },
       { name: "Reportes", href: "/admin/reportes", icon: ChartBarIcon },
     ],
@@ -60,9 +58,6 @@ const menuGroups: MenuGroup[] = [
     label: "Inventario",
     items: [
       { name: "Productos", href: "/admin/productos", icon: ShoppingBagIcon },
-      { name: "Creación Rápida", href: "/admin/productos/creacion-rapida", icon: SparklesIcon },
-      { name: "Recepción / Compra", href: "/admin/productos/compra-rapida", icon: ArrowPathIcon },
-      { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
     ],
   },
   {
