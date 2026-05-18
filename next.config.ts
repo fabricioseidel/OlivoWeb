@@ -24,6 +24,9 @@ const nextConfig = {
       { source: "/admin/productos/venta-rapida-iphone", destination: "/admin/pos", permanent: true },
       // Purchase workflow consolidated — keep regular compra-rapida as canonical
       { source: "/admin/productos/compra-rapida-iphone", destination: "/admin/productos/compra-rapida", permanent: true },
+      // Reabastecimiento sub-pages now live as tabs in the main page
+      { source: "/admin/reabastecimiento/sugerencias", destination: "/admin/reabastecimiento?tab=sugerencias", permanent: true },
+      { source: "/admin/reabastecimiento/recepcion", destination: "/admin/reabastecimiento?tab=recepcion", permanent: true },
     ];
   },
 };

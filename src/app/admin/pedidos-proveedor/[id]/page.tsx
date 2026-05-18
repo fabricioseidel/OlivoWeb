@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { ArrowLeft, Upload, File, Trash2, Check, X } from "lucide-react";
+import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { use } from "react";
+import { StatusBadge } from "@/components/admin/shell";
 
 interface SupplierOrder {
   id: string;
@@ -269,20 +271,14 @@ export default function SupplierOrderDetailPage({
     );
   }
 
-  const statusColors: Record<string, string> = {
-    borrador: 'bg-slate-100 text-slate-700',
-    pendiente: 'bg-yellow-100 text-yellow-800',
-    confirmado: 'bg-blue-100 text-blue-800',
-    enviado_por_whatsapp: 'bg-purple-100 text-purple-800',
-    gestionado: 'bg-indigo-100 text-indigo-800',
-    recibido: 'bg-green-100 text-green-800',
-    cancelado: 'bg-red-100 text-red-800',
-  };
+  const canManage = !["gestionado", "recibido", "cancelado"].includes(
+    order.status
+  );
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <Link
-        href="/admin/pedidos-proveedor"
+        href="/admin/reabastecimiento?tab=pedidos"
         className="inline-flex items-center text-gray-600 hover:text-gray-800 mb-6"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
@@ -290,7 +286,7 @@ export default function SupplierOrderDetailPage({
       </Link>
 
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             Pedido #{order.id.slice(0, 8)}
@@ -300,11 +296,7 @@ export default function SupplierOrderDetailPage({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[order.status]}`}>
-            {order.status}
-          </span>
-        </div>
+        <StatusBadge status={order.status} />
       </div>
 
       {/* Borrador banner (generado por motor de reposicion) */}
@@ -336,59 +328,50 @@ export default function SupplierOrderDetailPage({
         </div>
       )}
 
-      {/* Order Management Buttons */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6 border-l-4 border-blue-500">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Gestión del Pedido</h2>
-        <div className="flex flex-wrap gap-4">
-          <button
-            onClick={() => updateStatus('gestionado')}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${order.status === 'gestionado'
-              ? 'bg-gray-200 text-gray-600'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-            Compra Presencial
-          </button>
+      {/* Gestión del Pedido — visible solo en estados pre-recepción */}
+      {canManage && (
+        <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-5 sm:p-6 mb-6">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">
+                ¿Cómo procesamos este pedido?
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Marcalo como gestionado cuando ya contactaste al proveedor.
+              </p>
+            </div>
+          </div>
 
-          <button
-            onClick={() => updateStatus('gestionado')}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${order.status === 'gestionado'
-              ? 'bg-gray-200 text-gray-600'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-            Pedido por App
-          </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => updateStatus("gestionado")}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition active:scale-[0.98] min-h-[44px]"
+            >
+              <Check className="h-4 w-4" />
+              Marcar como gestionado
+            </button>
 
-          <button
-            onClick={async () => {
-              if (order.status === 'enviado_por_whatsapp') {
-                await updateStatus('gestionado');
-              } else {
-                await sendWhatsApp();
-              }
-            }}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 ${order.status === 'enviado_por_whatsapp'
-              ? 'bg-green-600 text-white hover:bg-green-700'
-              : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            {order.status === 'enviado_por_whatsapp' ? 'Marcar como Gestionado' : 'Enviar por WhatsApp'}
-          </button>
+            <button
+              type="button"
+              onClick={sendWhatsApp}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white ring-1 ring-gray-200 hover:ring-emerald-300 hover:text-emerald-700 text-gray-700 text-sm font-bold transition active:scale-[0.98] min-h-[44px]"
+            >
+              <ChatBubbleLeftRightIcon className="h-4 w-4" />
+              {order.status === "enviado_por_whatsapp"
+                ? "Reabrir WhatsApp"
+                : "Enviar por WhatsApp"}
+            </button>
+          </div>
+
+          {order.status === "enviado_por_whatsapp" && (
+            <p className="mt-3 text-xs text-purple-700 bg-purple-50 ring-1 ring-purple-200 rounded-lg px-3 py-2">
+              Pedido enviado por WhatsApp. Marcalo como gestionado cuando el
+              proveedor confirme.
+            </p>
+          )}
         </div>
-        <p className="text-xs text-gray-500 mt-2">
-          * Compra Presencial y App marcan el pedido como &quot;Gestionado&quot;. WhatsApp marca como &quot;Enviado por WhatsApp&quot; y luego permite marcar como &quot;Gestionado&quot;.
-        </p>
-      </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Columna principal */}
