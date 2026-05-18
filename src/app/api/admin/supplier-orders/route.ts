@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseServer } from '@/lib/supabase-server';
 import { sendSupplierOrderEmail } from '@/server/email.service';
+import { requireApiAdminOrSeller } from '@/lib/api-auth';
 
 export async function GET() {
+  const auth = await requireApiAdminOrSeller();
+  if (!auth.ok) return auth.response;
   try {
     // Single query: fetch orders with supplier name AND item count via relation
     const { data: orders, error } = await supabaseServer
@@ -64,9 +67,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireApiAdminOrSeller();
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
-    
+
     // Validación
     if (!body.supplier_id || !body.items || !Array.isArray(body.items)) {
       return NextResponse.json(

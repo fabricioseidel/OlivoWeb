@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireApiAdmin, blockInProduction } from "@/lib/api-auth";
 
-// Test endpoint to verify Supabase Storage configuration
+// Test endpoint to verify Supabase Storage configuration. Solo dev/admin.
 export async function GET() {
+  const blocked = blockInProduction();
+  if (blocked) return blocked;
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
   try {
     // List buckets
     const { data: buckets, error: bucketsError } = await supabaseAdmin.storage.listBuckets();

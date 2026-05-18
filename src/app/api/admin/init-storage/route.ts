@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireApiAdmin } from "@/lib/api-auth";
 
 // Initialize Supabase Storage - creates uploads bucket if it doesn't exist
 export async function POST() {
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
   try {
     console.log("Checking if uploads bucket exists...");
     

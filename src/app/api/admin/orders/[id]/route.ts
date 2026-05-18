@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendOrderStatusEmail } from '@/server/email.service';
+import { requireApiAdminOrSeller } from '@/lib/api-auth';
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireApiAdminOrSeller();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     const { data: order, error } = await supabaseAdmin
@@ -24,6 +28,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const auth = await requireApiAdminOrSeller();
+    if (!auth.ok) return auth.response;
+
     const { id } = await params;
     try {
         const body = await request.json();

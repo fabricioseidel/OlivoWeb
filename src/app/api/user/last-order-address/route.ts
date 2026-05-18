@@ -1,21 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireApiAuth } from "@/lib/api-auth";
 
-export async function GET(req: NextRequest) {
+/**
+ * GET /api/user/last-order-address
+ * Devuelve la última dirección de envío del USUARIO AUTENTICADO.
+ *
+ * Antes recibía un `email` por querystring sin validar sesión, lo que
+ * permitía a cualquiera consultar la dirección de cualquier persona.
+ * Ahora se ignora cualquier email externo y se usa el de la sesión.
+ */
+export async function GET(_req: NextRequest) {
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth.response;
+  const sessionEmail = (auth.session?.user?.email || "").toLowerCase().trim();
+  if (!sessionEmail) {
+    return NextResponse.json({ address: null });
+  }
+
   try {
-    const { searchParams } = new URL(req.url);
-    const email = searchParams.get("email");
-
-    if (!email) {
-      return NextResponse.json({ error: "Email requerido" }, { status: 400 });
-    }
-
-    // Buscar en la tabla de pedidos el más reciente para este email
-    // Usamos supabaseAdmin porque esto lo consulta el cliente pero sobre una base de datos segura
     const { data: lastOrder, error } = await supabaseAdmin
       .from("orders")
       .select("shipping_address")
-      .eq("shipping_address->>email", email.toLowerCase().trim())
+      .eq("shipping_address->>email", sessionEmail)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -26,21 +33,20 @@ export async function GET(req: NextRequest) {
     }
 
     if (!lastOrder || !lastOrder.shipping_address) {
-      // Si no hay pedidos, intentar buscar en la tabla de clientes
       const { data: customer } = await supabaseAdmin
         .from("customers")
         .select("name, phone, email")
-        .eq("email", email.toLowerCase().trim())
+        .eq("email", sessionEmail)
         .maybeSingle();
-        
+
       if (customer) {
-          return NextResponse.json({ 
-              address: { 
-                  fullName: customer.name, 
-                  email: customer.email, 
-                  phone: customer.phone 
-              } 
-          });
+        return NextResponse.json({
+          address: {
+            fullName: customer.name,
+            email: customer.email,
+            phone: customer.phone,
+          },
+        });
       }
 
       return NextResponse.json({ address: null });

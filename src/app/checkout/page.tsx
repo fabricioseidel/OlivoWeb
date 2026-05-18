@@ -168,7 +168,7 @@ export default function CheckoutPage() {
 
       const fetchLastAddress = async () => {
         try {
-          const res = await fetch(`/api/user/last-order-address?email=${session.user?.email}`);
+          const res = await fetch(`/api/user/last-order-address`);
           if (res.ok) {
             const data = await res.json();
             if (data.address) {

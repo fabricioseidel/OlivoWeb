@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSalesReport } from "@/server/reports.service";
+import { requireApiAdminOrSeller } from "@/lib/api-auth";
 
 /**
  * GET /api/admin/reports/sales?from=ISO&to=ISO&branchId=uuid
@@ -8,6 +9,8 @@ import { getSalesReport } from "@/server/reports.service";
  * sola query SQL.
  */
 export async function GET(req: NextRequest) {
+  const auth = await requireApiAdminOrSeller();
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(req.url);
     const from = searchParams.get("from");
