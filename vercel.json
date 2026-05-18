@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/auto-close-shifts",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }
