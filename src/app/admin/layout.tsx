@@ -17,10 +17,8 @@ import {
   ChevronRightIcon,
   XMarkIcon,
   Bars3Icon,
-  UserCircleIcon,
   ShoppingCartIcon,
   BanknotesIcon,
-  ArchiveBoxIcon,
   MegaphoneIcon,
   TicketIcon,
   StarIcon,
@@ -28,6 +26,11 @@ import {
   NewspaperIcon,
   SparklesIcon,
   BoltIcon,
+  Squares2X2Icon,
+  RocketLaunchIcon,
+  QrCodeIcon,
+  ClockIcon,
+  GlobeAltIcon,
 } from "@heroicons/react/24/outline";
 import { Dialog, Transition } from "@headlessui/react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -41,55 +44,70 @@ type MenuGroup = { label: string; items: MenuItem[] };
 
 const menuGroups: MenuGroup[] = [
   {
-    label: "General",
+    label: "Resumen",
     items: [
       { name: "Dashboard", href: "/admin", icon: ChartBarIcon },
     ],
   },
   {
-    label: "Ventas",
+    label: "Operación diaria",
     items: [
       { name: "Operaciones", href: "/admin/operaciones", icon: BoltIcon },
-      { name: "Historial Ventas", href: "/admin/ventas", icon: CurrencyDollarIcon },
-      { name: "Reportes", href: "/admin/reportes", icon: ChartBarIcon },
+      { name: "POS", href: "/admin/pos", icon: ShoppingCartIcon },
+      { name: "Caja", href: "/admin/caja", icon: BanknotesIcon },
     ],
   },
   {
-    label: "Inventario",
+    label: "Catálogo",
     items: [
       { name: "Productos", href: "/admin/productos", icon: ShoppingBagIcon },
+      { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
+      { name: "Edición masiva", href: "/admin/productos/edicion-masiva", icon: Squares2X2Icon },
     ],
   },
   {
     label: "Compras",
     items: [
+      { name: "Reabastecimiento", href: "/admin/reabastecimiento", icon: ArrowPathIcon },
       { name: "Proveedores", href: "/admin/proveedores", icon: TruckIcon },
-      { name: "Compras", href: "/admin/reabastecimiento", icon: ShoppingCartIcon },
+    ],
+  },
+  {
+    label: "Ventas",
+    items: [
+      { name: "Historial", href: "/admin/ventas", icon: CurrencyDollarIcon },
+      { name: "Reportes", href: "/admin/reportes", icon: ChartBarIcon },
+    ],
+  },
+  {
+    label: "Pedidos",
+    items: [
+      { name: "Pedidos Clientes", href: "/admin/pedidos", icon: ClipboardDocumentListIcon },
+      { name: "Uber Eats", href: "/admin/uber-eats", icon: GlobeAltIcon },
     ],
   },
   {
     label: "Marketing",
     items: [
-      { name: "Central Marketing", href: "/admin/marketing", icon: MegaphoneIcon },
+      { name: "Central", href: "/admin/marketing", icon: MegaphoneIcon },
+      { name: "Campañas", href: "/admin/marketing/campanas", icon: RocketLaunchIcon },
       { name: "Cupones", href: "/admin/marketing/cupones", icon: TicketIcon },
+      { name: "Cupones QR", href: "/admin/marketing/cupones-qr", icon: QrCodeIcon },
       { name: "Programa Puntos", href: "/admin/marketing/puntos", icon: StarIcon },
-      { name: "Plantillas Email", href: "/admin/marketing/emails", icon: EnvelopeIcon },
+      { name: "Emails", href: "/admin/marketing/emails", icon: EnvelopeIcon },
       { name: "Newsletter", href: "/admin/marketing/newsletter", icon: NewspaperIcon },
+      { name: "Historial", href: "/admin/marketing/historial", icon: ClockIcon },
     ],
   },
   {
-    label: "Admin",
+    label: "Sistema",
     items: [
-      { name: "Pedidos Clientes", href: "/admin/pedidos", icon: ClipboardDocumentListIcon },
       { name: "Usuarios", href: "/admin/usuarios", icon: UsersIcon },
       { name: "Constructor Visual", href: "/admin/constructor", icon: SparklesIcon },
       { name: "Configuración", href: "/admin/configuracion", icon: Cog6ToothIcon },
     ],
   },
 ];
-
-// Flatten for active detection
-const allItems = menuGroups.flatMap(g => g.items);
 
 export default function AdminLayout({
   children,
