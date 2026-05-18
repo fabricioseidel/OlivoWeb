@@ -281,3 +281,52 @@ export async function PATCH(
     );
   }
 }
+
+// Eliminar una supplier_order. Solo se permite borrar borradores para
+// proteger ordenes ya confirmadas o recibidas (que tienen efectos en stock).
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireApiAdminOrSeller();
+  if (!auth.ok) return auth.response;
+
+  try {
+    const { id } = await params;
+
+    const { data: order, error: fetchErr } = await supabaseServer
+      .from('supplier_orders')
+      .select('id, status')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchErr || !order) {
+      return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+    }
+    if (order.status !== 'borrador') {
+      return NextResponse.json(
+        { error: 'Solo se pueden eliminar pedidos en estado borrador' },
+        { status: 400 }
+      );
+    }
+
+    // Items se borran por ON DELETE CASCADE si el FK lo tiene; si no,
+    // los borramos explicitamente para evitar items huerfanos.
+    await supabaseServer.from('supplier_order_items').delete().eq('order_id', id);
+
+    const { error: delErr } = await supabaseServer
+      .from('supplier_orders')
+      .delete()
+      .eq('id', id);
+
+    if (delErr) {
+      console.error('Error deleting supplier order:', delErr);
+      return NextResponse.json({ error: delErr.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('Error in supplier order DELETE:', error);
+    return NextResponse.json({ error: 'Error al eliminar el pedido' }, { status: 500 });
+  }
+}

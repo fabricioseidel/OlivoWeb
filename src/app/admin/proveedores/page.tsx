@@ -366,7 +366,7 @@ export default function SuppliersAdminPage() {
 
   return (
     <div className="space-y-6 py-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Proveedores</h1>
           <p className="text-sm text-gray-500">
@@ -374,13 +374,21 @@ export default function SuppliersAdminPage() {
             pedidos.
           </p>
         </div>
-        <Button
-          type="button"
-          onClick={() => loadSuppliers(search)}
-          disabled={loading}
-        >
-          {loading ? "Actualizando..." : "Actualizar lista"}
-        </Button>
+        <div className="flex gap-2">
+          <a
+            href="/admin/proveedores/asignar"
+            className="inline-flex items-center px-4 py-2 rounded-md text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            Asignacion masiva
+          </a>
+          <Button
+            type="button"
+            onClick={() => loadSuppliers(search)}
+            disabled={loading}
+          >
+            {loading ? "Actualizando..." : "Actualizar lista"}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

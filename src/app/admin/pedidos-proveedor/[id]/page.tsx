@@ -162,6 +162,25 @@ export default function SupplierOrderDetailPage({
     }
   };
 
+  const deleteDraft = async () => {
+    if (!order) return;
+    if (order.status !== 'borrador') {
+      alert('Solo se pueden eliminar pedidos en estado borrador.');
+      return;
+    }
+    if (!confirm('¿Eliminar este borrador? No genera movimientos de stock; la accion es irreversible.')) return;
+    try {
+      const res = await fetch(`/api/admin/supplier-orders/${orderId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'No se pudo eliminar');
+      }
+      window.location.href = '/admin/reabastecimiento?tab=pedidos';
+    } catch (e: any) {
+      alert(e.message || 'Error eliminando borrador');
+    }
+  };
+
   const generateWhatsAppMessage = () => {
     if (!order) return '';
 
@@ -251,6 +270,7 @@ export default function SupplierOrderDetailPage({
   }
 
   const statusColors: Record<string, string> = {
+    borrador: 'bg-slate-100 text-slate-700',
     pendiente: 'bg-yellow-100 text-yellow-800',
     confirmado: 'bg-blue-100 text-blue-800',
     enviado_por_whatsapp: 'bg-purple-100 text-purple-800',
@@ -286,6 +306,35 @@ export default function SupplierOrderDetailPage({
           </span>
         </div>
       </div>
+
+      {/* Borrador banner (generado por motor de reposicion) */}
+      {order.status === 'borrador' && (
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="text-xs font-black uppercase tracking-widest text-slate-500">Borrador</div>
+            <div className="text-base font-semibold text-slate-900 mt-0.5">
+              Pedido sugerido pendiente de revision
+            </div>
+            <p className="text-sm text-slate-600 mt-1">
+              Revisa cantidades y costos antes de confirmar. Al confirmar pasa a <b>pendiente</b> y queda listo para enviar al proveedor.
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => updateStatus('pendiente')}
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
+            >
+              Confirmar borrador
+            </button>
+            <button
+              onClick={deleteDraft}
+              className="px-4 py-2 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 text-sm font-bold"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Order Management Buttons */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6 border-l-4 border-blue-500">
