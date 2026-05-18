@@ -92,9 +92,6 @@ export async function POST(request: NextRequest) {
        return NextResponse.json({ error: 'No se pudo validar el stock de los productos.' }, { status: 500 });
     }
 
-    // Mapa barcode → id entero para las llamadas RPC que requieren el id numérico
-    const barcodeToProductId = new Map(dbProducts.map((p: any) => [String(p.barcode), p.id as number]));
-
     let calculatedSubtotal = 0;
     const validatedOrderItems = [];
 
@@ -114,34 +111,20 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 3. ATOMIC STOCK RESERVATION (Phase 1: Subtract)
-    const successfullSubtractions = [];
-    try {
-      for (const item of items) {
-        const productId = barcodeToProductId.get(String(item.id));
-        const { data: success, error: rpcErr } = await supabaseAdmin.rpc('decrement_stock_atomic', {
-          p_product_id: productId,
-          p_quantity: item.quantity
-        });
+    // Resolver la sucursal por defecto: el stock de la web vive en
+    // branch_stock por sucursal, no en products.stock global. Usamos la
+    // sucursal default; las RPCs hacen el mismo fallback en SQL.
+    const { data: defaultBranch } = await supabaseAdmin
+      .from('branches')
+      .select('id')
+      .eq('is_default', true)
+      .eq('is_active', true)
+      .maybeSingle();
+    const branchId: string | null = defaultBranch?.id ?? null;
 
-        if (rpcErr || !success) {
-           throw new Error(`Stock insuficiente para ${item.name}. Por favor actualiza tu carrito.`);
-        }
-        successfullSubtractions.push(item);
-      }
-    } catch (err: any) {
-      // ROLLBACK: Restaurar stock de los que ya se habían descontado en este bucle
-      for (const item of successfullSubtractions) {
-        const productId = barcodeToProductId.get(String(item.id));
-        await supabaseAdmin.rpc('increment_product_stock', {
-          p_product_id: productId,
-          p_quantity: item.quantity
-        });
-      }
-      return NextResponse.json({ error: err.message }, { status: 400 });
-    }
-
-    // 4. Create Order
+    // 3. Create Order FIRST so we can use order.id as reference_id in
+    // inventory_movements. Si falla algún decremento abajo, eliminamos
+    // la orden y restauramos el stock.
     const orderData = {
         user_id: userId,
         status: 'pending',
@@ -163,12 +146,41 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (orderError) {
-      // Si falla la creación de la orden, devolvemos el stock
-      for (const item of items) {
-        const productId = barcodeToProductId.get(String(item.id));
-        await supabaseAdmin.rpc('increment_product_stock', { p_product_id: productId, p_quantity: item.quantity });
-      }
       return NextResponse.json({ error: 'Failed to create order', details: orderError }, { status: 500 });
+    }
+
+    // 4. ATOMIC STOCK RESERVATION (branch-aware): descuenta branch_stock,
+    // recalcula products.stock y registra inventory_movements con
+    // reference_id = order.id.
+    const successfullSubtractions: any[] = [];
+    try {
+      for (const item of items) {
+        const { data: success, error: rpcErr } = await supabaseAdmin.rpc('decrement_stock_atomic', {
+          p_barcode: String(item.id),
+          p_quantity: item.quantity,
+          p_branch_id: branchId,
+          p_reference: String(order.id),
+          p_reason: 'WEB_SALE'
+        });
+
+        if (rpcErr || !success) {
+           throw new Error(`Stock insuficiente para ${item.name}. Por favor actualiza tu carrito.`);
+        }
+        successfullSubtractions.push(item);
+      }
+    } catch (err: any) {
+      // ROLLBACK: devolver el stock de lo que ya descontamos y eliminar la orden.
+      for (const item of successfullSubtractions) {
+        await supabaseAdmin.rpc('increment_product_stock', {
+          p_barcode: String(item.id),
+          p_quantity: item.quantity,
+          p_branch_id: branchId,
+          p_reference: String(order.id),
+          p_reason: 'WEB_SALE_ROLLBACK'
+        });
+      }
+      await supabaseAdmin.from('orders').delete().eq('id', order.id);
+      return NextResponse.json({ error: err.message }, { status: 400 });
     }
 
     // 5. Create Order Items

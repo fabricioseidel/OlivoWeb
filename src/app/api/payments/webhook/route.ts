@@ -50,23 +50,33 @@ export async function POST(request: NextRequest) {
         console.log(`[MP Webhook] ✅ Order ${orderId} marked as PAID`);
       } else if (orderId && (status === 'rejected' || status === 'cancelled' || status === 'refunded' || status === 'in_mediation')) {
         console.log(`[MP Webhook] 🔄 Restaurando stock para orden ${orderId} debido a estado: ${status}`);
-        
-        // 1. Obtener items de la orden
+
+        // 1. Obtener items de la orden con barcode (la RPC nueva usa barcode + branch)
         const { data: items, error: itemsErr } = await supabaseAdmin
           .from('order_items')
-          .select('product_id, quantity')
+          .select('product_id, quantity, products(barcode)')
           .eq('order_id', orderId);
 
         if (!itemsErr && items) {
-          // 2. Devolver stock a cada producto
-          for (const item of items) {
+          // 2. Devolver stock a cada producto en la sucursal por defecto
+          //    (las RPCs hacen el fallback a la sucursal default en SQL)
+          for (const item of items as any[]) {
+            const product = Array.isArray(item.products) ? item.products[0] : item.products;
+            const barcode = product?.barcode;
+            if (!barcode) {
+              console.warn(`[MP Webhook] Producto ${item.product_id} sin barcode, skip rollback`);
+              continue;
+            }
             try {
-              await supabaseAdmin.rpc('increment_product_stock', { 
-                p_product_id: item.product_id, 
-                p_quantity: item.quantity 
+              await supabaseAdmin.rpc('increment_product_stock', {
+                p_barcode: barcode,
+                p_quantity: item.quantity,
+                p_branch_id: null,
+                p_reference: String(orderId),
+                p_reason: `MP_${status.toUpperCase()}`
               });
             } catch (err) {
-              console.error(`[MP Webhook] Error incrementando stock para prod ${item.product_id}:`, err);
+              console.error(`[MP Webhook] Error incrementando stock para barcode ${barcode}:`, err);
             }
           }
         }
