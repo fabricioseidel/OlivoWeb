@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
+import { requireApiAdminOrSeller } from '@/lib/api-auth';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireApiAdminOrSeller();
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params;
 
@@ -114,6 +117,8 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireApiAdminOrSeller();
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params;
     const body = await request.json();
@@ -159,99 +164,52 @@ export async function PATCH(
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // STOCK AUTO-UPDATE: Increment stock when order is "recibido"
+    // STOCK: recepción / cancelación vía RPC apply_reception(_reverse).
+    // Las RPCs actualizan branch_stock como fuente de verdad, recalculan
+    // products.stock como suma global y registran inventory_movements,
+    // de modo que el POS (que lee branch_stock) ve el mismo stock que
+    // la web.
     // ═══════════════════════════════════════════════════════════════
-    if (body.status === 'recibido' && previousStatus !== 'recibido') {
+    const isReception = body.status === 'recibido' && previousStatus !== 'recibido';
+    const isReversal  = body.status === 'cancelado' && previousStatus === 'recibido';
+
+    if (isReception || isReversal) {
       try {
         const { data: orderItems } = await supabaseServer
           .from('supplier_order_items')
-          .select('product_id, quantity, supplier_sku')
+          .select('quantity, products(barcode)')
           .eq('order_id', id);
 
-        if (orderItems && orderItems.length > 0) {
-          for (const item of orderItems) {
-            // Direct stock increment (no RPC dependency)
-            const { data: currentProduct } = await supabaseServer
-              .from('products')
-              .select('stock, barcode')
-              .eq('id', item.product_id)
-              .maybeSingle();
+        const payload = (orderItems || [])
+          .map((it: any) => {
+            const prod = Array.isArray(it.products) ? it.products[0] : it.products;
+            const barcode = prod?.barcode;
+            return barcode ? { barcode, qty: Number(it.quantity) || 0 } : null;
+          })
+          .filter(Boolean);
 
-            if (currentProduct) {
-              const newStock = (Number(currentProduct.stock) || 0) + item.quantity;
-              await supabaseServer
-                .from('products')
-                .update({ stock: newStock })
-                .eq('id', item.product_id);
+        if (payload.length > 0) {
+          const rpcName = isReception ? 'apply_reception' : 'apply_reception_reverse';
+          const reason  = isReception
+            ? `Recepción pedido proveedor #${id.slice(0, 8)}`
+            : `Cancelación pedido proveedor #${id.slice(0, 8)}`;
 
-              // Record inventory movement for traceability
-              try {
-                await supabaseServer
-                  .from('inventory_movements')
-                  .insert({
-                    product_barcode: currentProduct.barcode,
-                    type: 'IN',
-                    quantity: item.quantity,
-                    reason: `Recepción pedido proveedor #${id.slice(0, 8)}`,
-                    reference_id: id,
-                  });
-              } catch {
-                // inventory_movements may not exist yet — non-critical
-              }
-            }
+          const { error: rpcErr } = await supabaseServer.rpc(rpcName, {
+            p_items:     payload,
+            p_branch_id: null,
+            p_reference: id,
+            p_notes:     reason,
+          });
+
+          if (rpcErr) {
+            console.error(`Error en ${rpcName}:`, rpcErr);
+          } else {
+            console.log(`✅ ${isReception ? 'Recepción' : 'Reversión'} aplicada: pedido ${id.slice(0, 8)}, ${payload.length} ítems`);
           }
-          console.log(`✅ Stock actualizado: pedido ${id.slice(0, 8)}, +${orderItems.length} productos`);
         }
       } catch (invError) {
         console.error('Error al actualizar inventario:', invError);
-        // Don't fail the status update because of inventory error
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // STOCK REVERT: If cancelling a previously received order
-    // ═══════════════════════════════════════════════════════════════
-    if (body.status === 'cancelado' && previousStatus === 'recibido') {
-      try {
-        const { data: orderItems } = await supabaseServer
-          .from('supplier_order_items')
-          .select('product_id, quantity')
-          .eq('order_id', id);
-
-        if (orderItems && orderItems.length > 0) {
-          for (const item of orderItems) {
-            const { data: currentProduct } = await supabaseServer
-              .from('products')
-              .select('stock, barcode')
-              .eq('id', item.product_id)
-              .maybeSingle();
-
-            if (currentProduct) {
-              const newStock = Math.max(0, (Number(currentProduct.stock) || 0) - item.quantity);
-              await supabaseServer
-                .from('products')
-                .update({ stock: newStock })
-                .eq('id', item.product_id);
-
-              try {
-                await supabaseServer
-                  .from('inventory_movements')
-                  .insert({
-                    product_barcode: currentProduct.barcode,
-                    type: 'OUT',
-                    quantity: item.quantity,
-                    reason: `Cancelación pedido proveedor #${id.slice(0, 8)}`,
-                    reference_id: id,
-                  });
-              } catch {
-                // non-critical
-              }
-            }
-          }
-          console.log(`⚠️ Stock revertido: pedido cancelado ${id.slice(0, 8)}`);
-        }
-      } catch (invError) {
-        console.error('Error al revertir inventario:', invError);
+        // No fallamos el cambio de estado por un error de inventario.
       }
     }
 
@@ -321,5 +279,54 @@ export async function PATCH(
       { error: 'Error al actualizar el pedido' },
       { status: 500 }
     );
+  }
+}
+
+// Eliminar una supplier_order. Solo se permite borrar borradores para
+// proteger ordenes ya confirmadas o recibidas (que tienen efectos en stock).
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireApiAdminOrSeller();
+  if (!auth.ok) return auth.response;
+
+  try {
+    const { id } = await params;
+
+    const { data: order, error: fetchErr } = await supabaseServer
+      .from('supplier_orders')
+      .select('id, status')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchErr || !order) {
+      return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+    }
+    if (order.status !== 'borrador') {
+      return NextResponse.json(
+        { error: 'Solo se pueden eliminar pedidos en estado borrador' },
+        { status: 400 }
+      );
+    }
+
+    // Items se borran por ON DELETE CASCADE si el FK lo tiene; si no,
+    // los borramos explicitamente para evitar items huerfanos.
+    await supabaseServer.from('supplier_order_items').delete().eq('order_id', id);
+
+    const { error: delErr } = await supabaseServer
+      .from('supplier_orders')
+      .delete()
+      .eq('id', id);
+
+    if (delErr) {
+      console.error('Error deleting supplier order:', delErr);
+      return NextResponse.json({ error: delErr.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('Error in supplier order DELETE:', error);
+    return NextResponse.json({ error: 'Error al eliminar el pedido' }, { status: 500 });
   }
 }

@@ -69,12 +69,12 @@ const METHOD_LABEL: Record<Method, string> = {
 
 const methodChipClass = (m: Method) => {
   switch (m) {
-    case "CASH":     return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+    case "CASH":     return "bg-emerald-500/10 text-emerald-600 border-emerald-500/30";
     case "DEBIT":    return "bg-blue-500/10 text-blue-400 border-blue-500/30";
     case "CREDIT":   return "bg-violet-500/10 text-violet-400 border-violet-500/30";
     case "TRANSFER": return "bg-cyan-500/10 text-cyan-400 border-cyan-500/30";
     case "WALLET":   return "bg-amber-500/10 text-amber-400 border-amber-500/30";
-    default:         return "bg-white/5 text-white/50 border-white/10";
+    default:         return "bg-gray-50 text-gray-600 border-gray-200";
   }
 };
 
@@ -254,12 +254,12 @@ export default function VentasPage() {
       <header className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-end">
         <div>
           <h1 className="text-2xl font-black uppercase tracking-widest flex items-center gap-2">
-            <ReceiptPercentIcon className="h-6 w-6 text-emerald-400" /> Historial de Ventas
+            <ReceiptPercentIcon className="h-6 w-6 text-emerald-600" /> Historial de Ventas
           </h1>
-          <p className="text-xs text-white/40 mt-1">Transacciones con desglose de pagos y comprobantes.</p>
+          <p className="text-xs text-gray-500 mt-1">Transacciones con desglose de pagos y comprobantes.</p>
         </div>
         <button onClick={exportCSV}
-          className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-500/20">
+          className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-500/20">
           <ArrowDownTrayIcon className="h-4 w-4" /> Exportar CSV
         </button>
       </header>
@@ -273,32 +273,32 @@ export default function VentasPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-wrap gap-2 items-end">
+      <div className="bg-white border border-gray-200 rounded-2xl p-3 flex flex-wrap gap-2 items-end">
         <div className="relative flex-1 min-w-[200px]">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
             placeholder="Buscar #id, vendedor, sucursal, método…"
-            className="w-full bg-black border border-white/10 rounded-xl pl-9 pr-3 py-2 text-sm text-white outline-none focus:border-emerald-500" />
+            className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
         </div>
 
         <FilterField label="Desde" icon={CalendarIcon}>
           <input type="date" value={from} onChange={e => { setFrom(e.target.value); setPreset("all"); setPage(0); }}
-            className="bg-black border border-white/10 rounded-xl px-2 py-2 text-sm text-white" />
+            className="bg-white border border-gray-200 rounded-xl px-2 py-2 text-sm text-gray-900" />
         </FilterField>
         <FilterField label="Hasta" icon={CalendarIcon}>
           <input type="date" value={to} onChange={e => { setTo(e.target.value); setPreset("all"); setPage(0); }}
-            className="bg-black border border-white/10 rounded-xl px-2 py-2 text-sm text-white" />
+            className="bg-white border border-gray-200 rounded-xl px-2 py-2 text-sm text-gray-900" />
         </FilterField>
         <FilterField label="Sucursal" icon={BuildingStorefrontIcon}>
           <select value={branchId} onChange={e => { setBranchId(e.target.value); setPage(0); }}
-            className="bg-black border border-white/10 rounded-xl px-2 py-2 text-sm text-white">
+            className="bg-white border border-gray-200 rounded-xl px-2 py-2 text-sm text-gray-900">
             <option value="">Todas</option>
             {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
         </FilterField>
         <FilterField label="Método" icon={CreditCardIcon}>
           <select value={method} onChange={e => { setMethod(e.target.value as any); setPage(0); }}
-            className="bg-black border border-white/10 rounded-xl px-2 py-2 text-sm text-white">
+            className="bg-white border border-gray-200 rounded-xl px-2 py-2 text-sm text-gray-900">
             <option value="">Todos</option>
             {(Object.keys(METHOD_LABEL) as Method[]).map(m => (
               <option key={m} value={m}>{METHOD_LABEL[m]}</option>
@@ -310,16 +310,16 @@ export default function VentasPage() {
           {(["today", "7d", "30d", "all"] as const).map(p => (
             <button key={p} onClick={() => applyPreset(p)}
               className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors ${
-                preset === p ? "bg-emerald-500 text-black" : "bg-white/5 text-white/50 hover:bg-white/10"
+                preset === p ? "bg-emerald-500 text-black" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}>
               {p === "today" ? "Hoy" : p === "7d" ? "7d" : p === "30d" ? "30d" : "Todas"}
             </button>
           ))}
-          <label className="flex items-center gap-1 px-3 py-2 bg-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/50 cursor-pointer">
+          <label className="flex items-center gap-1 px-3 py-2 bg-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-600 cursor-pointer">
             <input type="checkbox" checked={includeVoided} onChange={e => setIncludeVoided(e.target.checked)} className="accent-emerald-500" />
             Incluir anuladas
           </label>
-          <button onClick={loadSales} className="px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl">
+          <button onClick={loadSales} className="px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 rounded-xl">
             <ArrowPathIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
@@ -327,8 +327,8 @@ export default function VentasPage() {
 
       {/* Method distribution */}
       {Object.keys(stats.byMethod).length > 0 && (
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Distribución por método</p>
+        <div className="bg-white border border-gray-200 rounded-2xl p-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Distribución por método</p>
           <div className="flex flex-wrap gap-2">
             {Object.entries(stats.byMethod).sort(([, a], [, b]) => b - a).map(([m, v]) => (
               <span key={m} className={`px-2.5 py-1 rounded-lg border text-[10px] font-black ${methodChipClass(m as Method)}`}>
@@ -340,39 +340,39 @@ export default function VentasPage() {
       )}
 
       {/* Sales list */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
         {loading && (
-          <div className="p-6 text-center text-white/40 text-xs font-black uppercase tracking-widest animate-pulse">Cargando…</div>
+          <div className="p-6 text-center text-gray-500 text-xs font-black uppercase tracking-widest animate-pulse">Cargando…</div>
         )}
         {!loading && filteredSales.length === 0 && (
           <div className="p-10 text-center">
-            <DocumentArrowUpIcon className="mx-auto h-10 w-10 text-white/20 mb-3" />
-            <p className="text-sm font-bold text-white/40">Sin ventas en este rango</p>
-            <p className="text-xs text-white/30 mt-1">Cambia los filtros o presets de fecha</p>
+            <DocumentArrowUpIcon className="mx-auto h-10 w-10 text-gray-300 mb-3" />
+            <p className="text-sm font-bold text-gray-500">Sin ventas en este rango</p>
+            <p className="text-xs text-gray-400 mt-1">Cambia los filtros o presets de fecha</p>
           </div>
         )}
         {!loading && filteredSales.length > 0 && (
-          <ul className="divide-y divide-white/5">
+          <ul className="divide-y divide-gray-100">
             {filteredSales.map(sale => (
               <li key={sale.id}>
-                <button onClick={() => openSale(sale)} className="w-full text-left p-3 hover:bg-white/5 transition-colors">
+                <button onClick={() => openSale(sale)} className="w-full text-left p-3 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3">
                     {/* Left: id + meta */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-black text-white">#{sale.id}</span>
+                        <span className="text-sm font-black text-gray-900">#{sale.id}</span>
                         {sale.voided && (
                           <span className="px-1.5 py-0.5 bg-red-500/10 border border-red-500/30 text-red-400 text-[9px] font-black uppercase tracking-widest rounded-md">
                             Anulada
                           </span>
                         )}
                         {sale.branch_name && (
-                          <span className="text-[10px] text-white/40 flex items-center gap-1">
+                          <span className="text-[10px] text-gray-500 flex items-center gap-1">
                             <BuildingStorefrontIcon className="h-3 w-3" />{sale.branch_name}
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-white/30 mt-0.5">
+                      <p className="text-[10px] text-gray-400 mt-0.5">
                         {fmtTime(sale.ts)} · {sale.seller_name ?? "Mostrador"}
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1.5">
@@ -383,7 +383,7 @@ export default function VentasPage() {
                               </span>
                             ))
                           : (
-                            <span className="px-2 py-0.5 rounded-md border text-[9px] font-black bg-white/5 text-white/50 border-white/10">
+                            <span className="px-2 py-0.5 rounded-md border text-[9px] font-black bg-gray-50 text-gray-600 border-gray-200">
                               {sale.payment_method}
                             </span>
                           )
@@ -397,10 +397,10 @@ export default function VentasPage() {
                     </div>
                     {/* Right: total + action */}
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className={`text-base font-black ${sale.voided ? "line-through text-white/30" : "text-emerald-400"}`}>
+                      <span className={`text-base font-black ${sale.voided ? "line-through text-gray-400" : "text-emerald-600"}`}>
                         {fmt(sale.total)}
                       </span>
-                      <EyeIcon className="h-4 w-4 text-white/30" />
+                      <EyeIcon className="h-4 w-4 text-gray-400" />
                     </div>
                   </div>
                 </button>
@@ -411,13 +411,13 @@ export default function VentasPage() {
 
         {/* Pagination */}
         {total > PAGE_SIZE && (
-          <div className="p-3 border-t border-white/5 flex items-center justify-between text-xs">
-            <span className="text-white/40">{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} de {total}</span>
+          <div className="p-3 border-t border-gray-100 flex items-center justify-between text-xs">
+            <span className="text-gray-500">{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} de {total}</span>
             <div className="flex gap-1">
               <button disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}
-                className="px-3 py-1.5 bg-white/5 rounded-lg text-white/60 disabled:opacity-30">← Ant.</button>
+                className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 disabled:opacity-30">← Ant.</button>
               <button disabled={(page + 1) * PAGE_SIZE >= total} onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1.5 bg-white/5 rounded-lg text-white/60 disabled:opacity-30">Sig. →</button>
+                className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 disabled:opacity-30">Sig. →</button>
             </div>
           </div>
         )}
@@ -443,19 +443,19 @@ export default function VentasPage() {
 
 function Kpi({ label, value, icon: Icon }: { label: string; value: string; icon: any }) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+    <div className="bg-white border border-gray-200 rounded-2xl p-3">
       <div className="flex items-center gap-2 mb-1">
-        <Icon className="h-4 w-4 text-emerald-400" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-white/40">{label}</p>
+        <Icon className="h-4 w-4 text-emerald-600" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{label}</p>
       </div>
-      <p className="text-xl font-black text-white">{value}</p>
+      <p className="text-xl font-black text-gray-900">{value}</p>
     </div>
   );
 }
 
 function FilterField({ label, icon: Icon, children }: { label: string; icon: any; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col text-[10px] font-black uppercase tracking-widest text-white/40">
+    <label className="flex flex-col text-[10px] font-black uppercase tracking-widest text-gray-500">
       <span className="flex items-center gap-1 mb-1"><Icon className="h-3 w-3" />{label}</span>
       {children}
     </label>
@@ -470,25 +470,25 @@ function SaleDetailModal({
 }) {
   return (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
       <div onClick={e => e.stopPropagation()}
-        className="relative bg-zinc-950 border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+        className="relative bg-white border border-gray-200 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <header className="p-4 border-b border-white/10 flex items-center justify-between">
+        <header className="p-4 border-b border-gray-200 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black text-white">Venta #{sale.id}</h3>
+              <h3 className="text-lg font-black text-gray-900">Venta #{sale.id}</h3>
               {sale.voided && (
                 <span className="px-2 py-0.5 bg-red-500/10 border border-red-500/30 text-red-400 text-[9px] font-black uppercase tracking-widest rounded-md">
                   Anulada
                 </span>
               )}
             </div>
-            <p className="text-[10px] text-white/40 mt-0.5">
+            <p className="text-[10px] text-gray-500 mt-0.5">
               {fmtTime(sale.ts)} · {sale.branch_name ?? "Sin sucursal"} · {sale.seller_name ?? "Mostrador"}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 text-white/40 hover:bg-white/10 rounded-xl">
+          <button onClick={onClose} className="p-2 text-gray-500 hover:bg-gray-100 rounded-xl">
             <XMarkIcon className="h-5 w-5" />
           </button>
         </header>
@@ -496,32 +496,32 @@ function SaleDetailModal({
         {/* Body */}
         <div className="p-4 overflow-y-auto flex-1 space-y-3">
           {/* Payments */}
-          <section className="bg-white/5 border border-white/10 rounded-xl p-3">
-            <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Pagos</p>
+          <section className="bg-white border border-gray-200 rounded-xl p-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Pagos</p>
             {Array.isArray(sale.sale_payments) && sale.sale_payments.length > 0 ? (
               <div className="space-y-1">
                 {sale.sale_payments.map(p => (
                   <div key={p.id} className="flex items-center justify-between">
                     <span className={`px-2 py-0.5 rounded-md border text-[10px] font-black ${methodChipClass(p.method)}`}>
                       {METHOD_LABEL[p.method]}
-                      {p.reference && <span className="ml-1 font-normal text-white/40">· {p.reference}</span>}
+                      {p.reference && <span className="ml-1 font-normal text-gray-500">· {p.reference}</span>}
                     </span>
-                    <span className="text-sm font-black text-emerald-400">{fmt(p.amount)}</span>
+                    <span className="text-sm font-black text-emerald-600">{fmt(p.amount)}</span>
                   </div>
                 ))}
-                <div className="border-t border-white/10 pt-2 mt-2 flex justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Total</span>
-                  <span className="text-lg font-black text-white">{fmt(sale.total)}</span>
+                <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Total</span>
+                  <span className="text-lg font-black text-gray-900">{fmt(sale.total)}</span>
                 </div>
               </div>
             ) : (
               <div className="flex justify-between items-center">
-                <span className="text-sm text-white/60 capitalize">{sale.payment_method}</span>
-                <span className="text-lg font-black text-emerald-400">{fmt(sale.total)}</span>
+                <span className="text-sm text-gray-700 capitalize">{sale.payment_method}</span>
+                <span className="text-lg font-black text-emerald-600">{fmt(sale.total)}</span>
               </div>
             )}
             {(sale.cash_received > 0 || sale.change_given > 0) && (
-              <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-white/5">
+              <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-gray-100">
                 <Stat label="Efectivo recibido" value={fmt(sale.cash_received)} />
                 <Stat label="Vuelto" value={fmt(sale.change_given)} />
               </div>
@@ -540,34 +540,34 @@ function SaleDetailModal({
               </div>
               {sale.transfer_receipt_uri ? (
                 <a href={sale.transfer_receipt_uri} target="_blank" rel="noopener noreferrer"
-                  className="block relative w-full h-48 rounded-lg overflow-hidden border border-white/10 bg-black">
+                  className="block relative w-full h-48 rounded-lg overflow-hidden border border-gray-200 bg-white">
                   <Image src={sale.transfer_receipt_uri} alt="Comprobante" fill className="object-contain" />
                 </a>
               ) : (
-                <p className="text-xs text-white/40 text-center py-3">Sin comprobante subido</p>
+                <p className="text-xs text-gray-500 text-center py-3">Sin comprobante subido</p>
               )}
             </section>
           )}
 
           {/* Items */}
-          <section className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-            <p className="text-[10px] font-black uppercase tracking-widest text-white/40 p-3 pb-2">Artículos</p>
+          <section className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 p-3 pb-2">Artículos</p>
             {loading ? (
-              <div className="p-6 text-center text-white/30 text-xs">Cargando detalle…</div>
+              <div className="p-6 text-center text-gray-400 text-xs">Cargando detalle…</div>
             ) : items.length === 0 ? (
-              <div className="p-6 text-center text-white/30 text-xs">Sin detalle de items registrado</div>
+              <div className="p-6 text-center text-gray-400 text-xs">Sin detalle de items registrado</div>
             ) : (
-              <ul className="divide-y divide-white/5">
+              <ul className="divide-y divide-gray-100">
                 {items.map(it => (
                   <li key={it.id} className="px-3 py-2 flex items-center gap-3">
-                    <span className="text-xs font-black text-emerald-400 w-10 shrink-0">×{it.quantity}</span>
+                    <span className="text-xs font-black text-emerald-600 w-10 shrink-0">×{it.quantity}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-white truncate">{it.product_name}</p>
-                      <p className="text-[10px] text-white/30 font-mono">{it.product_barcode}</p>
+                      <p className="text-sm font-bold text-gray-900 truncate">{it.product_name}</p>
+                      <p className="text-[10px] text-gray-400 font-mono">{it.product_barcode}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] text-white/40">{fmt(it.unit_price)} c/u</p>
-                      <p className="text-sm font-black text-white">{fmt(it.subtotal)}</p>
+                      <p className="text-[10px] text-gray-500">{fmt(it.unit_price)} c/u</p>
+                      <p className="text-sm font-black text-gray-900">{fmt(it.subtotal)}</p>
                     </div>
                   </li>
                 ))}
@@ -577,13 +577,13 @@ function SaleDetailModal({
 
           {/* Extra */}
           {(sale.discount > 0 || sale.tax > 0 || sale.notes) && (
-            <section className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1">
+            <section className="bg-white border border-gray-200 rounded-xl p-3 space-y-1">
               {sale.discount > 0 && <Stat label="Descuento" value={`- ${fmt(sale.discount)}`} />}
               {sale.tax > 0 && <Stat label="Impuesto" value={fmt(sale.tax)} />}
               {sale.notes && (
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Notas</p>
-                  <p className="text-xs text-white/70 italic mt-1">{sale.notes}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Notas</p>
+                  <p className="text-xs text-gray-700 italic mt-1">{sale.notes}</p>
                 </div>
               )}
             </section>
@@ -597,8 +597,8 @@ function SaleDetailModal({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between text-xs">
-      <span className="text-white/40">{label}</span>
-      <span className="text-white font-bold">{value}</span>
+      <span className="text-gray-500">{label}</span>
+      <span className="text-gray-900 font-bold">{value}</span>
     </div>
   );
 }

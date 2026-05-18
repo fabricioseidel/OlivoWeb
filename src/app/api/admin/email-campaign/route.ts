@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendEmail, getTemplate, renderTemplate } from "@/server/email.service";
+import { requireApiAdmin } from "@/lib/api-auth";
 
 /** Trigger a mass email campaign */
 export async function POST(req: NextRequest) {
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
   try {
     const { templateSlug, customVariables = {} } = await req.json();
 

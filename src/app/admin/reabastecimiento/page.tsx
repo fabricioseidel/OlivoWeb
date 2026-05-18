@@ -93,6 +93,7 @@ interface SupplierOrder {
 // ════════════════════════════════════════════════════════════════════
 
 const statusColors: Record<string, string> = {
+  borrador: 'bg-slate-100 text-slate-700',
   pendiente: 'bg-yellow-100 text-yellow-800',
   confirmado: 'bg-blue-100 text-blue-800',
   enviado_por_whatsapp: 'bg-purple-100 text-purple-800',
@@ -102,6 +103,7 @@ const statusColors: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
+  borrador: 'Borrador',
   pendiente: 'Pendiente',
   confirmado: 'Confirmado',
   enviado_por_whatsapp: 'WhatsApp',
@@ -324,6 +326,26 @@ export default function ComprasPage() {
       {/* ══════════════════ TAB: STOCK BAJO ══════════════════ */}
       {activeTab === "stock" && (
         <div className="space-y-4">
+          <Link
+            href="/admin/reabastecimiento/sugerencias"
+            className="block bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl p-4 sm:p-5 shadow-md transition-colors"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[10px] font-black uppercase tracking-widest text-emerald-200 mb-1">
+                  Reposicion semi-automatica
+                </div>
+                <div className="text-base sm:text-lg font-bold leading-tight">
+                  Calcular sugerencias con velocidad de venta y generar borradores en 1 click
+                </div>
+                <div className="text-xs text-emerald-100/80 mt-1">
+                  Usa ventas POS + web de los ultimos 30 dias para proyectar lo que necesitas pedir.
+                </div>
+              </div>
+              <div className="shrink-0 text-2xl">→</div>
+            </div>
+          </Link>
+
           {lowLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-emerald-500" />
@@ -375,6 +397,7 @@ export default function ComprasPage() {
               className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
             >
               <option value="todos">Todos</option>
+              <option value="borrador">Borrador</option>
               <option value="pendiente">Pendiente</option>
               <option value="gestionado">Gestionado</option>
               <option value="recibido">Recibido</option>

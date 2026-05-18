@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { ensureUploadsBucket } from '@/utils/supabaseStorage';
+import { requireApiAdminOrSeller } from '@/lib/api-auth';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireApiAdminOrSeller();
+  if (!auth.ok) return auth.response;
   try {
     const { id: orderId } = await params;
 
@@ -123,6 +126,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireApiAdminOrSeller();
+  if (!auth.ok) return auth.response;
   try {
     const { id: orderId } = await params;
     const body = await request.json();

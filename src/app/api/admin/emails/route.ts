@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireApiAdmin } from "@/lib/api-auth";
 
 /** GET all templates */
 export async function GET(req: NextRequest) {
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
   try {
     const { data, error } = await supabaseAdmin
       .from("email_templates")
@@ -19,6 +22,8 @@ export async function GET(req: NextRequest) {
 
 /** POST/PATCH: Update or Create template */
 export async function POST(req: NextRequest) {
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
   try {
     const body = await req.json();
     const { slug, subject, body_html, description } = body;

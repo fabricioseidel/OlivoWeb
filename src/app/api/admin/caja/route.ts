@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
+import { requireApiAdminOrSeller } from '@/lib/api-auth';
 
 /**
  * GET /api/admin/caja?shiftId=xxx
  * Returns shift sales and movements in a single call (replaces 2 client-side Supabase queries).
  */
 export async function GET(request: NextRequest) {
+  const auth = await requireApiAdminOrSeller();
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url);
     const shiftId = searchParams.get('shiftId');
