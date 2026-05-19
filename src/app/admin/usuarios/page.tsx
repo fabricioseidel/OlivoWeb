@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
@@ -10,82 +10,51 @@ import {
   ArrowDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  UserPlusIcon
+  UserPlusIcon,
+  UsersIcon,
+  ShieldCheckIcon,
+  UserIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import {
+  PageShell,
+  HeroHeader,
+  StatsRow,
+  StatsCard,
+  ResponsiveTable,
+  EmptyState,
+  type Column,
+} from "@/components/admin/shell";
 
-// Tipo simplificado de usuario real
-interface RealUser { id: string; name: string | null; email: string; role: string; createdAt: string; updatedAt: string; }
+interface RealUser {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
-// Opciones de filtro
-const statusOptions = [
-  { value: "ALL", label: "Todos los estados" },
-  { value: "ACTIVE", label: "Activos" },
-  { value: "INACTIVE", label: "Inactivos" }
-];
+type SortField = "name" | "email" | "createdAt";
+type SortDir = "asc" | "desc";
 
 const roleOptions = [
   { value: "ALL", label: "Todos los roles" },
   { value: "USER", label: "Usuario" },
-  { value: "ADMIN", label: "Administrador" }
+  { value: "ADMIN", label: "Administrador" },
+  { value: "SELLER", label: "Vendedor" },
 ];
 
-// Componente para las badges de estado
-function StatusBadge({ status }: { status: string }) {
-  let bgColor = "";
-  let textColor = "";
-  let statusText = "";
-
-  switch (status) {
-    case "ACTIVE":
-      bgColor = "bg-green-100";
-      textColor = "text-green-800";
-      statusText = "Activo";
-      break;
-    case "INACTIVE":
-      bgColor = "bg-red-100";
-      textColor = "text-red-800";
-      statusText = "Inactivo";
-      break;
-    default:
-      bgColor = "bg-gray-100";
-      textColor = "text-gray-800";
-      statusText = status;
-  }
-
-  return (
-    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
-      {statusText}
-    </span>
-  );
-}
-
-// Componente para las badges de rol
 function RoleBadge({ role }: { role: string }) {
-  let bgColor = "";
-  let textColor = "";
-  let roleText = "";
-
-  switch (role) {
-    case "ADMIN":
-      bgColor = "bg-purple-100";
-      textColor = "text-purple-800";
-      roleText = "Administrador";
-      break;
-    case "USER":
-      bgColor = "bg-blue-100";
-      textColor = "text-blue-800";
-      roleText = "Usuario";
-      break;
-    default:
-      bgColor = "bg-gray-100";
-      textColor = "text-gray-800";
-      roleText = role;
-  }
-
+  const cfg: Record<string, { bg: string; text: string; label: string }> = {
+    ADMIN: { bg: "bg-purple-100 ring-purple-200", text: "text-purple-800", label: "Administrador" },
+    USER: { bg: "bg-sky-100 ring-sky-200", text: "text-sky-800", label: "Usuario" },
+    SELLER: { bg: "bg-amber-100 ring-amber-200", text: "text-amber-800", label: "Vendedor" },
+  };
+  const c = cfg[role] || { bg: "bg-gray-100 ring-gray-200", text: "text-gray-700", label: role };
   return (
-    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
-      {roleText}
+    <span className={`inline-flex items-center px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide rounded-full ring-1 ${c.bg} ${c.text}`}>
+      {c.label}
     </span>
   );
 }
@@ -94,426 +63,445 @@ export default function UsersPage() {
   const { data: session } = useSession();
   const [users, setUsers] = useState<RealUser[]>([]);
   const [loading, setLoading] = useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
   const [roleFilter, setRoleFilter] = useState("ALL");
-  const [sortField, setSortField] = useState("lastLogin");
-  const [sortDirection, setSortDirection] = useState("desc");
+  const [sortField, setSortField] = useState<SortField>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDir>("desc");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
   const { showToast } = useToast();
   const { confirm } = useConfirm();
 
-  // Filtrar usuarios
-  const filteredUsers = users.filter((user) => {
-    const lower = searchTerm.toLowerCase();
-    const matchesSearch = (user.name || '').toLowerCase().includes(lower) || user.email.toLowerCase().includes(lower) || user.id.toLowerCase().includes(lower);
-    const matchesRole = roleFilter === 'ALL' || user.role === roleFilter;
-    return matchesSearch && matchesRole; // status omitido (no disponible en modelo real)
-  });
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const lower = searchTerm.toLowerCase();
+      const matchesSearch =
+        (user.name || "").toLowerCase().includes(lower) ||
+        user.email.toLowerCase().includes(lower) ||
+        user.id.toLowerCase().includes(lower);
+      const matchesRole = roleFilter === "ALL" || user.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [users, searchTerm, roleFilter]);
 
-  // Ordenar usuarios
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
-    let comparison = 0;
+  const sortedUsers = useMemo(() => {
+    const arr = [...filteredUsers];
+    arr.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === "name") cmp = (a.name || "").localeCompare(b.name || "");
+      else if (sortField === "email") cmp = a.email.localeCompare(b.email);
+      else if (sortField === "createdAt")
+        cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      return sortDirection === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filteredUsers, sortField, sortDirection]);
 
-    if (sortField === "name") {
-      comparison = (a.name || '').localeCompare(b.name || '');
-    } else if (sortField === "email") {
-      comparison = a.email.localeCompare(b.email);
-    } else if (sortField === "createdAt") {
-      comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    }
-
-    return sortDirection === "asc" ? comparison : -comparison;
-  });
-
-  // Paginación
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = sortedUsers.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(sortedUsers.length / itemsPerPage));
 
-  // Cambiar página
-  const paginate = (pageNumber: number) => {
-    if (pageNumber > 0 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-    }
+  const paginate = (p: number) => {
+    if (p > 0 && p <= totalPages) setCurrentPage(p);
   };
 
-  // Cambiar ordenamiento
-  const handleSort = (field: string) => {
+  const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection("desc");
+      setSortDirection(field === "createdAt" ? "desc" : "asc");
     }
-  };
-
-  // Cambiar estado de usuario
-  const toggleUserRole = async (userId: string, currentRole: string) => {
-    if (session?.user?.role !== 'ADMIN') return;
-    const newRole = currentRole === 'ADMIN' ? 'USER' : 'ADMIN';
-    const user = users.find(u => u.id === userId);
-    const confirmed = await confirm({
-      title: `Cambiar rol`,
-      message: `¿Confirmas cambiar el rol de ${user?.name || user?.email} a ${newRole}?`,
-      confirmText: 'Confirmar',
-      cancelText: 'Cancelar',
-      confirmButtonClass: 'bg-indigo-600 hover:bg-indigo-700'
-    });
-    if (!confirmed) return;
-    try {
-      const res = await fetch('/api/admin/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, role: newRole }) });
-      if (!res.ok) throw new Error('Error actualizando rol');
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-      showToast('Rol actualizado', 'success');
-    } catch (e: any) { showToast(e.message, 'error'); }
   };
 
   useEffect(() => {
     const load = async () => {
       try {
-        setLoading(true); setError(null);
-        const res = await fetch('/api/admin/users');
+        setLoading(true);
+        const res = await fetch("/api/admin/users");
         if (!res.ok) {
-          throw new Error(res.status === 401 ? 'No autorizado' : 'Error cargando usuarios');
+          throw new Error(
+            res.status === 401 ? "No autorizado" : "Error cargando usuarios"
+          );
         }
         const data = await res.json();
         setUsers(data);
-      } catch (e: any) { setError(e.message); }
-      finally { setLoading(false); }
+      } catch (e: any) {
+        showToast(e.message || "Error al cargar usuarios", "error");
+      } finally {
+        setLoading(false);
+      }
     };
     load();
-  }, []);
+  }, [showToast]);
 
-  // Eliminar usuario
+  const toggleUserRole = async (userId: string, currentRole: string) => {
+    if (session?.user?.role !== "ADMIN") return;
+    const newRole = currentRole === "ADMIN" ? "USER" : "ADMIN";
+    const user = users.find((u) => u.id === userId);
+    const confirmed = await confirm({
+      title: "Cambiar rol",
+      message: `¿Confirmas cambiar el rol de ${user?.name || user?.email} a ${newRole}?`,
+      confirmText: "Confirmar",
+      cancelText: "Cancelar",
+      confirmButtonClass: "bg-indigo-600 hover:bg-indigo-700",
+    });
+    if (!confirmed) return;
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+      if (!res.ok) throw new Error("Error actualizando rol");
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+      );
+      showToast("Rol actualizado", "success");
+    } catch (e: any) {
+      showToast(e.message, "error");
+    }
+  };
+
   const deleteUser = async (userId: string) => {
-    const user = users.find(u => u.id === userId);
+    const user = users.find((u) => u.id === userId);
     if (!user) return;
-
     const confirmed = await confirm({
       title: "Eliminar usuario",
-      message: `¿Estás seguro de que deseas eliminar a ${user.name || user.email}? Esta acción no se puede deshacer y borrará permanentemente sus datos y los registros huérfanos asociados.`,
+      message: `¿Estás seguro de que deseas eliminar a ${user.name || user.email}? Esta acción no se puede deshacer.`,
       confirmText: "Eliminar definitivamente",
       cancelText: "Cancelar",
-      confirmButtonClass: "bg-red-600 hover:bg-red-700"
+      confirmButtonClass: "bg-red-600 hover:bg-red-700",
     });
-
     if (!confirmed) return;
-
     try {
       const res = await fetch(`/api/admin/users?id=${userId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || 'Error eliminando usuario');
+        throw new Error(
+          errorData.detail || errorData.message || "Error eliminando usuario"
+        );
       }
-      const updatedUsers = users.filter((u) => u.id !== userId);
-      setUsers(updatedUsers);
-      showToast(`Usuario ${user.name || user.email} eliminado correctamente`, "success");
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      showToast(
+        `Usuario ${user.name || user.email} eliminado correctamente`,
+        "success"
+      );
     } catch (error: any) {
       showToast(`No se pudo eliminar: ${error.message}`, "error");
     }
   };
 
-  return (
-    <div>
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Usuarios</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Gestiona los usuarios de tu tienda
-          </p>
-        </div>
-        {session?.user?.role === 'ADMIN' && (
-          <Link
-            href="/admin/usuarios/nuevo"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <UserPlusIcon className="h-5 w-5 mr-2" />
-            Nuevo Usuario
-          </Link>
-        )}
-      </div>
+  const stats = useMemo(() => {
+    const total = users.length;
+    const admins = users.filter((u) => u.role === "ADMIN").length;
+    const sellers = users.filter((u) => u.role === "SELLER").length;
+    const customers = users.filter((u) => u.role === "USER" || !u.role).length;
+    return { total, admins, sellers, customers };
+  }, [users]);
 
-      {/* Filtros y búsqueda */}
-      <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+  const isAdmin = session?.user?.role === "ADMIN";
+
+  const SortHeader = ({
+    field,
+    children,
+  }: {
+    field: SortField;
+    children: React.ReactNode;
+  }) => {
+    const active = sortField === field;
+    return (
+      <button
+        type="button"
+        onClick={() => handleSort(field)}
+        className="inline-flex items-center gap-1 focus:outline-none"
+      >
+        {children}
+        {active &&
+          (sortDirection === "asc" ? (
+            <ArrowUpIcon className="h-3 w-3" />
+          ) : (
+            <ArrowDownIcon className="h-3 w-3" />
+          ))}
+      </button>
+    );
+  };
+
+  const columns: Column<RealUser>[] = [
+    {
+      key: "user",
+      header: <SortHeader field="name">Usuario</SortHeader>,
+      cell: (u) => (
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold ring-2 ring-white shadow-sm shrink-0">
+            {(u.name || u.email)[0].toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-gray-900 truncate">
+              {u.name || "Usuario nuevo"}
             </div>
-            <input
-              type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              placeholder="Buscar por nombre, email o ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <select
-              className="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <select
-              className="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-            >
-              {roleOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="text-right flex items-center justify-end">
-            <span className="text-sm text-gray-500">
-              {loading ? 'Cargando usuarios...' : `Mostrando ${currentItems.length} de ${filteredUsers.length} usuarios`}
-            </span>
+            <div className="text-[10px] font-black tracking-widest uppercase text-gray-400">
+              ID: {u.id.substring(0, 8)}…
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Vista de Lista para Móviles */}
-      <div className="grid grid-cols-1 gap-4 md:hidden mb-6">
-        {loading ? (
-          <div className="text-center py-8 bg-white rounded-lg shadow-sm border border-gray-100 italic text-gray-500">
-            Cargando usuarios...
+      ),
+    },
+    {
+      key: "email",
+      header: <SortHeader field="email">Email</SortHeader>,
+      cell: (u) => (
+        <span className="text-sm font-medium text-gray-600">{u.email}</span>
+      ),
+    },
+    {
+      key: "role",
+      header: "Rol",
+      cell: (u) => <RoleBadge role={u.role} />,
+    },
+    {
+      key: "createdAt",
+      header: <SortHeader field="createdAt">Creado</SortHeader>,
+      cell: (u) => (
+        <span className="text-sm text-gray-500">
+          {new Date(u.createdAt).toLocaleDateString("es-CL", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      cell: (u) =>
+        isAdmin && u.id !== session?.user?.id ? (
+          <div className="flex justify-end gap-2 flex-wrap">
+            <Link
+              href={`/admin/usuarios/${u.id}/editar`}
+              className="inline-flex items-center px-3 py-1.5 ring-1 ring-gray-200 rounded-lg text-xs font-bold text-sky-700 bg-white hover:bg-sky-50 hover:ring-sky-200 transition-all min-h-[36px]"
+            >
+              Editar
+            </Link>
+            <button
+              onClick={() => toggleUserRole(u.id, u.role)}
+              className="inline-flex items-center px-3 py-1.5 ring-1 ring-gray-200 rounded-lg text-xs font-bold text-emerald-700 bg-white hover:bg-emerald-50 hover:ring-emerald-200 transition-all min-h-[36px]"
+            >
+              Cambiar rol
+            </button>
+            <button
+              onClick={() => deleteUser(u.id)}
+              className="inline-flex items-center px-3 py-1.5 ring-1 ring-rose-200 rounded-lg text-xs font-bold text-rose-700 bg-white hover:bg-rose-50 transition-all min-h-[36px]"
+            >
+              Eliminar
+            </button>
           </div>
         ) : (
-          currentItems.map((user) => (
-            <div key={user.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-bold text-gray-900 truncate">{user.name || 'Sin nombre'}</h3>
-                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1.5">
-                  <RoleBadge role={user.role} />
-                  <StatusBadge status={'ACTIVE'} />
-                </div>
-              </div>
+          <span className="text-[10px] text-gray-400 italic">—</span>
+        ),
+    },
+  ];
 
-              <div className="flex flex-col gap-1 mb-4">
-                <p className="text-[10px] text-gray-400 font-mono">ID: {user.id}</p>
-                <p className="text-[10px] text-gray-400 italic">Registrado: {new Date(user.createdAt).toLocaleDateString()}</p>
-              </div>
-
-              {session?.user?.role === 'ADMIN' && user.id !== session.user.id && (
-                <div className="pt-3 border-t border-gray-50 flex gap-2 justify-end">
-                  <Link
-                    href={`/admin/usuarios/${user.id}/editar`}
-                    className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100 transition-colors"
-                  >
-                    Editar
-                  </Link>
-                  <button
-                    onClick={() => toggleUserRole(user.id, user.role)}
-                    className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 transition-colors"
-                  >
-                    Rol
-                  </button>
-                  <button
-                    onClick={() => deleteUser(user.id)}
-                    className="text-xs font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              )}
-            </div>
-          ))
-        )}
-
-        {!loading && currentItems.length === 0 && (
-          <div className="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300">
-            <p className="text-gray-500 text-sm">No se encontraron usuarios</p>
+  const renderMobileCard = (u: RealUser) => (
+    <div className="bg-white p-4 rounded-2xl ring-1 ring-gray-200 space-y-3">
+      <div className="flex justify-between items-start gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold ring-2 ring-white shadow-sm shrink-0">
+            {(u.name || u.email)[0].toUpperCase()}
           </div>
-        )}
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-gray-900 truncate">
+              {u.name || "Usuario nuevo"}
+            </h3>
+            <p className="text-xs text-gray-500 truncate">{u.email}</p>
+          </div>
+        </div>
+        <RoleBadge role={u.role} />
       </div>
 
-      {/* Tabla de usuarios (Oculta en móviles, visible en tablets/escritorio) */}
-      <div className="hidden md:block bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden mb-6">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-100">
-            <thead className="bg-gray-50/80">
-              <tr>
-                <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">
-                  <button className="flex items-center hover:text-emerald-600 transition-colors focus:outline-none" onClick={() => handleSort("name")}>
-                    Usuario
-                    {sortField === "name" && (sortDirection === "asc" ? <ArrowUpIcon className="h-4 w-4 ml-1" /> : <ArrowDownIcon className="h-4 w-4 ml-1" />)}
-                  </button>
-                </th>
-                <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">
-                  <button className="flex items-center hover:text-emerald-600 transition-colors focus:outline-none" onClick={() => handleSort("email")}>
-                    Email / Contacto
-                    {sortField === "email" && (sortDirection === "asc" ? <ArrowUpIcon className="h-4 w-4 ml-1" /> : <ArrowDownIcon className="h-4 w-4 ml-1" />)}
-                  </button>
-                </th>
-                <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">
-                  Rol del Sistema
-                </th>
-                <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">
-                  Estado
-                </th>
-                <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">
-                  Creado el
-                </th>
-                <th className="px-8 py-5 text-right text-[11px] font-black text-gray-500 uppercase tracking-widest">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-50">
-              {!loading && currentItems.map((user) => (
-                <tr key={user.id} className="hover:bg-emerald-50/30 transition-colors group">
-                  <td className="px-8 py-5 whitespace-nowrap">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border-2 border-white shadow-sm">
-                        {(user.name || 'U')[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">{user.name || 'Usuario Nuevo'}</div>
-                        <div className="text-[10px] font-black tracking-widest uppercase text-gray-400">ID: {user.id.substring(0,8)}...</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-600">{user.email}</div>
-                  </td>
-                  <td className="px-8 py-5 whitespace-nowrap">
-                    <RoleBadge role={user.role} />
-                  </td>
-                  <td className="px-8 py-5 whitespace-nowrap">
-                    <StatusBadge status={'ACTIVE'} />
-                  </td>
-                  <td className="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-500">
-                    {new Date(user.createdAt).toLocaleDateString('es-CL', { year: 'numeric', month: 'short', day: 'numeric' })}
-                  </td>
-                  <td className="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">
-                    {session?.user?.role === 'ADMIN' && user.id !== session.user.id && (
-                      <div className="flex justify-end gap-2">
-                        <Link href={`/admin/usuarios/${user.id}/editar`} className="inline-flex items-center px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm text-xs font-bold text-blue-600 bg-white hover:bg-blue-50 hover:border-blue-200 transition-all">
-                          Editar
-                        </Link>
-                        <button onClick={() => toggleUserRole(user.id, user.role)} className="inline-flex items-center px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm text-xs font-bold text-emerald-600 bg-white hover:bg-emerald-50 hover:border-emerald-200 transition-all">
-                          Toggle Rol
-                        </button>
-                        <button onClick={() => deleteUser(user.id)} className="inline-flex items-center px-3 py-1.5 border border-red-200 rounded-lg shadow-sm text-xs font-bold text-red-600 bg-white hover:bg-red-50 hover:border-red-200 transition-all">
-                          Eliminar
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {loading && (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">Cargando...</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Sin resultados */}
-        {!loading && currentItems.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No se encontraron usuarios con los criterios de búsqueda.</p>
-          </div>
-        )}
-
-        {/* Paginación */}
-        {totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Mostrando <span className="font-medium">{indexOfFirstItem + 1}</span> a{" "}
-                  <span className="font-medium">
-                    {Math.min(indexOfLastItem, filteredUsers.length)}
-                  </span>{" "}
-                  de <span className="font-medium">{filteredUsers.length}</span> resultados
-                </p>
-              </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                  <button
-                    onClick={() => paginate(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${currentPage === 1
-                      ? "text-gray-300 cursor-not-allowed"
-                      : "text-gray-500 hover:bg-gray-50"
-                      }`}
-                  >
-                    <span className="sr-only">Anterior</span>
-                    <ChevronLeftIcon className="h-5 w-5" />
-                  </button>
-
-                  {Array.from({ length: totalPages }).map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => paginate(index + 1)}
-                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium ${currentPage === index + 1
-                        ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                        : "text-gray-500 hover:bg-gray-50"
-                        }`}
-                    >
-                      {index + 1}
-                    </button>
-                  ))}
-
-                  <button
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${currentPage === totalPages
-                      ? "text-gray-300 cursor-not-allowed"
-                      : "text-gray-500 hover:bg-gray-50"
-                      }`}
-                  >
-                    <span className="sr-only">Siguiente</span>
-                    <ChevronRightIcon className="h-5 w-5" />
-                  </button>
-                </nav>
-              </div>
-            </div>
-          </div>
-        )}
+      <div className="text-[10px] text-gray-400">
+        ID: <span className="font-mono">{u.id.substring(0, 12)}…</span> ·{" "}
+        Registrado: {new Date(u.createdAt).toLocaleDateString()}
       </div>
 
-      {/* Resumen de usuarios */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-sm font-medium text-gray-500 mb-1">Total usuarios</div>
-          <div className="text-3xl font-semibold text-gray-900">{users.length}</div>
+      {isAdmin && u.id !== session?.user?.id && (
+        <div className="pt-3 border-t border-gray-100 flex gap-2 flex-wrap">
+          <Link
+            href={`/admin/usuarios/${u.id}/editar`}
+            className="flex-1 text-center text-xs font-bold text-sky-700 bg-sky-50 px-3 py-2 rounded-lg hover:bg-sky-100 transition-colors min-h-[36px]"
+          >
+            Editar
+          </Link>
+          <button
+            onClick={() => toggleUserRole(u.id, u.role)}
+            className="flex-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg hover:bg-emerald-100 transition-colors min-h-[36px]"
+          >
+            Cambiar rol
+          </button>
+          <button
+            onClick={() => deleteUser(u.id)}
+            className="flex-1 text-xs font-bold text-rose-700 bg-rose-50 px-3 py-2 rounded-lg hover:bg-rose-100 transition-colors min-h-[36px]"
+          >
+            Eliminar
+          </button>
         </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-sm font-medium text-gray-500 mb-1">Solo lectura</div>
-          <div className="text-sm text-gray-400">Gestión básica (roles)</div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-sm font-medium text-gray-500 mb-1">Administradores</div>
-          <div className="text-3xl font-semibold text-purple-600">{users.filter(u => u.role === 'ADMIN').length}</div>
-        </div>
-      </div>
+      )}
     </div>
+  );
+
+  return (
+    <PageShell
+      hero={
+        <HeroHeader
+          kicker="Sistema"
+          title="Usuarios"
+          subtitle="Gestión de cuentas, roles y permisos"
+          icon={<UsersIcon className="w-6 h-6 text-emerald-300" />}
+          right={
+            isAdmin && (
+              <Link href="/admin/usuarios/nuevo">
+                <button className="px-4 py-2 bg-emerald-500 rounded-xl text-emerald-950 text-xs font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 inline-flex items-center gap-2 min-h-[36px]">
+                  <UserPlusIcon className="size-4" />
+                  Nuevo usuario
+                </button>
+              </Link>
+            )
+          }
+        />
+      }
+    >
+      <StatsRow cols={4}>
+        <StatsCard
+          label="Total"
+          value={stats.total.toLocaleString()}
+          tone="default"
+          icon={<UsersIcon className="w-4 h-4" />}
+        />
+        <StatsCard
+          label="Administradores"
+          value={stats.admins.toLocaleString()}
+          tone="indigo"
+          icon={<ShieldCheckIcon className="w-4 h-4" />}
+        />
+        <StatsCard
+          label="Vendedores"
+          value={stats.sellers.toLocaleString()}
+          tone="amber"
+        />
+        <StatsCard
+          label="Clientes"
+          value={stats.customers.toLocaleString()}
+          tone="sky"
+          icon={<UserIcon className="w-4 h-4" />}
+        />
+      </StatsRow>
+
+      <div className="bg-white p-4 rounded-2xl ring-1 ring-gray-200 shadow-sm">
+        <div className="grid gap-3 md:grid-cols-3 items-center">
+          <div className="md:col-span-2 relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              className="block w-full pl-9 pr-3 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500"
+              placeholder="Buscar por nombre, email o ID..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+          <select
+            className="bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-emerald-500"
+            value={roleFilter}
+            onChange={(e) => {
+              setRoleFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            {roleOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="mt-3 text-[10px] font-black uppercase tracking-widest text-gray-400">
+          {loading
+            ? "Cargando usuarios..."
+            : `${currentItems.length} de ${filteredUsers.length} usuarios`}
+        </div>
+      </div>
+
+      <ResponsiveTable<RealUser>
+        columns={columns}
+        rows={currentItems}
+        rowKey={(u) => u.id}
+        renderMobileCard={renderMobileCard}
+        emptyState={
+          <EmptyState
+            icon={<UsersIcon className="h-7 w-7" />}
+            title={loading ? "Cargando usuarios..." : "No se encontraron usuarios"}
+            description={
+              !loading ? "Probá ajustar los filtros de búsqueda." : undefined
+            }
+          />
+        }
+      />
+
+      {totalPages > 1 && (
+        <div className="bg-white px-4 py-3 ring-1 ring-gray-200 rounded-2xl flex items-center justify-between flex-wrap gap-3">
+          <p className="text-sm text-gray-700">
+            Mostrando <span className="font-bold">{indexOfFirstItem + 1}</span> a{" "}
+            <span className="font-bold">
+              {Math.min(indexOfLastItem, filteredUsers.length)}
+            </span>{" "}
+            de <span className="font-bold">{filteredUsers.length}</span>
+          </p>
+          <nav className="inline-flex rounded-md shadow-sm -space-x-px">
+            <button
+              onClick={() => paginate(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-200 bg-white text-sm ${
+                currentPage === 1
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              <ChevronLeftIcon className="h-5 w-5" />
+            </button>
+            {Array.from({ length: totalPages }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => paginate(index + 1)}
+                className={`relative inline-flex items-center px-4 py-2 border border-gray-200 bg-white text-sm font-medium ${
+                  currentPage === index + 1
+                    ? "z-10 bg-emerald-50 border-emerald-500 text-emerald-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {index + 1}
+              </button>
+            ))}
+            <button
+              onClick={() => paginate(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className={`relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-200 bg-white text-sm ${
+                currentPage === totalPages
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              <ChevronRightIcon className="h-5 w-5" />
+            </button>
+          </nav>
+        </div>
+      )}
+    </PageShell>
   );
 }
