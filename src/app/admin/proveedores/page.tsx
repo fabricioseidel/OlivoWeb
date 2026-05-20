@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useProducts } from "@/contexts/ProductContext";
 import Button from "@/components/ui/Button";
@@ -12,6 +12,7 @@ import {
   ArrowsRightLeftIcon,
   CubeIcon,
   PlusIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import {
   PageShell,
@@ -91,6 +92,9 @@ export default function SuppliersAdminPage() {
   const [assignmentForm, setAssignmentForm] = useState<typeof emptyAssignment>(emptyAssignment);
   const [assignmentSaving, setAssignmentSaving] = useState(false);
   const [assignmentSearch, setAssignmentSearch] = useState("");
+  const [productPickerSearch, setProductPickerSearch] = useState("");
+  const [productPickerOpen, setProductPickerOpen] = useState(false);
+  const productPickerRef = useRef<HTMLDivElement | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     priceWithVat: "",
@@ -269,6 +273,72 @@ export default function SuppliersAdminPage() {
   const handleAssignmentChange = (field: string, value: string) => {
     setAssignmentForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  // Picker: lista filtrada (excluye los ya asignados al proveedor actual)
+  const pickerResults = useMemo(() => {
+    const assignedSet = new Set(assignments.map((a) => a.product_id));
+    const q = productPickerSearch.trim().toLowerCase();
+    let arr = assignmentProducts.filter((p) => !assignedSet.has(p.id));
+    if (q) {
+      arr = arr.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.barcode || "").toLowerCase().includes(q)
+      );
+    }
+    return arr;
+  }, [assignmentProducts, assignments, productPickerSearch]);
+
+  const selectedProductObj = useMemo(
+    () => products.find((p) => p.id === assignmentForm.productId) || null,
+    [products, assignmentForm.productId]
+  );
+
+  const selectProduct = (p: (typeof products)[number]) => {
+    if (p.purchasePrice) {
+      const withoutVat = p.purchasePrice;
+      setAssignmentForm((prev) => ({
+        ...prev,
+        productId: p.id,
+        priceWithoutVat: withoutVat.toFixed(2),
+        priceWithVat: (withoutVat * 1.19).toFixed(2),
+      }));
+    } else {
+      handleAssignmentChange("productId", p.id);
+    }
+    setProductPickerOpen(false);
+    setProductPickerSearch("");
+  };
+
+  const clearSelectedProduct = () => {
+    setAssignmentForm((prev) => ({
+      ...prev,
+      productId: "",
+      priceWithVat: "",
+      priceWithoutVat: "",
+    }));
+  };
+
+  // Click outside del picker
+  useEffect(() => {
+    if (!productPickerOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (
+        productPickerRef.current &&
+        !productPickerRef.current.contains(e.target as Node)
+      ) {
+        setProductPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [productPickerOpen]);
+
+  // Reset picker al cambiar proveedor
+  useEffect(() => {
+    setProductPickerSearch("");
+    setProductPickerOpen(false);
+  }, [selectedId]);
 
   const handlePriceCalculation = (field: "with" | "without", value: string) => {
     const numValue = parseFloat(value);
@@ -758,39 +828,99 @@ export default function SuppliersAdminPage() {
                 className="grid gap-3 md:grid-cols-6 bg-gray-50 rounded-xl p-4 ring-1 ring-dashed ring-gray-200"
               >
                 <div className="md:col-span-2">
-                  <Field label="Producto">
-                    <select
-                      className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
-                      value={assignmentForm.productId}
-                      onChange={(e) => {
-                        const id = e.target.value;
-                        if (!id) {
-                          handleAssignmentChange("productId", "");
-                          return;
-                        }
-                        const selectedProduct = products.find((p) => p.id === id);
-                        if (selectedProduct && selectedProduct.purchasePrice) {
-                          const withoutVat = selectedProduct.purchasePrice;
-                          const withVat = withoutVat * 1.19;
-                          setAssignmentForm((prev) => ({
-                            ...prev,
-                            productId: id,
-                            priceWithoutVat: withoutVat.toFixed(2),
-                            priceWithVat: withVat.toFixed(2),
-                          }));
-                        } else {
-                          handleAssignmentChange("productId", id);
-                        }
-                      }}
-                      required
-                    >
-                      <option value="">Selecciona producto</option>
-                      {assignmentProducts.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.name} (Stock: {product.stock})
-                        </option>
-                      ))}
-                    </select>
+                  <Field label="Producto" required>
+                    <div ref={productPickerRef} className="relative">
+                      {selectedProductObj ? (
+                        <div className="flex items-center justify-between bg-emerald-50 ring-1 ring-emerald-200 rounded-xl px-3 py-2.5 gap-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-gray-900 truncate">
+                              {selectedProductObj.name}
+                            </div>
+                            <div className="text-[10px] text-gray-500 font-mono truncate">
+                              Stock: {selectedProductObj.stock} ·{" "}
+                              {selectedProductObj.barcode ||
+                                selectedProductObj.id.slice(0, 8)}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={clearSelectedProduct}
+                            className="p-1.5 rounded-lg text-gray-500 hover:bg-emerald-100 hover:text-gray-900 shrink-0 min-h-[32px] min-w-[32px] inline-flex items-center justify-center"
+                            title="Quitar selección"
+                          >
+                            <XMarkIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="relative">
+                            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <input
+                              type="text"
+                              value={productPickerSearch}
+                              onChange={(e) => {
+                                setProductPickerSearch(e.target.value);
+                                setProductPickerOpen(true);
+                              }}
+                              onFocus={() => setProductPickerOpen(true)}
+                              placeholder="Buscar producto por nombre o código…"
+                              className="w-full bg-white border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                            />
+                          </div>
+                          {productPickerOpen && (
+                            <div className="absolute z-30 mt-1 w-full bg-white ring-1 ring-gray-200 rounded-xl shadow-xl max-h-72 overflow-y-auto">
+                              {pickerResults.length === 0 ? (
+                                <div className="px-3 py-4 text-center text-sm text-gray-500">
+                                  {productPickerSearch
+                                    ? `Sin resultados para "${productPickerSearch}"`
+                                    : "Todos los productos ya están asignados a este proveedor"}
+                                </div>
+                              ) : (
+                                <>
+                                  {pickerResults.slice(0, 100).map((p) => (
+                                    <button
+                                      key={p.id}
+                                      type="button"
+                                      onClick={() => selectProduct(p)}
+                                      className="w-full text-left px-3 py-2.5 hover:bg-emerald-50 flex items-center justify-between gap-2 border-b border-gray-100 last:border-0 min-h-[44px]"
+                                    >
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-sm font-medium text-gray-900 truncate">
+                                          {p.name}
+                                        </div>
+                                        <div className="text-[10px] text-gray-500 font-mono truncate">
+                                          {p.barcode || p.id.slice(0, 8)}
+                                          {p.purchasePrice
+                                            ? ` · Costo sugerido: $${p.purchasePrice.toLocaleString("es-CL")}`
+                                            : ""}
+                                        </div>
+                                      </div>
+                                      <span
+                                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ring-1 ${
+                                          p.stock > 10
+                                            ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                                            : p.stock > 0
+                                            ? "bg-amber-50 text-amber-700 ring-amber-200"
+                                            : "bg-rose-50 text-rose-700 ring-rose-200"
+                                        }`}
+                                      >
+                                        {p.stock}
+                                      </span>
+                                    </button>
+                                  ))}
+                                  {pickerResults.length > 100 && (
+                                    <div className="px-3 py-2 text-[10px] text-gray-400 italic text-center bg-gray-50 border-t border-gray-100">
+                                      Mostrando 100 de {pickerResults.length}.
+                                      Refiná tu búsqueda.
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </Field>
                 </div>
 

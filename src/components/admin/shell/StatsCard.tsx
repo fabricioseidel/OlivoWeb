@@ -46,27 +46,27 @@ export default function StatsCard({
 }: Props) {
   const body = (
     <div
-      className={`relative h-full rounded-2xl bg-white ring-1 ring-gray-200 hover:ring-emerald-300 transition-all p-4 sm:p-5 ${className}`}
+      className={`relative h-full min-w-0 rounded-2xl bg-white ring-1 ring-gray-200 hover:ring-emerald-300 transition-all p-3 sm:p-5 overflow-hidden ${className}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-gray-500">
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-gray-500 min-w-0 break-words">
           {label}
         </p>
         {icon && (
           <span
-            className={`flex items-center justify-center w-8 h-8 rounded-xl ${toneAccent[tone]}`}
+            className={`flex items-center justify-center w-8 h-8 rounded-xl shrink-0 ${toneAccent[tone]}`}
           >
             {icon}
           </span>
         )}
       </div>
-      <div className="mt-2 flex items-baseline gap-2">
-        <span className="text-2xl sm:text-3xl font-black text-gray-900 leading-none">
+      <div className="mt-2 flex items-baseline gap-2 min-w-0">
+        <span className="text-xl sm:text-3xl font-black text-gray-900 leading-none truncate">
           {value}
         </span>
         {delta && (
           <span
-            className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+            className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${
               deltaTone[delta.tone ?? "neutral"]
             }`}
           >
@@ -75,7 +75,9 @@ export default function StatsCard({
         )}
       </div>
       {hint && (
-        <p className="mt-1 text-[11px] text-gray-500 truncate">{hint}</p>
+        <p className="mt-1 text-[10px] sm:text-[11px] text-gray-500 truncate">
+          {hint}
+        </p>
       )}
       {href && (
         <ArrowUpRightIcon className="absolute top-3 right-3 w-4 h-4 text-gray-300 group-hover:text-emerald-500 transition-colors" />

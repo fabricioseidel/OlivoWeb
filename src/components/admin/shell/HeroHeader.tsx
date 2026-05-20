@@ -30,7 +30,7 @@ export default function HeroHeader({
 }: Props) {
   return (
     <header
-      className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${toneClasses[tone]} text-white px-5 py-6 sm:px-8 sm:py-8 shadow-xl ${className}`}
+      className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${toneClasses[tone]} text-white px-4 py-5 sm:px-8 sm:py-8 shadow-xl ${className}`}
     >
       <div
         aria-hidden
@@ -40,31 +40,31 @@ export default function HeroHeader({
         aria-hidden
         className="pointer-events-none absolute -bottom-32 -left-16 w-72 h-72 rounded-full bg-emerald-400/10 blur-3xl"
       />
-      <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div className="min-w-0">
+      <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 min-w-0">
+        <div className="min-w-0 flex-1">
           {kicker && (
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-300/80">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-300/80 truncate">
               {kicker}
             </p>
           )}
-          <div className="mt-1 flex items-center gap-3">
+          <div className="mt-1 flex items-center gap-3 min-w-0">
             {icon && (
-              <span className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/10 ring-1 ring-white/15">
+              <span className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/10 ring-1 ring-white/15 shrink-0">
                 {icon}
               </span>
             )}
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight min-w-0 break-words">
               {title}
             </h1>
           </div>
           {subtitle && (
-            <p className="mt-2 text-sm sm:text-base text-emerald-100/70 max-w-2xl">
+            <p className="mt-2 text-sm sm:text-base text-emerald-100/70 max-w-2xl break-words">
               {subtitle}
             </p>
           )}
         </div>
         {right && (
-          <div className="flex flex-wrap items-center gap-2 sm:justify-end shrink-0">
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end sm:shrink-0 min-w-0">
             {right}
           </div>
         )}
