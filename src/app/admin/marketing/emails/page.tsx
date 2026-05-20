@@ -1,18 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   EnvelopeIcon,
   PencilSquareIcon,
   ChevronRightIcon,
   ArrowPathIcon,
-  CheckCircleIcon,
   ExclamationCircleIcon,
   CodeBracketIcon,
   EyeIcon,
   MegaphoneIcon,
+  ClipboardDocumentIcon,
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
+import { useToast } from "@/contexts/ToastContext";
+import {
+  PageShell,
+  HeroHeader,
+  StatsRow,
+  StatsCard,
+  EmptyState,
+} from "@/components/admin/shell";
 
 type EmailTemplate = {
   slug: string;
@@ -22,17 +30,50 @@ type EmailTemplate = {
   updated_at: string;
 };
 
+const PLACEHOLDERS_BY_SLUG: Record<string, string[]> = {
+  welcome: ["customerName", "year", "couponBlock", "pointsBlock"],
+  order_confirmation: [
+    "customerName",
+    "year",
+    "orderId",
+    "total",
+    "itemCount",
+    "paymentMethod",
+    "itemsTable",
+    "whatsappLink",
+  ],
+  order_status_update: [
+    "customerName",
+    "year",
+    "orderId",
+    "status",
+    "address",
+  ],
+};
+
+const TEMPLATE_LABELS: Record<string, string> = {
+  welcome: "Bienvenida",
+  order_confirmation: "Confirmación de pedido",
+  order_status_update: "Actualización de estado",
+  pos_receipt: "Boleta POS",
+  points_earned: "Puntos ganados",
+};
+
 export default function EmailTemplatesPage() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<EmailTemplate | null>(null);
+  const [originalSnapshot, setOriginalSnapshot] =
+    useState<EmailTemplate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [previewMode, setPreviewMode] = useState<"edit" | "preview">("edit");
+  const { showToast } = useToast();
 
   useEffect(() => {
     fetchTemplates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchTemplates = async () => {
@@ -42,6 +83,10 @@ export default function EmailTemplatesPage() {
       if (res.ok) {
         const data = await res.json();
         setTemplates(data);
+        if (data.length > 0 && !selectedTemplate) {
+          setSelectedTemplate(data[0]);
+          setOriginalSnapshot(data[0]);
+        }
       }
     } catch (err) {
       console.error("Error fetching templates:", err);
@@ -50,25 +95,45 @@ export default function EmailTemplatesPage() {
     }
   };
 
+  const selectTemplate = (t: EmailTemplate) => {
+    if (
+      isDirty &&
+      !confirm("Tenés cambios sin guardar. ¿Descartar y cambiar de plantilla?")
+    ) {
+      return;
+    }
+    setSelectedTemplate(t);
+    setOriginalSnapshot(t);
+    setPreviewMode("edit");
+  };
+
+  const isDirty = useMemo(() => {
+    if (!selectedTemplate || !originalSnapshot) return false;
+    return (
+      selectedTemplate.subject !== originalSnapshot.subject ||
+      selectedTemplate.body_html !== originalSnapshot.body_html
+    );
+  }, [selectedTemplate, originalSnapshot]);
+
   const handleSave = async () => {
     if (!selectedTemplate) return;
     setIsSaving(true);
-    setMessage(null);
     try {
       const res = await fetch("/api/admin/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(selectedTemplate),
       });
-
       if (res.ok) {
-        setMessage({ type: "success", text: "Plantilla actualizada con éxito" });
-        fetchTemplates();
+        showToast("Plantilla actualizada con éxito", "success");
+        await fetchTemplates();
+        setOriginalSnapshot(selectedTemplate);
       } else {
         throw new Error("Error al guardar");
       }
     } catch (err) {
-      setMessage({ type: "error", text: "Error de servidor al guardar cambios" });
+      showToast("Error de servidor al guardar cambios", "error");
+      console.error(err);
     } finally {
       setIsSaving(false);
     }
@@ -76,221 +141,350 @@ export default function EmailTemplatesPage() {
 
   const handleSendCampaign = async () => {
     if (!selectedTemplate) return;
-    if (!confirm(`¿Estás seguro de enviar esta plantilla a TODOS los suscriptores activos?`)) return;
+    const friendly =
+      TEMPLATE_LABELS[selectedTemplate.slug] || selectedTemplate.slug;
+    if (
+      !confirm(
+        `¿Enviar la plantilla "${friendly}" a TODOS los suscriptores activos?\n\nEsta acción no se puede deshacer.`
+      )
+    )
+      return;
+    if (isDirty) {
+      showToast("Guardá los cambios antes de enviar", "warning");
+      return;
+    }
 
     setIsSending(true);
-    setMessage(null);
     try {
-       const res = await fetch("/api/admin/email-campaign", {
-         method: "POST",
-         headers: { "Content-Type": "application/json" },
-         body: JSON.stringify({ templateSlug: selectedTemplate.slug }),
-       });
-
-       if (res.ok) {
-         setMessage({ type: "success", text: "Campaña procesada y enviada a los suscriptores" });
-       } else {
-         const data = await res.json();
-         throw new Error(data.error || "Error al enviar");
-       }
+      const res = await fetch("/api/admin/email-campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateSlug: selectedTemplate.slug }),
+      });
+      if (res.ok) {
+        showToast("Campaña enviándose…", "success");
+      } else {
+        const data = await res.json();
+        throw new Error(data.error || "Error al enviar");
+      }
     } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+      showToast(err.message, "error");
     } finally {
       setIsSending(false);
     }
   };
 
-  const getPlaceholders = (slug: string) => {
-    const common = ["customerName", "year"];
-    switch (slug) {
-      case 'welcome': return [...common, "couponBlock", "pointsBlock"];
-      case 'order_confirmation': return [...common, "orderId", "total", "itemCount", "paymentMethod", "itemsTable", "whatsappLink"];
-      case 'order_status_update': return [...common, "orderId", "status", "address"];
-      default: return common;
-    }
+  const discardChanges = () => {
+    if (originalSnapshot) setSelectedTemplate(originalSnapshot);
+    setPreviewMode("edit");
   };
+
+  const copyPlaceholder = (placeholder: string) => {
+    const text = `{{${placeholder}}}`;
+    navigator.clipboard.writeText(text);
+    showToast(`${text} copiado`, "success");
+  };
+
+  const placeholders = useMemo(() => {
+    if (!selectedTemplate) return ["customerName", "year"];
+    return (
+      PLACEHOLDERS_BY_SLUG[selectedTemplate.slug] || ["customerName", "year"]
+    );
+  }, [selectedTemplate]);
+
+  const stats = useMemo(() => {
+    const total = templates.length;
+    const recentlyUpdated = templates.filter((t) => {
+      const updated = new Date(t.updated_at);
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      return updated > sevenDaysAgo;
+    }).length;
+    return { total, recentlyUpdated };
+  }, [templates]);
 
   if (isLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-emerald-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-emerald-500" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-        <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Editor de Plantillas</h1>
-          <p className="text-gray-500 font-medium">Personaliza la comunicación automática de tu tienda.</p>
-        </div>
-      </div>
+    <PageShell
+      hero={
+        <HeroHeader
+          kicker="Marketing"
+          title="Plantillas de email"
+          subtitle="Editá los emails transaccionales y campañas automatizadas de la tienda"
+          icon={<EnvelopeIcon className="w-6 h-6 text-emerald-300" />}
+          right={
+            isDirty && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-100 ring-1 ring-amber-200 text-amber-900 text-xs font-bold uppercase tracking-widest">
+                <ExclamationCircleIcon className="h-4 w-4" />
+                Cambios sin guardar
+              </span>
+            )
+          }
+        />
+      }
+    >
+      <StatsRow cols={2}>
+        <StatsCard
+          label="Plantillas totales"
+          value={stats.total.toLocaleString()}
+          tone="default"
+          icon={<EnvelopeIcon className="w-4 h-4" />}
+        />
+        <StatsCard
+          label="Editadas (7d)"
+          value={stats.recentlyUpdated.toLocaleString()}
+          tone="emerald"
+          icon={<PencilSquareIcon className="w-4 h-4" />}
+        />
+      </StatsRow>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Sidebar: Template List */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+        {/* Sidebar: lista + placeholders */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-50 bg-gray-50/30">
-              <h2 className="text-sm font-black uppercase tracking-widest text-emerald-950 flex items-center gap-2">
+          <div className="bg-white rounded-2xl ring-1 ring-gray-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/40">
+              <h2 className="text-xs font-black uppercase tracking-widest text-emerald-900 flex items-center gap-2">
                 <EnvelopeIcon className="h-4 w-4" />
-                Plantillas Base
+                Plantillas base
               </h2>
             </div>
-            <div className="p-2 space-y-1">
-              {templates.map((t) => (
-                <button
-                  key={t.slug}
-                  onClick={() => setSelectedTemplate(t)}
-                  className={`w-full text-left p-4 rounded-2xl flex items-center justify-between transition-all group ${
-                    selectedTemplate?.slug === t.slug
-                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
-                      : "hover:bg-emerald-50 text-gray-600"
-                  }`}
-                >
-                  <div className="flex flex-col">
-                    <span className="font-black text-[10px] uppercase tracking-widest opacity-60 mb-1">{t.slug}</span>
-                    <span className="font-bold text-sm truncate max-w-[180px]">{t.subject}</span>
-                  </div>
-                  <ChevronRightIcon className={`h-4 w-4 transition-transform ${selectedTemplate?.slug === t.slug ? "translate-x-1" : "opacity-0"}`} />
-                </button>
-              ))}
+            <div className="p-2 space-y-1 max-h-[400px] overflow-y-auto">
+              {templates.map((t) => {
+                const active = selectedTemplate?.slug === t.slug;
+                return (
+                  <button
+                    key={t.slug}
+                    onClick={() => selectTemplate(t)}
+                    className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all min-h-[64px] ${
+                      active
+                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                        : "hover:bg-emerald-50 text-gray-700"
+                    }`}
+                  >
+                    <div className="flex flex-col min-w-0">
+                      <span
+                        className={`font-black text-[10px] uppercase tracking-widest mb-0.5 ${
+                          active ? "text-emerald-100" : "text-gray-400"
+                        }`}
+                      >
+                        {TEMPLATE_LABELS[t.slug] || t.slug}
+                      </span>
+                      <span className="font-bold text-sm truncate">
+                        {t.subject}
+                      </span>
+                    </div>
+                    <ChevronRightIcon
+                      className={`h-4 w-4 shrink-0 transition-transform ${
+                        active
+                          ? "translate-x-0.5 opacity-100"
+                          : "opacity-0 group-hover:opacity-100"
+                      }`}
+                    />
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div className="bg-emerald-950 rounded-[2rem] p-6 text-white text-xs border border-white/5">
-             <p className="font-black uppercase tracking-widest text-emerald-400 mb-4 flex items-center gap-2">
-                <CodeBracketIcon className="h-4 w-4" />
-                Placeholders Disponibles
-             </p>
-             <div className="flex flex-wrap gap-2">
-                {selectedTemplate && getPlaceholders(selectedTemplate.slug).map(p => (
-                  <code key={p} className="bg-white/10 px-2 py-1 rounded-md text-emerald-300 font-bold border border-white/5">
-                    {"{{"}{p}{"}}"}
-                  </code>
+          {/* Placeholders */}
+          <div className="bg-emerald-950 rounded-2xl p-5 text-white ring-1 ring-white/5">
+            <p className="font-black uppercase tracking-widest text-emerald-300 text-xs mb-3 flex items-center gap-2">
+              <CodeBracketIcon className="h-4 w-4" />
+              Placeholders disponibles
+            </p>
+            {selectedTemplate ? (
+              <div className="flex flex-wrap gap-1.5">
+                {placeholders.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => copyPlaceholder(p)}
+                    className="group inline-flex items-center gap-1 bg-white/10 px-2 py-1 rounded-md text-emerald-300 font-bold border border-white/5 hover:bg-white/15 text-xs"
+                    title="Click para copiar"
+                  >
+                    <span>{`{{${p}}}`}</span>
+                    <ClipboardDocumentIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+                  </button>
                 ))}
-                {!selectedTemplate && <p className="opacity-50">Selecciona una plantilla para ver variables.</p>}
-             </div>
-             <p className="mt-6 opacity-60 leading-relaxed italic border-t border-white/5 pt-4">
-                Usa las llaves dobles para inyectar datos reales del cliente o la orden en el cuerpo del correo.
-             </p>
+              </div>
+            ) : (
+              <p className="text-emerald-100/50 text-xs italic">
+                Seleccioná una plantilla.
+              </p>
+            )}
+            <p className="mt-4 text-emerald-100/40 leading-relaxed text-xs italic border-t border-white/5 pt-3">
+              Click para copiar. Pegá la variable en el cuerpo HTML para inyectar
+              datos reales del cliente o la orden.
+            </p>
           </div>
         </div>
 
-        {/* Main: Template Editor */}
+        {/* Main: Editor */}
         <div className="lg:col-span-8">
           {selectedTemplate ? (
-            <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/80 border border-gray-100 flex flex-col min-h-[700px] overflow-hidden">
-               <div className="p-8 border-b border-gray-50 flex items-center justify-between bg-gray-50/20">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center">
-                       <PencilSquareIcon className="h-6 w-6 text-emerald-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-black text-emerald-950">{selectedTemplate.slug.toUpperCase()}</h3>
-                      <p className="text-xs text-gray-400 font-bold">{selectedTemplate.description}</p>
-                    </div>
+            <div className="bg-white rounded-2xl ring-1 ring-gray-200 shadow-sm flex flex-col min-h-[600px] overflow-hidden">
+              <div className="px-5 sm:px-7 py-4 border-b border-gray-100 flex items-center justify-between gap-3 bg-gray-50/40 flex-wrap">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                    <PencilSquareIcon className="h-5 w-5 text-emerald-700" />
                   </div>
-                  <div className="flex bg-gray-100 p-1 rounded-xl">
-                    <button 
-                      onClick={() => setPreviewMode("edit")}
-                      className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${previewMode === "edit" ? "bg-white text-emerald-600 shadow-sm" : "text-gray-400"}`}
-                    >
-                      Editar
-                    </button>
-                    <button 
-                      onClick={() => setPreviewMode("preview")}
-                      className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${previewMode === "preview" ? "bg-white text-emerald-600 shadow-sm" : "text-gray-400"}`}
-                    >
-                      Previsualizar
-                    </button>
+                  <div className="min-w-0">
+                    <h3 className="text-base sm:text-lg font-black text-gray-900 truncate">
+                      {TEMPLATE_LABELS[selectedTemplate.slug] ||
+                        selectedTemplate.slug}
+                    </h3>
+                    <p className="text-xs text-gray-500 font-medium truncate">
+                      {selectedTemplate.description}
+                    </p>
                   </div>
-               </div>
+                </div>
+                <div className="flex bg-gray-100 p-1 rounded-xl">
+                  <button
+                    onClick={() => setPreviewMode("edit")}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all min-h-[36px] ${
+                      previewMode === "edit"
+                        ? "bg-white text-emerald-700 shadow-sm"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    <PencilSquareIcon className="h-3.5 w-3.5" />
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => setPreviewMode("preview")}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all min-h-[36px] ${
+                      previewMode === "preview"
+                        ? "bg-white text-emerald-700 shadow-sm"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    <EyeIcon className="h-3.5 w-3.5" />
+                    Vista previa
+                  </button>
+                </div>
+              </div>
 
-               <div className="flex-1 p-8 flex flex-col gap-6">
-                  {message && (
-                    <div className={`p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 overflow-hidden ${message.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100"}`}>
-                       {message.type === "success" ? <CheckCircleIcon className="h-5 w-5" /> : <ExclamationCircleIcon className="h-5 w-5" />}
-                       <span className="text-sm font-bold">{message.text}</span>
+              <div className="flex-1 p-5 sm:p-7 flex flex-col gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500">
+                    Asunto del correo
+                  </label>
+                  <input
+                    className="w-full h-12 px-4 rounded-xl bg-gray-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white transition-all outline-none font-bold text-gray-900 text-sm"
+                    value={selectedTemplate.subject}
+                    onChange={(e) =>
+                      setSelectedTemplate({
+                        ...selectedTemplate,
+                        subject: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="flex-1 flex flex-col space-y-1.5 min-h-[300px]">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500">
+                      Cuerpo HTML
+                    </label>
+                    <span className="text-[10px] text-gray-400 italic">
+                      Soporta HTML/CSS en línea
+                    </span>
+                  </div>
+
+                  {previewMode === "edit" ? (
+                    <textarea
+                      className="flex-1 w-full p-4 rounded-2xl bg-gray-950 text-emerald-300 font-mono text-xs ring-1 ring-gray-800 outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none overflow-y-auto"
+                      value={selectedTemplate.body_html}
+                      onChange={(e) =>
+                        setSelectedTemplate({
+                          ...selectedTemplate,
+                          body_html: e.target.value,
+                        })
+                      }
+                      spellCheck={false}
+                    />
+                  ) : (
+                    <div className="flex-1 w-full rounded-2xl ring-2 ring-gray-100 overflow-hidden bg-white shadow-inner min-h-[300px]">
+                      <iframe
+                        srcDoc={selectedTemplate.body_html}
+                        className="w-full h-full border-0"
+                        title="Preview"
+                        sandbox=""
+                      />
                     </div>
                   )}
+                </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Asunto del Correo</label>
-                    <input 
-                      className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold text-gray-900"
-                      value={selectedTemplate.subject}
-                      onChange={(e) => setSelectedTemplate({...selectedTemplate, subject: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="flex-1 flex flex-col space-y-2 min-h-[400px]">
-                    <div className="flex items-center justify-between ml-1">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Cuerpo HTML</label>
-                      <span className="text-[9px] text-gray-400 font-bold italic">Soporta HTML/CSS en línea</span>
-                    </div>
-                    
-                    {previewMode === "edit" ? (
-                      <textarea 
-                        className="flex-1 w-full p-6 rounded-[2rem] bg-gray-950 text-emerald-400 font-mono text-xs border border-gray-800 outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none overflow-y-auto"
-                        value={selectedTemplate.body_html}
-                        onChange={(e) => setSelectedTemplate({...selectedTemplate, body_html: e.target.value})}
-                      />
-                    ) : (
-                      <div className="flex-1 w-full rounded-[2rem] border-4 border-gray-100 overflow-hidden bg-white shadow-inner">
-                         <iframe 
-                            srcDoc={selectedTemplate.body_html}
-                            className="w-full h-full border-0"
-                            title="Preview Content"
-                         />
-                      </div>
+              <div
+                className="px-5 sm:px-7 py-4 bg-gray-50/40 border-t border-gray-100 flex items-center justify-between gap-3 flex-wrap"
+                style={{
+                  paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)",
+                }}
+              >
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <Button
+                    variant="outline"
+                    onClick={handleSendCampaign}
+                    disabled={isSending || isSaving || isDirty}
+                    className="!px-4 !py-2.5 !rounded-xl !border-2 !border-emerald-200 !text-emerald-700 hover:!bg-emerald-50 !font-bold !text-sm min-h-[44px]"
+                  >
+                    <MegaphoneIcon className="h-4 w-4 mr-1.5" />
+                    {isSending ? "Enviando…" : "Enviar campaña"}
+                  </Button>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hidden sm:block">
+                    Última edición:{" "}
+                    {new Date(selectedTemplate.updated_at).toLocaleString(
+                      "es-CL"
                     )}
                   </div>
-               </div>
-
-               <div className="p-8 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Button 
-                      variant="outline"
-                      className="h-14 px-6 rounded-2xl border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-all font-bold"
-                      onClick={handleSendCampaign}
-                      disabled={isSending || isSaving}
+                </div>
+                <div className="flex items-center gap-2">
+                  {isDirty && (
+                    <button
+                      type="button"
+                      onClick={discardChanges}
+                      className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl min-h-[44px]"
                     >
-                      <MegaphoneIcon className="h-5 w-5 mr-2" />
-                      {isSending ? "Enviando..." : "Enviar Campaña"}
-                    </Button>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                       Última actualización: {new Date(selectedTemplate.updated_at).toLocaleString('es-CL')}
-                    </div>
-                  </div>
-                  <Button 
-                    variant="primary" 
-                    className="h-14 px-10 rounded-2xl shadow-xl shadow-emerald-600/20 active:scale-95 transition-all text-white bg-emerald-600"
+                      Descartar
+                    </button>
+                  )}
+                  <Button
+                    variant="primary"
                     onClick={handleSave}
-                    disabled={isSaving || isSending}
+                    disabled={isSaving || isSending || !isDirty}
+                    className="!px-5 !py-2.5 !rounded-xl !shadow-lg !shadow-emerald-600/20 min-h-[44px]"
                   >
                     {isSaving ? (
                       <span className="flex items-center gap-2">
                         <ArrowPathIcon className="h-4 w-4 animate-spin" />
-                        Guardando...
+                        Guardando…
                       </span>
                     ) : (
-                      "Guardar Cambios"
+                      "Guardar cambios"
                     )}
                   </Button>
-               </div>
+                </div>
+              </div>
             </div>
           ) : (
-            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center p-20 text-center h-full">
-               <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6">
-                  <EnvelopeIcon className="h-10 w-10 text-gray-200" />
-               </div>
-               <h3 className="text-xl font-black text-gray-900 mb-2">Selecciona una plantilla</h3>
-               <p className="text-gray-500 font-medium max-w-xs leading-relaxed">Haz clic en una de las plantillas de la izquierda para comenzar a editar su contenido automático.</p>
+            <div className="bg-white rounded-2xl ring-1 ring-dashed ring-gray-300">
+              <EmptyState
+                icon={<EnvelopeIcon className="h-7 w-7" />}
+                title="Seleccioná una plantilla"
+                description="Elegí una de la lista para empezar a editarla."
+              />
             </div>
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
