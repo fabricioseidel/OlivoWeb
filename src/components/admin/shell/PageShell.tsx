@@ -39,7 +39,7 @@ export default function PageShell({
 }: Props) {
   return (
     <div
-      className={`mx-auto w-full ${maxWidthClasses[maxWidth]} space-y-5 sm:space-y-6 ${
+      className={`mx-auto w-full min-w-0 ${maxWidthClasses[maxWidth]} space-y-5 sm:space-y-6 ${
         bottomPadding ? "pb-28 sm:pb-10" : ""
       } ${className}`}
     >

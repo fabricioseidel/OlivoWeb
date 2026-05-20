@@ -46,7 +46,7 @@ export default function BulkAssignSuppliersPage() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
-  const [includeAssigned, setIncludeAssigned] = useState(false);
+  const [includeAssigned, setIncludeAssigned] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const [unitCost, setUnitCost] = useState<string>("");
