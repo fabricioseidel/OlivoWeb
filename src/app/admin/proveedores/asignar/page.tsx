@@ -29,6 +29,7 @@ type ProductRow = {
   sale_price: number | null;
   purchase_price: number | null;
   image_url: string | null;
+  is_active?: boolean;
   hasSupplier?: boolean;
   assignedSuppliers?: AssignedSupplier[];
 };
@@ -401,9 +402,20 @@ export default function BulkAssignSuppliersPage() {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-gray-900 truncate">
+                    <span
+                      className={`text-sm font-semibold truncate ${
+                        p.is_active === false
+                          ? "text-gray-500"
+                          : "text-gray-900"
+                      }`}
+                    >
                       {p.name || "(sin nombre)"}
                     </span>
+                    {p.is_active === false && (
+                      <span className="text-[9px] font-black uppercase tracking-widest bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-md ring-1 ring-gray-200 whitespace-nowrap">
+                        Inactivo
+                      </span>
+                    )}
                     {sameSupplierAssigned && (
                       <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md ring-1 ring-emerald-200 whitespace-nowrap">
                         Ya asignado

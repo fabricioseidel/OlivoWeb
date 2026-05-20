@@ -39,7 +39,6 @@ export async function GET(req: Request) {
     .select(
       "barcode,name,category,stock,sale_price,purchase_price,image_url,is_active"
     )
-    .eq("is_active", true)
     .order("name", { ascending: true })
     .limit(Math.max(limit * 2, 500));
 
