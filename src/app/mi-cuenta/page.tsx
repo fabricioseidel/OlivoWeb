@@ -132,7 +132,7 @@ export default function MiCuentaPage() {
           <p className="text-gray-500 font-medium">Hola, <span className="text-emerald-600 font-bold">{displayName}</span>. Gestiona tus pedidos y perfil aquí.</p>
         </div>
         <div className="flex gap-3">
-          <Link href="/mi-cuenta/perfil">
+          <Link href="/mi-cuenta/informacion-personal">
             <Button variant="outline" className="rounded-2xl border-2 font-bold hover:bg-emerald-50 hover:border-emerald-200 transition-all">
               Editar Perfil
             </Button>
@@ -216,7 +216,7 @@ export default function MiCuentaPage() {
                 <ChevronRightIcon className="w-5 h-5 text-gray-300 group-hover:text-emerald-500" />
               </Link>
 
-              <Link href="/mi-cuenta/seguridad" className="flex items-center gap-4 p-4 hover:bg-emerald-50 rounded-2xl transition-all group">
+              <Link href="/mi-cuenta/cambiar-contrasena" className="flex items-center gap-4 p-4 hover:bg-emerald-50 rounded-2xl transition-all group">
                 <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
                   <KeyIcon className="w-6 h-6 text-purple-600" />
                 </div>
