@@ -177,7 +177,11 @@ export default function UnifiedScanner({
               </button>
               {isPermissionError && (
                 <p className="text-[9px] text-white/40 font-medium leading-relaxed max-w-[260px]">
-                  Si la pestaña dice &quot;bloqueado&quot;, abre Ajustes del navegador → Permisos del sitio → Cámara → Permitir.
+                  {/iPhone|iPad|iPod/i.test(
+                    typeof navigator !== "undefined" ? navigator.userAgent : ""
+                  )
+                    ? "En iPhone/iPad: Ajustes → Privacidad → Cámara → activa Safari. O bien Ajustes → Safari → Cámara → Permitir."
+                    : "Si la pestaña dice «bloqueado», abre Ajustes del navegador → Permisos del sitio → Cámara → Permitir."}
                 </p>
               )}
             </div>

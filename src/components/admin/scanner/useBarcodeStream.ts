@@ -67,6 +67,11 @@ const isPermissionDenied = (err: unknown): boolean => {
   );
 };
 
+const isIOSDevice = (): boolean =>
+  typeof navigator !== "undefined" &&
+  (/iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+
 const classifyCamera = (rawLabel: string): CameraKind => {
   const l = rawLabel.toLowerCase();
   if (!l) return "unknown";
@@ -291,6 +296,8 @@ export function useBarcodeStream({
 
       const video = document.createElement("video");
       video.setAttribute("playsinline", "true");
+      video.setAttribute("autoplay", "");
+      video.autoplay = true;
       video.setAttribute("muted", "true");
       video.muted = true;
       video.style.width = "100%";
@@ -338,27 +345,45 @@ export function useBarcodeStream({
       inner.style.height = "100%";
       container.appendChild(inner);
 
-      const scanner = new Html5Qrcode(innerId, {
-        verbose: false,
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-      });
-      html5Ref.current = scanner;
+      const makeScanner = () =>
+        new Html5Qrcode(innerId, {
+          verbose: false,
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+        });
 
       const startConfig = { fps: 24, aspectRatio: 1.7777 };
-      if (currentCameraId) {
-        await scanner.start(
-          { deviceId: { exact: currentCameraId } },
-          startConfig,
-          (decoded) => emit(decoded),
-          () => {}
-        );
-      } else {
+
+      const startGenericBackCamera = async (sc: Html5Qrcode) => {
         const devices = await Html5Qrcode.getCameras();
         if (!devices.length) throw new Error("No se encontraron cámaras");
         const back =
           devices.find((d) => /back|trasera|environment|rear/i.test(d.label)) ||
           devices[devices.length - 1];
-        await scanner.start(back.id, startConfig, (decoded) => emit(decoded), () => {});
+        await sc.start(back.id, startConfig, (decoded) => emit(decoded), () => {});
+      };
+
+      let scanner = makeScanner();
+      html5Ref.current = scanner;
+
+      if (currentCameraId) {
+        try {
+          await scanner.start(
+            { deviceId: { exact: currentCameraId } },
+            startConfig,
+            (decoded) => emit(decoded),
+            () => {}
+          );
+        } catch (err) {
+          if (isPermissionDenied(err)) throw err;
+          // Stored deviceId is stale (iOS resets IDs after clearing Safari data).
+          // Re-create the scanner and fall back to generic back-camera start.
+          try { await scanner.stop(); } catch { /* noop */ }
+          scanner = makeScanner();
+          html5Ref.current = scanner;
+          await startGenericBackCamera(scanner);
+        }
+      } else {
+        await startGenericBackCamera(scanner);
       }
 
       setTimeout(async () => {
@@ -418,7 +443,9 @@ export function useBarcodeStream({
         if (isPermissionDenied(err)) {
           setIsPermissionError(true);
           setError(
-            "Permiso de cámara denegado. Toca el candado en la barra de direcciones, activa Cámara y vuelve a intentar."
+            isIOSDevice()
+              ? "Permiso de cámara denegado. Ve a Ajustes → Safari → Cámara → «Permitir» y vuelve a intentar."
+              : "Permiso de cámara denegado. Toca el candado en la barra de direcciones, activa Cámara y vuelve a intentar."
           );
         } else {
           const msg = err instanceof Error ? err.message : "No se pudo iniciar la cámara";
