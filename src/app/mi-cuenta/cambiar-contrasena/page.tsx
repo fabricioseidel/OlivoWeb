@@ -4,27 +4,65 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, CheckCircleIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+
+const labelClass = "block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2";
+
+function PasswordInput({
+  name,
+  value,
+  onChange,
+  placeholder,
+  error,
+}: {
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  error?: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <div className="relative">
+        <input
+          type={show ? "text" : "password"}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          className={`w-full bg-gray-50 border-2 rounded-2xl px-4 py-3 pr-12 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
+            error
+              ? "border-red-300 focus:border-red-400 focus:ring-red-500/20"
+              : "border-gray-100 focus:border-emerald-400 focus:ring-emerald-500/20"
+          }`}
+        />
+        <button
+          type="button"
+          onClick={() => setShow((v) => !v)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          {show ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+        </button>
+      </div>
+      {error && <p className="mt-1.5 text-xs font-bold text-red-600">{error}</p>}
+    </div>
+  );
+}
 
 export default function CambiarContrasenaPage() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     contrasenaActual: "",
     nuevaContrasena: "",
-    confirmarContrasena: ""
+    confirmarContrasena: "",
   });
-  const [mensaje, setMensaje] = useState({ tipo: "", texto: "" });
-  const [errors, setErrors] = useState({
-    contrasenaActual: "",
-    nuevaContrasena: "",
-    confirmarContrasena: ""
-  });
+  const [errors, setErrors] = useState({ contrasenaActual: "", nuevaContrasena: "", confirmarContrasena: "" });
 
-  // Redirigir si no está autenticado
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login?callbackUrl=/mi-cuenta/cambiar-contrasena");
@@ -35,196 +73,111 @@ export default function CambiarContrasenaPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    // Limpiar errores al escribir
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof typeof errors]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ""
-      }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
-  const validateForm = (): boolean => {
-    let isValid = true;
-    const newErrors = {
-      contrasenaActual: "",
-      nuevaContrasena: "",
-      confirmarContrasena: ""
-    };
-
-    if (!formData.contrasenaActual) {
-      newErrors.contrasenaActual = "La contraseña actual es requerida";
-      isValid = false;
-    }
-
-    if (!formData.nuevaContrasena) {
-      newErrors.nuevaContrasena = "La nueva contraseña es requerida";
-      isValid = false;
-    } else if (formData.nuevaContrasena.length < 8) {
-      newErrors.nuevaContrasena = "La contraseña debe tener al menos 8 caracteres";
-      isValid = false;
-    }
-
-    if (!formData.confirmarContrasena) {
-      newErrors.confirmarContrasena = "Debe confirmar la nueva contraseña";
-      isValid = false;
-    } else if (formData.nuevaContrasena !== formData.confirmarContrasena) {
-      newErrors.confirmarContrasena = "Las contraseñas no coinciden";
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
+  const validate = () => {
+    const e = { contrasenaActual: "", nuevaContrasena: "", confirmarContrasena: "" };
+    let ok = true;
+    if (!formData.contrasenaActual) { e.contrasenaActual = "La contraseña actual es requerida"; ok = false; }
+    if (!formData.nuevaContrasena) { e.nuevaContrasena = "La nueva contraseña es requerida"; ok = false; }
+    else if (formData.nuevaContrasena.length < 8) { e.nuevaContrasena = "Debe tener al menos 8 caracteres"; ok = false; }
+    if (!formData.confirmarContrasena) { e.confirmarContrasena = "Confirma la nueva contraseña"; ok = false; }
+    else if (formData.nuevaContrasena !== formData.confirmarContrasena) { e.confirmarContrasena = "Las contraseñas no coinciden"; ok = false; }
+    setErrors(e);
+    return ok;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validate()) return;
     setIsSubmitting(true);
-
-    try {
-      // Simulación de actualización (en una app real, enviaríamos a la API)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Simulamos una validación exitosa
-      setMensaje({
-        tipo: "exito",
-        texto: "Contraseña actualizada correctamente"
-      });
-
-      // Limpiar formulario
-      setFormData({
-        contrasenaActual: "",
-        nuevaContrasena: "",
-        confirmarContrasena: ""
-      });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      setMensaje({
-        tipo: "error",
-        texto: "Ha ocurrido un error al actualizar la contraseña"
-      });
-    } finally {
-      setIsSubmitting(false);
-
-      // Auto-limpiar mensaje después de 5 segundos
-      setTimeout(() => {
-        setMensaje({ tipo: "", texto: "" });
-      }, 5000);
-    }
+    await new Promise((r) => setTimeout(r, 1000));
+    setFormData({ contrasenaActual: "", nuevaContrasena: "", confirmarContrasena: "" });
+    setIsSubmitting(false);
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 5000);
   };
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500" />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-6">
-        <Link href="/mi-cuenta" className="inline-flex items-center text-blue-600 hover:text-blue-800">
-          <ArrowLeftIcon className="h-4 w-4 mr-1" />
-          Volver a Mi cuenta
-        </Link>
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <Link
+        href="/mi-cuenta"
+        className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-emerald-600 mb-8 transition-colors"
+      >
+        <ArrowLeftIcon className="w-4 h-4 mr-2" />
+        Volver a Mi Cuenta
+      </Link>
+
+      <div className="mb-8">
+        <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Cambiar Contraseña</h1>
+        <p className="text-gray-500 font-medium">Elige una contraseña segura con al menos 8 caracteres.</p>
       </div>
 
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Cambiar Contraseña</h1>
+      <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-8">
+        {success && (
+          <div className="flex items-center gap-3 mb-6 px-5 py-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
+            <CheckCircleIcon className="w-5 h-5 text-emerald-600 shrink-0" />
+            <p className="text-sm font-bold text-emerald-800">Contraseña actualizada correctamente</p>
+          </div>
+        )}
 
-      {mensaje.texto && (
-        <div className={`mb-6 p-4 rounded-md ${mensaje.tipo === "exito" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}>
-          {mensaje.texto}
-        </div>
-      )}
-
-      <div className="bg-white rounded-lg shadow-md p-6">
         <form onSubmit={handleSubmit}>
-          <div className="space-y-6 max-w-md mx-auto">
+          <div className="space-y-5 mb-8">
             <div>
-              <label htmlFor="contrasenaActual" className="block text-sm font-medium text-gray-700 mb-1">
-                Contraseña actual
-              </label>
-              <input
-                type="password"
-                id="contrasenaActual"
+              <label className={labelClass}>Contraseña actual</label>
+              <PasswordInput
                 name="contrasenaActual"
                 value={formData.contrasenaActual}
                 onChange={handleChange}
-                className={`w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.contrasenaActual ? 'border-red-300' : ''}`}
+                error={errors.contrasenaActual}
               />
-              {errors.contrasenaActual && (
-                <p className="mt-1 text-sm text-red-600">{errors.contrasenaActual}</p>
-              )}
             </div>
 
+            <div className="pt-2 border-t border-gray-100" />
+
             <div>
-              <label htmlFor="nuevaContrasena" className="block text-sm font-medium text-gray-700 mb-1">
-                Nueva contraseña
-              </label>
-              <input
-                type="password"
-                id="nuevaContrasena"
+              <label className={labelClass}>Nueva contraseña</label>
+              <PasswordInput
                 name="nuevaContrasena"
                 value={formData.nuevaContrasena}
                 onChange={handleChange}
-                className={`w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.nuevaContrasena ? 'border-red-300' : ''}`}
+                placeholder="Mínimo 8 caracteres"
+                error={errors.nuevaContrasena}
               />
-              {errors.nuevaContrasena ? (
-                <p className="mt-1 text-sm text-red-600">{errors.nuevaContrasena}</p>
-              ) : (
-                <p className="mt-1 text-sm text-gray-500">
-                  La contraseña debe tener al menos 8 caracteres
-                </p>
-              )}
             </div>
 
             <div>
-              <label htmlFor="confirmarContrasena" className="block text-sm font-medium text-gray-700 mb-1">
-                Confirmar nueva contraseña
-              </label>
-              <input
-                type="password"
-                id="confirmarContrasena"
+              <label className={labelClass}>Confirmar nueva contraseña</label>
+              <PasswordInput
                 name="confirmarContrasena"
                 value={formData.confirmarContrasena}
                 onChange={handleChange}
-                className={`w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.confirmarContrasena ? 'border-red-300' : ''}`}
+                error={errors.confirmarContrasena}
               />
-              {errors.confirmarContrasena && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmarContrasena}</p>
-              )}
             </div>
+          </div>
 
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isSubmitting ? 'opacity-75 cursor-not-allowed' : ''}`}
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Actualizando...
-                  </>
-                ) : (
-                  'Cambiar contraseña'
-                )}
-              </button>
-            </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+              {isSubmitting ? "Actualizando…" : "Cambiar contraseña"}
+            </button>
           </div>
         </form>
       </div>
