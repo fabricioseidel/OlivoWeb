@@ -17,12 +17,9 @@ import {
   Star,
   Truck,
   Shield,
-  Clock,
-  Heart,
   ShoppingBag,
   ArrowRight,
   Sparkles,
-  Users,
   BadgeCheck,
   Zap,
   Package,
@@ -89,20 +86,6 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* Social proof */}
-            <div className="flex items-center gap-6 justify-center lg:justify-start animate-in fade-in duration-700 delay-500">
-              <div className="flex -space-x-2">
-                {["E","C","M","L"].map((l, i) => (
-                  <div key={i} className="w-8 h-8 rounded-full bg-emerald-700 border-2 border-emerald-950 flex items-center justify-center text-[10px] font-black text-emerald-200">{l}</div>
-                ))}
-              </div>
-              <div>
-                <div className="flex items-center gap-1 mb-0.5">
-                  {[1,2,3,4,5].map(s => <Star key={s} className="w-3 h-3 fill-amber-400 text-amber-400" />)}
-                </div>
-                <p className="text-[11px] text-emerald-400/70 font-bold">+2,400 clientes satisfechos</p>
-              </div>
-            </div>
           </div>
 
           {/* Panel derecho — tarjetas flotantes */}
@@ -148,12 +131,11 @@ export default function Home() {
       {/* Barra de beneficios */}
       <div className="border-t border-white/10 bg-black/20 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-0 md:divide-x md:divide-white/10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-0 sm:divide-x sm:divide-white/10">
             {[
               { icon: Truck,       text: "Envío en 24-48h" },
               { icon: BadgeCheck,  text: "Calidad garantizada" },
               { icon: Shield,      text: "Pago 100% seguro" },
-              { icon: Users,       text: "+2,400 clientes" },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center justify-center gap-2 px-4 py-1">
                 <Icon className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -229,48 +211,6 @@ export default function Home() {
     );
   };
 
-  const renderFeatures = () => (
-    <section className="py-20 bg-white border-t border-gray-100">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">¿Por qué elegir OlivoMarket?</h2>
-          <p className="text-gray-500 font-medium max-w-xl mx-auto">Todo lo que necesitas para recibir lo mejor de Venezuela en tu puerta</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
-          {[
-            { icon: Truck,   bg: "bg-emerald-50", hover: "group-hover:bg-emerald-600", color: "text-emerald-600 group-hover:text-white", title: "Envío Veloz", desc: "Recibe tus productos en 24-48 horas con nuestro servicio logístico express." },
-            { icon: Shield,  bg: "bg-blue-50",    hover: "group-hover:bg-blue-600",    color: "text-blue-600 group-hover:text-white",    title: "Pago Seguro",    desc: "Transacciones protegidas con encriptación de nivel bancario en todo momento." },
-            { icon: Clock,   bg: "bg-orange-50",  hover: "group-hover:bg-orange-600",  color: "text-orange-600 group-hover:text-white",  title: "Siempre Fresco",  desc: "Productos seleccionados con los más altos estándares de calidad y frescura." },
-          ].map(({ icon: Icon, bg, hover, color, title, desc }) => (
-            <div key={title} className="group bg-gray-50 rounded-[2rem] p-8 border border-gray-100 hover:border-transparent hover:shadow-xl transition-all duration-300 text-center">
-              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${bg} ${hover} mx-auto mb-6 transition-all duration-300`}>
-                <Icon className={`w-9 h-9 ${color} transition-colors duration-300`} />
-              </div>
-              <h3 className="text-xl font-black text-gray-900 mb-3 tracking-tight">{title}</h3>
-              <p className="text-gray-500 font-medium leading-relaxed">{desc}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Garantía */}
-        <div className="mt-12 bg-emerald-50 border border-emerald-100 rounded-[2rem] p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-          <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center shrink-0">
-            <BadgeCheck className="w-8 h-8 text-white" />
-          </div>
-          <div className="flex-1">
-            <h4 className="text-xl font-black text-gray-900 mb-1">Garantía de satisfacción 100%</h4>
-            <p className="text-gray-500 font-medium">Si no estás satisfecho con tu compra, te devolvemos el dinero. Sin preguntas, sin complicaciones.</p>
-          </div>
-          <Link href="/productos" className="shrink-0">
-            <Button className="bg-emerald-600 text-white hover:bg-emerald-700 border-none rounded-2xl px-8 h-12 font-black shadow-lg shadow-emerald-500/20 transition-all active:scale-95">
-              Comprar ahora
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-
   const renderNewsletter = (title: string, description: string) => (
     <section className="py-20 bg-gradient-to-br from-emerald-950 to-black text-white relative overflow-hidden">
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] -mr-20 -mt-20 pointer-events-none" />
@@ -299,8 +239,6 @@ export default function Home() {
               return <div key={block.id}>{renderCategories(block.title || "Nuestras Categorías", block.description || "Encuentra exactamente lo que buscas")}</div>;
             case 'products':
               return <div key={block.id}>{renderProducts(block.title || "Lo Más Vendido", block.description || "Los favoritos de nuestra comunidad", block.itemsToShow || 8)}</div>;
-            case 'features':
-              return <div key={block.id}>{renderFeatures()}</div>;
             case 'newsletter':
               return <div key={block.id}>{renderNewsletter(block.title || "Únete a la familia Olivo Market", block.description || "Recibe ofertas exclusivas y un 10% de descuento en tu primera compra.")}</div>;
             default: return null;
@@ -311,7 +249,6 @@ export default function Home() {
           {renderHero(heroTitle, heroDescription)}
           {renderCategories("Nuestras Categorías", "Encuentra exactamente lo que buscas")}
           {renderProducts("Lo Más Vendido", "Los favoritos de nuestra comunidad", 8)}
-          {renderFeatures()}
           {renderNewsletter("Únete a la familia Olivo Market", "Recibe ofertas exclusivas y un 10% de descuento en tu primera compra.")}
         </>
       )}
