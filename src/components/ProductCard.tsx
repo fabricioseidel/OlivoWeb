@@ -22,7 +22,7 @@ const formatCurrency = (value: number) => formatter.format(value);
 type Props = { product: ProductUI };
 
 function ProductCard({ product }: Props) {
-  const { addToCart, cartItems, removeFromCart } = useCart();
+  const { addToCart, cartItems, removeFromCart, updateQuantity } = useCart();
   const { showToast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
 
@@ -70,13 +70,7 @@ function ProductCard({ product }: Props) {
     e.preventDefault();
     e.stopPropagation();
     if (quantityInCart > 1) {
-      addToCart({
-        id: product.id,
-        name: product.name,
-        price: effectivePrice,
-        image: product.image || "/file.svg",
-        slug: product.slug,
-      }, -1);
+      updateQuantity(product.id, quantityInCart - 1);
     } else if (quantityInCart === 1) {
       removeFromCart(product.id);
       showToast(`${product.name} eliminado`, 'info');
