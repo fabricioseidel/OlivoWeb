@@ -10,7 +10,8 @@ import {
   MapPinIcon,
   KeyIcon,
   ArrowRightIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  CubeIcon,
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -223,6 +224,17 @@ export default function MiCuentaPage() {
                 <div className="flex-1">
                   <p className="font-bold text-gray-900 group-hover:text-emerald-700">Privacidad</p>
                   <p className="text-xs text-gray-400">Cambiar contraseña</p>
+                </div>
+                <ChevronRightIcon className="w-5 h-5 text-gray-300 group-hover:text-emerald-500" />
+              </Link>
+
+              <Link href="/mi-cuenta/encomiendas" className="flex items-center gap-4 p-4 hover:bg-emerald-50 rounded-2xl transition-all group">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                  <CubeIcon className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-gray-900 group-hover:text-emerald-700">Encomiendas</p>
+                  <p className="text-xs text-gray-400">Centro logístico · Envíos y retiros</p>
                 </div>
                 <ChevronRightIcon className="w-5 h-5 text-gray-300 group-hover:text-emerald-500" />
               </Link>
