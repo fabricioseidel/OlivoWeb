@@ -15,6 +15,7 @@ import {
   ShoppingBagIcon,
   DocumentArrowDownIcon,
   Squares2X2Icon,
+  PhotoIcon,
   CheckBadgeIcon,
   StarIcon,
 } from "@heroicons/react/24/outline";
@@ -513,6 +514,12 @@ export default function AdminProductsPage() {
                 <button className="px-3 py-2 bg-white/10 ring-1 ring-white/15 rounded-xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/15 transition-all inline-flex items-center gap-2 min-h-[36px]">
                   <Squares2X2Icon className="size-4" />
                   Masivo
+                </button>
+              </Link>
+              <Link href="/admin/productos/imagenes">
+                <button className="px-3 py-2 bg-white/10 ring-1 ring-white/15 rounded-xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/15 transition-all inline-flex items-center gap-2 min-h-[36px]">
+                  <PhotoIcon className="size-4" />
+                  Imágenes
                 </button>
               </Link>
               <Link href="/admin/productos/nuevo">
