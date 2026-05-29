@@ -14,11 +14,15 @@ export async function uploadImageToCloudinaryServerAction(imgBase64: string) {
     if (typeof imgBase64 !== 'string' || !imgBase64.startsWith('data:image')) {
       return { ok: false, error: 'Invalid image format' };
     }
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      return { ok: false, error: 'Cloudinary no esta configurado (faltan CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET)' };
+    }
     const result = await uploadImageToCloudinary(imgBase64);
     return { ok: true, url: result.url, publicId: result.publicId };
   } catch (e: any) {
-    console.error('uploadImageToCloudinaryServerAction error', e?.message || e);
-    return { ok: false, error: 'Error saving image' };
+    const msg = e?.message || (typeof e === 'string' ? e : 'Error desconocido');
+    console.error('uploadImageToCloudinaryServerAction error', msg, e);
+    return { ok: false, error: `Cloudinary: ${msg}` };
   }
 }
 
