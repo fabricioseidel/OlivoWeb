@@ -236,7 +236,7 @@ export default function Home() {
               Recibe, envía y devuelve tus encomiendas sin filas y sin complicaciones. Todo en un solo lugar.
             </p>
           </div>
-          <Link href="/mi-cuenta/encomiendas" className="flex-shrink-0">
+          <Link href="/centro-logistico" className="flex-shrink-0">
             <button className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black px-7 h-12 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all hover:scale-105 active:scale-95 text-sm uppercase tracking-wide">
               Ver más información
               <ArrowRight className="w-4 h-4" />
