@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
 import Button from "@/components/ui/Button";
-import { uploadImageServerAction } from "@/actions/upload";
+import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
 import {
   MagnifyingGlassIcon,
   ArrowLeftIcon,
@@ -92,7 +92,7 @@ export default function BulkImageEditorPage() {
       const updates: Record<string, { image: string }> = {};
       for (let i = 0; i < ids.length; i++) {
         const id = ids[i];
-        const res = await uploadImageServerAction(pending[id]);
+        const res = await uploadImageToCloudinaryServerAction(pending[id]);
         if (!res.ok || !res.url) {
           throw new Error(res.error || `Falló la subida de ${id}`);
         }

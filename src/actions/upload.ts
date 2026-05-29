@@ -3,6 +3,24 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { uploadImageToSupabase, deleteFromUploadsByPublicUrl } from "@/utils/supabaseStorage";
+import { uploadImage as uploadImageToCloudinary } from "@/server/cloudinary.service";
+
+export async function uploadImageToCloudinaryServerAction(imgBase64: string) {
+  try {
+    const session: any = await getServerSession(authOptions as any);
+    if (!session || session?.user?.role !== 'ADMIN') {
+      return { ok: false, error: 'No autorizado' };
+    }
+    if (typeof imgBase64 !== 'string' || !imgBase64.startsWith('data:image')) {
+      return { ok: false, error: 'Invalid image format' };
+    }
+    const result = await uploadImageToCloudinary(imgBase64);
+    return { ok: true, url: result.url, publicId: result.publicId };
+  } catch (e: any) {
+    console.error('uploadImageToCloudinaryServerAction error', e?.message || e);
+    return { ok: false, error: 'Error saving image' };
+  }
+}
 
 export async function uploadImageServerAction(imgBase64: string, oldUrl?: string | null) {
   try {
