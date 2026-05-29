@@ -9,7 +9,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import SingleImageUpload from "@/components/ui/SingleImageUpload";
 import MultiImageUpload from "@/components/ui/MultiImageUpload";
-import { uploadImageServerAction } from "@/actions/upload";
+import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useCategories } from "@/hooks/useCategories";
@@ -290,7 +290,7 @@ export default function NewProductPage() {
       const uploadIfDataUrl = async (img?: string): Promise<string> => {
         if (!img) return "";
         if (img.startsWith('data:image')) {
-          const res = await uploadImageServerAction(img);
+          const res = await uploadImageToCloudinaryServerAction(img);
           if (res.ok && res.url) {
             return res.url;
           }
