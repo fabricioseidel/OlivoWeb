@@ -11,7 +11,7 @@ import SingleImageUpload from "@/components/ui/SingleImageUpload";
 import MultiImageUpload from "@/components/ui/MultiImageUpload";
 import { TrashIcon, PlusIcon, CameraIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import UnifiedScanner from "@/components/admin/scanner/UnifiedScanner";
-import { uploadImageServerAction } from "@/actions/upload";
+import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
 
 
 interface FormState {
@@ -238,7 +238,7 @@ export default function EditProductPage() {
       const uploadIfDataUrl = async (img?: string): Promise<string> => {
         if (!img) return "";
         if (img.startsWith('data:image')) {
-          const res = await uploadImageServerAction(img);
+          const res = await uploadImageToCloudinaryServerAction(img);
           if (res.ok && res.url) {
             return res.url;
           }
