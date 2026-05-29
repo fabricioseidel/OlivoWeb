@@ -12,6 +12,7 @@ import {
   PhotoIcon,
   XMarkIcon,
   CloudArrowUpIcon,
+  ClipboardDocumentIcon,
 } from "@heroicons/react/24/outline";
 
 const DEFAULT_IMAGE = "/file.svg";
@@ -230,9 +231,27 @@ export default function BulkImageEditorPage() {
                   )}
                 </div>
                 <div className="p-3">
-                  <p className="text-sm font-bold text-gray-900 truncate" title={p.name}>
-                    {p.name}
-                  </p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-bold text-gray-900 truncate flex-1" title={p.name}>
+                      {p.name}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          await navigator.clipboard.writeText(p.name);
+                          showToast("Nombre copiado", "success");
+                        } catch {
+                          showToast("No se pudo copiar", "error");
+                        }
+                      }}
+                      title="Copiar nombre"
+                      className="flex-shrink-0 p-1 rounded-md text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                    >
+                      <ClipboardDocumentIcon className="w-4 h-4" />
+                    </button>
+                  </div>
                   <p className="text-xs text-gray-400 truncate">{p.id}</p>
                 </div>
                 <input
