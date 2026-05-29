@@ -16,6 +16,7 @@ const navigation = [
   { name: "Productos", href: "/productos" },
   { name: "Categorías", href: "/categorias" },
   { name: "Ofertas", href: "/ofertas" },
+  { name: "Centro Logístico", href: "/centro-logistico" },
   { name: "Contacto", href: "/contacto" },
 ];
 

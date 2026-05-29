@@ -228,7 +228,7 @@ export default function MiCuentaPage() {
                 <ChevronRightIcon className="w-5 h-5 text-gray-300 group-hover:text-emerald-500" />
               </Link>
 
-              <Link href="/mi-cuenta/encomiendas" className="flex items-center gap-4 p-4 hover:bg-emerald-50 rounded-2xl transition-all group">
+              <Link href="/centro-logistico" className="flex items-center gap-4 p-4 hover:bg-emerald-50 rounded-2xl transition-all group">
                 <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
                   <CubeIcon className="w-6 h-6 text-emerald-600" />
                 </div>
