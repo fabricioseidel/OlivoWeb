@@ -84,6 +84,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { name: "Pedidos Clientes", href: "/admin/pedidos", icon: ClipboardDocumentListIcon },
       { name: "Uber Eats", href: "/admin/uber-eats", icon: GlobeAltIcon },
+      { name: "Creador UE", href: "/admin/uber-eats/creador", icon: PlusIcon },
     ],
   },
   {
