@@ -61,7 +61,9 @@ export default function AdminProductsPage() {
         const matchesCategory =
           selectedCategory === "Todas" ||
           (Array.isArray(product.categories) &&
-            product.categories.includes(selectedCategory));
+            product.categories.some(
+              (c) => c.toLowerCase() === selectedCategory.toLowerCase()
+            ));
 
         let matchesEditedToday = true;
         if (onlyEditedToday) {
