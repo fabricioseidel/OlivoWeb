@@ -507,12 +507,12 @@ export default function EditProductPage() {
                 <input
                   type="checkbox"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  checked={form.categories.includes(c.name)}
+                  checked={form.categories.some(cat => cat.toLowerCase() === c.name.toLowerCase())}
                   onChange={e => {
                     if (e.target.checked) {
-                      setForm(prev => prev ? { ...prev, categories: [...prev.categories, c.name] } : prev);
+                      setForm(prev => prev ? { ...prev, categories: [...prev.categories.filter(cat => cat.toLowerCase() !== c.name.toLowerCase()), c.name] } : prev);
                     } else {
-                      setForm(prev => prev ? { ...prev, categories: prev.categories.filter(cat => cat !== c.name) } : prev);
+                      setForm(prev => prev ? { ...prev, categories: prev.categories.filter(cat => cat.toLowerCase() !== c.name.toLowerCase()) } : prev);
                     }
                   }}
                 />

@@ -24,7 +24,7 @@ import {
   Zap,
   Package,
   PackageOpen,
-  SendHorizonal,
+  Send,
   RotateCcw,
   MapPin,
 } from "lucide-react";
@@ -256,7 +256,7 @@ export default function Home() {
               border: "border-blue-100 hover:border-blue-200",
             },
             {
-              icon: SendHorizonal,
+              icon: Send,
               title: "Envía",
               description: "Despacha tus ventas o envíos personales con Bluexpress, Chilexpress y Correos de Chile.",
               color: "bg-emerald-600",
@@ -357,8 +357,8 @@ export default function Home() {
       ) : (
         <>
           {renderHero(heroTitle, heroDescription)}
-          {renderCategories("Nuestras Categorías", "Encuentra exactamente lo que buscas")}
           {renderProducts("Lo Más Vendido", "Los favoritos de nuestra comunidad", 8)}
+          {renderCategories("Nuestras Categorías", "Encuentra exactamente lo que buscas")}
           {renderLogistics()}
           {renderNewsletter("Únete a la familia Olivo Market", "Recibe ofertas exclusivas y un 10% de descuento en tu primera compra.")}
         </>
