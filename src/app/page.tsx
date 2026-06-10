@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useProducts } from "@/contexts/ProductContext";
@@ -27,6 +28,7 @@ import {
   Send,
   RotateCcw,
   MapPin,
+  Search,
 } from "lucide-react";
 
 export default function Home() {
@@ -34,6 +36,14 @@ export default function Home() {
   const { categories, loading: categoriesLoading } = useCategories();
   const { status } = useSession();
   const { settings: storeSettings, loading: settingsLoading } = useStoreSettings();
+  const router = useRouter();
+  const [heroQuery, setHeroQuery] = useState("");
+
+  const submitHeroSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = heroQuery.trim();
+    router.push(q ? `/productos?q=${encodeURIComponent(q)}` : "/productos");
+  };
 
   const heroTitle = storeSettings?.heroTitle || "Sabor que te conecta con casa";
   const heroDescription = storeSettings?.heroDescription || "Llevamos lo mejor de Venezuela directo a tu puerta en Chile. Calidad garantizada, frescura y el sabor que ya conoces.";
@@ -54,36 +64,57 @@ export default function Home() {
       <div className="absolute top-0 right-0 -translate-y-1/3 translate-x-1/3 w-[700px] h-[700px] bg-emerald-500/20 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 pt-20 pb-0 md:pt-28 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 pt-8 pb-0 md:pt-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-end">
           {/* Texto */}
-          <div className="text-center lg:text-left pb-16 md:pb-20">
+          <div className="text-center lg:text-left pb-8 md:pb-10">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-emerald-400 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] mb-7 animate-in fade-in slide-in-from-top duration-700">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-emerald-400 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] mb-4 animate-in fade-in slide-in-from-top duration-700">
               <Sparkles className="w-3.5 h-3.5" />
               <span>{subtitle || "Productos venezolanos premium"}</span>
             </div>
 
             {/* Título */}
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black mb-6 text-white tracking-tighter leading-[0.92] whitespace-pre-line animate-in fade-in slide-in-from-bottom duration-700 delay-100">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black mb-3 text-white tracking-tighter leading-[0.95] whitespace-pre-line animate-in fade-in slide-in-from-bottom duration-700 delay-100">
               {title}
             </h1>
 
             {/* Descripción */}
-            <p className="text-base md:text-xl mb-10 text-emerald-100/60 max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium animate-in fade-in duration-700 delay-200">
+            <p className="text-sm md:text-base mb-6 text-emerald-100/60 max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium animate-in fade-in duration-700 delay-200">
               {description}
             </p>
 
+            {/* Buscador */}
+            <form
+              onSubmit={submitHeroSearch}
+              className="relative max-w-lg mx-auto lg:mx-0 mb-5 animate-in fade-in duration-700 delay-200"
+            >
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              <input
+                type="search"
+                value={heroQuery}
+                onChange={(e) => setHeroQuery(e.target.value)}
+                placeholder="¿Qué estás buscando? Ej: harina pan, malta..."
+                className="w-full h-14 pl-12 pr-28 rounded-2xl bg-white text-gray-900 text-sm md:text-base font-medium shadow-2xl shadow-emerald-950/40 focus:outline-none focus:ring-4 focus:ring-emerald-400/40"
+              />
+              <button
+                type="submit"
+                className="absolute right-2 top-2 bottom-2 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-colors active:scale-95"
+              >
+                Buscar
+              </button>
+            </form>
+
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12 animate-in fade-in duration-700 delay-300">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start animate-in fade-in duration-700 delay-300">
               <Link href={buttonLink || "/productos"}>
-                <Button size="lg" className="w-full sm:w-auto bg-emerald-500 text-white hover:bg-emerald-400 border-none shadow-[0_20px_40px_rgba(16,185,129,0.35)] transition-all hover:scale-105 active:scale-95 px-10 h-14 rounded-2xl text-base font-black">
+                <Button size="lg" className="w-full sm:w-auto bg-emerald-500 text-white hover:bg-emerald-400 border-none shadow-[0_20px_40px_rgba(16,185,129,0.35)] transition-all hover:scale-105 active:scale-95 px-8 h-12 rounded-2xl text-sm font-black">
                   {buttonText || "Comprar Ahora"}
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
               <Link href="/ofertas">
-                <Button size="lg" className="w-full sm:w-auto bg-white/10 text-white hover:bg-white/20 border border-white/20 h-14 rounded-2xl px-8 text-base font-black backdrop-blur-sm transition-all active:scale-95">
+                <Button size="lg" className="w-full sm:w-auto bg-white/10 text-white hover:bg-white/20 border border-white/20 h-12 rounded-2xl px-6 text-sm font-black backdrop-blur-sm transition-all active:scale-95">
                   Ver Ofertas
                   <Zap className="w-4 h-4 ml-2 text-amber-400" />
                 </Button>
@@ -93,9 +124,9 @@ export default function Home() {
           </div>
 
           {/* Panel derecho — tarjetas flotantes */}
-          <div className="relative hidden lg:flex items-end justify-center h-[420px]">
+          <div className="relative hidden lg:flex items-end justify-center h-[300px]">
             {/* Tarjeta principal — producto destacado */}
-            <div className="absolute top-8 left-4 bg-white/10 backdrop-blur-2xl border border-white/15 rounded-[2rem] p-5 shadow-2xl w-52 animate-in fade-in slide-in-from-left duration-700 delay-300">
+            <div className="absolute top-0 left-4 bg-white/10 backdrop-blur-2xl border border-white/15 rounded-[2rem] p-5 shadow-2xl w-52 animate-in fade-in slide-in-from-left duration-700 delay-300">
               <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center mb-3">
                 <Package className="w-5 h-5 text-emerald-400" />
               </div>
@@ -116,7 +147,7 @@ export default function Home() {
             </Link>
 
             {/* Tarjeta inferior — satisfacción */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-2xl border border-white/15 rounded-[2rem] p-4 shadow-2xl flex items-center gap-3 w-60 animate-in fade-in slide-in-from-bottom duration-700 delay-500">
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-2xl border border-white/15 rounded-[2rem] p-4 shadow-2xl flex items-center gap-3 w-60 animate-in fade-in slide-in-from-bottom duration-700 delay-500">
               <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center shrink-0">
                 <BadgeCheck className="w-5 h-5 text-emerald-400" />
               </div>
@@ -153,9 +184,9 @@ export default function Home() {
   );
 
   const renderCategories = (title: string, description: string) => (
-    <section className="py-16 bg-white">
+    <section className="py-12 bg-white">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
             <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-1">{title}</h2>
             <p className="text-gray-500 font-medium">{description}</p>
@@ -167,7 +198,7 @@ export default function Home() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {categoriesLoading
             ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-64 bg-gray-100 animate-pulse rounded-[3rem]" />)
-            : categories.slice(0, 4).map(cat => (
+            : [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).slice(0, 4).map(cat => (
                 <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}>
                   <CategoryCard category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null }} />
                 </Link>
@@ -179,11 +210,15 @@ export default function Home() {
   );
 
   const renderProducts = (title: string, description: string, limit: number) => {
-    const items = products.filter(p => p.isActive && p.featured && isProductVisible(p)).slice(0, limit);
+    // Destacados primero, luego el resto; ambos ordenados alfabéticamente
+    const visible = products.filter(p => p.isActive && isProductVisible(p));
+    const featured = visible.filter(p => p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
+    const rest = visible.filter(p => !p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
+    const items = [...featured, ...rest].slice(0, limit);
     return (
-      <section className="py-16 bg-gray-50/60">
+      <section className="py-12 bg-gray-50/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-10">
+          <div className="flex items-end justify-between mb-8">
             <div>
               <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-1">{title}</h2>
               <p className="text-gray-500 font-medium">{description}</p>

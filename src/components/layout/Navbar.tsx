@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ShoppingBag, Menu, X, Search, User, LogOut, Package, ShieldCheck } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
@@ -30,6 +30,16 @@ export default function Navbar() {
   const [animateCart, setAnimateCart] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    router.push(q ? `/productos?q=${encodeURIComponent(q)}` : "/productos");
+    setMobileSearchOpen(false);
+    setMobileMenuOpen(false);
+  };
 
   useEffect(() => {
     if (itemCount > 0) {
@@ -125,6 +135,16 @@ export default function Navbar() {
           </div>
 
           <div className="hidden sm:ml-6 sm:flex sm:items-center gap-4">
+            <form onSubmit={submitSearch} className="relative hidden lg:block w-44 xl:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar productos..."
+                className="w-full pl-9 pr-3 h-9 rounded-full bg-gray-100 border border-transparent text-sm text-gray-700 focus:outline-none focus:bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 transition-all"
+              />
+            </form>
             <Link
               href="/carrito"
               className={`relative p-2 rounded-xl text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all duration-300 ${animateCart ? 'scale-110 text-emerald-600' : ''
@@ -185,10 +205,17 @@ export default function Navbar() {
 
       {mobileSearchOpen && (
         <div className="sm:hidden px-4 pb-4 pt-2 border-b border-gray-100 bg-white">
-          <div className="relative">
+          <form onSubmit={submitSearch} className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input autoFocus className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-2xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Buscar productos..." />
-          </div>
+            <input
+              autoFocus
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-2xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              placeholder="Buscar productos..."
+            />
+          </form>
         </div>
       )}
 

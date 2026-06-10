@@ -33,29 +33,27 @@ export default function CategoriesPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section Premium */}
-      <section className="bg-emerald-950 pt-20 pb-20 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/10 rounded-full blur-[80px] pointer-events-none" />
-        
+      {/* Hero compacto */}
+      <section className="bg-emerald-950 py-8 md:py-10 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
+
         <div className="max-w-7xl mx-auto px-4 relative z-10 text-center sm:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-3">
                 <LayoutGrid className="size-3" />
                 <span>Explora el Catálogo</span>
             </div>
-            <h1 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight leading-tight">
-                Todo lo que amas, <br />
-                <span className="text-emerald-400">fácil de encontrar</span>
+            <h1 className="text-2xl md:text-4xl font-black text-white mb-2 tracking-tight leading-tight">
+                Todo lo que amas, <span className="text-emerald-400">fácil de encontrar</span>
             </h1>
-            <p className="text-emerald-100/60 max-w-lg mb-0 font-medium text-lg">
-                Navega por nuestras categorías cuidadosamente seleccionadas. Calidad premium de Venezuela y Chile en un solo lugar.
+            <p className="text-emerald-100/60 max-w-lg mb-0 font-medium text-sm md:text-base">
+                Navega por nuestras categorías. Calidad premium de Venezuela y Chile en un solo lugar.
             </p>
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 py-20">
+      <div className="max-w-7xl mx-auto px-4 py-10">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-          {categories.map((category) => {
+          {[...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map((category) => {
             const slug = category.slug || category.name.toLowerCase().replace(/[^a-z0-9]+/gi, "-");
             return (
               <CategoryCard
@@ -74,7 +72,7 @@ export default function CategoriesPage() {
         </div>
 
         {/* Info Section / CTA Premium */}
-        <div className="mt-28 p-8 sm:p-16 bg-emerald-950 rounded-[3.5rem] text-center relative overflow-hidden shadow-2xl group">
+        <div className="mt-16 p-8 sm:p-12 bg-emerald-950 rounded-[3.5rem] text-center relative overflow-hidden shadow-2xl group">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/50 to-emerald-950 opacity-100" />
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] -mr-64 -mt-64 group-hover:bg-emerald-500/20 transition-all duration-1000" />
           
