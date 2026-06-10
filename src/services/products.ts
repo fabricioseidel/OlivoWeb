@@ -4,7 +4,12 @@ import { SupaProduct, ProductUI } from '@/types';
 
 // Use a repo-shipped placeholder. Files under /public/uploads may exist locally but
 // won't be present in Vercel unless committed, causing 404/next-image 400.
-const DEFAULT_IMAGE = "/file.svg";
+export const DEFAULT_IMAGE = "/file.svg";
+
+// True solo si el producto tiene una imagen real (no el placeholder).
+export function hasRealImage(p: { image?: string | null }): boolean {
+  return Boolean(p.image) && p.image !== DEFAULT_IMAGE;
+}
 
 // Un producto es visible en la tienda pública solo si tiene los 4 campos mínimos:
 // nombre real, al menos una categoría, precio > 0 y foto distinta al placeholder.

@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useProducts } from "@/contexts/ProductContext";
 import { useCategories } from "@/contexts/CategoryContext";
+import { hasRealImage } from "@/services/products";
 import { useToast } from "@/contexts/ToastContext";
 import Button from "@/components/ui/Button";
 import { read, utils } from "xlsx";
@@ -94,7 +95,7 @@ function isProductReady(p: any, changes?: ProductChanges): boolean {
   const stock = changes?.stock ?? p.stock;
   const categories = changes?.categories ?? p.categories ?? [];
   return (
-    Boolean(p.image) &&
+    hasRealImage(p) &&
     Number(price) > 0 &&
     Number(stock) > 0 &&
     Boolean(p.barcode) &&
@@ -177,7 +178,7 @@ export default function BulkEditProductsPage() {
         p.id?.toLowerCase().includes(term) ||
         p.barcode?.toLowerCase().includes(term);
       const matchesLowStock = filterLowStock ? p.stock <= 5 : true;
-      const matchesImage = filterWithImage ? Boolean(p.image) : true;
+      const matchesImage = filterWithImage ? hasRealImage(p) : true;
       const ready = isProductReady(p, editedChanges[p.id]);
       const matchesReady =
         filterReady === "all" ? true : filterReady === "ready" ? ready : !ready;
@@ -901,7 +902,7 @@ function EditableRow({ product, changes, onChange }: { product: any; changes?: P
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0 hidden sm:block">
-            {product.image ? (
+            {hasRealImage(product) ? (
               <img src={product.image} alt={product.name} className="w-9 h-9 rounded-lg object-cover shadow-sm bg-white border border-gray-100" />
             ) : (
               <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">📦</div>
@@ -1032,7 +1033,7 @@ function EditableCard({ product, changes, onChange }: { product: any; changes?: 
     >
       <div className="flex items-start gap-3 mb-4">
         <div className="relative shrink-0 mt-1">
-          {product.image ? (
+          {hasRealImage(product) ? (
             <img src={product.image} alt={product.name} className="w-12 h-12 rounded-xl object-cover shadow-sm bg-white border border-gray-100" />
           ) : (
             <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">📦</div>
