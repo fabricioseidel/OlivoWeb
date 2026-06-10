@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useProducts } from "@/contexts/ProductContext";
+import { useCategories } from "@/contexts/CategoryContext";
 import { useToast } from "@/contexts/ToastContext";
 import Button from "@/components/ui/Button";
 import { read, utils } from "xlsx";
@@ -18,6 +19,10 @@ import {
   ClockIcon,
   ArrowUturnLeftIcon,
   XMarkIcon,
+  PhotoIcon,
+  CheckBadgeIcon,
+  ChevronDownIcon,
+  CheckIcon,
 } from "@heroicons/react/24/outline";
 
 type ProductChanges = { price?: number; offerPrice?: number | null; stock?: number; minStock?: number; optimumStock?: number; name?: string; categories?: string[]; description?: string };
@@ -83,6 +88,20 @@ function addBackup(existing: Backup[], newBackup: Backup): Backup[] {
   return updated.slice(0, MAX_BACKUPS);
 }
 
+// Un producto está "listo para mostrar" si tiene imagen, precio, stock, SKU y categoría
+function isProductReady(p: any, changes?: ProductChanges): boolean {
+  const price = changes?.price ?? p.price;
+  const stock = changes?.stock ?? p.stock;
+  const categories = changes?.categories ?? p.categories ?? [];
+  return (
+    Boolean(p.image) &&
+    Number(price) > 0 &&
+    Number(stock) > 0 &&
+    Boolean(p.barcode) &&
+    categories.length > 0
+  );
+}
+
 function normalizeHeader(h: string): string {
   return String(h)
     .toLowerCase()
@@ -133,6 +152,8 @@ export default function BulkEditProductsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [editedChanges, setEditedChanges] = useState<Record<string, ProductChanges>>({});
   const [filterLowStock, setFilterLowStock] = useState(false);
+  const [filterWithImage, setFilterWithImage] = useState(false);
+  const [filterReady, setFilterReady] = useState<"all" | "ready" | "pending">("all");
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [backups, setBackups] = useState<Backup[]>([]);
@@ -149,15 +170,31 @@ export default function BulkEditProductsPage() {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    return localProducts.filter((p) => {
+    const term = searchTerm.toLowerCase();
+    const result = localProducts.filter((p) => {
       const matchesSearch =
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.barcode?.toLowerCase().includes(searchTerm.toLowerCase());
+        p.name.toLowerCase().includes(term) ||
+        p.id?.toLowerCase().includes(term) ||
+        p.barcode?.toLowerCase().includes(term);
       const matchesLowStock = filterLowStock ? p.stock <= 5 : true;
-      return matchesSearch && matchesLowStock;
+      const matchesImage = filterWithImage ? Boolean(p.image) : true;
+      const ready = isProductReady(p, editedChanges[p.id]);
+      const matchesReady =
+        filterReady === "all" ? true : filterReady === "ready" ? ready : !ready;
+      return matchesSearch && matchesLowStock && matchesImage && matchesReady;
     });
-  }, [localProducts, searchTerm, filterLowStock]);
+    // Agrupa: los productos listos para mostrar van primero
+    return result.sort((a, b) => {
+      const ra = isProductReady(a, editedChanges[a.id]) ? 0 : 1;
+      const rb = isProductReady(b, editedChanges[b.id]) ? 0 : 1;
+      return ra - rb;
+    });
+  }, [localProducts, searchTerm, filterLowStock, filterWithImage, filterReady, editedChanges]);
+
+  const readyCount = useMemo(
+    () => localProducts.filter((p) => isProductReady(p, editedChanges[p.id])).length,
+    [localProducts, editedChanges]
+  );
 
   const handleInputChange = (productId: string, field: keyof ProductChanges, value: string | string[]) => {
     const originalProduct = products.find((p) => p.id === productId);
@@ -419,10 +456,10 @@ export default function BulkEditProductsPage() {
   const changedCount = Object.keys(editedChanges).length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10 pb-32">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+    <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4 md:py-6 pb-32">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-2 uppercase">
+          <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mb-1 uppercase">
             Inventario <span className="text-emerald-600 italic">Smart</span>
           </h1>
           <p className="text-sm text-gray-500 font-medium">Gestión rápida de precios y existencias.</p>
@@ -432,14 +469,14 @@ export default function BulkEditProductsPage() {
           <Button
             variant="outline"
             onClick={() => window.location.reload()}
-            className="rounded-2xl border-2 font-bold px-6 h-14"
+            className="rounded-2xl border-2 font-bold px-5 h-12"
             disabled={isSaving}
           >
             <ArrowPathIcon className="w-5 h-5 mr-2" /> Refrescar
           </Button>
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className={`relative flex items-center gap-2 px-6 h-14 rounded-2xl font-bold border-2 transition-all ${
+            className={`relative flex items-center gap-2 px-5 h-12 rounded-2xl font-bold border-2 transition-all ${
               showHistory
                 ? "bg-violet-100 text-violet-700 border-violet-200"
                 : "bg-white text-gray-500 border-gray-200 hover:border-violet-200 hover:text-violet-600"
@@ -456,7 +493,7 @@ export default function BulkEditProductsPage() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
-            className="flex items-center gap-2 px-6 h-14 rounded-2xl font-bold border-2 bg-white text-gray-500 border-gray-200 hover:border-emerald-300 hover:text-emerald-600 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-5 h-12 rounded-2xl font-bold border-2 bg-white text-gray-500 border-gray-200 hover:border-emerald-300 hover:text-emerald-600 transition-all disabled:opacity-50"
           >
             {isImporting ? (
               <ArrowPathIcon className="w-5 h-5 animate-spin" />
@@ -475,7 +512,7 @@ export default function BulkEditProductsPage() {
           <Button
             onClick={saveAllChanges}
             disabled={!hasChanges || isSaving}
-            className={`rounded-2xl px-10 h-14 font-black shadow-xl transition-all ${
+            className={`rounded-2xl px-8 h-12 font-black shadow-xl transition-all ${
               hasChanges ? "bg-emerald-600 shadow-emerald-500/20 scale-105" : "bg-gray-400 opacity-50"
             }`}
           >
@@ -543,23 +580,24 @@ export default function BulkEditProductsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl shadow-gray-200/50 border border-gray-100 mb-6 sticky top-4 z-30">
+      <div className="bg-white rounded-[2rem] p-3 md:p-4 shadow-xl shadow-gray-200/50 border border-gray-100 mb-5 sticky top-4 z-30">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <MagnifyingGlassIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
               placeholder="Nombre, SKU o Barcode..."
-              className="w-full pl-12 pr-6 h-14 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-emerald-500 font-medium text-gray-900 shadow-inner"
+              className="w-full pl-12 pr-6 h-12 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-emerald-500 font-medium text-gray-900 shadow-inner"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setFilterLowStock(!filterLowStock)}
-              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 h-14 rounded-2xl font-bold transition-all border-2 ${
+              title="Solo productos con stock bajo"
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 h-12 rounded-2xl font-bold transition-all border-2 ${
                 filterLowStock
                   ? "bg-amber-100 text-amber-700 border-amber-200 shadow-lg shadow-amber-200/20"
                   : "bg-gray-50 text-gray-400 border-transparent hover:bg-gray-100"
@@ -569,8 +607,44 @@ export default function BulkEditProductsPage() {
               <span className="md:hidden">Stock Bajo</span>
             </button>
             <button
+              onClick={() => setFilterWithImage(!filterWithImage)}
+              title="Solo productos con imagen"
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 h-12 rounded-2xl font-bold transition-all border-2 ${
+                filterWithImage
+                  ? "bg-sky-100 text-sky-700 border-sky-200 shadow-lg shadow-sky-200/20"
+                  : "bg-gray-50 text-gray-400 border-transparent hover:bg-gray-100"
+              }`}
+            >
+              <PhotoIcon className="w-5 h-5 shrink-0" />
+              <span className="md:hidden">Con Imagen</span>
+            </button>
+            <button
+              onClick={() => setFilterReady(filterReady === "ready" ? "all" : "ready")}
+              title="Productos listos para mostrar: imagen, precio, stock, SKU y categoría"
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 h-12 rounded-2xl font-bold transition-all border-2 ${
+                filterReady === "ready"
+                  ? "bg-emerald-100 text-emerald-700 border-emerald-200 shadow-lg shadow-emerald-200/20"
+                  : "bg-gray-50 text-gray-400 border-transparent hover:bg-gray-100"
+              }`}
+            >
+              <CheckBadgeIcon className="w-5 h-5 shrink-0" />
+              <span>Listos ({readyCount})</span>
+            </button>
+            <button
+              onClick={() => setFilterReady(filterReady === "pending" ? "all" : "pending")}
+              title="Productos a los que falta imagen, precio, stock, SKU o categoría"
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 h-12 rounded-2xl font-bold transition-all border-2 ${
+                filterReady === "pending"
+                  ? "bg-rose-100 text-rose-700 border-rose-200 shadow-lg shadow-rose-200/20"
+                  : "bg-gray-50 text-gray-400 border-transparent hover:bg-gray-100"
+              }`}
+            >
+              <ExclamationCircleIcon className="w-5 h-5 shrink-0" />
+              <span>Incompletos ({localProducts.length - readyCount})</span>
+            </button>
+            <button
               onClick={() => setShowBulkActions(!showBulkActions)}
-              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 h-14 rounded-2xl font-bold transition-all border-2 ${
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 h-12 rounded-2xl font-bold transition-all border-2 ${
                 showBulkActions
                   ? "bg-indigo-100 text-indigo-700 border-indigo-200"
                   : "bg-gray-50 text-gray-400 border-transparent"
@@ -582,7 +656,7 @@ export default function BulkEditProductsPage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isImporting}
-              className="md:hidden flex-1 flex items-center justify-center gap-2 px-4 h-14 rounded-2xl font-bold border-2 bg-gray-50 text-gray-400 border-transparent hover:bg-gray-100 disabled:opacity-50"
+              className="md:hidden flex-1 flex items-center justify-center gap-2 px-4 h-12 rounded-2xl font-bold border-2 bg-gray-50 text-gray-400 border-transparent hover:bg-gray-100 disabled:opacity-50"
             >
               {isImporting ? (
                 <ArrowPathIcon className="w-5 h-5 animate-spin" />
@@ -592,7 +666,7 @@ export default function BulkEditProductsPage() {
             </button>
             <button
               onClick={() => setShowHistory(!showHistory)}
-              className={`md:hidden relative flex-1 flex items-center justify-center gap-2 px-4 h-14 rounded-2xl font-bold border-2 transition-all ${
+              className={`md:hidden relative flex-1 flex items-center justify-center gap-2 px-4 h-12 rounded-2xl font-bold border-2 transition-all ${
                 showHistory
                   ? "bg-violet-100 text-violet-700 border-violet-200"
                   : "bg-gray-50 text-gray-400 border-transparent"
@@ -650,13 +724,13 @@ export default function BulkEditProductsPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-64 lg:w-80">Producto / SKU</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-48">Categorías (Comas)</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-right">Precio ($)</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-right">Oferta ($)</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-right">Stock Act.</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-24 text-right">Mínimo</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 w-24 text-right">Óptimo</th>
+                <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400">Producto / SKU</th>
+                <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-48">Categorías</th>
+                <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-28 text-right">Precio ($)</th>
+                <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-28 text-right">Oferta ($)</th>
+                <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-24 text-right">Stock</th>
+                <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-20 text-right">Mín.</th>
+                <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-20 text-right">Ópt.</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -718,76 +792,175 @@ export default function BulkEditProductsPage() {
   );
 }
 
+function CategorySelector({ value, isDirty, onChange }: { value: string[]; isDirty: boolean; onChange: (next: string[]) => void }) {
+  const { categories: allCategories } = useCategories();
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const options = useMemo(() => {
+    const set = new Set<string>(allCategories);
+    value.forEach((c) => set.add(c));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [allCategories, value]);
+
+  const toggleOpen = () => {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      const width = Math.max(r.width, 240);
+      const left = Math.min(r.left, window.innerWidth - width - 8);
+      const top = Math.min(r.bottom + 4, window.innerHeight - 280);
+      setPos({ top, left, width });
+    }
+    setOpen(!open);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (panelRef.current?.contains(e.target as Node) || btnRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    const close = () => setOpen(false);
+    document.addEventListener("mousedown", onClickOutside);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
+
+  const toggleCategory = (cat: string) => {
+    const next = value.includes(cat) ? value.filter((c) => c !== cat) : [...value, cat];
+    onChange(next);
+  };
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggleOpen}
+        className={`w-full flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[0.05em] transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
+          isDirty
+            ? "bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-inner"
+            : value.length > 0
+            ? "bg-gray-100 text-gray-600 border border-transparent hover:bg-gray-200"
+            : "bg-rose-50 text-rose-400 border border-rose-100 hover:bg-rose-100"
+        }`}
+      >
+        <span className="flex-1 truncate text-left">{value.length > 0 ? value.join(", ") : "Sin categoría"}</span>
+        <ChevronDownIcon className={`w-3 h-3 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && pos && (
+        <div
+          ref={panelRef}
+          style={{ position: "fixed", top: pos.top, left: pos.left, width: pos.width }}
+          className="z-[60] max-h-64 overflow-y-auto bg-white rounded-xl border border-gray-200 shadow-2xl p-1.5"
+        >
+          {options.length === 0 && (
+            <p className="px-2 py-2 text-[10px] text-gray-400 font-bold">No hay categorías creadas</p>
+          )}
+          {options.map((cat) => {
+            const checked = value.includes(cat);
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => toggleCategory(cat)}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-[10px] font-black uppercase tracking-wide transition-colors ${
+                  checked ? "bg-emerald-50 text-emerald-700" : "text-gray-500 hover:bg-gray-50"
+                }`}
+              >
+                <span
+                  className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                    checked ? "bg-emerald-500 border-emerald-500 text-white" : "border-gray-300"
+                  }`}
+                >
+                  {checked && <CheckIcon className="w-2.5 h-2.5" strokeWidth={3} />}
+                </span>
+                <span className="truncate">{cat}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
 function EditableRow({ product, changes, onChange }: { product: any; changes?: ProductChanges; onChange: any }) {
   const isDirty = Object.keys(changes || {}).length > 0;
+  const ready = isProductReady(product, changes);
 
   return (
     <tr className={`hover:bg-emerald-50/10 transition-colors group ${isDirty ? "bg-emerald-50/5" : ""}`}>
-      <td className="px-6 py-5">
-        <div className="flex items-center gap-4">
-          <div className="relative group-hover:scale-110 transition-transform shrink-0 hidden sm:block">
+      <td className="px-3 py-2.5">
+        <div className="flex items-center gap-3">
+          <div className="relative shrink-0 hidden sm:block">
             {product.image ? (
-              <img src={product.image} alt={product.name} className="w-10 h-10 rounded-xl object-cover shadow-sm bg-white border border-gray-100" />
+              <img src={product.image} alt={product.name} className="w-9 h-9 rounded-lg object-cover shadow-sm bg-white border border-gray-100" />
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-xs">📦</div>
+              <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">📦</div>
             )}
             {isDirty && <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full animate-pulse" />}
           </div>
           <div className="flex-1 min-w-0">
-            <input
-              type="text"
-              value={changes?.name ?? product.name}
-              onChange={(e) => onChange(product.id, "name", e.target.value)}
-              className={`w-full text-sm font-bold leading-tight px-2 py-1 bg-transparent border-b-2 transition-all focus:outline-none focus:border-emerald-500 ${
-                changes?.name !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-800 hover:border-gray-300"
-              }`}
-            />
-            <div className="flex items-center gap-2 px-2 mt-1">
-              <span className="text-[9px] font-black text-gray-300 uppercase tracking-tighter">SKU: {product.id?.slice(0, 10)}</span>
-              {product.barcode && (
-                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter border-l pl-2">{product.barcode}</span>
+            <div className="flex items-center gap-1.5">
+              {ready && <CheckBadgeIcon className="w-4 h-4 text-emerald-500 shrink-0" title="Listo para mostrar" />}
+              <input
+                type="text"
+                value={changes?.name ?? product.name}
+                onChange={(e) => onChange(product.id, "name", e.target.value)}
+                className={`w-full text-sm font-bold leading-tight px-1 py-0.5 bg-transparent border-b-2 transition-all focus:outline-none focus:border-emerald-500 ${
+                  changes?.name !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-800 hover:border-gray-300"
+                }`}
+              />
+            </div>
+            <div className="flex items-center gap-2 px-1 mt-0.5">
+              {product.barcode ? (
+                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter">{product.barcode}</span>
+              ) : (
+                <span className="text-[9px] font-black text-rose-300 uppercase tracking-tighter">Sin SKU</span>
               )}
             </div>
           </div>
         </div>
       </td>
-      <td className="px-6 py-5">
-        <input
-          type="text"
-          value={changes?.categories ? changes.categories.join(", ") : (product.categories || []).join(", ")}
-          onChange={(e) => onChange(product.id, "categories", e.target.value)}
-          placeholder="Categorías"
-          className={`w-full px-2 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[0.05em] transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
-            changes?.categories !== undefined
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-inner"
-              : "bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200"
-          }`}
+      <td className="px-3 py-2.5">
+        <CategorySelector
+          value={changes?.categories ?? product.categories ?? []}
+          isDirty={changes?.categories !== undefined}
+          onChange={(next) => onChange(product.id, "categories", next)}
         />
       </td>
-      <td className="px-6 py-5 text-right w-32">
+      <td className="px-3 py-2.5 text-right w-28">
         <div className="inline-flex items-center relative w-full justify-end">
-          <span className="absolute left-3 text-xs font-bold text-gray-400 pointer-events-none">$</span>
+          <span className="absolute left-2 text-xs font-bold text-gray-400 pointer-events-none">$</span>
           <input
             type="number"
             inputMode="decimal"
             value={changes?.price ?? product.price}
             onChange={(e) => onChange(product.id, "price", e.target.value)}
-            className={`w-full h-11 bg-white text-right font-black text-sm rounded-xl border-2 px-3 pl-6 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
+            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 pl-5 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
               changes?.price !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-900 hover:border-gray-200 shadow-sm"
             }`}
           />
         </div>
       </td>
-      <td className="px-6 py-5 text-right w-32">
+      <td className="px-3 py-2.5 text-right w-28">
         <div className="inline-flex items-center relative w-full justify-end">
-          <span className="absolute left-3 text-xs font-bold text-gray-400 pointer-events-none">$</span>
+          <span className="absolute left-2 text-xs font-bold text-gray-400 pointer-events-none">$</span>
           <input
             type="number"
             inputMode="decimal"
             placeholder="-"
             value={changes?.offerPrice !== undefined ? changes.offerPrice ?? "" : product.offerPrice || ""}
             onChange={(e) => onChange(product.id, "offerPrice", e.target.value)}
-            className={`w-full h-11 bg-white text-right font-black text-sm rounded-xl border-2 px-3 pl-6 focus:ring-4 focus:ring-amber-500/10 transition-all ${
+            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 pl-5 focus:ring-4 focus:ring-amber-500/10 transition-all ${
               changes?.offerPrice !== undefined && changes?.offerPrice !== null
                 ? "border-amber-400 text-amber-700"
                 : "border-transparent text-gray-900 hover:border-gray-200 shadow-sm bg-gray-50/50"
@@ -795,14 +968,14 @@ function EditableRow({ product, changes, onChange }: { product: any; changes?: P
           />
         </div>
       </td>
-      <td className="px-6 py-5 text-right w-32">
+      <td className="px-3 py-2.5 text-right w-24">
         <div className="inline-flex items-center relative w-full justify-end">
           <input
             type="number"
             inputMode="numeric"
             value={changes?.stock ?? product.stock}
             onChange={(e) => onChange(product.id, "stock", e.target.value)}
-            className={`w-full h-11 bg-white text-right font-black text-sm rounded-xl border-2 px-3 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
+            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
               changes?.stock !== undefined
                 ? "border-emerald-500 text-emerald-700"
                 : product.stock <= 5
@@ -815,27 +988,27 @@ function EditableRow({ product, changes, onChange }: { product: any; changes?: P
           )}
         </div>
       </td>
-      <td className="px-6 py-5 text-right w-24">
+      <td className="px-3 py-2.5 text-right w-20">
         <div className="inline-flex items-center relative w-full justify-end">
           <input
             type="number"
             inputMode="numeric"
             value={changes?.minStock ?? product.minStock}
             onChange={(e) => onChange(product.id, "minStock", e.target.value)}
-            className={`w-full h-11 bg-white text-right font-black text-sm rounded-xl border-2 px-3 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
+            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
               changes?.minStock !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-600 hover:border-gray-200 shadow-sm"
             }`}
           />
         </div>
       </td>
-      <td className="px-6 py-5 text-right w-24">
+      <td className="px-3 py-2.5 text-right w-20">
         <div className="inline-flex items-center relative w-full justify-end">
           <input
             type="number"
             inputMode="numeric"
             value={changes?.optimumStock ?? product.optimumStock}
             onChange={(e) => onChange(product.id, "optimumStock", e.target.value)}
-            className={`w-full h-11 bg-white text-right font-black text-sm rounded-xl border-2 px-3 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
+            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
               changes?.optimumStock !== undefined
                 ? "border-emerald-500 text-emerald-700"
                 : "border-transparent text-gray-600 hover:border-gray-200 shadow-sm"
@@ -849,6 +1022,7 @@ function EditableRow({ product, changes, onChange }: { product: any; changes?: P
 
 function EditableCard({ product, changes, onChange }: { product: any; changes?: ProductChanges; onChange: any }) {
   const isDirty = Object.keys(changes || {}).length > 0;
+  const ready = isProductReady(product, changes);
 
   return (
     <div
@@ -863,11 +1037,13 @@ function EditableCard({ product, changes, onChange }: { product: any; changes?: 
           ) : (
             <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">📦</div>
           )}
-          {isDirty && (
+          {isDirty ? (
             <div className="absolute -top-2 -right-2 bg-emerald-500 text-white p-1 rounded-full border-4 border-white shadow-lg">
               <CheckCircleIcon className="w-2 h-2" />
             </div>
-          )}
+          ) : ready ? (
+            <CheckBadgeIcon className="absolute -top-2 -right-2 w-5 h-5 text-emerald-500 bg-white rounded-full" title="Listo para mostrar" />
+          ) : null}
         </div>
         <div className="flex-1 w-full min-w-0">
           <input
@@ -878,18 +1054,16 @@ function EditableCard({ product, changes, onChange }: { product: any; changes?: 
               changes?.name !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-900 hover:border-gray-200"
             }`}
           />
-          <p className="text-[10px] font-black text-gray-400 tracking-tighter uppercase truncate opacity-60 mt-1">SKU: {String(product.id).slice(0, 15)}</p>
-          <input
-            type="text"
-            value={changes?.categories ? changes.categories.join(", ") : (product.categories || []).join(", ")}
-            onChange={(e) => onChange(product.id, "categories", e.target.value)}
-            placeholder="Categorías"
-            className={`mt-2 w-full px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
-              changes?.categories !== undefined
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                : "bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200"
-            }`}
-          />
+          <p className="text-[10px] font-black text-gray-400 tracking-tighter uppercase truncate opacity-60 mt-1">
+            SKU: {product.barcode || String(product.id).slice(0, 15)}
+          </p>
+          <div className="mt-2">
+            <CategorySelector
+              value={changes?.categories ?? product.categories ?? []}
+              isDirty={changes?.categories !== undefined}
+              onChange={(next) => onChange(product.id, "categories", next)}
+            />
+          </div>
         </div>
       </div>
 
