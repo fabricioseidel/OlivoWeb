@@ -4,10 +4,7 @@ import Link from "next/link";
 import { TrashIcon, MinusIcon, PlusIcon } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
-import { PhotoIcon } from "@heroicons/react/24/outline";
 import { useCart } from "@/contexts/CartContext";
-import { buildWhatsAppOrderLink } from "@/utils/whatsapp";
-import { useProducts } from "@/contexts/ProductContext";
 import { WHATSAPP_PHONE } from "@/config/constants";
 
 export default function CartPage() {
@@ -19,7 +16,6 @@ export default function CartPage() {
     subtotal,
     total
   } = useCart();
-  const { trackOrderIntent } = useProducts();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

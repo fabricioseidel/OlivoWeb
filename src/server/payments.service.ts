@@ -21,7 +21,7 @@ interface CreatePreferenceParams {
  * to ensure the access token is always read from the environment at runtime.
  */
 export async function createPaymentPreference(params: CreatePreferenceParams) {
-  const { orderId, items, customerEmail, total } = params;
+  const { orderId, items, customerEmail } = params;
 
   // ── Read env vars at runtime (critical for Vercel) ──
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';

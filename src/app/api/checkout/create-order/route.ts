@@ -7,7 +7,7 @@ import { recordCouponUsage, getCouponByCode, validateCoupon } from '@/server/cou
 import { earnPoints, redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
 import { format, getHours } from 'date-fns';
-import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 
 const MAX_ORDERS_PER_SLOT = 5;
 const TIMEZONE = "America/Santiago";

@@ -31,7 +31,7 @@ export default function MiCuentaPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [displayName, setDisplayName] = useState("");
   const [totalOrders, setTotalOrders] = useState<number>(0);
-  const [totalCoupons, setTotalCoupons] = useState<number>(0);
+  const [totalCoupons] = useState<number>(0);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loyalty, setLoyalty] = useState<any>(null);
   const [savedProfile] = useLocalStorage<any>('profile', {} as any);

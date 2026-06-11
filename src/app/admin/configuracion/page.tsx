@@ -354,6 +354,7 @@ export default function SettingsPage() {
                         <label className="block text-sm font-medium text-slate-900">Logo de la tienda</label>
                         {settings.appearance?.logoUrl && (
                           <div className="flex items-center justify-center h-20 bg-slate-50 rounded-lg border border-slate-200 p-2">
+                            {/* eslint-disable-next-line @next/next/no-img-element -- admin-only preview of dynamic/external URL */}
                             <img
                               src={settings.appearance.logoUrl}
                               alt="Logo"
@@ -393,6 +394,7 @@ export default function SettingsPage() {
                         <label className="block text-sm font-medium text-slate-900">Favicon</label>
                         {settings.appearance?.faviconUrl && (
                           <div className="flex items-center justify-center h-20 bg-slate-50 rounded-lg border border-slate-200 p-2">
+                            {/* eslint-disable-next-line @next/next/no-img-element -- admin-only preview of dynamic/external URL */}
                             <img
                               src={settings.appearance.faviconUrl}
                               alt="Favicon"

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ClockIcon, CheckCircleIcon, ArrowRightIcon, MapPinIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { ClockIcon, ArrowRightIcon, EyeIcon } from "@heroicons/react/24/outline";
 
 export interface LiveOrder {
   id: string;

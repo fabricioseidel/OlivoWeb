@@ -117,6 +117,11 @@ export default function ShippingForm({
     };
     
     fetchSlots();
+    // Nota: omitimos `onChange` (se recrea en cada render del padre) y
+    // `shippingInfo.deliveryTimeSlot` (este efecto lo limpia él mismo);
+    // incluirlos provocaría re-fetch en bucle. Solo debe ejecutarse al
+    // cambiar la fecha o el método de envío.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shippingInfo.deliveryDate, selectedMethod]);
 
   const handleDateClick = (d: Date) => {
@@ -348,7 +353,7 @@ export default function ShippingForm({
                      
                      {/* Horizontal Days Selector */}
                      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                        {availableDays.map((d, i) => {
+                        {availableDays.map((d) => {
                            const dStr = formatDateForApi(d);
                            const isDaySelected = shippingInfo.deliveryDate === dStr;
                            return (

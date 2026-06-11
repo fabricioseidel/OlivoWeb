@@ -153,7 +153,7 @@ const COLUMN_MAP: Record<string, keyof ProductChanges | "barcode"> = {
 };
 
 export default function BulkEditProductsPage() {
-  const { products, updateProduct, updateProductsBulk } = useProducts();
+  const { products, updateProductsBulk } = useProducts();
   const { categories: allCategories } = useCategories();
   const { showToast } = useToast();
 
@@ -442,7 +442,7 @@ export default function BulkEditProductsPage() {
       await updateProductsBulk(editedChanges as any);
       showToast(`¡${updateCount} productos actualizados con éxito!`, "success");
       setEditedChanges({});
-    } catch (error) {
+    } catch {
       showToast("Ocurrió un error al guardar los cambios", "error");
     } finally {
       setIsSaving(false);
@@ -1180,6 +1180,7 @@ const EditableRow = memo(function EditableRow({ product, changes, onChange }: { 
         <div className="flex items-center gap-3">
           <div className="relative shrink-0 hidden sm:block">
             {hasRealImage(product) ? (
+              // eslint-disable-next-line @next/next/no-img-element -- admin-only table thumbnail with dynamic/external src
               <img src={product.image} alt={product.name} className="w-9 h-9 rounded-lg object-cover shadow-sm bg-white border border-gray-100" />
             ) : (
               <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">📦</div>
@@ -1365,6 +1366,7 @@ const ProductCard = memo(function ProductCard({
         onClick={() => onToggleSelect(product.id)}
       >
         {hasRealImage(product) ? (
+          // eslint-disable-next-line @next/next/no-img-element -- admin-only card thumbnail with dynamic/external src
           <img src={product.image} alt={product.name} loading="lazy" className="h-full w-full object-contain p-2" />
         ) : (
           <span className="text-4xl opacity-40">📦</span>

@@ -224,7 +224,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     shippingCost,
     itemCount,
     isSyncing,
-  }), [cartItems, addToCart, removeFromCart, updateQuantity, clearCart, validateCartWithServer, subtotal, total, itemCount, isSyncing]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [cartItems, addToCart, removeFromCart, updateQuantity, clearCart, validateCartWithServer, subtotal, total, itemCount, isSyncing]);  
 
   return <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>;
 }

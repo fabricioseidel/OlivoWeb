@@ -3,24 +3,21 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { 
-  SparklesIcon, 
-  EyeIcon, 
-  EyeSlashIcon, 
-  ChevronUpIcon, 
+import {
+  SparklesIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  ChevronUpIcon,
   ChevronDownIcon,
   PencilIcon,
-  CheckIcon,
-  XMarkIcon,
-  PlusIcon,
-  TrashIcon
+  PlusIcon
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import type { StoreSettings, PageBlock } from "@/app/api/admin/settings/route";
 
 export default function ConstructorPage() {
-  const { data: session } = useSession();
-  const router = useRouter();
+  useSession();
+  useRouter();
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [blocks, setBlocks] = useState<PageBlock[]>([]);
   const [loading, setLoading] = useState(true);

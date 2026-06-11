@@ -78,7 +78,7 @@ export async function GET() {
     }
 
     // Sort by severity
-    insights.sort((a, b) => a.severity === 'high' ? -1 : 1);
+    insights.sort((a) => a.severity === 'high' ? -1 : 1);
 
     return NextResponse.json({
        generatedAt: new Date().toISOString(),

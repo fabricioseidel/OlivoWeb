@@ -21,8 +21,6 @@ import PaymentForm, { PaymentMethod } from "./components/PaymentForm";
 import OrderSummary from "./components/OrderSummary";
 import { AddressResult } from "@/components/AddressAutocomplete";
 import { calculateDistance, calculateShippingCost } from "@/utils/shipping-calculator";
-import { StoreSettings } from "@/app/api/admin/settings/route";
-import { StarIcon } from "@heroicons/react/24/solid";
 
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 
@@ -38,7 +36,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const { cartItems, validateCartWithServer } = useCart();
-  const { settings: storeSettings, loading: settingsLoading } = useStoreSettings();
+  const { settings: storeSettings } = useStoreSettings();
   
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
@@ -268,18 +266,10 @@ export default function CheckoutPage() {
   };
 
   const nextStep = () => {
-    console.group("[OLIVO:checkout] ➡️ Avanzar a Paso 2");
-    console.log("shippingInfo:", shippingInfo);
-    console.log("cartItems:", cartItems.length, cartItems.map(i => `${i.name} x${i.quantity}`));
-    console.log("subtotal:", subtotal, "| shipping:", shippingCost, "| total:", total);
     if (!shippingInfo.fullName || !shippingInfo.email || !shippingInfo.address) {
-      console.warn("[OLIVO:checkout] ❌ Faltan campos requeridos");
-      console.groupEnd();
       alert("Por favor completa tus datos y dirección de entrega.");
       return;
     }
-    console.log("[OLIVO:checkout] ✅ Validación OK, avanzando");
-    console.groupEnd();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setStep(2);
   };
@@ -319,10 +309,6 @@ export default function CheckoutPage() {
         } : null
       };
 
-      console.group("[OLIVO:checkout] 🚀 Enviando orden");
-      console.log("Método de pago:", selectedPaymentMethod);
-      console.log("Payload completo:", JSON.stringify(payload, null, 2));
-
       const response = await fetch('/api/checkout/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -330,8 +316,6 @@ export default function CheckoutPage() {
       });
 
       const data = await response.json();
-      console.log("[OLIVO:checkout] 📨 Respuesta servidor:", { status: response.status, ok: response.ok, orderId: data.orderId, initPoint: data.initPoint, error: data.error });
-      console.groupEnd();
 
       if (!response.ok) {
         // MP falló pero la orden fue creada en la DB
@@ -372,14 +356,6 @@ export default function CheckoutPage() {
       setLoading(false);
     }
   };
-
-  const originCoords = useMemo(() => {
-    if (!storeSettings?.shipping?.shippingOriginLat) return null;
-    return { 
-      lat: storeSettings.shipping.shippingOriginLat, 
-      lng: storeSettings.shipping.shippingOriginLng 
-    };
-  }, [storeSettings]);
 
   const mapEmbedUrl = null;
 

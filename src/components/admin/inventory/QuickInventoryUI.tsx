@@ -124,6 +124,7 @@ export default function QuickInventoryUI({ mode }: QuickInventoryUIProps) {
                   <div className="flex items-center gap-4">
                     <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/10">
                       {item.product.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- imagen dinámica externa, sin dimensiones conocidas
                         <img src={item.product.image} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <ArchiveBoxIcon className="w-6 h-6 text-white/20" />

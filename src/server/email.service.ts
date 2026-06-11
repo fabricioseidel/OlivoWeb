@@ -339,28 +339,6 @@ const REVIEW_REQUEST_TEMPLATE = `<!DOCTYPE html>
 </div>
 </body></html>`;
 
-const PROMO_CAMPAIGN_TEMPLATE = `<!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
-<body>
-<div class="container">
-  <div class="header" style="background:#000000;">
-    <h1 style="color:#ffffff;">OFERTA RELÁMPAGO ⚡</h1>
-  </div>
-  <div class="content" style="text-align:center;">
-    <h2 style="font-size:24px;">¡Solo por Tiempo Limitado!</h2>
-    <p>{{promoMessage}}</p>
-    <div style="background-color:#fff7ed; padding:30px; border-radius:16px; margin:25px 0; border:2px dashed #f97316;">
-      <p style="margin:0; font-size:14px; color:#9a3412;">Código:</p>
-      <p style="margin:10px 0 0; font-size:32px; font-weight:900; color:#ea580c; letter-spacing:4px;">{{promoCode}}</p>
-    </div>
-    <a href="https://olivomarket.cl/ofertas" class="button" style="background-color:#f97316;">¡APROVECHAR!</a>
-  </div>
-  <div class="footer">
-    <p>© {{year}} OlivoMarket</p>
-  </div>
-</div>
-</body></html>`;
-
 const SUPPLIER_ORDER_TEMPLATE = `<!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
 <body>

@@ -3,7 +3,7 @@ import { supabaseServer } from "@/lib/supabase-server";
 import { requireApiAdmin } from "@/lib/api-auth";
 
 /** GET all templates */
-export async function GET(req: NextRequest) {
+export async function GET() {
   const auth = await requireApiAdmin();
   if (!auth.ok) return auth.response;
   try {
