@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { supabaseServer } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
       if (orderId && (status === 'approved' || status === 'authorized')) {
         // Update Order Status in Supabase to PAID
-        const { error } = await supabaseAdmin
+        const { error } = await supabaseServer
           .from('orders')
           .update({ 
             payment_status: 'paid',
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         console.log(`[MP Webhook] 🔄 Restaurando stock para orden ${orderId} debido a estado: ${status}`);
 
         // 1. Obtener items de la orden con barcode (la RPC nueva usa barcode + branch)
-        const { data: items, error: itemsErr } = await supabaseAdmin
+        const { data: items, error: itemsErr } = await supabaseServer
           .from('order_items')
           .select('product_id, quantity, products(barcode)')
           .eq('order_id', orderId);
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
               continue;
             }
             try {
-              await supabaseAdmin.rpc('increment_product_stock', {
+              await supabaseServer.rpc('increment_product_stock', {
                 p_barcode: barcode,
                 p_quantity: item.quantity,
                 p_branch_id: null,
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 3. Marcar orden como cancelada/fallida
-        await supabaseAdmin
+        await supabaseServer
           .from('orders')
           .update({ 
             payment_status: status,

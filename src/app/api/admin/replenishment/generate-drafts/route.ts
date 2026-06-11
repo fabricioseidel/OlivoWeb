@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiAdmin } from "@/lib/api-auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const coverageDays = clampInt(body.coverageDays ?? body.coverage, 14, 1, 90);
   const safetyDays = clampInt(body.safetyDays ?? body.safety, 3, 0, 30);
 
-  const { data, error } = await supabaseAdmin.rpc("create_draft_supplier_orders", {
+  const { data, error } = await supabaseServer.rpc("create_draft_supplier_orders", {
     p_window_days: windowDays,
     p_coverage_days: coverageDays,
     p_safety_days: safetyDays,

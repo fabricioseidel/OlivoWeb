@@ -1,5 +1,4 @@
 import { supabaseServer } from "@/lib/supabase-server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { earnPoints } from "@/server/loyalty.service";
 
 export type SalePaymentMethod = "CASH" | "DEBIT" | "CREDIT" | "TRANSFER" | "WALLET" | "OTHER";
@@ -55,7 +54,7 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: number }
   // Payment method principal (para sales.payment_method legacy)
   const primary = input.payments[0]?.method?.toLowerCase() ?? "cash";
 
-  const { data, error } = await supabaseAdmin.rpc("apply_sale", {
+  const { data, error } = await supabaseServer.rpc("apply_sale", {
     p_total: input.total,
     p_payment_method: primary,
     p_cash_received: input.cashReceived ?? 0,

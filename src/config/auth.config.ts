@@ -4,7 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { getUserByEmail } from "@/services/auth-users";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 const __dev = process.env.NODE_ENV !== "production";
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -121,14 +121,14 @@ export const authOptions: NextAuthOptions = {
           (user as any).role = nextRole;
           
           if (existing.role !== nextRole) {
-            await supabaseAdmin
+            await supabaseServer
               .from("users")
               .update({ role: nextRole })
               .eq("id", existing.id);
           }
           
           if (!existing.name && displayName) {
-            await supabaseAdmin
+            await supabaseServer
               .from("users")
               .update({ name: displayName })
               .eq("id", existing.id);
@@ -143,7 +143,7 @@ export const authOptions: NextAuthOptions = {
         const isAdminEmail = GOOGLE_ADMIN_EMAILS.includes(email);
         const roleToUse = isAdminEmail ? "ADMIN" : "USER";
         
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await supabaseServer
           .from("users")
           .insert({
             email,

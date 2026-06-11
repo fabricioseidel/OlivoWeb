@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface ProductUpdate {
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
         if (data.is_active !== undefined) updatePayload.is_active = data.is_active;
         if (data.category !== undefined) updatePayload.category = data.category;
 
-        const { error } = await supabaseAdmin
+        const { error } = await supabaseServer
           .from('products')
           .update(updatePayload)
           .eq('id', id);
@@ -114,7 +114,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const format = searchParams.get('format') || 'json'; // json o csv
 
-    const { data: products, error } = await supabaseAdmin
+    const { data: products, error } = await supabaseServer
       .from('products')
       .select('*')
       .order('name');

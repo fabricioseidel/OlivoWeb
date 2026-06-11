@@ -57,3 +57,6 @@ Mejorar proyecto*/
 tmp_checkout.html
 node-bin/
 .env*.local
+
+# Editor
+.vscode/

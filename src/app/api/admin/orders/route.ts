@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { supabaseServer } from '@/lib/supabase-server';
 import { requireApiAdminOrSeller } from '@/lib/api-auth';
 
 export async function GET(_request: NextRequest) {
@@ -7,7 +7,7 @@ export async function GET(_request: NextRequest) {
   if (!auth.ok) return auth.response;
 
   try {
-    const { data: orders, error } = await supabaseAdmin
+    const { data: orders, error } = await supabaseServer
       .from('orders')
       .select('*, order_items(id)')
       .order('created_at', { ascending: false });

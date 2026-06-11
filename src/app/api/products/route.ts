@@ -1,7 +1,7 @@
 import { fetchAllProducts, isProductVisible } from "@/services/products";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
 async function readJsonBody(req: Request) {
@@ -35,7 +35,7 @@ async function upsertProductsWithColumnFallback(payloadsInput: any[]) {
   let lastError: any;
 
   for (let attempt = 0; attempt < 8; attempt++) {
-    const { error } = await supabaseAdmin.from('products').upsert(payloads, { onConflict: 'barcode' });
+    const { error } = await supabaseServer.from('products').upsert(payloads, { onConflict: 'barcode' });
     if (!error) return;
 
     lastError = error;
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // Using supabaseAdmin to bypass RLS policies that might block client-side inserts
+    // Using supabaseServer to bypass RLS policies that might block client-side inserts
     await upsertProductsWithColumnFallback(items);
 
     return successResponse({ success: true });
@@ -135,7 +135,7 @@ export async function DELETE(req: Request) {
       return errorResponse(new Error("Missing id"), 400);
     }
 
-    const { error } = await supabaseAdmin.from('products').delete().eq('barcode', id);
+    const { error } = await supabaseServer.from('products').delete().eq('barcode', id);
     
     if (error) throw error;
 

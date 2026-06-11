@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
 // Límite de tamaño: 10MB
@@ -9,7 +9,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB en bytes
 
 async function ensureUploadsBucket() {
   try {
-    const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
+    const { data: buckets, error: listError } = await supabaseServer.storage.listBuckets();
     
     if (listError) {
       console.error('Error listing buckets:', listError);
@@ -21,7 +21,7 @@ async function ensureUploadsBucket() {
     if (!uploadsBucket) {
       console.log('Creating uploads bucket...');
       
-      const { error: createError } = await supabaseAdmin.storage.createBucket('uploads', {
+      const { error: createError } = await supabaseServer.storage.createBucket('uploads', {
         public: true,
         allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'],
         fileSizeLimit: MAX_FILE_SIZE
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Subir a Supabase Storage
-      const { error: uploadError } = await supabaseAdmin.storage
+      const { error: uploadError } = await supabaseServer.storage
         .from('uploads')
         .upload(filename, buffer, { 
           contentType: file.type, 
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Obtener URL pública
-      const { data: publicUrlData } = supabaseAdmin.storage
+      const { data: publicUrlData } = supabaseServer.storage
         .from('uploads')
         .getPublicUrl(filename);
 
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
 
       // Si hay barcode, actualizar el producto en uber_eats_products
       if (barcode) {
-        await supabaseAdmin
+        await supabaseServer
           .from('uber_eats_products')
           .update({ image_url: publicUrlData.publicUrl })
           .eq('barcode', barcode);
@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Subir a Supabase
-    const { error: uploadError } = await supabaseAdmin.storage
+    const { error: uploadError } = await supabaseServer.storage
       .from('uploads')
       .upload(filename, buffer, { 
         contentType: mimeType, 
@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener URL pública
-    const { data: publicUrlData } = supabaseAdmin.storage
+    const { data: publicUrlData } = supabaseServer.storage
       .from('uploads')
       .getPublicUrl(filename);
 
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
 
     // Si hay barcode, actualizar el producto
     if (barcode) {
-      await supabaseAdmin
+      await supabaseServer
         .from('uber_eats_products')
         .update({ image_url: publicUrlData.publicUrl })
         .eq('barcode', barcode);

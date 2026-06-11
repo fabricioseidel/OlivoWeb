@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import { requireApiAdmin } from "@/lib/api-auth";
 
 // Initialize Supabase Storage - creates uploads bucket if it doesn't exist
@@ -10,7 +10,7 @@ export async function POST() {
     console.log("Checking if uploads bucket exists...");
     
     // List buckets to see if uploads exists
-    const { data: buckets, error: bucketsError } = await supabaseAdmin.storage.listBuckets();
+    const { data: buckets, error: bucketsError } = await supabaseServer.storage.listBuckets();
     
     if (bucketsError) {
       console.error("Error listing buckets:", bucketsError);
@@ -29,7 +29,7 @@ export async function POST() {
       console.log("Creating uploads bucket...");
       
       // Create the uploads bucket
-      const { data: newBucket, error: createError } = await supabaseAdmin.storage.createBucket('uploads', {
+      const { data: newBucket, error: createError } = await supabaseServer.storage.createBucket('uploads', {
         public: true,
         allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'],
         fileSizeLimit: 5242880 // 5MB
@@ -54,7 +54,7 @@ export async function POST() {
     
     console.log(`Testing upload of ${testFilename}...`);
     
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    const { data: uploadData, error: uploadError } = await supabaseServer.storage
       .from('uploads')
       .upload(testFilename, testContent, { 
         contentType: 'text/plain',
@@ -72,14 +72,14 @@ export async function POST() {
     console.log("Test upload successful:", uploadData);
 
     // Get public URL for test file
-    const { data: publicUrlData } = supabaseAdmin.storage
+    const { data: publicUrlData } = supabaseServer.storage
       .from('uploads')
       .getPublicUrl(testFilename);
 
     console.log("Test file public URL:", publicUrlData.publicUrl);
 
     // Clean up test file
-    const { error: deleteError } = await supabaseAdmin.storage
+    const { error: deleteError } = await supabaseServer.storage
       .from('uploads')
       .remove([testFilename]);
 

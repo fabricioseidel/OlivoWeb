@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { ensureUploadsBucket } from '@/utils/supabaseStorage';
 import { requireApiAdminOrSeller } from '@/lib/api-auth';
 
@@ -52,7 +51,7 @@ export async function POST(
 
     // Subir archivo a Supabase Storage
     const fileBuffer = await file.arrayBuffer();
-    const { error: uploadError } = await supabaseAdmin.storage
+    const { error: uploadError } = await supabaseServer.storage
       .from('uploads')
       .upload(filePath, fileBuffer, {
         contentType: file.type,
@@ -68,7 +67,7 @@ export async function POST(
     }
 
     // Obtener URL pública
-    const { data: urlData } = supabaseAdmin.storage
+    const { data: urlData } = supabaseServer.storage
       .from('uploads')
       .getPublicUrl(filePath);
 
@@ -98,7 +97,7 @@ export async function POST(
 
     if (error) {
       // Si falla la actualización, intentar eliminar el archivo subido
-      await supabaseAdmin.storage.from('uploads').remove([filePath]);
+      await supabaseServer.storage.from('uploads').remove([filePath]);
 
       console.error('Error updating order:', error);
       return NextResponse.json(
@@ -163,7 +162,7 @@ export async function DELETE(
         const filePath = urlParts[1];
 
         // Eliminar archivo de Storage
-        const { error: deleteError } = await supabaseAdmin.storage
+        const { error: deleteError } = await supabaseServer.storage
           .from('uploads')
           .remove([filePath]);
 

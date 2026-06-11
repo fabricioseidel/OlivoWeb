@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import { uploadImageToSupabase } from "@/utils/supabaseStorage";
 
 export const dynamic = 'force-dynamic';
@@ -124,7 +124,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // Note: updated_at is handled automatically by the DB trigger (trg_categories_set_updated_at)
     console.log("Updating category with payload:", updatePayload);
 
-    const { data: updated, error } = await supabaseAdmin
+    const { data: updated, error } = await supabaseServer
       .from('categories')
       .update(updatePayload)
       .eq('id', id)
@@ -200,7 +200,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     if ((count ?? 0) > 0) {
       return NextResponse.json({ error: "No se puede eliminar una categoría con productos asociados" }, { status: 400 });
     }
-    const { error: delErr } = await supabaseAdmin.from('categories').delete().eq('id', id);
+    const { error: delErr } = await supabaseServer.from('categories').delete().eq('id', id);
     if (delErr) throw delErr;
     return NextResponse.json({ ok: true });
   } catch (e) {

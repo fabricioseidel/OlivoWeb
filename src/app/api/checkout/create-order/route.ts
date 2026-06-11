@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { supabaseServer } from '@/lib/supabase-server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/config/auth.config';
 import { sendOrderConfirmation } from '@/server/email.service';
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 0a: Verify slot hasn't reached maximum capacity dynamically
-      const { data: slotOrders, error: slotErr } = await supabaseAdmin
+      const { data: slotOrders, error: slotErr } = await supabaseServer
         .from('orders')
         .select('shipping_address')
         .neq('status', 'cancelled');
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Validate Products & Prices
     // CartItem.id corresponde al barcode del producto (ver mapSupaToUI en services/products.ts)
-    const { data: dbProducts, error: productsErr } = await supabaseAdmin
+    const { data: dbProducts, error: productsErr } = await supabaseServer
       .from('products')
       .select('id, barcode, stock, name, sale_price, is_active')
       .in('barcode', items.map((i: any) => i.id));
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Resolver la sucursal por defecto: el stock de la web vive en
     // branch_stock por sucursal, no en products.stock global. Usamos la
     // sucursal default; las RPCs hacen el mismo fallback en SQL.
-    const { data: defaultBranch } = await supabaseAdmin
+    const { data: defaultBranch } = await supabaseServer
       .from('branches')
       .select('id')
       .eq('is_default', true)
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
         discount_amount: (discountApplied || 0) + (loyaltyRedeemed?.discount || 0)
     };
 
-    const { data: order, error: orderError } = await supabaseAdmin
+    const { data: order, error: orderError } = await supabaseServer
       .from('orders')
       .insert(orderData)
       .select()
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
     const successfullSubtractions: any[] = [];
     try {
       for (const item of items) {
-        const { data: success, error: rpcErr } = await supabaseAdmin.rpc('decrement_stock_atomic', {
+        const { data: success, error: rpcErr } = await supabaseServer.rpc('decrement_stock_atomic', {
           p_barcode: String(item.id),
           p_quantity: item.quantity,
           p_branch_id: branchId,
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
     } catch (err: any) {
       // ROLLBACK: devolver el stock de lo que ya descontamos y eliminar la orden.
       for (const item of successfullSubtractions) {
-        await supabaseAdmin.rpc('increment_product_stock', {
+        await supabaseServer.rpc('increment_product_stock', {
           p_barcode: String(item.id),
           p_quantity: item.quantity,
           p_branch_id: branchId,
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
           p_reason: 'WEB_SALE_ROLLBACK'
         });
       }
-      await supabaseAdmin.from('orders').delete().eq('id', order.id);
+      await supabaseServer.from('orders').delete().eq('id', order.id);
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
 
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
       order_id: order.id
     }));
 
-    const { error: itemsError } = await supabaseAdmin
+    const { error: itemsError } = await supabaseServer
       .from('order_items')
       .insert(finalOrderItems);
 
@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Upsert customer
-            await supabaseAdmin
+            await supabaseServer
               .from('customers')
               .upsert({
                 email: customerEmail,

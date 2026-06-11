@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { supabaseServer } from '@/lib/supabase-server';
 import { sendOrderStatusEmail } from '@/server/email.service';
 import { requireApiAdminOrSeller } from '@/lib/api-auth';
 
@@ -9,7 +9,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   const { id } = await params;
   try {
-    const { data: order, error } = await supabaseAdmin
+    const { data: order, error } = await supabaseServer
       .from('orders')
       .select('*, order_items(*)')
       .eq('id', id)
@@ -40,7 +40,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         if (status) updateData.status = status;
         if (payment_status) updateData.payment_status = payment_status;
 
-        const { error } = await supabaseAdmin
+        const { error } = await supabaseServer
             .from('orders')
             .update(updateData)
             .eq('id', id);
@@ -54,7 +54,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         if (status) {
             try {
                 // Fetch customer details for the email
-                const { data: order, error: fetchError } = await supabaseAdmin
+                const { data: order, error: fetchError } = await supabaseServer
                     .from('orders')
                     .select('*, shipping_address')
                     .eq('id', id)

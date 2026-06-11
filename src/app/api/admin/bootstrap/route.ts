@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { supabaseServer } from '@/lib/supabase-server';
 
 // POST /api/admin/bootstrap
 // Headers: x-setup-token: <ADMIN_SETUP_TOKEN>
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const hash = await bcrypt.hash(String(password), 10);
 
     // Buscar existente
-  const { data: existing, error: findErr } = await supabaseAdmin
+  const { data: existing, error: findErr } = await supabaseServer
       .from('users')
       .select('id,role')
       .eq('email', emailNorm)
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     if (findErr) throw findErr;
 
     if (!existing) {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseServer
         .from('users')
         .insert({ email: emailNorm, name: name || 'Administrador', password_hash: hash, role: 'ADMIN' })
         .select('id,email,role')
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, created: true, user: data });
     } else {
       // Promover a ADMIN y actualizar hash si se pasa
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseServer
         .from('users')
         .update({ role: 'ADMIN', password_hash: hash })
         .eq('email', emailNorm)

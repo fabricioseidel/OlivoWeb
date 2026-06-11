@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 /**
  * Cron: cierra automáticamente los turnos cuyo auto_close_at ya pasó.
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { data: pending, error: queryError } = await supabaseAdmin
+    const { data: pending, error: queryError } = await supabaseServer
       .from("cash_shifts")
       .select("id, branch_id, started_at, auto_close_at")
       .eq("status", "OPEN")
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     const results: Array<{ shift_id: string; ok: boolean; error?: string }> = [];
     for (const shift of pending) {
-      const { error: rpcError } = await supabaseAdmin.rpc("close_shift", {
+      const { error: rpcError } = await supabaseServer.rpc("close_shift", {
         p_shift_id: shift.id,
         p_counts: {},
       });
