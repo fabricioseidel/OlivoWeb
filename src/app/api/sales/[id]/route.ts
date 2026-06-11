@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
+import { requireApiAdminOrSeller } from '@/lib/api-auth';
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireApiAdminOrSeller();
+    if (!auth.ok) return auth.response;
+
     const { id } = await context.params;
     const saleId = id;
 
@@ -86,6 +90,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireApiAdminOrSeller();
+    if (!auth.ok) return auth.response;
+
     const { id } = await params;
     const body = await req.json();
     

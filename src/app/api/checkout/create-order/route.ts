@@ -3,8 +3,8 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/config/auth.config';
 import { sendOrderConfirmation } from '@/server/email.service';
-import { recordCouponUsage, getCouponByCode } from '@/server/coupon.service';
-import { earnPoints, redeemPoints } from '@/server/loyalty.service';
+import { recordCouponUsage, getCouponByCode, validateCoupon } from '@/server/coupon.service';
+import { earnPoints, redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
 import { format, getHours } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
@@ -12,25 +12,81 @@ import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 const MAX_ORDERS_PER_SLOT = 5;
 const TIMEZONE = "America/Santiago";
 
+/** Distancia Haversine ×1.3 (mismo cálculo que /api/shipping/calculate). */
+function haversineKm(
+  origin: { lat: number; lng: number },
+  destination: { lat: number; lng: number }
+): number {
+  const R = 6371;
+  const dLat = ((destination.lat - origin.lat) * Math.PI) / 180;
+  const dLon = ((destination.lng - origin.lng) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLon / 2) *
+      Math.sin(dLon / 2) *
+      Math.cos((origin.lat * Math.PI) / 180) *
+      Math.cos((destination.lat * Math.PI) / 180);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c * 1.3;
+}
+
+/**
+ * Recalcula el costo de envío en servidor. Nunca confía en el valor que
+ * envía el navegador.
+ */
+async function calculateServerShippingCost(
+  shippingMethod: string,
+  coords: { lat: number; lng: number } | null | undefined
+): Promise<{ cost: number } | { error: string }> {
+  if (shippingMethod === 'pickup') return { cost: 0 };
+
+  if (shippingMethod === 'dynamic') {
+    const { data: settings } = await supabaseServer
+      .from('settings')
+      .select('enable_dynamic_shipping, shipping_base_fee, shipping_price_per_km, shipping_origin_lat, shipping_origin_lng')
+      .eq('id', true)
+      .maybeSingle();
+
+    if (!settings?.enable_dynamic_shipping) {
+      return { error: 'El envío a domicilio no está disponible en este momento.' };
+    }
+    if (!settings.shipping_origin_lat || !settings.shipping_origin_lng) {
+      return { error: 'El envío a domicilio no está configurado. Selecciona retiro en tienda.' };
+    }
+    if (!coords || typeof coords.lat !== 'number' || typeof coords.lng !== 'number') {
+      return { error: 'No pudimos validar la dirección de envío. Selecciona una dirección sugerida por el buscador.' };
+    }
+
+    const distanceKm = haversineKm(
+      { lat: Number(settings.shipping_origin_lat), lng: Number(settings.shipping_origin_lng) },
+      coords
+    );
+    const cost = Number(settings.shipping_base_fee || 0) + distanceKm * Number(settings.shipping_price_per_km || 0);
+    if (!Number.isFinite(cost) || cost < 0) {
+      return { error: 'No se pudo calcular el costo de envío.' };
+    }
+    return { cost: Math.round(cost) };
+  }
+
+  return { error: 'Método de envío no válido.' };
+}
+
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const body = await request.json();
-    const { 
-      items, 
-      shippingInfo, 
-      shippingMethod, 
-      paymentMethod, 
-      total, 
-      subtotal, 
-      shippingCost,
+    // Del cliente solo se toman: items (id+cantidad), datos de envío, método
+    // de envío/pago, cupón y puntos a canjear. Precios, descuentos, costo de
+    // envío y total se recalculan SIEMPRE en servidor.
+    const {
+      items,
+      shippingInfo,
+      shippingMethod,
+      paymentMethod,
       couponCode,
-      discountApplied,
       loyaltyRedeemed
     } = body;
-
-    console.log('[Checkout Debug] Start processing order');
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: 'No items in order' }, { status: 400 });
@@ -101,15 +157,61 @@ export async function POST(request: NextRequest) {
       if (!dbProduct) return NextResponse.json({ error: `Producto no encontrado: ${item.name}` }, { status: 400 });
       if (!dbProduct.is_active) return NextResponse.json({ error: `El producto ${dbProduct.name} ya no está disponible.` }, { status: 400 });
 
-      calculatedSubtotal += dbProduct.sale_price * item.quantity;
+      const quantity = Number(item.quantity);
+      if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 1000) {
+        return NextResponse.json({ error: `Cantidad inválida para ${dbProduct.name}.` }, { status: 400 });
+      }
+
+      calculatedSubtotal += dbProduct.sale_price * quantity;
       validatedOrderItems.push({
         product_id: dbProduct.id,
         name: dbProduct.name,
         price: dbProduct.sale_price,
-        quantity: item.quantity,
+        quantity,
         image: item.image
       });
     }
+
+    // 2. Recalcular envío, cupón y puntos en servidor (nunca confiar en el cliente)
+    const shippingResult = await calculateServerShippingCost(shippingMethod, shippingInfo?.coords);
+    if ('error' in shippingResult) {
+      return NextResponse.json({ error: shippingResult.error }, { status: 400 });
+    }
+    let serverShippingCost = shippingResult.cost;
+
+    let couponDiscount = 0;
+    if (couponCode) {
+      const validation = await validateCoupon(String(couponCode), calculatedSubtotal, shippingInfo?.email);
+      if (!validation.valid) {
+        return NextResponse.json({ error: `Cupón inválido: ${validation.message}` }, { status: 400 });
+      }
+      couponDiscount = validation.discount;
+      const coupon = await getCouponByCode(String(couponCode));
+      if (coupon?.discount_type === 'free_shipping') {
+        serverShippingCost = 0;
+      }
+    }
+
+    let pointsDiscount = 0;
+    const pointsToRedeem = Number(loyaltyRedeemed?.points) || 0;
+    if (pointsToRedeem > 0) {
+      if (!shippingInfo?.email) {
+        return NextResponse.json({ error: 'Se requiere email para canjear puntos.' }, { status: 400 });
+      }
+      const [loyaltyConfig, currentPoints] = await Promise.all([
+        getLoyaltyConfig(),
+        getCustomerPoints(shippingInfo.email),
+      ]);
+      if (pointsToRedeem > currentPoints) {
+        return NextResponse.json({ error: 'No tienes suficientes puntos para este canje.' }, { status: 400 });
+      }
+      if (pointsToRedeem < loyaltyConfig.min_points_redeem) {
+        return NextResponse.json({ error: `Mínimo ${loyaltyConfig.min_points_redeem} puntos para canjear.` }, { status: 400 });
+      }
+      pointsDiscount = pointsToRedeem * loyaltyConfig.redemption_value;
+    }
+
+    const serverTotal = Math.max(0, (calculatedSubtotal + serverShippingCost) - couponDiscount - pointsDiscount);
 
     // Resolver la sucursal por defecto: el stock de la web vive en
     // branch_stock por sucursal, no en products.stock global. Usamos la
@@ -128,15 +230,15 @@ export async function POST(request: NextRequest) {
     const orderData = {
         user_id: userId,
         status: 'pending',
-        total: (calculatedSubtotal + shippingCost) - (discountApplied || 0) - (loyaltyRedeemed?.discount || 0),
+        total: serverTotal,
         subtotal: calculatedSubtotal,
-        shipping_cost: shippingCost,
+        shipping_cost: serverShippingCost,
         shipping_method: shippingMethod,
         shipping_address: shippingInfo,
         payment_method: paymentMethod,
         payment_status: 'pending',
         coupon_code: couponCode || null,
-        discount_amount: (discountApplied || 0) + (loyaltyRedeemed?.discount || 0)
+        discount_amount: couponDiscount + pointsDiscount
     };
 
     const { data: order, error: orderError } = await supabaseServer
@@ -206,7 +308,7 @@ export async function POST(request: NextRequest) {
                 couponId: coupon.id,
                 customerEmail: shippingInfo?.email,
                 orderId: order.id,
-                discountApplied: discountApplied || 0
+                discountApplied: couponDiscount
              });
           }
        } catch (err) {
@@ -224,10 +326,10 @@ export async function POST(request: NextRequest) {
         to: customerEmail,
         customerName,
         orderId: order.id,
-        total,
-        itemCount: items.length,
+        total: serverTotal,
+        itemCount: validatedOrderItems.length,
         paymentMethod: paymentMethod || 'N/A',
-        items: items.map((item: any) => ({
+        items: validatedOrderItems.map((item) => ({
           name: item.name,
           quantity: item.quantity,
           price: item.price * item.quantity,
@@ -238,10 +340,10 @@ export async function POST(request: NextRequest) {
       (async () => {
          try {
             // Redeem points if opted
-            if (loyaltyRedeemed?.points > 0) {
+            if (pointsToRedeem > 0) {
                await redeemPoints({
                   customerEmail,
-                  points: loyaltyRedeemed.points,
+                  points: pointsToRedeem,
                   description: `Pago parcial de orden ${order.id}`
                });
             }
@@ -262,7 +364,7 @@ export async function POST(request: NextRequest) {
             // Earn points for current purchase
             await earnPoints({
                customerEmail,
-               amount: total,
+               amount: serverTotal,
                referenceType: 'order',
                referenceId: order.id
             });
@@ -278,13 +380,20 @@ export async function POST(request: NextRequest) {
     if (paymentMethod === 'mercadopago') {
       try {
         console.log(`[Checkout] 💳 Iniciando creación de preferencia MP para orden ${order.id}`);
-        console.log(`[Checkout] Detalle: Total=${total}, Items=${items.length}, Email=${customerEmail}`);
-        
+
+        // La preferencia se construye con precios validados contra la BD,
+        // nunca con los precios que envió el navegador.
         const mpResult = await createPaymentPreference({
           orderId: order.id,
-          items,
+          items: validatedOrderItems.map((item) => ({
+            id: String(item.product_id),
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            image: item.image,
+          })),
           customerEmail: customerEmail || 'anon@olivomarket.cl',
-          total
+          total: serverTotal
         });
         initPoint = mpResult.initPoint;
         console.log(`[Checkout] ✅ Preferencia MP creada con éxito: ${mpResult.id}`);
@@ -296,10 +405,9 @@ export async function POST(request: NextRequest) {
           console.error('[Checkout] Causa del error MP:', JSON.stringify(err.cause, null, 2));
         }
 
-        return NextResponse.json({ 
-          error: 'Mercado Pago no pudo procesar la transacción: ' + (err?.message || 'Error de conexión'),
-          details: err?.cause || null,
-          orderId: order.id 
+        return NextResponse.json({
+          error: 'Mercado Pago no pudo procesar la transacción. Por favor intenta de nuevo.',
+          orderId: order.id
         }, { status: 502 });
       }
     }

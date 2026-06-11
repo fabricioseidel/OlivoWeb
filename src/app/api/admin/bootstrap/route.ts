@@ -1,15 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import { timingSafeEqual } from 'crypto';
 import { supabaseServer } from '@/lib/supabase-server';
 
 // POST /api/admin/bootstrap
-// Headers: x-setup-token: <ADMIN_SETUP_TOKEN>
+// Headers: x-setup-token: <ADMIN_SETUP_TOKEN>  (generar con `openssl rand -hex 32`)
 // Body: { email: string, password: string, name?: string }
+// Solo funciona mientras NO exista ningún ADMIN: una vez inicializado, queda deshabilitado.
 export async function POST(req: NextRequest) {
-  const token = req.headers.get('x-setup-token');
-  const expected = process.env.ADMIN_SETUP_TOKEN;
-  if (!expected || token !== expected) {
+  const token = req.headers.get('x-setup-token') || '';
+  const expected = process.env.ADMIN_SETUP_TOKEN || '';
+  const tokenBuf = Buffer.from(token);
+  const expectedBuf = Buffer.from(expected);
+  const tokenValid =
+    expected.length > 0 &&
+    tokenBuf.length === expectedBuf.length &&
+    timingSafeEqual(tokenBuf, expectedBuf);
+  if (!tokenValid) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  }
+
+  // Deshabilitar una vez que ya existe un admin (evita re-uso del token para
+  // crear admins adicionales o resetear contraseñas).
+  const { count: adminCount, error: countErr } = await supabaseServer
+    .from('users')
+    .select('id', { count: 'exact', head: true })
+    .eq('role', 'ADMIN');
+  if (countErr) {
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+  }
+  if ((adminCount ?? 0) > 0) {
+    return NextResponse.json(
+      { error: 'Ya existe un administrador — bootstrap deshabilitado' },
+      { status: 403 }
+    );
   }
 
   try {

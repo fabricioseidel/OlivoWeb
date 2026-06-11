@@ -11,10 +11,9 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const googleProviderEnabled = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
 
-const GOOGLE_ADMIN_EMAILS = (
-  process.env.GOOGLE_ADMIN_EMAILS ||
-  "seidelfabriciove@gmail.com"
-)
+// Solo emails configurados explícitamente vía env pueden elevarse a ADMIN con Google OAuth.
+// Sin GOOGLE_ADMIN_EMAILS definido, nadie se eleva automáticamente.
+const GOOGLE_ADMIN_EMAILS = (process.env.GOOGLE_ADMIN_EMAILS || "")
   .split(",")
   .map((email) => email.trim().toLowerCase())
   .filter(Boolean);

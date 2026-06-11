@@ -305,16 +305,14 @@ export default function CheckoutPage() {
         return;
       }
       
+      // El servidor recalcula precios, envío, descuentos y total; aquí solo
+      // se envían los datos mínimos (coords permite revalidar el envío dinámico).
       const payload = {
         items: cartItems,
-        shippingInfo,
+        shippingInfo: { ...shippingInfo, coords: coords || undefined },
         shippingMethod: selectedShippingMethod,
         paymentMethod: selectedPaymentMethod,
-        total,
-        subtotal,
-        shippingCost,
         couponCode: appliedCoupon?.code,
-        discountApplied: (subtotal + shippingCost) - total,
         loyaltyRedeemed: redeemedPoints > 0 ? {
            points: redeemedPoints,
            discount: pointsDiscount
