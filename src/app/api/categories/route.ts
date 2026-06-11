@@ -56,7 +56,10 @@ export async function GET() {
     };
   }); // Mostrar TODAS las categorías en admin (sin filtrar por productsCount)
 
-  return NextResponse.json(mapped);
+  // Cache CDN corto: evita recalcular conteos en cada request del storefront
+  return NextResponse.json(mapped, {
+    headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
+  });
 }
 
 // POST /api/categories { name }

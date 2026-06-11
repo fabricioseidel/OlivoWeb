@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { fetchAllProducts, isProductVisible } from "@/services/products";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -83,7 +84,11 @@ export async function GET() {
       stock: p.stock,
       featured: p.featured,
     }));
-    return successResponse({ items: result });
+    // Cache CDN corto para el catálogo público
+    return NextResponse.json(
+      { items: result },
+      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
+    );
   } catch (e: any) {
     return errorResponse(e);
   }
