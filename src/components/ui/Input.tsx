@@ -29,6 +29,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error && props.id ? `${props.id}-error` : undefined}
             className={`
               w-full px-4 py-2.5 rounded-xl border-2 
               bg-white
@@ -41,7 +43,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               ${icon ? 'pl-10' : ''}
               ${error
                 ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-500'
+                : 'border-gray-200 focus:border-primary focus:ring-primary'
               }
               disabled:bg-gray-50 disabled:cursor-not-allowed
               ${className}
@@ -50,7 +52,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           />
         </div>
         {error && (
-          <p className="text-sm font-medium text-red-600 flex items-center gap-1">
+          <p
+            id={props.id ? `${props.id}-error` : undefined}
+            role="alert"
+            className="text-sm font-medium text-red-600 flex items-center gap-1"
+          >
             <span>⚠️</span>
             {error}
           </p>

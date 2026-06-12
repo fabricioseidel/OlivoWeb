@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import axios from "axios";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -49,12 +48,21 @@ export default function RegisterPage() {
       // Registrar usuario con fuente opcional
       const source = typeof window !== "undefined" ? sessionStorage.getItem("registration_source") : null;
       
-      await axios.post("/api/auth/register", {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        source: source || undefined
+      const registerRes = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          source: source || undefined,
+        }),
       });
+
+      if (!registerRes.ok) {
+        const data = await registerRes.json().catch(() => null);
+        throw new Error(data?.message || data?.error || "");
+      }
 
       // Iniciar sesión automáticamente
       const result = await signIn("credentials", {
@@ -71,8 +79,7 @@ export default function RegisterPage() {
       }
     } catch (error: any) {
       setError(
-        error.response?.data?.message ||
-        "Ocurrió un error al registrarse. Intenta de nuevo."
+        error?.message || "Ocurrió un error al registrarse. Intenta de nuevo."
       );
     } finally {
       setLoading(false);

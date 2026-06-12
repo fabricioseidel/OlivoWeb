@@ -32,6 +32,7 @@ interface ShippingFormProps {
   selectedMethod: string;
   onMethodChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isCalculating?: boolean;
+  fieldErrors?: Partial<Record<"fullName" | "email" | "phone" | "address", string>>;
 }
 
 const getNextDays = (numDays: number) => {
@@ -52,11 +53,13 @@ export default function ShippingForm({
   shippingMethods,
   selectedMethod,
   onMethodChange,
-  isCalculating
+  isCalculating,
+  fieldErrors = {}
 }: ShippingFormProps) {
   
   const [availableDays] = useState<Date[]>(() => getNextDays(7)); // Today + 6 = 7 days total
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<{ id: string; label: string; available: boolean; capacityRatio: string }[]>([]);
 
   // Format YYYY-MM-DD
@@ -95,28 +98,36 @@ export default function ShippingForm({
       if (selectedMethod !== 'dynamic' || !shippingInfo.deliveryDate) return;
       
       setSlotsLoading(true);
+      setSlotsError(false);
       try {
         const res = await fetch(`/api/shipping/slots?date=${shippingInfo.deliveryDate}`);
-        if (res.ok) {
-           const data = await res.json();
-           setAvailableSlots(data.slots || []);
-           
-           // Si el slot actual ya no está disponible, lo quitamos
-           if (shippingInfo.deliveryTimeSlot) {
-              const currentSlot = data.slots.find((s: any) => s.id === shippingInfo.deliveryTimeSlot);
-              if (!currentSlot || !currentSlot.available) {
-                 onChange({ target: { name: 'deliveryTimeSlot', value: '' } });
-              }
+        if (!res.ok) throw new Error(`Slots request failed (${res.status})`);
+
+        const data = await res.json();
+        setAvailableSlots(data.slots || []);
+
+        // Si el slot actual ya no está disponible, lo quitamos
+        if (shippingInfo.deliveryTimeSlot) {
+           const currentSlot = data.slots.find((s: any) => s.id === shippingInfo.deliveryTimeSlot);
+           if (!currentSlot || !currentSlot.available) {
+              onChange({ target: { name: 'deliveryTimeSlot', value: '' } });
            }
         }
       } catch (err) {
         console.error("Fetch slots error:", err);
+        setSlotsError(true);
+        setAvailableSlots([]);
       } finally {
         setSlotsLoading(false);
       }
     };
     
     fetchSlots();
+    // Nota: omitimos `onChange` (se recrea en cada render del padre) y
+    // `shippingInfo.deliveryTimeSlot` (este efecto lo limpia él mismo);
+    // incluirlos provocaría re-fetch en bucle. Solo debe ejecutarse al
+    // cambiar la fecha o el método de envío.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shippingInfo.deliveryDate, selectedMethod]);
 
   const handleDateClick = (d: Date) => {
@@ -144,6 +155,7 @@ export default function ShippingForm({
             required
             value={shippingInfo.fullName}
             onChange={onChange}
+            error={fieldErrors.fullName}
           />
         </div>
 
@@ -156,6 +168,7 @@ export default function ShippingForm({
             required
             value={shippingInfo.email}
             onChange={onChange}
+            error={fieldErrors.email}
           />
         </div>
 
@@ -168,6 +181,7 @@ export default function ShippingForm({
             required
             value={shippingInfo.phone}
             onChange={onChange}
+            error={fieldErrors.phone}
           />
         </div>
 
@@ -182,6 +196,12 @@ export default function ShippingForm({
             country="cl"
             required
           />
+          {fieldErrors.address && (
+            <p role="alert" className="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+              <span>⚠️</span>
+              {fieldErrors.address}
+            </p>
+          )}
         </div>
 
         <div>
@@ -348,7 +368,7 @@ export default function ShippingForm({
                      
                      {/* Horizontal Days Selector */}
                      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                        {availableDays.map((d, i) => {
+                        {availableDays.map((d) => {
                            const dStr = formatDateForApi(d);
                            const isDaySelected = shippingInfo.deliveryDate === dStr;
                            return (
@@ -403,6 +423,11 @@ export default function ShippingForm({
                                     </button>
                                   )
                                 })
+                              ) : slotsError ? (
+                                <div role="alert" className="col-span-2 text-center py-4 bg-red-50 rounded-xl border border-red-100">
+                                  <p className="text-red-700 text-xs font-bold">No pudimos cargar los horarios de despacho.</p>
+                                  <p className="text-red-500 text-[10px] mt-1">Revisa tu conexión y vuelve a seleccionar la fecha.</p>
+                                </div>
                               ) : (
                                 <div className="col-span-2 text-center py-4 bg-amber-50 rounded-xl border border-amber-100">
                                   <p className="text-amber-800 text-xs font-bold">No hay horarios disponibles para esta fecha.</p>

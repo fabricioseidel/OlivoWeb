@@ -170,14 +170,16 @@ function ProductCard({ product }: Props) {
                 <div className="flex items-center bg-gray-50 rounded-2xl p-1 border border-gray-100 shadow-sm animate-in scale-in">
                     <button
                         onClick={handleRemoveOne}
+                        aria-label={quantityInCart === 1 ? `Quitar ${product.name} del carrito` : `Quitar una unidad de ${product.name}`}
                         className="size-8 sm:size-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 hover:bg-white transition-all active:scale-90"
                     >
                         {quantityInCart === 1 ? <Trash2 className="size-4" /> : <Minus className="size-4" />}
                     </button>
-                    <span className="w-8 text-center text-sm font-black text-gray-950">{quantityInCart}</span>
+                    <span className="w-8 text-center text-sm font-black text-gray-950" aria-live="polite">{quantityInCart}</span>
                     <button
                         onClick={handleAddOne}
                         disabled={product.stock !== undefined && quantityInCart >= product.stock}
+                        aria-label={`Agregar una unidad de ${product.name}`}
                         className="size-8 sm:size-10 flex items-center justify-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 transition-all shadow-md active:scale-90 disabled:opacity-50"
                     >
                         <Plus className="size-4" strokeWidth={3} />
@@ -187,6 +189,7 @@ function ProductCard({ product }: Props) {
                 <button
                 onClick={handleAddOne}
                 disabled={isAdding || product.stock === 0}
+                aria-label={product.stock === 0 ? `${product.name} sin stock` : `Agregar ${product.name} al carrito`}
                 className={`flex items-center justify-center size-10 sm:size-12 rounded-2xl transition-all duration-300 ${isAdding
                     ? 'bg-emerald-50 text-emerald-600 scale-110'
                     : product.stock === 0

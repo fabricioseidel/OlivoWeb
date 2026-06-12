@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { supabaseServer } from '@/lib/supabase-server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/config/auth.config';
 
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     const userId = (session.user as any).id;
 
-    const { data: orders, error } = await supabaseAdmin
+    const { data: orders, error } = await supabaseServer
       .from('orders')
       .select('*, order_items(id)')
       .eq('user_id', userId)

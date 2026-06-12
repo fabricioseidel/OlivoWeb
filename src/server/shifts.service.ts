@@ -1,5 +1,5 @@
 import { supabaseServer } from "@/lib/supabase-server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { logger } from "@/utils/logger";
 
 export type ShiftStatus = 'OPEN' | 'CLOSED';
 
@@ -52,7 +52,7 @@ export async function openShift(data: {
     .single();
 
   if (error) {
-    console.error("DB openShift Error:", error);
+    logger.error("DB openShift Error:", error);
     throw error;
   }
   return shift;
@@ -75,7 +75,7 @@ export async function closeShift(
   const countsObj: Partial<Record<ShiftPaymentMethod, number>> =
     typeof counts === "number" ? { CASH: counts } : counts;
 
-  const { data: breakdown, error: rpcError } = await supabaseAdmin.rpc("close_shift", {
+  const { data: breakdown, error: rpcError } = await supabaseServer.rpc("close_shift", {
     p_shift_id: shiftId,
     p_counts: countsObj,
   });
@@ -84,7 +84,7 @@ export async function closeShift(
 
   // Opcional: persistir notas si vienen
   if (notes) {
-    await supabaseAdmin.from("cash_shifts").update({ notes }).eq("id", shiftId);
+    await supabaseServer.from("cash_shifts").update({ notes }).eq("id", shiftId);
   }
 
   const { data: closed, error: fetchError } = await supabaseServer

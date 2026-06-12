@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import { format, addDays, getHours } from "date-fns";
-import { fromZonedTime, toZonedTime } from "date-fns-tz";
+import { toZonedTime } from "date-fns-tz";
 
 const MAX_ORDERS_PER_SLOT = 5;
 const TIMEZONE = "America/Santiago";
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     // Para simplificar, traemos aquellos de los últimos 7 días con status no cancelado.
     // Esto es manejable y evitaremos queries complejas con JSON en Supabase JS client.
     const sevenDaysAgo = addDays(nowUtc, -7).toISOString();
-    const { data: activeOrders, error } = await supabaseAdmin
+    const { data: activeOrders, error } = await supabaseServer
       .from("orders")
       .select("shipping_address")
       .gte("created_at", sevenDaysAgo)

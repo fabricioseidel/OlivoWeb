@@ -51,6 +51,19 @@ export default function EditProductForm({ productId, initialProduct }: EditProdu
   const { showToast } = useToast();
   const [serverState, setServerState] = useState<ProductFormState>();
   const [isPending, startTransition] = useTransition();
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+
+  // Sugerencias de categorías existentes para el datalist
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCategoryOptions(data.map((c: any) => c?.name).filter(Boolean));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const defaultValues = useMemo(() => mapProductToForm(initialProduct), [initialProduct]);
 
@@ -305,18 +318,18 @@ export default function EditProductForm({ productId, initialProduct }: EditProdu
               Organización
             </h3>
             <div className="space-y-4">
-              {/* TODO: Add proper dropdown or Combobox for categories */}
               <Input
                 label="Categoría"
                 placeholder="Ej: Ropa"
+                list="category-options"
                 {...register("categoria")}
                 error={errors.categoria?.message}
               />
-              <Input
-                label="Tipo de producto"
-                placeholder="Ej: Camisas"
-                {...register("categoria")} // Mapping visually to 'Product Type' but reusing category for now as schematic
-              />
+              <datalist id="category-options">
+                {categoryOptions.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
               <Input
                 label="Vendedor"
                 placeholder="Ej: Nike"

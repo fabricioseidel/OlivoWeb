@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createCoupon } from "@/server/coupon.service";
 import { addBonusPoints } from "@/server/loyalty.service";
 import { sendWelcomeEmail } from "@/server/email.service";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Esquema de validación
 const registerSchema = z.object({
@@ -15,6 +16,18 @@ const registerSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const { allowed, retryAfterSeconds } = rateLimit(`register:${ip}`, {
+      limit: 5,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (!allowed) {
+      return NextResponse.json(
+        { message: "Demasiados intentos de registro. Intenta más tarde." },
+        { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+      );
+    }
+
     const body = await req.json();
 
     // Validar entrada

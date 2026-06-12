@@ -297,6 +297,7 @@ export default function CajaPage() {
               <input
                 type="number"
                 placeholder="Monto $"
+                aria-label="Monto del movimiento en pesos"
                 className="w-full bg-gray-50 ring-2 ring-gray-100 rounded-xl p-3 font-black outline-none focus:ring-emerald-500"
                 value={movementAmount || ""}
                 onChange={(e) => setMovementAmount(Number(e.target.value))}
@@ -304,6 +305,7 @@ export default function CajaPage() {
               <input
                 type="text"
                 placeholder="Motivo"
+                aria-label="Motivo del movimiento"
                 className="w-full bg-gray-50 ring-2 ring-gray-100 rounded-xl p-3 font-bold text-sm outline-none focus:ring-emerald-500"
                 value={movementReason}
                 onChange={(e) => setMovementReason(e.target.value)}
@@ -311,6 +313,7 @@ export default function CajaPage() {
               <input
                 type="text"
                 placeholder="N° Comprobante / Referencia (opcional)"
+                aria-label="Número de comprobante o referencia (opcional)"
                 className="w-full bg-gray-50 ring-2 ring-gray-100 rounded-xl p-3 font-medium text-sm outline-none focus:ring-emerald-500"
                 value={movementReference}
                 onChange={(e) => setMovementReference(e.target.value)}

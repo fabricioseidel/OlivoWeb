@@ -13,7 +13,6 @@ import React, {
 import type { ProductUI } from '@/types';
 import {
   fetchAllProducts,
-  searchProducts,
   saveProduct,
   saveProductsBulk,
   deleteProduct,

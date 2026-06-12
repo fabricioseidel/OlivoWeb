@@ -13,12 +13,10 @@ import {
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import { useCart } from "@/contexts/CartContext";
-import { useToast } from "@/contexts/ToastContext";
 
 export default function OrderConfirmationClient() {
   const { clearCart } = useCart();
-  const { showToast } = useToast();
-  const [order, setOrder] = useState<any | null>(null);
+  const [, setOrder] = useState<any | null>(null);
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
   const paymentStatus = searchParams.get("payment"); // 'success' | 'failure' | 'pending'

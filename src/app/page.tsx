@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -34,8 +33,7 @@ import {
 export default function Home() {
   const { products, loading: productsLoading } = useProducts();
   const { categories, loading: categoriesLoading } = useCategories();
-  const { status } = useSession();
-  const { settings: storeSettings, loading: settingsLoading } = useStoreSettings();
+  const { settings: storeSettings } = useStoreSettings();
   const router = useRouter();
   const [heroQuery, setHeroQuery] = useState("");
 
@@ -47,13 +45,6 @@ export default function Home() {
 
   const heroTitle = storeSettings?.heroTitle || "Sabor que te conecta con casa";
   const heroDescription = storeSettings?.heroDescription || "Llevamos lo mejor de Venezuela directo a tu puerta en Chile. Calidad garantizada, frescura y el sabor que ya conoces.";
-
-  const featuredProducts = products
-    .filter(p => p.isActive && p.featured && isProductVisible(p))
-    .slice(0, 8);
-
-  const allActiveProducts = products
-    .filter(p => p.isActive && isProductVisible(p));
 
   const blocks = storeSettings?.appearance?.blocks?.filter(b => b.enabled) ?? [];
   const hasBlocks = blocks.length > 0;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 function isAdmin(session: any) {
   const role = session?.role || session?.user?.role;
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
   const includeAll = searchParams.get("all") === "1";
 
   try {
-    const { data: products, error: productsError } = await supabaseAdmin
+    const { data: products, error: productsError } = await supabaseServer
       .from("products")
       .select(
         "barcode,name,stock,reorder_threshold,sale_price,image_url",
@@ -62,7 +62,7 @@ export async function GET(req: Request) {
 
     let assignments: any[] = [];
     if (productIds.length) {
-      const { data: rows, error: assignmentError } = await supabaseAdmin
+      const { data: rows, error: assignmentError } = await supabaseServer
         .from("product_suppliers")
         .select(
           `

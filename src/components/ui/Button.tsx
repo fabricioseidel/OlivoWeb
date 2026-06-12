@@ -33,15 +33,16 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       lg: 'px-7 py-3.5 text-lg',
     };
 
+    // Tokens del tema: configurables desde Admin → Apariencia (SettingsInjector)
     const variantStyles = {
       primary:
-        'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-sm hover:shadow-md',
+        'bg-primary text-white hover:bg-primary-hover focus:ring-primary shadow-sm hover:shadow-md',
       secondary:
         'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 shadow-sm hover:shadow-md',
       outline:
-        'bg-transparent border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 focus:ring-emerald-500',
+        'bg-transparent border-2 border-primary text-primary hover:bg-primary-soft focus:ring-primary',
       danger:
-        'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm hover:shadow-md',
+        'bg-error text-white hover:bg-red-700 focus:ring-error shadow-sm hover:shadow-md',
       ghost:
         'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500',
     };

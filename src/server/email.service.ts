@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { supabaseServer } from "@/lib/supabase-server";
+import { logger } from "@/utils/logger";
 
 // ── Lazy-initialized Resend client ───────────────────────────────────────
 let _resend: Resend | null = null;
@@ -42,7 +43,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailResult> {
     });
 
     if (error) {
-      console.error("[Email] Resend error:", error);
+      logger.error("[Email] Resend error:", error);
       await logEmail({
         to,
         toName,
@@ -56,7 +57,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailResult> {
     }
 
     const resendId = data?.id || "";
-    console.log(`[Email] ✅ Sent to ${to} — ID: ${resendId}`);
+    logger.log(`[Email] ✅ Sent to ${to} — ID: ${resendId}`);
 
     await logEmail({
       to,
@@ -71,7 +72,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailResult> {
     return { ok: true, id: resendId };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[Email] 🔥 Critical error:", message);
+    logger.error("[Email] 🔥 Critical error:", message);
 
     await logEmail({
       to,
@@ -110,13 +111,13 @@ export async function getTemplate(slug: string, fallbackSubject: string, fallbac
       .single();
 
     if (error || !data) {
-      console.warn(`[Email] Template slug "${slug}" not found in DB. Using fallback.`);
+      logger.warn(`[Email] Template slug "${slug}" not found in DB. Using fallback.`);
       return { subject: fallbackSubject, html: fallbackHtml };
     }
 
     return { subject: data.subject, html: data.body_html };
   } catch (err) {
-    console.error(`[Email] Error fetching template "${slug}":`, err);
+    logger.error(`[Email] Error fetching template "${slug}":`, err);
     return { subject: fallbackSubject, html: fallbackHtml };
   }
 }
@@ -332,28 +333,6 @@ const REVIEW_REQUEST_TEMPLATE = `<!DOCTYPE html>
       </div>
     </div>
     <a href="{{whatsappLink}}" style="color:#10B981; font-size:14px;">¿Tuviste algún problema? Cuéntanos por WhatsApp</a>
-  </div>
-  <div class="footer">
-    <p>© {{year}} OlivoMarket</p>
-  </div>
-</div>
-</body></html>`;
-
-const PROMO_CAMPAIGN_TEMPLATE = `<!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
-<body>
-<div class="container">
-  <div class="header" style="background:#000000;">
-    <h1 style="color:#ffffff;">OFERTA RELÁMPAGO ⚡</h1>
-  </div>
-  <div class="content" style="text-align:center;">
-    <h2 style="font-size:24px;">¡Solo por Tiempo Limitado!</h2>
-    <p>{{promoMessage}}</p>
-    <div style="background-color:#fff7ed; padding:30px; border-radius:16px; margin:25px 0; border:2px dashed #f97316;">
-      <p style="margin:0; font-size:14px; color:#9a3412;">Código:</p>
-      <p style="margin:10px 0 0; font-size:32px; font-weight:900; color:#ea580c; letter-spacing:4px;">{{promoCode}}</p>
-    </div>
-    <a href="https://olivomarket.cl/ofertas" class="button" style="background-color:#f97316;">¡APROVECHAR!</a>
   </div>
   <div class="footer">
     <p>© {{year}} OlivoMarket</p>
@@ -684,6 +663,6 @@ async function logEmail(entry: {
       metadata: entry.metadata || {},
     });
   } catch (err) {
-    console.warn("[Email] ⚠️ Log error:", err);
+    logger.warn("[Email] ⚠️ Log error:", err);
   }
 }

@@ -31,10 +31,9 @@ export default function UpsellingSection() {
       .filter((p) => !cartItemIds.has(p.id) && p.stock > 0 && p.isActive !== false && isProductVisible(p))
       .map((p) => {
         let score = p.viewCount || 0;
-        let matchCategories = 0;
         if (p.categories) {
             p.categories.forEach(c => {
-                if (cartCategories.has(c)) { matchCategories++; score += 50; }
+                if (cartCategories.has(c)) { score += 50; }
             });
         }
         return { product: p, score };

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiAdmin } from "@/lib/api-auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   const safetyDays = parseIntParam(searchParams.get("safety"), 3, 0, 30);
   const onlyWithSupplier = searchParams.get("onlyWithSupplier") === "1";
 
-  const { data, error } = await supabaseAdmin.rpc("get_reorder_suggestions", {
+  const { data, error } = await supabaseServer.rpc("get_reorder_suggestions", {
     p_window_days: windowDays,
     p_coverage_days: coverageDays,
     p_safety_days: safetyDays,

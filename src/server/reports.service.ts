@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export interface ReportSalesRange {
   total: number;
@@ -14,7 +14,7 @@ export async function getSalesReport(opts: {
   to: string;
   branchId?: string | null;
 }): Promise<ReportSalesRange> {
-  const { data, error } = await supabaseAdmin.rpc("report_sales_range", {
+  const { data, error } = await supabaseServer.rpc("report_sales_range", {
     p_from: opts.from,
     p_to: opts.to,
     p_branch_id: opts.branchId ?? null,
@@ -45,7 +45,7 @@ export async function getShiftsHistory(opts: {
   branchId?: string | null;
   limit?: number;
 }): Promise<ShiftHistoryRow[]> {
-  let q = supabaseAdmin
+  let q = supabaseServer
     .from("v_shifts_history")
     .select("*")
     .order("started_at", { ascending: false })

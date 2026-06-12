@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiAdmin } from "@/lib/api-auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   }
 
   // Validar que el supplier existe
-  const { data: supplier, error: supplierErr } = await supabaseAdmin
+  const { data: supplier, error: supplierErr } = await supabaseServer
     .from("suppliers")
     .select("id,name")
     .eq("id", supplierId)
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   }
 
   // Filtrar barcodes que existen en products
-  const { data: existing, error: prodErr } = await supabaseAdmin
+  const { data: existing, error: prodErr } = await supabaseServer
     .from("products")
     .select("barcode")
     .in("barcode", barcodes);
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
   }
 
   // Detectar asignaciones existentes
-  const { data: alreadyAssigned } = await supabaseAdmin
+  const { data: alreadyAssigned } = await supabaseServer
     .from("product_suppliers")
     .select("product_id")
     .in("product_id", validBarcodes)
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
   // Update existentes solo si overwrite=true
   if (overwrite && alreadySet.size > 0) {
     const updateTargets = Array.from(alreadySet);
-    const { error: updErr, count } = await supabaseAdmin
+    const { error: updErr, count } = await supabaseServer
       .from("product_suppliers")
       .update({ ...defaults, updated_at: new Date().toISOString() }, { count: "exact" })
       .in("product_id", updateTargets)
@@ -110,7 +110,7 @@ export async function POST(req: Request) {
     .map((b) => ({ product_id: b, supplier_id: supplierId, ...defaults }));
 
   if (newRows.length > 0) {
-    const { error: insErr, count } = await supabaseAdmin
+    const { error: insErr, count } = await supabaseServer
       .from("product_suppliers")
       .insert(newRows, { count: "exact" });
     if (insErr) {

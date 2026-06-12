@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { supabaseServer } from '@/lib/supabase-server';
 import { requireApiAdminOrSeller } from '@/lib/api-auth';
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   const auth = await requireApiAdminOrSeller();
   if (!auth.ok) return auth.response;
 
   try {
-    const { data: orders, error } = await supabaseAdmin
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(Number(searchParams.get('limit') || '200'), 500);
+    const offset = Math.max(Number(searchParams.get('offset') || '0'), 0);
+
+    const { data: orders, error } = await supabaseServer
       .from('orders')
       .select('*, order_items(id)')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       console.error('Error fetching orders:', error);

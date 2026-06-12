@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiAdmin } from "@/lib/api-auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   );
 
   // Mapa barcode → lista de proveedores asignados (id+name)
-  const { data: assignedRows } = await supabaseAdmin
+  const { data: assignedRows } = await supabaseServer
     .from("product_suppliers")
     .select("product_id, supplier:supplier_id ( id, name )");
   const assignedMap = new Map<
@@ -34,7 +34,7 @@ export async function GET(req: Request) {
     assignedMap.set(key, list);
   }
 
-  let q = supabaseAdmin
+  let q = supabaseServer
     .from("products")
     .select(
       "barcode,name,category,stock,sale_price,purchase_price,image_url,is_active"

@@ -2,7 +2,7 @@
 import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
 import { getUserByEmail as svcGetUserByEmail, type DbUser } from "@/services/auth-users";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 // Importar authOptions desde el archivo de configuración
 import { authOptions } from "@/config/auth.config";
@@ -20,7 +20,7 @@ export async function createUser({ name, email, password }: { name: string; emai
   // Hash simple; puedes ajustar saltRounds si lo deseas
   const password_hash = await bcrypt.hash(password, 10);
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseServer
     .from("users")
     .insert({ email: email.toLowerCase().trim(), name: name || null, password_hash, role: "USER" })
     .select()

@@ -1,4 +1,5 @@
 import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { logger } from '@/utils/logger';
 
 // ── Preference Creation ────────────────────────────────────────────────────────
 
@@ -12,16 +13,29 @@ interface CreatePreferenceParams {
     image?: string;
   }>;
   customerEmail: string;
+  /** Total final a cobrar: subtotal + envío − descuentos. */
   total: number;
+  /** Costo de envío incluido en `total`. */
+  shippingCost?: number;
+  /** Suma de descuentos (cupón + puntos) ya restados de `total`. */
+  discountTotal?: number;
 }
 
 /**
  * Creates a MercadoPago Preference for a specific order.
  * The MercadoPago client is instantiated HERE (not at module level)
  * to ensure the access token is always read from the environment at runtime.
+ *
+ * El monto cobrado SIEMPRE debe ser exactamente `total` (el webhook valida
+ * transaction_amount contra orders.total):
+ * - Sin descuentos: ítems por línea + envío vía `shipments.cost`.
+ * - Con descuentos: MP no soporta líneas negativas, así que se cobra un
+ *   único ítem consolidado por el total final.
  */
 export async function createPaymentPreference(params: CreatePreferenceParams) {
   const { orderId, items, customerEmail, total } = params;
+  const shippingCost = params.shippingCost ?? 0;
+  const discountTotal = params.discountTotal ?? 0;
 
   // ── Read env vars at runtime (critical for Vercel) ──
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
@@ -36,13 +50,16 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
   }
 
   // Log verification (masked)
-  console.log(
+  logger.log(
     `[MercadoPago] Token: ${accessToken.slice(0, 12)}...${accessToken.slice(-6)} | ` +
     `Tipo: ${accessToken.startsWith('APP_USR-') ? 'PRODUCCIÓN ✅' : 'SANDBOX/TEST ⚠️'} | ` +
     `SiteURL: ${siteUrl}`
   );
 
-  // ── Validate items prices ──
+  // ── Validate amounts ──
+  if (!Number.isFinite(total) || total <= 0) {
+    throw new Error(`[MercadoPago] Total inválido (${total}). MercadoPago requiere un monto > 0.`);
+  }
   const invalidItems = items.filter(i => !i.price || Number(i.price) <= 0);
   if (invalidItems.length > 0) {
     const names = invalidItems.map(i => i.name).join(', ');
@@ -51,6 +68,28 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
       `MercadoPago requiere unit_price > 0.`
     );
   }
+
+  // ── Build charge lines so the charged amount equals `total` exactly ──
+  const itemCount = items.reduce((s, i) => s + Number(i.quantity), 0);
+  const preferenceItems = discountTotal > 0
+    ? [{
+        id: String(orderId),
+        title: `Pedido OlivoMarket (${itemCount} producto${itemCount === 1 ? '' : 's'}, incluye descuentos)`,
+        quantity: 1,
+        unit_price: Number(total),
+        currency_id: 'CLP' as const,
+      }]
+    : items.map(item => ({
+        id: String(item.id),
+        title: String(item.name).substring(0, 256), // MP max 256 chars
+        quantity: Number(item.quantity),
+        unit_price: Number(item.price),
+        currency_id: 'CLP' as const,
+        picture_url: item.image || undefined,
+      }));
+  const shipments = discountTotal > 0 || shippingCost <= 0
+    ? undefined
+    : { cost: Number(shippingCost), mode: 'not_specified' as const };
 
   // ── Create client at runtime (NOT at module level) ──
   const client = new MercadoPagoConfig({
@@ -61,14 +100,8 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
 
   try {
     const body = {
-      items: items.map(item => ({
-        id: String(item.id),
-        title: String(item.name).substring(0, 256), // MP max 256 chars
-        quantity: Number(item.quantity),
-        unit_price: Number(item.price),
-        currency_id: 'CLP' as const,
-        picture_url: item.image || undefined,
-      })),
+      items: preferenceItems,
+      ...(shipments ? { shipments } : {}),
       payer: {
         email: customerEmail,
       },
@@ -85,7 +118,7 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
       expires: false,
     };
 
-    console.log('[MercadoPago] Creando preferencia:', JSON.stringify(body, null, 2));
+    logger.log('[MercadoPago] Creando preferencia:', JSON.stringify(body, null, 2));
     const result = await preference.create({ body });
 
     if (!result.init_point) {
@@ -95,10 +128,10 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
       );
     }
 
-    console.log(`[MercadoPago] ✅ Preferencia creada exitosamente.`);
-    console.log(`[MercadoPago] Preference ID : ${result.id}`);
-    console.log(`[MercadoPago] init_point    : ${result.init_point}`);
-    console.log(`[MercadoPago] sandbox_point : ${result.sandbox_init_point}`);
+    logger.log(`[MercadoPago] ✅ Preferencia creada exitosamente.`);
+    logger.log(`[MercadoPago] Preference ID : ${result.id}`);
+    logger.log(`[MercadoPago] init_point    : ${result.init_point}`);
+    logger.log(`[MercadoPago] sandbox_point : ${result.sandbox_init_point}`);
 
     return {
       id: result.id,
@@ -106,10 +139,10 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
       sandboxInitPoint: result.sandbox_init_point,
     };
   } catch (error: any) {
-    console.error('[MercadoPago] ❌ Error al crear preferencia:');
-    console.error('  Mensaje:', error?.message);
+    logger.error('[MercadoPago] ❌ Error al crear preferencia:');
+    logger.error('  Mensaje:', error?.message);
     if (error?.cause) {
-      console.error('  Causa:', JSON.stringify(error.cause, null, 2));
+      logger.error('  Causa:', JSON.stringify(error.cause, null, 2));
     }
     throw error;
   }

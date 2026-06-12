@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 function isAdmin(session: any) {
   const role = session?.role || session?.user?.role;
@@ -23,7 +23,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const { data: supplier, error } = await supabaseAdmin
+    const { data: supplier, error } = await supabaseServer
       .from('suppliers')
       .select('*')
       .eq('id', id)
@@ -104,7 +104,7 @@ export async function PATCH(
       );
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseServer
       .from("suppliers")
       .update(payload)
       .eq("id", supplierId)
@@ -145,7 +145,7 @@ export async function DELETE(
   }
 
   try {
-    const { error } = await supabaseAdmin
+    const { error } = await supabaseServer
       .from("suppliers")
       .delete()
       .eq("id", supplierId);
