@@ -393,7 +393,9 @@ export async function POST(request: NextRequest) {
             image: item.image,
           })),
           customerEmail: customerEmail || 'anon@olivomarket.cl',
-          total: serverTotal
+          total: serverTotal,
+          shippingCost: serverShippingCost,
+          discountTotal: couponDiscount + pointsDiscount,
         });
         initPoint = mpResult.initPoint;
         console.log(`[Checkout] ✅ Preferencia MP creada con éxito: ${mpResult.id}`);

@@ -13,16 +13,29 @@ interface CreatePreferenceParams {
     image?: string;
   }>;
   customerEmail: string;
+  /** Total final a cobrar: subtotal + envío − descuentos. */
   total: number;
+  /** Costo de envío incluido en `total`. */
+  shippingCost?: number;
+  /** Suma de descuentos (cupón + puntos) ya restados de `total`. */
+  discountTotal?: number;
 }
 
 /**
  * Creates a MercadoPago Preference for a specific order.
  * The MercadoPago client is instantiated HERE (not at module level)
  * to ensure the access token is always read from the environment at runtime.
+ *
+ * El monto cobrado SIEMPRE debe ser exactamente `total` (el webhook valida
+ * transaction_amount contra orders.total):
+ * - Sin descuentos: ítems por línea + envío vía `shipments.cost`.
+ * - Con descuentos: MP no soporta líneas negativas, así que se cobra un
+ *   único ítem consolidado por el total final.
  */
 export async function createPaymentPreference(params: CreatePreferenceParams) {
-  const { orderId, items, customerEmail } = params;
+  const { orderId, items, customerEmail, total } = params;
+  const shippingCost = params.shippingCost ?? 0;
+  const discountTotal = params.discountTotal ?? 0;
 
   // ── Read env vars at runtime (critical for Vercel) ──
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
@@ -43,7 +56,10 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
     `SiteURL: ${siteUrl}`
   );
 
-  // ── Validate items prices ──
+  // ── Validate amounts ──
+  if (!Number.isFinite(total) || total <= 0) {
+    throw new Error(`[MercadoPago] Total inválido (${total}). MercadoPago requiere un monto > 0.`);
+  }
   const invalidItems = items.filter(i => !i.price || Number(i.price) <= 0);
   if (invalidItems.length > 0) {
     const names = invalidItems.map(i => i.name).join(', ');
@@ -52,6 +68,28 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
       `MercadoPago requiere unit_price > 0.`
     );
   }
+
+  // ── Build charge lines so the charged amount equals `total` exactly ──
+  const itemCount = items.reduce((s, i) => s + Number(i.quantity), 0);
+  const preferenceItems = discountTotal > 0
+    ? [{
+        id: String(orderId),
+        title: `Pedido OlivoMarket (${itemCount} producto${itemCount === 1 ? '' : 's'}, incluye descuentos)`,
+        quantity: 1,
+        unit_price: Number(total),
+        currency_id: 'CLP' as const,
+      }]
+    : items.map(item => ({
+        id: String(item.id),
+        title: String(item.name).substring(0, 256), // MP max 256 chars
+        quantity: Number(item.quantity),
+        unit_price: Number(item.price),
+        currency_id: 'CLP' as const,
+        picture_url: item.image || undefined,
+      }));
+  const shipments = discountTotal > 0 || shippingCost <= 0
+    ? undefined
+    : { cost: Number(shippingCost), mode: 'not_specified' as const };
 
   // ── Create client at runtime (NOT at module level) ──
   const client = new MercadoPagoConfig({
@@ -62,14 +100,8 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
 
   try {
     const body = {
-      items: items.map(item => ({
-        id: String(item.id),
-        title: String(item.name).substring(0, 256), // MP max 256 chars
-        quantity: Number(item.quantity),
-        unit_price: Number(item.price),
-        currency_id: 'CLP' as const,
-        picture_url: item.image || undefined,
-      })),
+      items: preferenceItems,
+      ...(shipments ? { shipments } : {}),
       payer: {
         email: customerEmail,
       },
