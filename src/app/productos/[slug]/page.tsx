@@ -1,17 +1,28 @@
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import { supabaseServer } from "@/lib/supabase-server";
 import { slugify } from "@/utils/string-utils";
 import ProductDetailClient from "./ProductDetailClient";
 
-// El slug se deriva del nombre (slugify), no existe como columna: se buscan
-// los nombres y se compara el slug generado.
+// El slug se deriva del nombre (slugify), no existe como columna: se busca
+// sobre la lista de productos activos, cacheada 5 min para no golpear la BD
+// en cada request de metadata.
+const getActiveProductsForMeta = unstable_cache(
+  async () => {
+    const { data } = await supabaseServer
+      .from("products")
+      .select("name, description, image_url, sale_price")
+      .eq("is_active", true)
+      .limit(1000);
+    return data || [];
+  },
+  ["products-meta"],
+  { revalidate: 300 }
+);
+
 async function findProductBySlug(slug: string) {
-  const { data } = await supabaseServer
-    .from("products")
-    .select("name, description, image_url, sale_price")
-    .eq("is_active", true)
-    .limit(1000);
-  return (data || []).find((p) => slugify(p.name || "") === slug) ?? null;
+  const products = await getActiveProductsForMeta();
+  return products.find((p) => slugify(p.name || "") === slug) ?? null;
 }
 
 export async function generateMetadata(

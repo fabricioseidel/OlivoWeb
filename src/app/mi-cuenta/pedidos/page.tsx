@@ -53,6 +53,7 @@ export default function PedidosPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("Todos");
@@ -63,8 +64,12 @@ export default function PedidosPage() {
     if (status === "unauthenticated") {
       router.push("/login?callbackUrl=/mi-cuenta/pedidos");
     } else if (status === "authenticated") {
+      setLoadError(null);
       fetch("/api/orders")
-        .then((r) => (r.ok ? r.json() : []))
+        .then((r) => {
+          if (!r.ok) throw new Error("No se pudieron cargar tus pedidos");
+          return r.json();
+        })
         .then((data) => {
           if (Array.isArray(data)) {
             setPedidos(
@@ -78,7 +83,10 @@ export default function PedidosPage() {
             );
           }
         })
-        .catch(console.error)
+        .catch((err) => {
+          console.error(err);
+          setLoadError("No pudimos cargar tus pedidos. Revisa tu conexión e intenta de nuevo.");
+        })
         .finally(() => setIsLoading(false));
     }
   }, [status, router, session]);
@@ -118,6 +126,18 @@ export default function PedidosPage() {
         <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Mis Pedidos</h1>
         <p className="text-gray-500 font-medium">Revisa el estado y el historial de todas tus compras.</p>
       </div>
+
+      {loadError && (
+        <div role="alert" className="mb-6 bg-red-50 border border-red-100 text-red-700 px-5 py-4 rounded-2xl text-sm font-bold flex items-center justify-between gap-4">
+          <span>{loadError}</span>
+          <button
+            onClick={() => window.location.reload()}
+            className="shrink-0 px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-black uppercase tracking-wide hover:bg-red-700 transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-6 mb-6">

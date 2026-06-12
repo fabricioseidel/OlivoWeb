@@ -57,6 +57,7 @@ export default function ShippingForm({
   
   const [availableDays] = useState<Date[]>(() => getNextDays(7)); // Today + 6 = 7 days total
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<{ id: string; label: string; available: boolean; capacityRatio: string }[]>([]);
 
   // Format YYYY-MM-DD
@@ -95,22 +96,25 @@ export default function ShippingForm({
       if (selectedMethod !== 'dynamic' || !shippingInfo.deliveryDate) return;
       
       setSlotsLoading(true);
+      setSlotsError(false);
       try {
         const res = await fetch(`/api/shipping/slots?date=${shippingInfo.deliveryDate}`);
-        if (res.ok) {
-           const data = await res.json();
-           setAvailableSlots(data.slots || []);
-           
-           // Si el slot actual ya no está disponible, lo quitamos
-           if (shippingInfo.deliveryTimeSlot) {
-              const currentSlot = data.slots.find((s: any) => s.id === shippingInfo.deliveryTimeSlot);
-              if (!currentSlot || !currentSlot.available) {
-                 onChange({ target: { name: 'deliveryTimeSlot', value: '' } });
-              }
+        if (!res.ok) throw new Error(`Slots request failed (${res.status})`);
+
+        const data = await res.json();
+        setAvailableSlots(data.slots || []);
+
+        // Si el slot actual ya no está disponible, lo quitamos
+        if (shippingInfo.deliveryTimeSlot) {
+           const currentSlot = data.slots.find((s: any) => s.id === shippingInfo.deliveryTimeSlot);
+           if (!currentSlot || !currentSlot.available) {
+              onChange({ target: { name: 'deliveryTimeSlot', value: '' } });
            }
         }
       } catch (err) {
         console.error("Fetch slots error:", err);
+        setSlotsError(true);
+        setAvailableSlots([]);
       } finally {
         setSlotsLoading(false);
       }
@@ -408,6 +412,11 @@ export default function ShippingForm({
                                     </button>
                                   )
                                 })
+                              ) : slotsError ? (
+                                <div role="alert" className="col-span-2 text-center py-4 bg-red-50 rounded-xl border border-red-100">
+                                  <p className="text-red-700 text-xs font-bold">No pudimos cargar los horarios de despacho.</p>
+                                  <p className="text-red-500 text-[10px] mt-1">Revisa tu conexión y vuelve a seleccionar la fecha.</p>
+                                </div>
                               ) : (
                                 <div className="col-span-2 text-center py-4 bg-amber-50 rounded-xl border border-amber-100">
                                   <p className="text-amber-800 text-xs font-bold">No hay horarios disponibles para esta fecha.</p>
