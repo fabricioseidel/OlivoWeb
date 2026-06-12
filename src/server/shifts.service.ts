@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabase-server";
+import { logger } from "@/utils/logger";
 
 export type ShiftStatus = 'OPEN' | 'CLOSED';
 
@@ -51,7 +52,7 @@ export async function openShift(data: {
     .single();
 
   if (error) {
-    console.error("DB openShift Error:", error);
+    logger.error("DB openShift Error:", error);
     throw error;
   }
   return shift;

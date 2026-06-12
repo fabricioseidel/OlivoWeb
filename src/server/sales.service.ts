@@ -1,5 +1,6 @@
 import { supabaseServer } from "@/lib/supabase-server";
 import { earnPoints } from "@/server/loyalty.service";
+import { logger } from "@/utils/logger";
 
 export type SalePaymentMethod = "CASH" | "DEBIT" | "CREDIT" | "TRANSFER" | "WALLET" | "OTHER";
 
@@ -100,7 +101,7 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: number }
         referenceId: String(saleId),
       });
     } catch (e) {
-      console.warn("loyalty points (no-crítico):", e);
+      logger.warn("loyalty points (no-crítico):", e);
     }
   }
 
@@ -172,7 +173,7 @@ export async function createQuickSale(data: {
       const match = saleErr.message.match(/Could not find the '([^']+)' column of 'sales'/);
       const missingColumn = match?.[1];
       if (missingColumn && Object.prototype.hasOwnProperty.call(salePayload, missingColumn)) {
-        console.warn(`🚀 Schema mismatch: Removing missing column [${missingColumn}] and retrying...`);
+        logger.warn(`🚀 Schema mismatch: Removing missing column [${missingColumn}] and retrying...`);
         const nextPayload = { ...salePayload };
         delete nextPayload[missingColumn];
         salePayload = nextPayload;
@@ -181,7 +182,7 @@ export async function createQuickSale(data: {
     }
 
     // Generic error
-    console.error(`🔥 Step 1 FAILED (insert sale) - Attempt ${attempt + 1}:`, saleErr);
+    logger.error(`🔥 Step 1 FAILED (insert sale) - Attempt ${attempt + 1}:`, saleErr);
     throw new Error(`Error al crear venta: ${saleErr?.message || 'Unknown error'}`);
   }
 
@@ -190,7 +191,7 @@ export async function createQuickSale(data: {
   }
 
   const saleId = saleInstance.id;
-  console.log("✅ Step 1: Sale created, ID:", saleId);
+  logger.log("✅ Step 1: Sale created, ID:", saleId);
 
   // ── Step 2: Insert sale items ────────────────────────────────────────
   if (data.items && data.items.length > 0) {
@@ -209,10 +210,10 @@ export async function createQuickSale(data: {
       .insert(saleItemsPayload);
 
     if (itemsErr) {
-      console.error("🔥 Step 2 FAILED (insert sale_items):", itemsErr);
+      logger.error("🔥 Step 2 FAILED (insert sale_items):", itemsErr);
       // Don't throw — sale is already created, items failure is logged
     } else {
-      console.log("✅ Step 2: Sale items inserted:", saleItemsPayload.length);
+      logger.log("✅ Step 2: Sale items inserted:", saleItemsPayload.length);
     }
 
     // ── Step 3: Update stock for each product ────────────────────────
@@ -231,7 +232,7 @@ export async function createQuickSale(data: {
           .eq("barcode", item.product_id);
       }
     }
-    console.log("✅ Step 3: Stock updated for", data.items.length, "products");
+    logger.log("✅ Step 3: Stock updated for", data.items.length, "products");
   }
 
   // ── Step 4: Link to active shift ─────────────────────────────────────
@@ -249,10 +250,10 @@ export async function createQuickSale(data: {
         .from("sales")
         .update({ shift_id: activeShift.id })
         .eq("id", saleId);
-      console.log("✅ Step 4: Sale linked to shift:", activeShift.id);
+      logger.log("✅ Step 4: Sale linked to shift:", activeShift.id);
     }
   } catch (shiftErr) {
-    console.warn("⚠️ Could not link sale to shift (non-critical):", shiftErr);
+    logger.warn("⚠️ Could not link sale to shift (non-critical):", shiftErr);
   }
 
   // ── Step 5: Reward Loyalty Points ────────────────────────────────────
@@ -264,9 +265,9 @@ export async function createQuickSale(data: {
         referenceType: 'sale',
         referenceId: saleId
       });
-      console.log("✅ Step 5: Loyalty points credited to", data.customerEmail);
+      logger.log("✅ Step 5: Loyalty points credited to", data.customerEmail);
     } catch (loyaltyErr) {
-      console.warn("⚠️ Could not credit loyalty points (non-critical):", loyaltyErr);
+      logger.warn("⚠️ Could not credit loyalty points (non-critical):", loyaltyErr);
     }
   }
 

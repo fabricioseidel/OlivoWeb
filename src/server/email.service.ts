@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { supabaseServer } from "@/lib/supabase-server";
+import { logger } from "@/utils/logger";
 
 // ── Lazy-initialized Resend client ───────────────────────────────────────
 let _resend: Resend | null = null;
@@ -42,7 +43,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailResult> {
     });
 
     if (error) {
-      console.error("[Email] Resend error:", error);
+      logger.error("[Email] Resend error:", error);
       await logEmail({
         to,
         toName,
@@ -56,7 +57,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailResult> {
     }
 
     const resendId = data?.id || "";
-    console.log(`[Email] ✅ Sent to ${to} — ID: ${resendId}`);
+    logger.log(`[Email] ✅ Sent to ${to} — ID: ${resendId}`);
 
     await logEmail({
       to,
@@ -71,7 +72,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailResult> {
     return { ok: true, id: resendId };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[Email] 🔥 Critical error:", message);
+    logger.error("[Email] 🔥 Critical error:", message);
 
     await logEmail({
       to,
@@ -110,13 +111,13 @@ export async function getTemplate(slug: string, fallbackSubject: string, fallbac
       .single();
 
     if (error || !data) {
-      console.warn(`[Email] Template slug "${slug}" not found in DB. Using fallback.`);
+      logger.warn(`[Email] Template slug "${slug}" not found in DB. Using fallback.`);
       return { subject: fallbackSubject, html: fallbackHtml };
     }
 
     return { subject: data.subject, html: data.body_html };
   } catch (err) {
-    console.error(`[Email] Error fetching template "${slug}":`, err);
+    logger.error(`[Email] Error fetching template "${slug}":`, err);
     return { subject: fallbackSubject, html: fallbackHtml };
   }
 }
@@ -662,6 +663,6 @@ async function logEmail(entry: {
       metadata: entry.metadata || {},
     });
   } catch (err) {
-    console.warn("[Email] ⚠️ Log error:", err);
+    logger.warn("[Email] ⚠️ Log error:", err);
   }
 }

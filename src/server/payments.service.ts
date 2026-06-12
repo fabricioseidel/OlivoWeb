@@ -1,4 +1,5 @@
 import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { logger } from '@/utils/logger';
 
 // ── Preference Creation ────────────────────────────────────────────────────────
 
@@ -36,7 +37,7 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
   }
 
   // Log verification (masked)
-  console.log(
+  logger.log(
     `[MercadoPago] Token: ${accessToken.slice(0, 12)}...${accessToken.slice(-6)} | ` +
     `Tipo: ${accessToken.startsWith('APP_USR-') ? 'PRODUCCIÓN ✅' : 'SANDBOX/TEST ⚠️'} | ` +
     `SiteURL: ${siteUrl}`
@@ -85,7 +86,7 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
       expires: false,
     };
 
-    console.log('[MercadoPago] Creando preferencia:', JSON.stringify(body, null, 2));
+    logger.log('[MercadoPago] Creando preferencia:', JSON.stringify(body, null, 2));
     const result = await preference.create({ body });
 
     if (!result.init_point) {
@@ -95,10 +96,10 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
       );
     }
 
-    console.log(`[MercadoPago] ✅ Preferencia creada exitosamente.`);
-    console.log(`[MercadoPago] Preference ID : ${result.id}`);
-    console.log(`[MercadoPago] init_point    : ${result.init_point}`);
-    console.log(`[MercadoPago] sandbox_point : ${result.sandbox_init_point}`);
+    logger.log(`[MercadoPago] ✅ Preferencia creada exitosamente.`);
+    logger.log(`[MercadoPago] Preference ID : ${result.id}`);
+    logger.log(`[MercadoPago] init_point    : ${result.init_point}`);
+    logger.log(`[MercadoPago] sandbox_point : ${result.sandbox_init_point}`);
 
     return {
       id: result.id,
@@ -106,10 +107,10 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
       sandboxInitPoint: result.sandbox_init_point,
     };
   } catch (error: any) {
-    console.error('[MercadoPago] ❌ Error al crear preferencia:');
-    console.error('  Mensaje:', error?.message);
+    logger.error('[MercadoPago] ❌ Error al crear preferencia:');
+    logger.error('  Mensaje:', error?.message);
     if (error?.cause) {
-      console.error('  Causa:', JSON.stringify(error.cause, null, 2));
+      logger.error('  Causa:', JSON.stringify(error.cause, null, 2));
     }
     throw error;
   }
