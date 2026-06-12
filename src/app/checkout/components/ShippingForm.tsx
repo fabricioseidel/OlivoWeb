@@ -32,6 +32,7 @@ interface ShippingFormProps {
   selectedMethod: string;
   onMethodChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isCalculating?: boolean;
+  fieldErrors?: Partial<Record<"fullName" | "email" | "phone" | "address", string>>;
 }
 
 const getNextDays = (numDays: number) => {
@@ -52,7 +53,8 @@ export default function ShippingForm({
   shippingMethods,
   selectedMethod,
   onMethodChange,
-  isCalculating
+  isCalculating,
+  fieldErrors = {}
 }: ShippingFormProps) {
   
   const [availableDays] = useState<Date[]>(() => getNextDays(7)); // Today + 6 = 7 days total
@@ -153,6 +155,7 @@ export default function ShippingForm({
             required
             value={shippingInfo.fullName}
             onChange={onChange}
+            error={fieldErrors.fullName}
           />
         </div>
 
@@ -165,6 +168,7 @@ export default function ShippingForm({
             required
             value={shippingInfo.email}
             onChange={onChange}
+            error={fieldErrors.email}
           />
         </div>
 
@@ -177,6 +181,7 @@ export default function ShippingForm({
             required
             value={shippingInfo.phone}
             onChange={onChange}
+            error={fieldErrors.phone}
           />
         </div>
 
@@ -191,6 +196,12 @@ export default function ShippingForm({
             country="cl"
             required
           />
+          {fieldErrors.address && (
+            <p role="alert" className="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+              <span>⚠️</span>
+              {fieldErrors.address}
+            </p>
+          )}
         </div>
 
         <div>

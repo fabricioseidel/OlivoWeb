@@ -23,6 +23,7 @@ import { AddressResult } from "@/components/AddressAutocomplete";
 import { calculateDistance, calculateShippingCost } from "@/utils/shipping-calculator";
 
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { validateShippingInfo, type ShippingFieldErrors } from "@/schemas/checkout.schema";
 
 const paymentMethods: PaymentMethod[] = [
   { id: "mercadopago", name: "MercadoPago" },
@@ -40,6 +41,7 @@ export default function CheckoutPage() {
   
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [fieldErrors, setFieldErrors] = useState<ShippingFieldErrors>({});
   const [dynamicShipping, setDynamicShipping] = useState<ShippingMethod | null>(null);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState("pickup");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("mercadopago");
@@ -266,10 +268,13 @@ export default function CheckoutPage() {
   };
 
   const nextStep = () => {
-    if (!shippingInfo.fullName || !shippingInfo.email || !shippingInfo.address) {
+    const errors = validateShippingInfo(shippingInfo);
+    if (errors) {
+      setFieldErrors(errors);
       alert("Por favor completa tus datos y dirección de entrega.");
       return;
     }
+    setFieldErrors({});
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setStep(2);
   };
@@ -468,6 +473,7 @@ export default function CheckoutPage() {
                     selectedMethod={selectedShippingMethod}
                     onMethodChange={(e) => setSelectedShippingMethod(e.target.value)}
                     isCalculating={isCalculatingDistance}
+                    fieldErrors={fieldErrors}
                   />
 
                   <div className="mt-10 pt-8 border-t border-gray-100 flex justify-end">
