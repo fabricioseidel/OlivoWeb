@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { supabaseServer } from '@/lib/supabase-server';
+import { auditLog } from '@/server/audit.service';
 import crypto from 'crypto';
 
 /**
@@ -103,6 +104,13 @@ export async function POST(request: NextRequest) {
         }
 
         console.log(`[MP Webhook] ✅ Order ${orderId} marked as PAID`);
+        await auditLog({
+          action: 'ORDER_PAID',
+          entity: 'orders',
+          entityId: orderId,
+          actor: 'mp-webhook',
+          details: { paymentId: String(paymentId), amount: paidAmount, mpStatus: status },
+        });
       } else if (orderId && (status === 'rejected' || status === 'cancelled' || status === 'refunded' || status === 'in_mediation')) {
         console.log(`[MP Webhook] 🔄 Restaurando stock para orden ${orderId} debido a estado: ${status}`);
 
@@ -147,6 +155,13 @@ export async function POST(request: NextRequest) {
           .eq('id', orderId);
           
         console.log(`[MP Webhook] ❌ Orden ${orderId} actualizada a ${status} y stock restaurado.`);
+        await auditLog({
+          action: 'ORDER_PAYMENT_FAILED',
+          entity: 'orders',
+          entityId: orderId,
+          actor: 'mp-webhook',
+          details: { paymentId: String(paymentId), mpStatus: status },
+        });
       }
     }
 

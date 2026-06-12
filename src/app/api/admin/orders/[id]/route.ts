@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { sendOrderStatusEmail } from '@/server/email.service';
 import { requireApiAdminOrSeller } from '@/lib/api-auth';
+import { auditLog } from '@/server/audit.service';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireApiAdminOrSeller();
@@ -49,6 +50,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             console.error('Error updating order:', error);
             return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
         }
+
+        await auditLog({
+            action: 'ORDER_STATUS_CHANGED',
+            entity: 'orders',
+            entityId: id,
+            actor: auth.session.user?.email || auth.userId,
+            details: updateData,
+        });
 
         // Trigger email notification if status changed
         if (status) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { timingSafeEqual } from 'crypto';
 import { supabaseServer } from '@/lib/supabase-server';
+import { auditLog } from '@/server/audit.service';
 
 // POST /api/admin/bootstrap
 // Headers: x-setup-token: <ADMIN_SETUP_TOKEN>  (generar con `openssl rand -hex 32`)
@@ -59,6 +60,13 @@ export async function POST(req: NextRequest) {
         .select('id,email,role')
         .maybeSingle();
       if (error) throw error;
+      await auditLog({
+        action: 'ADMIN_BOOTSTRAP',
+        entity: 'users',
+        entityId: data?.id,
+        actor: emailNorm,
+        details: { created: true },
+      });
       return NextResponse.json({ ok: true, created: true, user: data });
     } else {
       // Promover a ADMIN y actualizar hash si se pasa
@@ -69,6 +77,13 @@ export async function POST(req: NextRequest) {
         .select('id,email,role')
         .maybeSingle();
       if (error) throw error;
+      await auditLog({
+        action: 'ADMIN_BOOTSTRAP',
+        entity: 'users',
+        entityId: data?.id,
+        actor: emailNorm,
+        details: { promoted: true },
+      });
       return NextResponse.json({ ok: true, updated: true, user: data });
     }
   } catch (e: any) {
