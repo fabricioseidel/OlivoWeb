@@ -61,5 +61,34 @@ export default async function ProductDetailPage(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  return <ProductDetailClient slug={slug} />;
+  const product = await findProductBySlug(slug);
+
+  // JSON-LD Product para rich snippets en buscadores
+  const jsonLd = product
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: product.name,
+        ...(product.description ? { description: product.description } : {}),
+        ...(product.image_url ? { image: product.image_url } : {}),
+        offers: {
+          "@type": "Offer",
+          price: product.sale_price ?? 0,
+          priceCurrency: "CLP",
+          availability: "https://schema.org/InStock",
+        },
+      }
+    : null;
+
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      <ProductDetailClient slug={slug} />
+    </>
+  );
 }
