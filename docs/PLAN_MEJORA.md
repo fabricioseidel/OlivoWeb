@@ -1,5 +1,14 @@
 # Plan de Limpieza, Corrección y Mejora — OlivoWeb
 
+> **Estado de ejecución (2026-06-12)** — completado en `claude/project-cleanup-improvement-84f9yw`:
+> - ✅ **Fase 0** completa (archivos basura, 44 deps muertas, cliente Supabase único, .vscode)
+> - ✅ **P1.1 + P1.2** (5 críticos y 6 altos de seguridad) y P1.3 parcial (headers, RLS como migración `20260612000001`, errores genéricos). Pendiente: rate limiting global (Upstash), audit logging.
+> - ✅ **P2.1 + P2.2 parcial** (imports dinámicos, deps, caché CDN en products/categories, paginación admin/orders). Pendiente: react-query, revalidate por ruta completo.
+> - ✅ **P2.3 parcial**: uber-eats dividido (2.606 → 777 líneas + 8 componentes + lib.ts). Pendiente: edicion-masiva, proveedores, configuracion; reducción de "use client".
+> - ✅ **P3.1–P3.3 núcleo**: tokens de tema funcionales (Apariencia del admin ahora aplica), dark mode resuelto (next-themes eliminado), errores visibles, skeleton de producto, aria-labels/aria-invalid, metadata + OG + sitemap dinámico. Pendiente: migración completa de colores hardcodeados, JSON-LD, más loading.tsx.
+> - ✅ **P4.1**: suite 25/25 en verde, validación Zod del checkout, TODOs funcionales resueltos. **P4.2 parcial**: logger en server/contexts. Pendiente: decisión integración real Uber Eats, i18n, reducción de `any`, más cobertura de tests.
+> - ⚠️ **Acción requerida en Vercel**: configurar `MERCADOPAGO_WEBHOOK_SECRET`, `GOOGLE_ADMIN_EMAILS` y `CRON_SECRET` (ver `.env.example`). Aplicar la migración RLS con `supabase db push`.
+
 > Basado en una auditoría exhaustiva del proyecto (junio 2026): seguridad, rendimiento,
 > diseño/UX, funcionalidad e higiene de código. Estado verificado: TypeScript compila sin
 > errores, ESLint 0 errores / 54 warnings, **5 de 25 tests fallan** (CartContext, Navbar,
