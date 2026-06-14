@@ -135,14 +135,14 @@ export default function Navbar() {
           </div>
 
           <div className="hidden sm:ml-6 sm:flex sm:items-center gap-4">
-            <form onSubmit={submitSearch} className="relative hidden lg:block w-44 xl:w-64">
+            <form onSubmit={submitSearch} className="relative hidden lg:block w-52 xl:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               <input
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar productos..."
-                className="w-full pl-9 pr-3 h-9 rounded-full bg-gray-100 border border-transparent text-sm text-gray-700 focus:outline-none focus:bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 transition-all"
+                className="w-full pl-9 pr-3 h-9 rounded-full bg-white border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 focus:shadow-sm transition-all"
               />
             </form>
             <Link

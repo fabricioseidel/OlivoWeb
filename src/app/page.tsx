@@ -59,6 +59,7 @@ export default function Home() {
   const hasBlocks = blocks.length > 0;
 
   const renderHero = (title: string, description: string, subtitle?: string, buttonText?: string, buttonLink?: string) => (
+  <>
     <section className="relative overflow-hidden bg-emerald-950">
       {/* Fondos decorativos */}
       <div className="absolute top-0 right-0 -translate-y-1/3 translate-x-1/3 w-[700px] h-[700px] bg-emerald-500/20 rounded-full blur-[140px] pointer-events-none" />
@@ -95,7 +96,7 @@ export default function Home() {
                 value={heroQuery}
                 onChange={(e) => setHeroQuery(e.target.value)}
                 placeholder="¿Qué estás buscando? Ej: harina pan, malta..."
-                className="w-full h-14 pl-12 pr-28 rounded-2xl bg-white text-gray-900 text-sm md:text-base font-medium shadow-2xl shadow-emerald-950/40 focus:outline-none focus:ring-4 focus:ring-emerald-400/40"
+                className="w-full h-14 pl-12 pr-28 rounded-2xl bg-white text-gray-900 text-sm md:text-base font-medium shadow-2xl shadow-emerald-950/40 focus:outline-none focus:ring-4 focus:ring-emerald-300/60 hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.3)] transition-shadow"
               />
               <button
                 type="submit"
@@ -126,7 +127,7 @@ export default function Home() {
           {/* Panel derecho — tarjetas flotantes */}
           <div className="relative hidden lg:flex items-end justify-center h-[300px]">
             {/* Tarjeta principal — producto destacado */}
-            <div className="absolute top-0 left-4 bg-white/10 backdrop-blur-2xl border border-white/15 rounded-[2rem] p-5 shadow-2xl w-52 animate-in fade-in slide-in-from-left duration-700 delay-300">
+            <div className="absolute top-0 left-4 bg-white/10 backdrop-blur-2xl border border-white/15 rounded-[2rem] p-5 shadow-2xl w-52 animate-in fade-in slide-in-from-left duration-700 delay-300 animate-float" style={{ animationDelay: '0s' }}>
               <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center mb-3">
                 <Package className="w-5 h-5 text-emerald-400" />
               </div>
@@ -135,7 +136,7 @@ export default function Home() {
             </div>
 
             {/* Tarjeta central — oferta */}
-            <Link href="/ofertas" className="absolute top-1/2 -translate-y-1/2 right-0 bg-amber-500/20 backdrop-blur-2xl border border-amber-400/30 rounded-[2rem] p-5 shadow-2xl w-56 animate-in fade-in slide-in-from-right duration-700 delay-400 hover:bg-amber-500/30 transition-all">
+            <Link href="/ofertas" className="absolute top-1/2 -translate-y-1/2 right-0 bg-amber-500/20 backdrop-blur-2xl border border-amber-400/30 rounded-[2rem] p-5 shadow-2xl w-56 animate-in fade-in slide-in-from-right duration-700 delay-400 hover:bg-amber-500/30 transition-all animate-float" style={{ animationDelay: '2s' }}>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center shadow">
                   <Star className="w-4 h-4 fill-white text-white" />
@@ -147,7 +148,7 @@ export default function Home() {
             </Link>
 
             {/* Tarjeta inferior — satisfacción */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-2xl border border-white/15 rounded-[2rem] p-4 shadow-2xl flex items-center gap-3 w-60 animate-in fade-in slide-in-from-bottom duration-700 delay-500">
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-2xl border border-white/15 rounded-[2rem] p-4 shadow-2xl flex items-center gap-3 w-60 animate-in fade-in slide-in-from-bottom duration-700 delay-500 animate-float" style={{ animationDelay: '1s' }}>
               <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center shrink-0">
                 <BadgeCheck className="w-5 h-5 text-emerald-400" />
               </div>
@@ -164,32 +165,37 @@ export default function Home() {
       </div>
 
       {/* Barra de beneficios */}
-      <div className="border-t border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3">
+      <div className="border-t border-white/10 bg-white/5 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-0 sm:divide-x sm:divide-white/10">
             {[
               { icon: Truck,       text: "Envío en 24-48h" },
               { icon: BadgeCheck,  text: "Calidad garantizada" },
               { icon: Shield,      text: "Pago 100% seguro" },
             ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center justify-center gap-2 px-4 py-1">
-                <Icon className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-[11px] font-bold text-emerald-100/70 uppercase tracking-wider">{text}</span>
+              <div key={text} className="flex items-center justify-center gap-2.5 px-4 py-1">
+                <Icon className="w-5 h-5 text-emerald-400 shrink-0" />
+                <span className="text-xs font-bold text-emerald-100/80 uppercase tracking-wider">{text}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
     </section>
-  );
+    <div className="h-6 bg-gradient-to-b from-emerald-950 to-white pointer-events-none select-none" aria-hidden="true" />
+  </>
+);
 
   const renderCategories = (title: string, description: string) => (
     <section className="py-12 bg-white">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-1">{title}</h2>
-            <p className="text-gray-500 font-medium">{description}</p>
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-1">
+              {title}
+              <span className="block h-1 w-10 bg-emerald-500 rounded-full mt-1.5" />
+            </h2>
+            <p className="text-gray-500 font-medium mt-2">{description}</p>
           </div>
           <Link href="/productos" className="inline-flex items-center gap-1 text-sm font-black text-emerald-600 hover:text-emerald-700 transition-colors shrink-0">
             Ver todas <ChevronRight className="w-4 h-4" />
@@ -197,7 +203,13 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {categoriesLoading
-            ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-64 bg-gray-100 animate-pulse rounded-[3rem]" />)
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-64 sm:h-72 rounded-[3rem] overflow-hidden animate-pulse flex flex-col items-center justify-center gap-4 p-10 bg-gray-50">
+                  <div className="size-20 sm:size-24 bg-gray-200 rounded-[2rem]" />
+                  <div className="h-5 bg-gray-200 rounded-full w-32" />
+                  <div className="h-3 bg-gray-200 rounded-full w-20" />
+                </div>
+              ))
             : [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).slice(0, 4).map(cat => (
                 <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}>
                   <CategoryCard category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null }} />
@@ -220,8 +232,11 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-1">{title}</h2>
-              <p className="text-gray-500 font-medium">{description}</p>
+              <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-1">
+                {title}
+                <span className="block h-1 w-10 bg-emerald-500 rounded-full mt-1.5" />
+              </h2>
+              <p className="text-gray-500 font-medium mt-2">{description}</p>
             </div>
             <Link href="/productos" className="hidden sm:inline-flex items-center gap-1 text-sm font-black text-emerald-600 hover:text-emerald-700 transition-colors shrink-0">
               Ver todos <ChevronRight className="w-4 h-4" />
@@ -229,7 +244,20 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {productsLoading
-              ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-72 bg-gray-100 animate-pulse rounded-[2rem]" />)
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="rounded-[2.5rem] bg-white border border-gray-100/50 overflow-hidden animate-pulse">
+                    <div className="aspect-square bg-gray-100" />
+                    <div className="p-5 sm:p-6 space-y-3">
+                      <div className="h-2 bg-gray-100 rounded-full w-16" />
+                      <div className="h-4 bg-gray-100 rounded-full w-full" />
+                      <div className="h-4 bg-gray-100 rounded-full w-2/3" />
+                      <div className="flex justify-between items-center pt-4 border-t border-gray-50">
+                        <div className="h-6 bg-gray-100 rounded-full w-20" />
+                        <div className="size-10 sm:size-12 bg-gray-100 rounded-2xl" />
+                      </div>
+                    </div>
+                  </div>
+                ))
               : items.map(product => (
                   <ProductCard key={product.id} product={{ ...product, slug: product.slug || product.id, categories: product.categories || [] } as any} />
                 ))
@@ -356,6 +384,11 @@ export default function Home() {
   const renderNewsletter = (title: string, description: string) => (
     <section className="py-20 bg-gradient-to-br from-emerald-950 to-black text-white relative overflow-hidden">
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] -mr-20 -mt-20 pointer-events-none" />
+      {/* Dots texture overlay */}
+      <div className="absolute inset-0 bg-dots text-white opacity-[0.025] pointer-events-none" />
+      {/* Decorative floating icons */}
+      <ShoppingBag className="absolute -top-6 -left-6 w-52 h-52 text-emerald-400 opacity-[0.05] pointer-events-none rotate-12" />
+      <Star className="absolute -bottom-6 -right-6 w-44 h-44 text-emerald-400 opacity-[0.05] pointer-events-none -rotate-12 fill-current" />
       <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6">
           <Sparkles className="w-3.5 h-3.5" />
