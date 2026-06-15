@@ -1,41 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useProducts } from "@/contexts/ProductContext";
 import { isProductVisible } from "@/services/products";
-import { useToast } from "@/contexts/ToastContext";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
 import { useCategories } from "@/hooks/useCategories";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
 import {
   ChevronRight,
-  Star,
   Truck,
   Shield,
-  ShoppingBag,
-  ArrowRight,
-  Sparkles,
   BadgeCheck,
-  Zap,
-  Package,
-  PackageOpen,
-  Send,
-  RotateCcw,
-  MapPin,
   Search,
+  Tag,
+  Flame,
+  Zap,
 } from "lucide-react";
 
 export default function Home() {
   const { products, loading: productsLoading } = useProducts();
   const { categories, loading: categoriesLoading } = useCategories();
-  const { status } = useSession();
-  const { settings: storeSettings, loading: settingsLoading } = useStoreSettings();
+  const { settings: storeSettings } = useStoreSettings();
   const router = useRouter();
   const [heroQuery, setHeroQuery] = useState("");
 
@@ -46,412 +34,247 @@ export default function Home() {
   };
 
   const heroTitle = storeSettings?.heroTitle || "Sabor que te conecta con casa";
-  const heroDescription = storeSettings?.heroDescription || "Llevamos lo mejor de Venezuela directo a tu puerta en Chile. Calidad garantizada, frescura y el sabor que ya conoces.";
+  const heroDescription = storeSettings?.heroDescription || "Llevamos lo mejor de Venezuela directo a tu puerta en Chile.";
 
-  const featuredProducts = products
-    .filter(p => p.isActive && p.featured && isProductVisible(p))
-    .slice(0, 8);
-
-  const allActiveProducts = products
-    .filter(p => p.isActive && isProductVisible(p));
+  const visible = products.filter(p => p.isActive && isProductVisible(p));
+  const featured = visible.filter(p => p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const rest = visible.filter(p => !p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const topSellers = [...featured, ...rest].slice(0, 10);
+  const offerProducts = visible.filter(p => p.offerPrice && p.offerPrice < p.price).slice(0, 10);
+  const moreProducts = [...featured, ...rest].slice(10, 20);
 
   const blocks = storeSettings?.appearance?.blocks?.filter(b => b.enabled) ?? [];
   const hasBlocks = blocks.length > 0;
 
-  const renderHero = (title: string, description: string, subtitle?: string, buttonText?: string, buttonLink?: string) => (
-    <section className="relative overflow-hidden bg-emerald-950">
-      {/* Fondos decorativos */}
-      <div className="absolute top-0 right-0 -translate-y-1/3 translate-x-1/3 w-[700px] h-[700px] bg-emerald-500/20 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
-
-      <div className="max-w-7xl mx-auto px-4 pt-8 pb-0 md:pt-12 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-end">
-          {/* Texto */}
-          <div className="text-center lg:text-left pb-8 md:pb-10">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-emerald-400 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] mb-4 animate-in fade-in slide-in-from-top duration-700">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{subtitle || "Productos venezolanos premium"}</span>
-            </div>
-
-            {/* Título */}
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black mb-3 text-white tracking-tighter leading-[0.95] whitespace-pre-line animate-in fade-in slide-in-from-bottom duration-700 delay-100">
-              {title}
+  return (
+    <div className="bg-gray-50 min-h-screen">
+      {/* ── HERO BANNER ── */}
+      <section className="bg-[#1a4731] relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 py-8 md:py-10 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 items-center">
+          {/* Left: text + search */}
+          <div className="text-white">
+            <p className="text-emerald-300 font-bold text-xs uppercase tracking-widest mb-2">🌿 Productos venezolanos premium</p>
+            <h1 className="text-3xl md:text-5xl font-black leading-tight mb-2 tracking-tight">
+              {heroTitle}
             </h1>
-
-            {/* Descripción */}
-            <p className="text-sm md:text-base mb-6 text-emerald-100/60 max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium animate-in fade-in duration-700 delay-200">
-              {description}
+            <p className="text-emerald-100/70 text-sm md:text-base mb-5 max-w-md">
+              {heroDescription}
             </p>
-
-            {/* Buscador */}
-            <form
-              onSubmit={submitHeroSearch}
-              className="relative max-w-lg mx-auto lg:mx-0 mb-5 animate-in fade-in duration-700 delay-200"
-            >
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-              <input
-                type="search"
-                value={heroQuery}
-                onChange={(e) => setHeroQuery(e.target.value)}
-                placeholder="¿Qué estás buscando? Ej: harina pan, malta..."
-                className="w-full h-14 pl-12 pr-28 rounded-2xl bg-white text-gray-900 text-sm md:text-base font-medium shadow-2xl shadow-emerald-950/40 focus:outline-none focus:ring-4 focus:ring-emerald-400/40"
-              />
+            <form onSubmit={submitHeroSearch} className="flex max-w-xl gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                <input
+                  type="search"
+                  value={heroQuery}
+                  onChange={(e) => setHeroQuery(e.target.value)}
+                  placeholder="Buscar productos..."
+                  className="w-full h-12 pl-11 pr-4 rounded-xl bg-white text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                />
+              </div>
               <button
                 type="submit"
-                className="absolute right-2 top-2 bottom-2 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-colors active:scale-95"
+                className="h-12 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-colors"
               >
                 Buscar
               </button>
             </form>
-
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start animate-in fade-in duration-700 delay-300">
-              <Link href={buttonLink || "/productos"}>
-                <Button size="lg" className="w-full sm:w-auto bg-emerald-500 text-white hover:bg-emerald-400 border-none shadow-[0_20px_40px_rgba(16,185,129,0.35)] transition-all hover:scale-105 active:scale-95 px-8 h-12 rounded-2xl text-sm font-black">
-                  {buttonText || "Comprar Ahora"}
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+            <div className="flex flex-wrap gap-3 mt-5">
+              <Link href="/productos" className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
+                Comprar ahora <ChevronRight className="w-4 h-4" />
               </Link>
-              <Link href="/ofertas">
-                <Button size="lg" className="w-full sm:w-auto bg-white/10 text-white hover:bg-white/20 border border-white/20 h-12 rounded-2xl px-6 text-sm font-black backdrop-blur-sm transition-all active:scale-95">
-                  Ver Ofertas
-                  <Zap className="w-4 h-4 ml-2 text-amber-400" />
-                </Button>
+              <Link href="/ofertas" className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
+                <Tag className="w-4 h-4 text-amber-400" /> Ver ofertas
               </Link>
             </div>
-
           </div>
 
-          {/* Panel derecho — tarjetas flotantes */}
-          <div className="relative hidden lg:flex items-end justify-center h-[300px]">
-            {/* Tarjeta principal — producto destacado */}
-            <div className="absolute top-0 left-4 bg-white/10 backdrop-blur-2xl border border-white/15 rounded-[2rem] p-5 shadow-2xl w-52 animate-in fade-in slide-in-from-left duration-700 delay-300">
-              <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center mb-3">
-                <Package className="w-5 h-5 text-emerald-400" />
-              </div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400/60 mb-1">Envío express</p>
-              <p className="text-sm font-black text-white">Llega en 24-48h</p>
-            </div>
-
-            {/* Tarjeta central — oferta */}
-            <Link href="/ofertas" className="absolute top-1/2 -translate-y-1/2 right-0 bg-amber-500/20 backdrop-blur-2xl border border-amber-400/30 rounded-[2rem] p-5 shadow-2xl w-56 animate-in fade-in slide-in-from-right duration-700 delay-400 hover:bg-amber-500/30 transition-all">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center shadow">
-                  <Star className="w-4 h-4 fill-white text-white" />
-                </div>
-                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">OFERTAS TOP</span>
-              </div>
-              <p className="text-xs font-bold text-white/70">Descuentos hasta</p>
-              <p className="text-3xl font-black text-amber-400">40% OFF</p>
+          {/* Right: promo cards */}
+          <div className="hidden lg:grid grid-cols-2 gap-3">
+            <Link href="/ofertas" className="col-span-2 bg-amber-400/20 border border-amber-400/30 rounded-2xl p-5 text-center hover:bg-amber-400/30 transition-colors">
+              <p className="text-amber-300 text-xs font-black uppercase tracking-widest mb-1">Ofertas especiales</p>
+              <p className="text-white text-4xl font-black">40% OFF</p>
+              <p className="text-amber-200/70 text-xs mt-1">en productos seleccionados</p>
             </Link>
-
-            {/* Tarjeta inferior — satisfacción */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-2xl border border-white/15 rounded-[2rem] p-4 shadow-2xl flex items-center gap-3 w-60 animate-in fade-in slide-in-from-bottom duration-700 delay-500">
-              <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center shrink-0">
-                <BadgeCheck className="w-5 h-5 text-emerald-400" />
-              </div>
+            <div className="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3">
+              <Truck className="w-8 h-8 text-emerald-400 shrink-0" />
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400/60">Garantía total</p>
-                <p className="text-sm font-black text-white">100% satisfecho</p>
+                <p className="text-white font-black text-sm leading-tight">Envío rápido</p>
+                <p className="text-emerald-300/70 text-xs">Llega en 24-48h</p>
               </div>
             </div>
-
-            {/* Decorativo: ShoppingBag de fondo */}
-            <ShoppingBag className="w-64 h-64 text-emerald-400/5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-12" />
+            <div className="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3">
+              <BadgeCheck className="w-8 h-8 text-emerald-400 shrink-0" />
+              <div>
+                <p className="text-white font-black text-sm leading-tight">100% garantizado</p>
+                <p className="text-emerald-300/70 text-xs">Calidad asegurada</p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Barra de beneficios */}
-      <div className="border-t border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-0 sm:divide-x sm:divide-white/10">
+        {/* Benefits bar */}
+        <div className="border-t border-white/10 bg-black/20">
+          <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap justify-center sm:justify-between gap-y-2 divide-x divide-white/10">
             {[
-              { icon: Truck,       text: "Envío en 24-48h" },
-              { icon: BadgeCheck,  text: "Calidad garantizada" },
-              { icon: Shield,      text: "Pago 100% seguro" },
+              { icon: Truck,      text: "Envío en 24-48h" },
+              { icon: BadgeCheck, text: "Calidad garantizada" },
+              { icon: Shield,     text: "Pago 100% seguro" },
             ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center justify-center gap-2 px-4 py-1">
+              <div key={text} className="flex items-center gap-2 px-4 sm:px-8">
                 <Icon className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-[11px] font-bold text-emerald-100/70 uppercase tracking-wider">{text}</span>
+                <span className="text-[11px] font-bold text-emerald-100/70 uppercase tracking-wider whitespace-nowrap">{text}</span>
               </div>
             ))}
           </div>
         </div>
-      </div>
-    </section>
-  );
+      </section>
 
-  const renderCategories = (title: string, description: string) => (
-    <section className="py-12 bg-white">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-          <div>
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-1">{title}</h2>
-            <p className="text-gray-500 font-medium">{description}</p>
-          </div>
-          <Link href="/productos" className="inline-flex items-center gap-1 text-sm font-black text-emerald-600 hover:text-emerald-700 transition-colors shrink-0">
-            Ver todas <ChevronRight className="w-4 h-4" />
+      {/* ── CATEGORÍAS (horizontal) ── */}
+      <section className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
+          <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-bold whitespace-nowrap hover:bg-emerald-500 transition-colors">
+            Todo
           </Link>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {categoriesLoading
-            ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-64 bg-gray-100 animate-pulse rounded-[3rem]" />)
-            : [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).slice(0, 4).map(cat => (
-                <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}>
-                  <CategoryCard category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null }} />
-                </Link>
-              ))
-          }
-        </div>
-      </div>
-    </section>
-  );
-
-  const renderProducts = (title: string, description: string, limit: number) => {
-    // Destacados primero, luego el resto; ambos ordenados alfabéticamente
-    const visible = products.filter(p => p.isActive && isProductVisible(p));
-    const featured = visible.filter(p => p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
-    const rest = visible.filter(p => !p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
-    const items = [...featured, ...rest].slice(0, limit);
-    return (
-      <section className="py-12 bg-gray-50/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-8">
-            <div>
-              <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-1">{title}</h2>
-              <p className="text-gray-500 font-medium">{description}</p>
-            </div>
-            <Link href="/productos" className="hidden sm:inline-flex items-center gap-1 text-sm font-black text-emerald-600 hover:text-emerald-700 transition-colors shrink-0">
-              Ver todos <ChevronRight className="w-4 h-4" />
+          {!categoriesLoading && [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map(cat => (
+            <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}
+              className="shrink-0 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 text-xs font-bold whitespace-nowrap transition-colors">
+              {cat.name}
             </Link>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {productsLoading
-              ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-72 bg-gray-100 animate-pulse rounded-[2rem]" />)
-              : items.map(product => (
-                  <ProductCard key={product.id} product={{ ...product, slug: product.slug || product.id, categories: product.categories || [] } as any} />
+          ))}
+        </div>
+      </section>
+
+      {/* ── LO MÁS VENDIDO ── */}
+      <ProductSection
+        title="Lo más vendido"
+        icon={<Flame className="w-5 h-5 text-orange-500" />}
+        products={topSellers}
+        loading={productsLoading}
+        href="/productos"
+      />
+
+      {/* ── BANNER PROMOCIONAL ── */}
+      <section className="py-4 px-4 max-w-7xl mx-auto">
+        <Link href="/ofertas" className="block rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 p-6 md:p-8 relative overflow-hidden hover:opacity-95 transition-opacity">
+          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-orange-600/40 to-transparent" />
+          <p className="text-white/80 text-xs font-black uppercase tracking-widest mb-1">Tiempo limitado</p>
+          <p className="text-white text-2xl md:text-4xl font-black leading-tight">Descuentos hasta<br /><span className="text-5xl md:text-6xl">40% OFF</span></p>
+          <p className="text-white/70 text-sm mt-2">En productos seleccionados de toda la tienda</p>
+          <span className="inline-flex items-center gap-1 mt-4 bg-white text-orange-600 font-black text-sm px-5 h-9 rounded-lg">
+            Ver ofertas <ChevronRight className="w-4 h-4" />
+          </span>
+        </Link>
+      </section>
+
+      {/* ── OFERTAS ── */}
+      {offerProducts.length > 0 && (
+        <ProductSection
+          title="Ofertas especiales"
+          icon={<Tag className="w-5 h-5 text-red-500" />}
+          products={offerProducts}
+          loading={productsLoading}
+          href="/ofertas"
+        />
+      )}
+
+      {/* ── CATEGORÍAS VISUALES ── */}
+      <section className="py-8 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <SectionHeader title="Nuestras categorías" icon={null} href="/productos" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {categoriesLoading
+              ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-28 bg-gray-100 animate-pulse rounded-2xl" />)
+              : [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).slice(0, 6).map(cat => (
+                  <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}>
+                    <CategoryCard category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null }} />
+                  </Link>
                 ))
             }
           </div>
-          {items.length > 0 && (
-            <div className="text-center mt-10">
-              <Link href="/productos">
-                <Button size="lg" className="bg-white border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400 rounded-2xl px-10 h-14 font-black transition-all active:scale-95 shadow-sm">
-                  Ver todos los productos
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+          {categories.length > 6 && (
+            <div className="text-center mt-4">
+              <Link href="/categorias" className="inline-flex items-center gap-1 text-sm font-bold text-emerald-600 hover:text-emerald-700">
+                Ver todas las categorías <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
           )}
         </div>
       </section>
-    );
-  };
 
-  const renderLogistics = () => (
-    <section className="py-20 bg-white relative overflow-hidden">
-      {/* Fondo decorativo sutil */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-50 via-white to-white pointer-events-none" />
+      {/* ── MÁS PRODUCTOS ── */}
+      {moreProducts.length > 0 && (
+        <ProductSection
+          title="Más productos"
+          icon={<Zap className="w-5 h-5 text-emerald-600" />}
+          products={moreProducts}
+          loading={productsLoading}
+          href="/productos"
+          bg="bg-white"
+        />
+      )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-14">
-          <div>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-[0.2em] mb-4">
-              <MapPin className="w-3 h-3" />
-              <span>Disponible en nuestra tienda física</span>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight mb-3">
-              Centro Logístico<br />
-              <span className="text-emerald-600">Olivo Market</span>
-            </h2>
-            <p className="text-gray-500 text-lg font-medium max-w-lg">
-              Recibe, envía y devuelve tus encomiendas sin filas y sin complicaciones. Todo en un solo lugar.
-            </p>
-          </div>
-          <Link href="/centro-logistico" className="flex-shrink-0">
-            <button className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black px-7 h-12 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all hover:scale-105 active:scale-95 text-sm uppercase tracking-wide">
-              Ver más información
-              <ArrowRight className="w-4 h-4" />
-            </button>
+      {/* ── VER TODOS ── */}
+      <section className="py-10 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <Link href="/productos"
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base px-10 h-14 rounded-xl transition-colors shadow-lg shadow-emerald-600/20">
+            Ver todos los productos <ChevronRight className="w-5 h-5" />
           </Link>
         </div>
-
-        {/* 3 servicios principales */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
-          {[
-            {
-              icon: PackageOpen,
-              title: "Recibe",
-              description: "Retira tus compras online de forma segura. Somos punto pick-up oficial de MercadoLibre.",
-              color: "bg-blue-600",
-              light: "bg-blue-50 text-blue-600",
-              border: "border-blue-100 hover:border-blue-200",
-            },
-            {
-              icon: Send,
-              title: "Envía",
-              description: "Despacha tus ventas o envíos personales con Bluexpress, Chilexpress y Correos de Chile.",
-              color: "bg-emerald-600",
-              light: "bg-emerald-50 text-emerald-600",
-              border: "border-emerald-100 hover:border-emerald-200",
-            },
-            {
-              icon: RotateCcw,
-              title: "Devuelve",
-              description: "Gestiona devoluciones de tus compras de MercadoLibre fácil y rápido.",
-              color: "bg-amber-500",
-              light: "bg-amber-50 text-amber-600",
-              border: "border-amber-100 hover:border-amber-200",
-            },
-          ].map((s) => (
-            <div
-              key={s.title}
-              className={`group bg-white rounded-3xl p-8 border ${s.border} shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col gap-5`}
-            >
-              <div className={`w-14 h-14 rounded-2xl ${s.light} flex items-center justify-center`}>
-                <s.icon className="w-7 h-7" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-black text-gray-900 mb-2">{s.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{s.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Operadores + beneficio clave */}
-        <div className="bg-gradient-to-br from-emerald-950 to-gray-900 rounded-[2rem] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-8 text-white">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 mb-3">
-              Trabajamos con
-            </p>
-            <div className="flex flex-wrap gap-3">
-              {["Mercado Libre", "Bluexpress", "Chilexpress", "Correos de Chile"].map((op) => (
-                <span
-                  key={op}
-                  className="px-4 py-2 bg-white/10 border border-white/15 rounded-xl text-sm font-bold text-white/90 backdrop-blur-sm"
-                >
-                  {op}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="flex-shrink-0 flex items-center gap-4 bg-white/10 border border-white/15 rounded-2xl px-6 py-4 backdrop-blur-sm">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center">
-              <span className="text-2xl font-black text-emerald-400">7</span>
-            </div>
-            <div>
-              <p className="font-black text-white text-sm">Días de resguardo</p>
-              <p className="text-white/50 text-xs">Tus paquetes siempre seguros</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-
-  const renderNewsletter = (title: string, description: string) => (
-    <section className="py-20 bg-gradient-to-br from-emerald-950 to-black text-white relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] -mr-20 -mt-20 pointer-events-none" />
-      <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Oferta exclusiva</span>
-        </div>
-        <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">{title}</h2>
-        <p className="text-emerald-100/60 mb-3 max-w-xl mx-auto text-lg font-medium">{description}</p>
-        <p className="text-emerald-400 font-black text-sm uppercase tracking-widest mb-10">🎁 10% OFF en tu primera compra al suscribirte</p>
-        <NewsletterForm />
-        <p className="text-xs text-white/30 mt-6 font-medium">Sin spam. Puedes darte de baja cuando quieras.</p>
-      </div>
-    </section>
-  );
-
-  return (
-    <div className="bg-white">
-      {hasBlocks ? (
-        <>
-          {blocks.map((block) => {
-            switch (block.type) {
-              case 'hero':
-                return <div key={block.id}>{renderHero(block.title || heroTitle, block.description || heroDescription, block.subtitle, block.buttonText, block.buttonLink)}</div>;
-              case 'categories':
-                return <div key={block.id}>{renderCategories(block.title || "Nuestras Categorías", block.description || "Encuentra exactamente lo que buscas")}</div>;
-              case 'products':
-                return <div key={block.id}>{renderProducts(block.title || "Lo Más Vendido", block.description || "Los favoritos de nuestra comunidad", block.itemsToShow || 8)}</div>;
-              case 'newsletter':
-                return <div key={block.id}>{renderNewsletter(block.title || "Únete a la familia Olivo Market", block.description || "Recibe ofertas exclusivas y un 10% de descuento en tu primera compra.")}</div>;
-              default: return null;
-            }
-          })}
-          {renderLogistics()}
-        </>
-      ) : (
-        <>
-          {renderHero(heroTitle, heroDescription)}
-          {renderProducts("Lo Más Vendido", "Los favoritos de nuestra comunidad", 8)}
-          {renderCategories("Nuestras Categorías", "Encuentra exactamente lo que buscas")}
-          {renderLogistics()}
-          {renderNewsletter("Únete a la familia Olivo Market", "Recibe ofertas exclusivas y un 10% de descuento en tu primera compra.")}
-        </>
-      )}
+      </section>
     </div>
   );
 }
 
-function NewsletterForm() {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { showToast } = useToast();
+/* ── Helpers ── */
 
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !email.includes("@")) {
-      showToast("Por favor, ingresa un email válido", "error");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch("/api/newsletter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, source: "homepage_footer" }),
-      });
-      if (res.ok) {
-        showToast("¡Gracias por suscribirte! Revisa tu email.", "success");
-        setEmail("");
-      } else {
-        const data = await res.json();
-        showToast(data.error || "Error al suscribirse", "error");
-      }
-    } catch {
-      showToast("Hubo un problema al conectar con el servidor", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+function SectionHeader({ title, icon, href }: { title: string; icon: React.ReactNode; href: string }) {
   return (
-    <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-      <Input
-        type="email"
-        required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="tu@email.com"
-        className="flex-1 bg-white/10 border-white/20 text-white placeholder-white/30 focus:ring-emerald-500 focus:border-emerald-500 rounded-2xl min-h-[52px] px-6"
-      />
-      <Button
-        type="submit"
-        size="lg"
-        loading={loading}
-        className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 border-none min-h-[52px] px-8 rounded-2xl font-black shadow-lg shadow-emerald-900/20 transition-all active:scale-95"
-      >
-        Suscribirme
-      </Button>
-    </form>
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-2">
+        {icon}
+        <h2 className="text-xl font-black text-gray-900">{title}</h2>
+      </div>
+      <Link href={href} className="text-sm font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+        Ver todos <ChevronRight className="w-4 h-4" />
+      </Link>
+    </div>
+  );
+}
+
+function ProductSection({
+  title,
+  icon,
+  products,
+  loading,
+  href,
+  bg = "bg-gray-50",
+}: {
+  title: string;
+  icon: React.ReactNode;
+  products: any[];
+  loading: boolean;
+  href: string;
+  bg?: string;
+}) {
+  return (
+    <section className={`py-8 ${bg}`}>
+      <div className="max-w-7xl mx-auto px-4">
+        <SectionHeader title={title} icon={icon} href={href} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+          {loading
+            ? Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="h-64 bg-gray-100 animate-pulse rounded-2xl" />
+              ))
+            : products.map(product => (
+                <ProductCard
+                  key={product.id}
+                  product={{ ...product, slug: product.slug || product.id, categories: product.categories || [] } as any}
+                />
+              ))
+          }
+        </div>
+      </div>
+    </section>
   );
 }
