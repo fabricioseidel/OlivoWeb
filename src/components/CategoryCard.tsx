@@ -24,8 +24,10 @@ export default function CategoryCard({ category, onClick }: Props) {
     return (
         <div
             onClick={onClick}
-            className={`group relative flex flex-col items-center justify-center p-8 sm:p-10 ${style.bg} rounded-[3rem] transition-all duration-500 border-2 border-transparent ${style.border} hover:shadow-xl hover:-translate-y-2 w-full active:scale-95 cursor-pointer`}
+            className={`group relative flex flex-col items-center justify-center p-8 sm:p-10 ${style.bg} rounded-[3rem] transition-all duration-500 border-2 border-transparent ${style.border} hover:shadow-xl hover:-translate-y-2 w-full active:scale-95 cursor-pointer overflow-hidden`}
         >
+            {/* Subtle dots texture */}
+            <div className="absolute inset-0 bg-dots text-black opacity-[0.04] pointer-events-none" />
             {/* Contenedor de Icono */}
             <div className="size-20 sm:size-24 rounded-[2rem] flex items-center justify-center bg-white shadow-sm mb-6 group-hover:scale-110 group-hover:shadow-md transition-all duration-500 relative overflow-hidden">
                 <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 ${style.bg}`} />
