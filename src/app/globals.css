@@ -259,3 +259,9 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Dots pattern for decorative backgrounds */
+.bg-dots {
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+  background-size: 24px 24px;
+}

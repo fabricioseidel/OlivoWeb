@@ -86,7 +86,7 @@ function ProductCard({ product }: Props) {
   return (
     <div className="group relative h-full flex flex-col rounded-[2.5rem] bg-white border border-gray-100/50 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] hover:-translate-y-2 hover:border-emerald-100 transition-all duration-500 overflow-hidden">
       {/* Contenedor de Imagen Homogéneo */}
-      <Link href={`/productos/${product.slug}`} className="block relative aspect-square overflow-hidden bg-gray-50/50 p-6 sm:p-8">
+      <Link href={`/productos/${product.slug}`} className="block relative aspect-square overflow-hidden p-6 sm:p-8" style={{background: 'radial-gradient(ellipse at center, #ffffff 40%, #f9fafb 100%)'}}>
         <div className="relative w-full h-full flex items-center justify-center">
             {hasValidImage ? (
                 <ImageWithFallback
@@ -105,7 +105,7 @@ function ProductCard({ product }: Props) {
         {/* Badges Flotantes - Simplificados y Elegantes */}
         <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none z-10">
           {product.featured && (
-            <div className="px-3 py-1 bg-emerald-600/90 backdrop-blur-md text-white text-[9px] font-black tracking-tighter rounded-lg shadow-lg shadow-emerald-900/10 uppercase ring-1 ring-white/20">
+            <div className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-emerald-600 backdrop-blur-md text-white text-[9px] font-black tracking-tighter rounded-lg shadow-lg shadow-emerald-900/20 uppercase ring-1 ring-white/20">
               Popular
             </div>
           )}
@@ -188,7 +188,7 @@ function ProductCard({ product }: Props) {
                 onClick={handleAddOne}
                 disabled={isAdding || product.stock === 0}
                 className={`flex items-center justify-center size-10 sm:size-12 rounded-2xl transition-all duration-300 ${isAdding
-                    ? 'bg-emerald-50 text-emerald-600 scale-110'
+                    ? 'bg-emerald-500 text-white scale-125'
                     : product.stock === 0
                     ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
                     : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:rotate-90 shadow-[0_10px_20px_-5px_rgba(16,185,129,0.3)]'
