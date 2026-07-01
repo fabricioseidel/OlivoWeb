@@ -1,5 +1,14 @@
 # Plan de Limpieza, Corrección y Mejora — OlivoWeb
 
+> **Estado de ejecución (2026-06-12)** — completado en `claude/project-cleanup-improvement-84f9yw`:
+> - ✅ **Fase 0** completa (archivos basura, 44 deps muertas, cliente Supabase único, .vscode)
+> - ✅ **P1.1 + P1.2** completos (5 críticos y 6 altos) y **P1.3**: headers, RLS (migraciones `20260612000001/2`), errores genéricos, **audit logging** (audit_logs + auditLog() en webhook, pedidos, ventas, bootstrap). Pendiente: rate limiting global (Upstash) si se necesita multi-instancia.
+> - ✅ **P2.1 + P2.2 parcial** (imports dinámicos, deps, caché CDN en products/categories, paginación admin/orders). Pendiente: react-query, revalidate por ruta completo.
+> - ✅ **P2.3 páginas monolíticas COMPLETO**: uber-eats 2.606→777, edicion-masiva 1.461→601, proveedores 1.388→625, configuracion 1.164→190 (cada una con components/ + lib.ts, extracción mecánica verificada con build). Pendiente: reducción de "use client" / Server Components.
+> - ✅ **P3.1–P3.3 núcleo**: tokens de tema funcionales (Apariencia del admin ahora aplica), dark mode resuelto (next-themes eliminado), errores visibles, skeleton de producto, aria-labels/aria-invalid, metadata + OG + sitemap dinámico + **JSON-LD de producto**. Pendiente: migración completa de colores hardcodeados, más loading.tsx.
+> - ✅ **P4.1 + P4.2 núcleo**: suite **37/37** en verde (12 tests nuevos), validación Zod del checkout, TODOs funcionales resueltos, logger en server/contexts, sesión NextAuth tipada en api-auth (sin any). Pendiente: decisión integración real Uber Eats, i18n, reducción de `any` en páginas, más cobertura E2E.
+> - ⚠️ **Acción requerida en Vercel**: configurar `MERCADOPAGO_WEBHOOK_SECRET`, `GOOGLE_ADMIN_EMAILS` y `CRON_SECRET` (ver `.env.example`). Aplicar las migraciones RLS/audit con `supabase db push`.
+
 > Basado en una auditoría exhaustiva del proyecto (junio 2026): seguridad, rendimiento,
 > diseño/UX, funcionalidad e higiene de código. Estado verificado: TypeScript compila sin
 > errores, ESLint 0 errores / 54 warnings, **5 de 25 tests fallan** (CartContext, Navbar,

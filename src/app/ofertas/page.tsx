@@ -23,7 +23,6 @@ export default function OfertasPage() {
   const categories = useMemo(() => ["Todas", ...categoryNames], [categoryNames]);
 
   const loading = productsLoading || categoriesLoading;
-  const error = (loading === false && products.length === 0 && !productsLoading) ? "No se pudieron cargar los productos" : null;
 
   const filtered = offerProducts.filter(p => {
     const catOk = category === "Todas" || (Array.isArray(p.categories) && p.categories.some(c => c.toLowerCase() === category.toLowerCase()));

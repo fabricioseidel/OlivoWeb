@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import bcrypt from "bcryptjs";
 
 // GET /api/admin/users -> lista usuarios reales (solo admin)
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (!session || !String(role).toUpperCase().includes('ADMIN')) {
     return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
   }
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseServer
     .from('users')
     .select('id,name,email,role,created_at');
   if (error) {
@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ message: 'Datos inválidos' }, { status: 400 });
     }
     // Update only role to avoid failures if updated_at column doesn't exist
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseServer
       .from('users')
       .update({ role })
       .eq('id', userId)
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     const finalRole = ['USER', 'ADMIN'].includes(role) ? role : 'USER';
 
     // Check existence
-    const existing = await supabaseAdmin
+    const existing = await supabaseServer
       .from('users')
       .select('id')
       .eq('email', emailNorm)
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     }
 
     const password_hash = await bcrypt.hash(String(password), 10);
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseServer
       .from('users')
       .insert({ name, email: emailNorm, password_hash, role: finalRole })
       .select('id,name,email,role')
@@ -115,7 +115,7 @@ export async function PUT(req: NextRequest) {
        updateData.password_hash = await bcrypt.hash(String(password), 10);
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseServer
       .from('users')
       .update(updateData)
       .eq('id', userId)
@@ -143,7 +143,7 @@ export async function DELETE(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ message: 'Falta ID' }, { status: 400 });
     }
-    const { error } = await supabaseAdmin
+    const { error } = await supabaseServer
       .from('users')
       .delete()
       .eq('id', userId);

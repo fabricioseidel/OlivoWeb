@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import { requireApiAdmin, blockInProduction } from "@/lib/api-auth";
 
 // Test endpoint to verify Supabase Storage configuration. Solo dev/admin.
@@ -10,7 +10,7 @@ export async function GET() {
   if (!auth.ok) return auth.response;
   try {
     // List buckets
-    const { data: buckets, error: bucketsError } = await supabaseAdmin.storage.listBuckets();
+    const { data: buckets, error: bucketsError } = await supabaseServer.storage.listBuckets();
     
     if (bucketsError) {
       console.error("Error listing buckets:", bucketsError);
@@ -31,7 +31,7 @@ export async function GET() {
     }
 
     // Try to list files in uploads bucket
-    const { data: files, error: filesError } = await supabaseAdmin.storage
+    const { data: files, error: filesError } = await supabaseServer.storage
       .from('uploads')
       .list('', { limit: 10 });
 
@@ -47,7 +47,7 @@ export async function GET() {
     const testContent = Buffer.from('test file content');
     const testFilename = `test-${Date.now()}.txt`;
     
-    const { error: uploadError } = await supabaseAdmin.storage
+    const { error: uploadError } = await supabaseServer.storage
       .from('uploads')
       .upload(testFilename, testContent, { 
         contentType: 'text/plain',
@@ -63,12 +63,12 @@ export async function GET() {
     }
 
     // Get public URL for test file
-    const { data: publicUrlData } = supabaseAdmin.storage
+    const { data: publicUrlData } = supabaseServer.storage
       .from('uploads')
       .getPublicUrl(testFilename);
 
     // Clean up test file
-    await supabaseAdmin.storage
+    await supabaseServer.storage
       .from('uploads')
       .remove([testFilename]);
 

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
 interface UberEatsProductInput {
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Acción: Sincronizar desde tabla products principal
     if (action === 'sync_from_main') {
-      const { data, error } = await supabaseAdmin.rpc('sync_uber_eats_from_products');
+      const { data, error } = await supabaseServer.rpc('sync_uber_eats_from_products');
       if (error) {
         console.error('Error syncing from main products:', error);
         throw error;
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < upsertData.length; i += batchSize) {
       const batch = upsertData.slice(i, i + batchSize);
       
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await supabaseServer
         .from('uber_eats_products')
         .upsert(batch, { 
           onConflict: 'barcode',
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const includeExcluded = searchParams.get('includeExcluded') === 'true';
 
-    let query = supabaseAdmin
+    let query = supabaseServer
       .from('uber_eats_products')
       .select('*')
       .order('name', { ascending: true });
@@ -206,7 +206,7 @@ export async function DELETE(request: NextRequest) {
 
     if (permanent) {
       // Eliminar permanentemente
-      const { error } = await supabaseAdmin
+      const { error } = await supabaseServer
         .from('uber_eats_products')
         .delete()
         .in('barcode', barcodes);
@@ -214,7 +214,7 @@ export async function DELETE(request: NextRequest) {
       if (error) throw error;
     } else {
       // Marcar como excluidos
-      const { error } = await supabaseAdmin
+      const { error } = await supabaseServer
         .from('uber_eats_products')
         .update({ excluded: true })
         .in('barcode', barcodes);

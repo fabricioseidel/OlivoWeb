@@ -7,8 +7,6 @@ import {
   ArrowPathIcon, ArrowDownTrayIcon, ClockIcon,
 } from "@heroicons/react/24/outline";
 
-type Method = "CASH" | "DEBIT" | "CREDIT" | "TRANSFER" | "WALLET" | "OTHER";
-
 const METHOD_LABEL: Record<string, string> = {
   CASH: "Efectivo", DEBIT: "Débito", CREDIT: "Crédito",
   TRANSFER: "Transferencia", WALLET: "Billetera", OTHER: "Otro",

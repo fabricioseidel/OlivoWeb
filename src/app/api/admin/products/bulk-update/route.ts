@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { z } from "zod";
 import { authOptions } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface ProductUpdate {
-  barcode?: string;
-  name?: string;
-  price?: number;
-  stock?: number;
-  description?: string;
-  category?: string;
-  is_active?: boolean;
-}
+const productUpdateSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  price: z.number().nonnegative().finite().optional(),
+  stock: z.number().int().nonnegative().optional(),
+  description: z.string().max(5000).optional(),
+  category: z.string().max(100).optional(),
+  is_active: z.boolean().optional(),
+});
 
 /**
  * POST /api/admin/products/bulk-update
@@ -60,17 +59,23 @@ export async function POST(req: Request) {
           continue;
         }
 
-        // Construir payload de actualización
-        const updatePayload: any = {};
+        // Validar y construir payload de actualización
+        const parsed = productUpdateSchema.safeParse(data);
+        if (!parsed.success) {
+          results.failed++;
+          results.errors.push(`${data?.name || id}: datos inválidos (${parsed.error.issues.map((i) => i.path.join('.')).join(', ')})`);
+          continue;
+        }
+        const updatePayload = Object.fromEntries(
+          Object.entries(parsed.data).filter(([, v]) => v !== undefined)
+        );
+        if (Object.keys(updatePayload).length === 0) {
+          results.failed++;
+          results.errors.push(`${data?.name || id}: sin campos válidos para actualizar`);
+          continue;
+        }
 
-        if (data.name !== undefined) updatePayload.name = data.name;
-        if (data.price !== undefined) updatePayload.price = data.price;
-        if (data.stock !== undefined) updatePayload.stock = data.stock;
-        if (data.description !== undefined) updatePayload.description = data.description;
-        if (data.is_active !== undefined) updatePayload.is_active = data.is_active;
-        if (data.category !== undefined) updatePayload.category = data.category;
-
-        const { error } = await supabaseAdmin
+        const { error } = await supabaseServer
           .from('products')
           .update(updatePayload)
           .eq('id', id);
@@ -114,7 +119,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const format = searchParams.get('format') || 'json'; // json o csv
 
-    const { data: products, error } = await supabaseAdmin
+    const { data: products, error } = await supabaseServer
       .from('products')
       .select('*')
       .order('name');

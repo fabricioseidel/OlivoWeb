@@ -28,7 +28,7 @@ export default function POSPage() {
   const [processing, setProcessing] = useState(false);
   const [showCart, setShowCart] = useState(false); // Mobile toggle
   const [customerEmail, setCustomerEmail] = useState("");
-  const [sendingReceipt, setSendingReceipt] = useState(false);
+  const [, setSendingReceipt] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const { showToast } = useToast();
   const searchInputRef = useRef<HTMLInputElement>(null);

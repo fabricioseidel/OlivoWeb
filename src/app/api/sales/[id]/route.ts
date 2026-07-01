@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
+import { requireApiAdminOrSeller } from '@/lib/api-auth';
+import { auditLog } from '@/server/audit.service';
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireApiAdminOrSeller();
+    if (!auth.ok) return auth.response;
+
     const { id } = await context.params;
     const saleId = id;
 
@@ -86,6 +91,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireApiAdminOrSeller();
+    if (!auth.ok) return auth.response;
+
     const { id } = await params;
     const body = await req.json();
     
@@ -114,6 +122,14 @@ export async function PATCH(
       console.error('Error updating sale:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    await auditLog({
+      action: 'SALE_UPDATED',
+      entity: 'sales',
+      entityId: id,
+      actor: auth.session.user?.email || auth.userId,
+      details: { fields: Object.keys(patch) },
+    });
 
     return NextResponse.json({ ok: true, data });
   } catch (error) {

@@ -1,8 +1,8 @@
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import type { Branch } from "@/types";
 
 export async function getBranches(): Promise<Branch[]> {
-  const supabase = supabaseAdmin;
+  const supabase = supabaseServer;
   const { data, error } = await supabase
     .from("branches")
     .select("*")
@@ -13,7 +13,7 @@ export async function getBranches(): Promise<Branch[]> {
 }
 
 export async function getDefaultBranch(): Promise<Branch> {
-  const supabase = supabaseAdmin;
+  const supabase = supabaseServer;
   const { data, error } = await supabase
     .from("branches")
     .select("*")

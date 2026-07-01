@@ -1,12 +1,14 @@
-import { utils, writeFile } from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { ProductUI } from '@/types';
+
+// xlsx y jspdf pesan ~500KB combinados: se cargan bajo demanda con import()
+// dinámico para que no entren en el bundle inicial del admin.
 
 /**
  * Exporta una lista de productos a un archivo Excel (.xlsx)
  */
-export const exportToExcel = (products: ProductUI[], filename: string = 'inventario-olivo-market.xlsx') => {
+export const exportToExcel = async (products: ProductUI[], filename: string = 'inventario-olivo-market.xlsx') => {
+  const { utils, writeFile } = await import('xlsx');
+
   // Mapear los datos a un formato plano para Excel
   const data = products.map(p => ({
     'ID/SKU': p.id,
@@ -30,11 +32,11 @@ export const exportToExcel = (products: ProductUI[], filename: string = 'inventa
 
   // Crear hoja de trabajo
   const worksheet = utils.json_to_sheet(data);
-  
+
   // Crear libro de trabajo
   const workbook = utils.book_new();
   utils.book_append_sheet(workbook, worksheet, 'Productos');
-  
+
   // Guardar archivo
   writeFile(workbook, filename);
 };
@@ -42,7 +44,9 @@ export const exportToExcel = (products: ProductUI[], filename: string = 'inventa
 /**
  * Exporta una lista de productos a un archivo CSV (.csv)
  */
-export const exportToCSV = (products: ProductUI[], filename: string = 'inventario-olivo-market.csv') => {
+export const exportToCSV = async (products: ProductUI[], filename: string = 'inventario-olivo-market.csv') => {
+  const { utils } = await import('xlsx');
+
   // Mapear los datos a un formato plano
   const data = products.map(p => ({
     'ID_SKU': p.id,
@@ -59,10 +63,10 @@ export const exportToCSV = (products: ProductUI[], filename: string = 'inventari
 
   // Crear hoja de trabajo
   const worksheet = utils.json_to_sheet(data);
-  
+
   // Generar CSV
   const csvOutput = utils.sheet_to_csv(worksheet);
-  
+
   // Descargar archivo (vía Blob en navegador)
   const blob = new Blob([csvOutput], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
@@ -80,14 +84,19 @@ export const exportToCSV = (products: ProductUI[], filename: string = 'inventari
 /**
  * Exporta una lista de productos a un archivo PDF (.pdf)
  */
-export const exportToPDF = (products: ProductUI[], filename: string = 'inventario-olivo-market.pdf') => {
+export const exportToPDF = async (products: ProductUI[], filename: string = 'inventario-olivo-market.pdf') => {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ]);
+
   const doc = new jsPDF('l', 'mm', 'a4'); // Paisaje (landscape)
-  
+
   // Título y encabezado
   doc.setFontSize(20);
   doc.setTextColor(5, 46, 22); // Emerald-950 approx
   doc.text('Inventario Total - Olivo Market', 14, 20);
-  
+
   doc.setFontSize(10);
   doc.setTextColor(100);
   doc.text(`Fecha de exportación: ${new Date().toLocaleString()}`, 14, 28);
@@ -95,15 +104,15 @@ export const exportToPDF = (products: ProductUI[], filename: string = 'inventari
 
   // Definir las columnas para la tabla
   const tableColumn = [
-    'ID/SKU', 
-    'Producto', 
-    'Categoría', 
-    'Precio', 
-    'Stock', 
-    'Activo', 
+    'ID/SKU',
+    'Producto',
+    'Categoría',
+    'Precio',
+    'Stock',
+    'Activo',
     'Destacado'
   ];
-  
+
   // Definir las filas
   const tableRows = products.map(p => [
     p.id.substring(0, 10),
@@ -121,7 +130,7 @@ export const exportToPDF = (products: ProductUI[], filename: string = 'inventari
     body: tableRows,
     startY: 40,
     theme: 'grid',
-    headStyles: { 
+    headStyles: {
       fillColor: [16, 185, 129], // Emerald-500
       textColor: [255, 255, 255],
       fontSize: 10,

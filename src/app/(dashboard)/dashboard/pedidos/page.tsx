@@ -195,7 +195,17 @@ export default function AdminOrdersPage() {
 
             {/* Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {/* TODO: Real metrics logic */}
+                {[
+                    { label: "Total pedidos", value: orders.length.toLocaleString("es-CL") },
+                    { label: "Sin preparar", value: orders.filter(o => o.fulfillmentStatus === "unfulfilled").length.toLocaleString("es-CL") },
+                    { label: "Pago pendiente", value: orders.filter(o => o.paymentStatus === "pending").length.toLocaleString("es-CL") },
+                    { label: "Ventas pagadas", value: `$${orders.filter(o => o.paymentStatus === "paid").reduce((s, o) => s + (o.total || 0), 0).toLocaleString("es-CL")}` },
+                ].map((m) => (
+                    <div key={m.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{m.label}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{m.value}</p>
+                    </div>
+                ))}
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

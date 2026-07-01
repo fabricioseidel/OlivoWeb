@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import type { Html5Qrcode } from "html5-qrcode";
 import type { BarcodeFormat, ScannerCapabilities } from "@/types/scanner";
 
 export type CameraKind = "main" | "wide" | "ultrawide" | "macro" | "tele" | "front" | "unknown";
@@ -337,6 +337,10 @@ export function useBarcodeStream({
     };
 
     const startFallback = async (container: HTMLElement) => {
+      // html5-qrcode pesa ~200KB: solo se carga si el BarcodeDetector nativo
+      // no está disponible y se necesita el fallback.
+      const { Html5Qrcode } = await import("html5-qrcode");
+
       container.innerHTML = "";
       const innerId = `${videoElementId}-inner`;
       const inner = document.createElement("div");

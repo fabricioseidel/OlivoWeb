@@ -1,13 +1,19 @@
 import { getServerSession } from "next-auth";
+import type { Session } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/config/auth.config";
 
 export type ApiAuthResult =
-  | { ok: true; session: any; userId: string; role: "ADMIN" | "SELLER" | "USER" }
+  | { ok: true; session: Session; userId: string; role: "ADMIN" | "SELLER" | "USER" }
   | { ok: false; response: NextResponse };
 
 const unauth = (status: 401 | 403, msg: string) =>
   NextResponse.json({ error: msg }, { status });
+
+function normalizeRole(session: Session): "ADMIN" | "SELLER" | "USER" {
+  const raw = (session.user?.role || "USER").toString().toUpperCase();
+  return raw === "ADMIN" || raw === "SELLER" ? raw : "USER";
+}
 
 /**
  * Auth helper para /api/admin/**.
@@ -26,18 +32,18 @@ const unauth = (status: 401 | 403, msg: string) =>
  * endpoints que tienen su propio try/catch.
  */
 export async function requireApiAdmin(): Promise<ApiAuthResult> {
-  const session: any = await getServerSession(authOptions as any);
+  const session = await getServerSession(authOptions);
   if (!session?.user) return { ok: false, response: unauth(401, "Unauthorized") };
-  const role = (session.user?.role || session.role || "USER").toString().toUpperCase();
+  const role = normalizeRole(session);
   if (role !== "ADMIN") return { ok: false, response: unauth(403, "Forbidden — admin only") };
   return { ok: true, session, userId: session.user.id ?? "", role };
 }
 
 /** Permite ADMIN o SELLER (vendedor de mostrador). */
 export async function requireApiAdminOrSeller(): Promise<ApiAuthResult> {
-  const session: any = await getServerSession(authOptions as any);
+  const session = await getServerSession(authOptions);
   if (!session?.user) return { ok: false, response: unauth(401, "Unauthorized") };
-  const role = (session.user?.role || session.role || "USER").toString().toUpperCase();
+  const role = normalizeRole(session);
   if (role !== "ADMIN" && role !== "SELLER") {
     return { ok: false, response: unauth(403, "Forbidden — staff only") };
   }
@@ -46,10 +52,9 @@ export async function requireApiAdminOrSeller(): Promise<ApiAuthResult> {
 
 /** Cualquier sesión autenticada. */
 export async function requireApiAuth(): Promise<ApiAuthResult> {
-  const session: any = await getServerSession(authOptions as any);
+  const session = await getServerSession(authOptions);
   if (!session?.user) return { ok: false, response: unauth(401, "Unauthorized") };
-  const role = (session.user?.role || session.role || "USER").toString().toUpperCase();
-  return { ok: true, session, userId: session.user.id ?? "", role };
+  return { ok: true, session, userId: session.user.id ?? "", role: normalizeRole(session) };
 }
 
 /**

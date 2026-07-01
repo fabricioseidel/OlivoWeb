@@ -28,14 +28,11 @@ type Props = {
 };
 
 export default function AddressAutocomplete({ id, name, value = "", onChange, placeholder = "Calle, número, comuna...", country = "cl", required = false }: Props) {
-  const ref = useRef<HTMLInputElement | null>(null);
-  const [fallback] = useState(false);
   const [providerFallback, setProviderFallback] = useState(false);
   const [suggestions, setSuggestions] = useState<Array<any>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const debounceRef = useRef<number | null>(null);
-  const provider = "nominatim"; // Forced to nominatim for cost reasons
 
   const onChangeRef = useRef(onChange);
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);

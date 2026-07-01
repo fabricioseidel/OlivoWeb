@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
+import { logger } from "@/utils/logger";
 
 // Configuración singleton de Cloudinary
 cloudinary.config({
@@ -38,7 +39,7 @@ export async function uploadImage(
       },
       (error, result) => {
         if (error || !result) {
-          console.error("🔥 Error subiendo a Cloudinary:", error);
+          logger.error("🔥 Error subiendo a Cloudinary:", error);
           return reject(error);
         }
         resolve({
@@ -81,7 +82,7 @@ export async function deleteImage(publicId: string): Promise<boolean> {
     const result = await cloudinary.uploader.destroy(publicId);
     return result.result === "ok";
   } catch (error) {
-    console.error("Error eliminando imagen de Cloudinary:", error);
+    logger.error("Error eliminando imagen de Cloudinary:", error);
     return false;
   }
 }

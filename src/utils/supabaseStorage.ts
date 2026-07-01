@@ -1,10 +1,10 @@
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { supabaseServer } from '@/lib/supabase-server';
 import { logger } from './logger';
 
 export async function ensureUploadsBucket() {
   try {
     // Try to list buckets first
-    const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
+    const { data: buckets, error: listError } = await supabaseServer.storage.listBuckets();
 
     if (listError) {
       logger.error('Error listing buckets:', listError);
@@ -18,7 +18,7 @@ export async function ensureUploadsBucket() {
       logger.log('Creating uploads bucket...');
 
       // Create the uploads bucket
-      const { error: createError } = await supabaseAdmin.storage.createBucket('uploads', {
+      const { error: createError } = await supabaseServer.storage.createBucket('uploads', {
         public: true,
         allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'image/svg+xml', 'application/pdf'],
         fileSizeLimit: 10485760 // 10MB
@@ -93,7 +93,7 @@ export async function uploadImageToSupabase(
     logger.log(`Uploading ${filename} to Supabase Storage...`);
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    const { data: uploadData, error: uploadError } = await supabaseServer.storage
       .from('uploads')
       .upload(filename, buffer, {
         contentType: mimeType,
@@ -108,7 +108,7 @@ export async function uploadImageToSupabase(
     logger.log('Upload successful:', uploadData);
 
     // Get public URL
-    const { data: publicUrlData } = supabaseAdmin.storage
+    const { data: publicUrlData } = supabaseServer.storage
       .from('uploads')
       .getPublicUrl(filename);
 
@@ -140,7 +140,7 @@ export async function deleteFromUploadsByPublicUrl(publicUrl: string) {
     const idx = parts.findIndex(p => p === 'object');
     const path = idx >= 0 ? decodeURIComponent(parts.slice(idx + 1).join('/')) : parts[parts.length - 1];
     if (!path) return;
-    await supabaseAdmin.storage.from('uploads').remove([path]);
+    await supabaseServer.storage.from('uploads').remove([path]);
   } catch (e) {
     logger.warn('deleteFromUploadsByPublicUrl failed:', (e as any)?.message || e);
   }

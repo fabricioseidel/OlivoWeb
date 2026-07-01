@@ -1,6 +1,6 @@
 "use server";
 
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export interface ReceptionItem {
   barcode: string;
@@ -34,7 +34,7 @@ export async function createReception({
 
   if (payload.length === 0) return { ok: false, error: "Ningún ítem válido" };
 
-  const { data, error } = await supabaseAdmin.rpc("apply_reception", {
+  const { data, error } = await supabaseServer.rpc("apply_reception", {
     p_items: payload,
     p_branch_id: branchId ?? null,
     p_reference: reference ?? null,

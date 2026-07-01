@@ -101,6 +101,7 @@ export default function AdminAnalytics({ orders, products, posSales, insights, l
             {insights.map((insight, idx) => (
               <div key={idx} className="bg-white rounded-2xl p-4 border border-amber-100 flex gap-4 hover:shadow-md transition">
                 {insight.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- imagen dinámica externa, sin dimensiones conocidas
                   <img src={insight.image} className="w-12 h-12 rounded-xl object-cover shrink-0" alt="" />
                 ) : (
                   <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 shrink-0">📦</div>

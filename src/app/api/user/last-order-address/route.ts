@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { NextResponse } from "next/server";
+import { supabaseServer } from "@/lib/supabase-server";
 import { requireApiAuth } from "@/lib/api-auth";
 
 /**
@@ -10,7 +10,7 @@ import { requireApiAuth } from "@/lib/api-auth";
  * permitía a cualquiera consultar la dirección de cualquier persona.
  * Ahora se ignora cualquier email externo y se usa el de la sesión.
  */
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const auth = await requireApiAuth();
   if (!auth.ok) return auth.response;
   const sessionEmail = (auth.session?.user?.email || "").toLowerCase().trim();
@@ -19,7 +19,7 @@ export async function GET(_req: NextRequest) {
   }
 
   try {
-    const { data: lastOrder, error } = await supabaseAdmin
+    const { data: lastOrder, error } = await supabaseServer
       .from("orders")
       .select("shipping_address")
       .eq("shipping_address->>email", sessionEmail)
@@ -33,7 +33,7 @@ export async function GET(_req: NextRequest) {
     }
 
     if (!lastOrder || !lastOrder.shipping_address) {
-      const { data: customer } = await supabaseAdmin
+      const { data: customer } = await supabaseServer
         .from("customers")
         .select("name, phone, email")
         .eq("email", sessionEmail)

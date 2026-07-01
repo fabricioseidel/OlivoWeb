@@ -3,6 +3,7 @@
 import React from 'react';
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { CartItem } from '@/types';
+import { logger } from '@/utils/logger';
 import { useToast } from "./ToastContext";
 
 interface CartContextType {
@@ -35,7 +36,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     console.group("[OLIVO:cart] 🛍️ Inicializando carrito desde localStorage");
     try {
       const storedCart = localStorage.getItem("cart");
-      console.log("[OLIVO:cart] raw localStorage:", storedCart ? `${storedCart.length} chars` : "vacío");
+      logger.log("[OLIVO:cart] raw localStorage:", storedCart ? `${storedCart.length} chars` : "vacío");
       if (storedCart) {
         const parsedCart = JSON.parse(storedCart);
         if (Array.isArray(parsedCart)) {
@@ -56,18 +57,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
             slug: item.slug || '',
             quantity: item.quantity
           }));
-          console.log(`[OLIVO:cart] ✅ ${validatedCart.length} items cargados`, validatedCart.map(i => `${i.name} x${i.quantity} $${i.price}`));
+          logger.log(`[OLIVO:cart] ✅ ${validatedCart.length} items cargados`, validatedCart.map(i => `${i.name} x${i.quantity} $${i.price}`));
           setCartItems(validatedCart);
         } else {
-          console.warn("[OLIVO:cart] ⚠️ localStorage no era array, reiniciando");
+          logger.warn("[OLIVO:cart] ⚠️ localStorage no era array, reiniciando");
           setCartItems([]);
           localStorage.setItem("cart", JSON.stringify([]));
         }
       } else {
-        console.log("[OLIVO:cart] carrito vacío");
+        logger.log("[OLIVO:cart] carrito vacío");
       }
     } catch (error) {
-      console.error("[OLIVO:cart] ❌ Error parseando carrito:", error);
+      logger.error("[OLIVO:cart] ❌ Error parseando carrito:", error);
       setCartItems([]);
       localStorage.setItem("cart", JSON.stringify([]));
     } finally {
@@ -101,12 +102,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const existingItem = prevItems.find(item => item.id === product.id);
       if (existingItem) {
         const newQty = existingItem.quantity + qty;
-        console.log(`[OLIVO:cart] ➕ UPDATE "${product.name}" → qty ${existingItem.quantity} → ${newQty} (precio: $${product.price})`);
+        logger.log(`[OLIVO:cart] ➕ UPDATE "${product.name}" → qty ${existingItem.quantity} → ${newQty} (precio: $${product.price})`);
         return prevItems.map(item =>
           item.id === product.id ? { ...item, quantity: newQty } : item
         );
       } else {
-        console.log(`[OLIVO:cart] 🆕 ADD "${product.name}" qty:${qty} precio:$${product.price} id:${product.id}`);
+        logger.log(`[OLIVO:cart] 🆕 ADD "${product.name}" qty:${qty} precio:$${product.price} id:${product.id}`);
         return [...prevItems, { ...product, quantity: qty }];
       }
     });
@@ -116,7 +117,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const removeFromCart = useCallback((id: string) => {
     setCartItems(prevItems => {
       const item = prevItems.find(i => i.id === id);
-      console.log(`[OLIVO:cart] 🗑️ REMOVE "${item?.name ?? id}"`);
+      logger.log(`[OLIVO:cart] 🗑️ REMOVE "${item?.name ?? id}"`);
       return prevItems.filter(i => i.id !== id);
     });
   }, []);
@@ -140,7 +141,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Validación con el servidor — actualiza el carrito si hay cambios de stock o precio
   const validateCartWithServer = useCallback(async () => {
     if (cartItems.length === 0) {
-      console.log("[OLIVO:cart:validate] carrito vacío, skip validación");
+      logger.log("[OLIVO:cart:validate] carrito vacío, skip validación");
       return true;
     }
     console.group(`[OLIVO:cart:validate] 🔍 Validando ${cartItems.length} items con servidor`);
@@ -154,7 +155,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
 
       const data = await response.json();
-      console.log('[OLIVO:cart:validate] 📦 Respuesta servidor:', { updates: data.updates?.length ?? 0, detalle: data.updates });
+      logger.log('[OLIVO:cart:validate] 📦 Respuesta servidor:', { updates: data.updates?.length ?? 0, detalle: data.updates });
 
       if (data.updates && data.updates.length > 0) {
         let cartChanged = false;
@@ -189,7 +190,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }).filter(Boolean) as CartItem[];
 
         if (cartChanged) {
-          console.warn("[OLIVO:cart:validate] ⚠️ Carrito modificado:", messages);
+          logger.warn("[OLIVO:cart:validate] ⚠️ Carrito modificado:", messages);
           setCartItems(nextItems);
           if (messages.length > 2) {
             showToast("Varios productos en tu carrito fueron actualizados por cambios en stock o precio.", "warning");
@@ -200,11 +201,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
           return false;
         }
       }
-      console.log("[OLIVO:cart:validate] ✅ Carrito válido, sin cambios");
+      logger.log("[OLIVO:cart:validate] ✅ Carrito válido, sin cambios");
       console.groupEnd();
       return true;
     } catch (error) {
-      console.error("[OLIVO:cart:validate] ❌ Error de red:", error);
+      logger.error("[OLIVO:cart:validate] ❌ Error de red:", error);
       console.groupEnd();
       return true;
     } finally {
@@ -224,7 +225,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     shippingCost,
     itemCount,
     isSyncing,
-  }), [cartItems, addToCart, removeFromCart, updateQuantity, clearCart, validateCartWithServer, subtotal, total, itemCount, isSyncing]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [cartItems, addToCart, removeFromCart, updateQuantity, clearCart, validateCartWithServer, subtotal, total, itemCount, isSyncing]);  
 
   return <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>;
 }

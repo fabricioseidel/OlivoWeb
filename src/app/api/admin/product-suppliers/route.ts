@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 function isAdmin(session: any) {
   const role = session?.role || session?.user?.role;
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const query = supabaseAdmin
+    const query = supabaseServer
       .from("product_suppliers")
       .select(
         `
@@ -123,7 +123,7 @@ export async function POST(req: Request) {
       notes: body?.notes ? String(body.notes).trim() : null,
     };
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseServer
       .from("product_suppliers")
       .upsert(payload, { onConflict: "product_id,supplier_id" })
       .select()
@@ -163,7 +163,7 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const { error } = await supabaseAdmin
+    const { error } = await supabaseServer
       .from("product_suppliers")
       .delete()
       .eq("product_id", productId)

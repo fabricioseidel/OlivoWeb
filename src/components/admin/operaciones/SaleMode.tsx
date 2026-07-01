@@ -36,7 +36,7 @@ const METHOD_ICONS: Record<PaymentMethod, typeof BanknotesIcon> = {
 };
 
 export default function SaleMode() {
-  const { cart, addToCart, updateQuantity, removeFromCart, clearCart, total, discount, finalTotal, appliedCoupon, setAppliedCoupon, applyDiscount } = usePOS();
+  const { cart, addToCart, updateQuantity, removeFromCart, clearCart, discount, finalTotal, appliedCoupon, setAppliedCoupon, applyDiscount } = usePOS();
   const { currentBranch } = useBranch();
   const { showToast } = useToast();
 

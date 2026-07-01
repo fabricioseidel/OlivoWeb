@@ -157,6 +157,7 @@ export default function AddProductForm() {
         
         {imagePreview ? (
           <div className="relative w-full max-w-xs group">
+            {/* eslint-disable-next-line @next/next/no-img-element -- imagen dinámica externa, sin dimensiones conocidas */}
             <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover rounded-2xl border-2 border-emerald-500/20" />
             <button 
               type="button"

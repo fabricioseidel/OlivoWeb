@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -355,7 +355,7 @@ export async function PATCH(req: Request) {
 
     // Realizar upsert
     try {
-      const { error } = await supabaseAdmin
+      const { error } = await supabaseServer
         .from("settings")
         .upsert([payload], { onConflict: "id" });
 

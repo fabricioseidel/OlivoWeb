@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CartProvider, useCart } from '../contexts/CartContext';
+import { ToastProvider } from '../contexts/ToastContext';
 
 // Mock localStorage
 const localStorageMock = {
@@ -69,9 +70,11 @@ describe('CartContext', () => {
 
   it('should provide cart functionality', async () => {
     render(
-      <CartProvider>
-        <TestComponent />
-      </CartProvider>
+      <ToastProvider>
+        <CartProvider>
+          <TestComponent />
+        </CartProvider>
+      </ToastProvider>
     );
 
   // Inicialmente carrito vacío: subtotal 0, envío 0, total 0

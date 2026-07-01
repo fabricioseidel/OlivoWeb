@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 
 // GET /api/categories -> { categories: string[] }
 export async function GET() {
@@ -56,7 +56,10 @@ export async function GET() {
     };
   }); // Mostrar TODAS las categorías en admin (sin filtrar por productsCount)
 
-  return NextResponse.json(mapped);
+  // Cache CDN corto: evita recalcular conteos en cada request del storefront
+  return NextResponse.json(mapped, {
+    headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
+  });
 }
 
 // POST /api/categories { name }
@@ -81,7 +84,7 @@ export async function POST(req: Request) {
   if (typeof body?.slug === 'string' && body.slug) payload.slug = body.slug;
   if (typeof body?.description === 'string') payload.description = body.description;
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseServer
     .from('categories')
     .upsert(payload, { onConflict: 'name' })
     .select('*')
@@ -118,7 +121,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "name required" }, { status: 400 });
   }
 
-  const { error } = await supabaseAdmin.from("categories").delete().eq("name", name);
+  const { error } = await supabaseServer.from("categories").delete().eq("name", name);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

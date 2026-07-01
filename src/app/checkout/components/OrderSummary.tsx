@@ -68,6 +68,7 @@ export default function OrderSummary({
         {cartItems.map((item) => (
           <div key={item.id} className="flex gap-4 group">
             <div className="relative h-14 w-14 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element -- imagen dinámica externa, sin dimensiones conocidas */}
               <img
                 src={item.image}
                 alt={item.name}

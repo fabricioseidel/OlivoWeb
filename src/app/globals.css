@@ -1,15 +1,20 @@
 @import "tailwindcss";
 
-/* ───── Tailwind v4 Theme: register custom color tokens ───── */
+/* ───── Tailwind v4 Theme: tokens de marca ─────
+   Los valores por defecto viven aquí; SettingsInjector los sobreescribe en
+   runtime con los colores de Admin → Apariencia. Los derivados (hover/soft)
+   se calculan con color-mix para seguir al color base configurado. */
 @theme {
-  --color-primary: var(--color-primary);
-  --color-secondary: var(--color-secondary);
-  --color-accent: var(--color-accent);
-  --color-success: var(--color-success);
-  --color-warning: var(--color-warning);
-  --color-error: var(--color-error);
-  --color-footer-bg: var(--color-footer-bg);
-  --color-footer-text: var(--color-footer-text);
+  --color-primary: #059669; /* emerald-600 */
+  --color-primary-hover: color-mix(in srgb, var(--color-primary), black 14%);
+  --color-primary-soft: color-mix(in srgb, var(--color-primary), white 92%);
+  --color-secondary: #047857; /* emerald-800 */
+  --color-accent: #10b981; /* emerald-500 */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-footer-bg: #1f2937;
+  --color-footer-text: #f3f4f6;
 }
 
 /* Restricciones específicas para SVG e iconos */
@@ -74,26 +79,12 @@ img {
 }
 
 :root {
-  /* Brand Colors - Emerald */
-  --color-primary: #10B981;
-  /* emerald-600 */
-  --color-primary-rgb: 16 185 129;
-  --color-secondary: #047857;
-  /* emerald-800 */
+  /* Los tokens de marca viven en @theme (arriba). Aquí solo quedan
+     variables auxiliares que no generan utilidades de Tailwind. */
+  --color-primary-rgb: 5 150 105;
   --color-secondary-rgb: 4 120 87;
-  --color-accent: #059669;
-  /* emerald-700 */
-  --color-accent-rgb: 5 150 105;
-
-  /* UI Colors */
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-error: #EF4444;
-
-  /* Layout */
-  --color-footer-bg: #1F2937;
+  --color-accent-rgb: 16 185 129;
   --color-footer-bg-rgb: 31 41 55;
-  --color-footer-text: #F3F4F6;
   --color-footer-text-rgb: 243 244 246;
 
   --background: #ffffff;

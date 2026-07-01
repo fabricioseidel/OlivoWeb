@@ -137,7 +137,6 @@ export async function getBestAutoCoupon(
   customerEmail?: string
 ): Promise<CouponValidation | null> {
   // Obtener cupones auto_apply activos que la fecha permita
-  const now = new Date().toISOString();
   
   const { data: coupons, error } = await supabaseServer
     .from("coupons")

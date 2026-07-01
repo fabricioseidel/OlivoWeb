@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -153,7 +153,7 @@ export async function GET(request: Request) {
       const baseSelect = baseColumns.join(',');
 
       // 1) Intento completo
-      const first = await supabaseAdmin
+      const first = await supabaseServer
         .from('products')
         .select(fullSelect)
         .order('name', { ascending: true });
@@ -168,7 +168,7 @@ export async function GET(request: Request) {
 
       console.warn('[UBER-EATS] Select completo falló, reintentando select mínimo:', first.error);
 
-      return await supabaseAdmin
+      return await supabaseServer
         .from('products')
         .select(baseSelect)
         .order('name', { ascending: true });

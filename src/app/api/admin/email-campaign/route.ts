@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import { sendEmail, getTemplate, renderTemplate } from "@/server/email.service";
 import { requireApiAdmin } from "@/lib/api-auth";
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Fetch active subscribers
-    const { data: subscribers, error: subError } = await supabaseAdmin
+    const { data: subscribers, error: subError } = await supabaseServer
       .from("newsletter_subscribers")
       .select("email, name")
       .eq("is_active", true);

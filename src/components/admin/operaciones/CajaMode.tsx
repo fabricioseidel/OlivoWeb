@@ -6,7 +6,7 @@ import { getCurrentShift, openShiftAction, addCashMovementAction } from "@/actio
 import { useToast } from "@/contexts/ToastContext";
 import { CashShift } from "@/server/shifts.service";
 import {
-  BanknotesIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon,
+  ArrowTrendingUpIcon, ArrowTrendingDownIcon,
   PlusCircleIcon, ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { supabaseServer } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   // Solo admin
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       const trimmed = String(name).trim();
       if (!trimmed) continue;
       // Existe?
-  const { data: existing, error: findErr } = await supabaseAdmin
+  const { data: existing, error: findErr } = await supabaseServer
         .from('categories')
         .select('id')
         .eq('name', trimmed)
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-  const { data: created, error: insErr } = await supabaseAdmin
+  const { data: created, error: insErr } = await supabaseServer
           .from('categories')
           .insert(payload)
           .select('*')

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseServer } from "@/lib/supabase-server";
 import { logger } from "@/utils/logger";
 
 export type DbUser = {
@@ -13,13 +13,13 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
   logger.log("[AUTH-SERVICE] Looking up email:", email);
 
   // First, let's check if there are any users in the table at all
-  const { data: allUsers, error: countError } = await supabaseAdmin
+  const { data: allUsers, error: countError } = await supabaseServer
     .from("users")
     .select("email", { count: 'exact', head: true });
   logger.log("[AUTH-SERVICE] Total users in table:", { count: allUsers, error: countError?.message });
 
   // Also check recent users to see the actual email format
-  const { data: recentUsers } = await supabaseAdmin
+  const { data: recentUsers } = await supabaseServer
     .from("users")
     .select("email,id")
     .order("created_at", { ascending: false })
@@ -38,7 +38,7 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
     if (process.env.NODE_ENV !== 'production') logger.log(`[AUTH-SERVICE] Trying query ${i + 1}:`, sel);
 
     // Use admin client to bypass RLS
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseServer
       .from("users")
       .select(sel)
       .eq("email", email)
