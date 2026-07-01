@@ -1,280 +1,461 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useProducts } from "@/contexts/ProductContext";
 import { isProductVisible } from "@/services/products";
+import { useToast } from "@/contexts/ToastContext";
 import ProductCard from "@/components/ProductCard";
-import CategoryCard from "@/components/CategoryCard";
 import { useCategories } from "@/hooks/useCategories";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 import {
   ChevronRight,
+  ChevronLeft,
   Truck,
-  Shield,
-  BadgeCheck,
   Search,
   Tag,
   Flame,
-  Zap,
+  Star,
+  Package,
+  Send,
+  RotateCcw,
+  PackageOpen,
+  MapPin,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 
-export default function Home() {
-  const { products, loading: productsLoading } = useProducts();
-  const { categories, loading: categoriesLoading } = useCategories();
-  const { settings: storeSettings } = useStoreSettings();
-  const router = useRouter();
-  const [heroQuery, setHeroQuery] = useState("");
+// ── Promotional Banner Carousel ────────────────────────────────────────────────
 
-  const submitHeroSearch = (e: React.FormEvent) => {
+const SLIDES = [
+  {
+    id: "1",
+    title: "Lo mejor de Venezuela",
+    subtitle: "en Chile",
+    description: "Productos auténticos con el sabor de casa. Entregas en 24-48h.",
+    cta: "Ver catálogo",
+    href: "/productos",
+    bg: "from-emerald-700 to-emerald-900",
+    accent: "text-amber-400",
+    badge: "🔥 Más vendidos",
+  },
+  {
+    id: "2",
+    title: "Despacho gratis",
+    subtitle: "desde $25.000",
+    description: "Comprando desde $25.000 en productos seleccionados tu envío no tiene costo.",
+    cta: "Comprar ahora",
+    href: "/productos",
+    bg: "from-blue-700 to-blue-900",
+    accent: "text-yellow-300",
+    badge: "🚚 Envío gratis",
+  },
+  {
+    id: "3",
+    title: "Nuevos productos",
+    subtitle: "cada semana",
+    description: "Seguimos ampliando nuestro catálogo. Descubre lo que llegó esta semana.",
+    cta: "Explorar",
+    href: "/productos",
+    bg: "from-teal-700 to-emerald-900",
+    accent: "text-emerald-300",
+    badge: "✨ Novedades",
+  },
+];
+
+function HeroBanner() {
+  const [current, setCurrent] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  const next = useCallback(() => setCurrent(c => (c + 1) % SLIDES.length), []);
+  const prev = useCallback(() => setCurrent(c => (c - 1 + SLIDES.length) % SLIDES.length), []);
+
+  useEffect(() => {
+    if (paused) return;
+    const t = setInterval(next, 5000);
+    return () => clearInterval(t);
+  }, [paused, next]);
+
+  const slide = SLIDES[current];
+
+  return (
+    <div
+      className="relative overflow-hidden"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className={`bg-gradient-to-r ${slide.bg} transition-colors duration-700`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between py-10 sm:py-14 gap-6 min-h-[220px] sm:min-h-[260px]">
+            <div className="text-center sm:text-left max-w-lg">
+              <span className={`inline-block text-xs font-black uppercase tracking-widest ${slide.accent} mb-2`}>
+                {slide.badge}
+              </span>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight mb-1">
+                {slide.title}{" "}
+                <span className={slide.accent}>{slide.subtitle}</span>
+              </h1>
+              <p className="text-white/70 text-sm sm:text-base mt-2 mb-5 max-w-md">{slide.description}</p>
+              <Link href={slide.href}>
+                <button className="bg-white text-gray-900 hover:bg-gray-100 font-black px-6 h-11 rounded-xl text-sm transition-colors shadow-lg active:scale-95">
+                  {slide.cta} →
+                </button>
+              </Link>
+            </div>
+            <Package className="hidden sm:block w-40 h-40 text-white/10 shrink-0" />
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={prev}
+        aria-label="Slide anterior"
+        className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/20 hover:bg-black/40 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+      <button
+        onClick={next}
+        aria-label="Slide siguiente"
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/20 hover:bg-black/40 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
+
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+        {SLIDES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            aria-label={`Ir al slide ${i + 1}`}
+            className={`rounded-full transition-all ${i === current ? "w-5 h-2 bg-white" : "w-2 h-2 bg-white/40"}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Shipping Strip ─────────────────────────────────────────────────────────────
+
+function ShippingStrip() {
+  return (
+    <div className="bg-emerald-600 text-white">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-8 gap-y-1.5 py-2.5 text-[11px] sm:text-xs font-bold uppercase tracking-wide">
+          {[
+            { icon: Truck, text: "Despacho gratis desde $25.000" },
+            { icon: Star, text: "Calidad garantizada" },
+            { icon: Tag, text: "Precios competitivos" },
+          ].map(({ icon: Icon, text }) => (
+            <span key={text} className="flex items-center gap-1.5">
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              {text}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Search Bar ─────────────────────────────────────────────────────────────────
+
+function SearchBar() {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const q = heroQuery.trim();
+    const q = query.trim();
     router.push(q ? `/productos?q=${encodeURIComponent(q)}` : "/productos");
   };
 
-  const heroTitle = storeSettings?.heroTitle || "Sabor que te conecta con casa";
-  const heroDescription = storeSettings?.heroDescription || "Llevamos lo mejor de Venezuela directo a tu puerta en Chile.";
+  return (
+    <div className="bg-white border-b border-gray-100 py-3 px-4">
+      <div className="max-w-3xl mx-auto">
+        <form onSubmit={submit} className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <input
+            type="search"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar productos… ej: harina pan, malta, hallacas"
+            className="w-full h-11 pl-11 pr-24 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:bg-white transition-all"
+          />
+          <button
+            type="submit"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 px-4 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition-colors active:scale-95"
+          >
+            Buscar
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
 
-  const visible = products.filter(p => p.isActive && isProductVisible(p));
-  const featured = visible.filter(p => p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
-  const rest = visible.filter(p => !p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
-  const topSellers = [...featured, ...rest].slice(0, 10);
-  const offerProducts = visible.filter(p => p.offerPrice && p.offerPrice < p.price).slice(0, 10);
-  const moreProducts = [...featured, ...rest].slice(10, 20);
+// ── Category Strip ─────────────────────────────────────────────────────────────
 
-  const blocks = storeSettings?.appearance?.blocks?.filter(b => b.enabled) ?? [];
-  const hasBlocks = blocks.length > 0;
+function CategoryStrip() {
+  const { categories, loading } = useCategories();
+
+  if (loading) {
+    return (
+      <div className="bg-white border-b border-gray-100 py-2.5 px-4 overflow-hidden">
+        <div className="max-w-7xl mx-auto flex gap-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-8 w-28 bg-gray-100 rounded-full animate-pulse shrink-0" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const sorted = [...categories].sort((a, b) => a.name.localeCompare(b.name, "es"));
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* ── HERO BANNER ── */}
-      <section className="bg-[#1a4731] relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 py-8 md:py-10 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 items-center">
-          {/* Left: text + search */}
-          <div className="text-white">
-            <p className="text-emerald-300 font-bold text-xs uppercase tracking-widest mb-2">🌿 Productos venezolanos premium</p>
-            <h1 className="text-3xl md:text-5xl font-black leading-tight mb-2 tracking-tight">
-              {heroTitle}
-            </h1>
-            <p className="text-emerald-100/70 text-sm md:text-base mb-5 max-w-md">
-              {heroDescription}
-            </p>
-            <form onSubmit={submitHeroSearch} className="flex max-w-xl gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                <input
-                  type="search"
-                  value={heroQuery}
-                  onChange={(e) => setHeroQuery(e.target.value)}
-                  placeholder="Buscar productos..."
-                  className="w-full h-12 pl-11 pr-4 rounded-xl bg-white text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                />
-              </div>
-              <button
-                type="submit"
-                className="h-12 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-colors"
-              >
-                Buscar
-              </button>
-            </form>
-            <div className="flex flex-wrap gap-3 mt-5">
-              <Link href="/productos" className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
-                Comprar ahora <ChevronRight className="w-4 h-4" />
-              </Link>
-              <Link href="/ofertas" className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
-                <Tag className="w-4 h-4 text-amber-400" /> Ver ofertas
-              </Link>
-            </div>
-          </div>
-
-          {/* Right: promo cards */}
-          <div className="hidden lg:grid grid-cols-2 gap-3">
-            <Link href="/ofertas" className="col-span-2 bg-amber-400/20 border border-amber-400/30 rounded-2xl p-5 text-center hover:bg-amber-400/30 transition-colors">
-              <p className="text-amber-300 text-xs font-black uppercase tracking-widest mb-1">Ofertas especiales</p>
-              <p className="text-white text-4xl font-black">40% OFF</p>
-              <p className="text-amber-200/70 text-xs mt-1">en productos seleccionados</p>
-            </Link>
-            <div className="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3">
-              <Truck className="w-8 h-8 text-emerald-400 shrink-0" />
-              <div>
-                <p className="text-white font-black text-sm leading-tight">Envío rápido</p>
-                <p className="text-emerald-300/70 text-xs">Llega en 24-48h</p>
-              </div>
-            </div>
-            <div className="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3">
-              <BadgeCheck className="w-8 h-8 text-emerald-400 shrink-0" />
-              <div>
-                <p className="text-white font-black text-sm leading-tight">100% garantizado</p>
-                <p className="text-emerald-300/70 text-xs">Calidad asegurada</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Benefits bar */}
-        <div className="border-t border-white/10 bg-black/20">
-          <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap justify-center sm:justify-between gap-y-2 divide-x divide-white/10">
-            {[
-              { icon: Truck,      text: "Envío en 24-48h" },
-              { icon: BadgeCheck, text: "Calidad garantizada" },
-              { icon: Shield,     text: "Pago 100% seguro" },
-            ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-2 px-4 sm:px-8">
-                <Icon className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-[11px] font-bold text-emerald-100/70 uppercase tracking-wider whitespace-nowrap">{text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CATEGORÍAS (horizontal) ── */}
-      <section className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
-          <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-bold whitespace-nowrap hover:bg-emerald-500 transition-colors">
+    <div className="bg-white border-b border-gray-100">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex items-center gap-2 py-2.5 overflow-x-auto scrollbar-none">
+          <Link
+            href="/productos"
+            className="shrink-0 flex items-center gap-1.5 px-4 h-8 rounded-full bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 transition-colors whitespace-nowrap"
+          >
+            <Flame className="w-3.5 h-3.5" />
             Todo
           </Link>
-          {!categoriesLoading && [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map(cat => (
-            <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}
-              className="shrink-0 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 text-xs font-bold whitespace-nowrap transition-colors">
+          {sorted.map(cat => (
+            <Link
+              key={cat.id}
+              href={`/productos?categoria=${cat.slug || cat.id}`}
+              className="shrink-0 px-4 h-8 rounded-full border border-gray-200 bg-white text-gray-700 text-xs font-semibold hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors whitespace-nowrap"
+            >
               {cat.name}
             </Link>
           ))}
         </div>
-      </section>
+      </div>
+    </div>
+  );
+}
 
-      {/* ── LO MÁS VENDIDO ── */}
-      <ProductSection
-        title="Lo más vendido"
-        icon={<Flame className="w-5 h-5 text-orange-500" />}
-        products={topSellers}
-        loading={productsLoading}
-        href="/productos"
-      />
+// ── Promo Banners Row ──────────────────────────────────────────────────────────
 
-      {/* ── BANNER PROMOCIONAL ── */}
-      <section className="py-4 px-4 max-w-7xl mx-auto">
-        <Link href="/ofertas" className="block rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 p-6 md:p-8 relative overflow-hidden hover:opacity-95 transition-opacity">
-          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-orange-600/40 to-transparent" />
-          <p className="text-white/80 text-xs font-black uppercase tracking-widest mb-1">Tiempo limitado</p>
-          <p className="text-white text-2xl md:text-4xl font-black leading-tight">Descuentos hasta<br /><span className="text-5xl md:text-6xl">40% OFF</span></p>
-          <p className="text-white/70 text-sm mt-2">En productos seleccionados de toda la tienda</p>
-          <span className="inline-flex items-center gap-1 mt-4 bg-white text-orange-600 font-black text-sm px-5 h-9 rounded-lg">
-            Ver ofertas <ChevronRight className="w-4 h-4" />
-          </span>
-        </Link>
-      </section>
-
-      {/* ── OFERTAS ── */}
-      {offerProducts.length > 0 && (
-        <ProductSection
-          title="Ofertas especiales"
-          icon={<Tag className="w-5 h-5 text-red-500" />}
-          products={offerProducts}
-          loading={productsLoading}
-          href="/ofertas"
-        />
-      )}
-
-      {/* ── CATEGORÍAS VISUALES ── */}
-      <section className="py-8 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <SectionHeader title="Nuestras categorías" icon={null} href="/productos" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {categoriesLoading
-              ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-28 bg-gray-100 animate-pulse rounded-2xl" />)
-              : [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).slice(0, 6).map(cat => (
-                  <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}>
-                    <CategoryCard category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null }} />
-                  </Link>
-                ))
-            }
-          </div>
-          {categories.length > 6 && (
-            <div className="text-center mt-4">
-              <Link href="/categorias" className="inline-flex items-center gap-1 text-sm font-bold text-emerald-600 hover:text-emerald-700">
-                Ver todas las categorías <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-          )}
+function PromoBannersRow() {
+  return (
+    <div className="bg-white py-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { title: "Envío a domicilio", desc: "Recibe en 24-48h", icon: Truck, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100", href: "/productos" },
+            { title: "Pago contra entrega", desc: "Paga al recibir tu pedido", icon: Tag, color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100", href: "/productos" },
+            { title: "Retiro en tienda", desc: "Sin costo adicional", icon: MapPin, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100", href: "/productos" },
+          ].map(({ title, desc, icon: Icon, color, bg, border, href }) => (
+            <Link
+              key={title}
+              href={href}
+              className={`flex items-center gap-3 p-4 rounded-2xl border ${border} ${bg} hover:shadow-md transition-all group`}
+            >
+              <div className={`w-10 h-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm`}>
+                <Icon className={`w-5 h-5 ${color}`} />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-sm font-black text-gray-900 group-hover:${color} transition-colors`}>{title}</p>
+                <p className="text-xs text-gray-500 truncate">{desc}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 ml-auto shrink-0 transition-colors" />
+            </Link>
+          ))}
         </div>
-      </section>
+      </div>
+    </div>
+  );
+}
 
-      {/* ── MÁS PRODUCTOS ── */}
-      {moreProducts.length > 0 && (
-        <ProductSection
-          title="Más productos"
-          icon={<Zap className="w-5 h-5 text-emerald-600" />}
-          products={moreProducts}
-          loading={productsLoading}
-          href="/productos"
-          bg="bg-white"
-        />
-      )}
+// ── Products Section ───────────────────────────────────────────────────────────
 
-      {/* ── VER TODOS ── */}
-      <section className="py-10 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <Link href="/productos"
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base px-10 h-14 rounded-xl transition-colors shadow-lg shadow-emerald-600/20">
-            Ver todos los productos <ChevronRight className="w-5 h-5" />
+function ProductsSection({ title, limit }: { title: string; limit: number }) {
+  const { products, loading } = useProducts();
+
+  const visible = products.filter(p => p.isActive && isProductVisible(p));
+  const featured = visible.filter(p => p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const rest = visible.filter(p => !p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const items = [...featured, ...rest].slice(0, limit);
+
+  return (
+    <section className="py-6 sm:py-8 bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between mb-4 sm:mb-5">
+          <h2 className="text-lg sm:text-xl font-black text-gray-900 flex items-center gap-2">
+            <Flame className="w-5 h-5 text-orange-500" />
+            {title}
+          </h2>
+          <Link href="/productos" className="flex items-center gap-0.5 text-xs sm:text-sm font-bold text-emerald-600 hover:text-emerald-700 transition-colors">
+            Ver todos <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-      </section>
-    </div>
-  );
-}
 
-/* ── Helpers ── */
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+            {Array.from({ length: limit }).map((_, i) => (
+              <div key={i} className="h-64 bg-gray-200 animate-pulse rounded-2xl" />
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-16 text-gray-400 text-sm">No hay productos disponibles aún.</div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+            {items.map(product => (
+              <ProductCard
+                key={product.id}
+                product={{ ...product, slug: product.slug || product.id, categories: product.categories || [] } as any}
+              />
+            ))}
+          </div>
+        )}
 
-function SectionHeader({ title, icon, href }: { title: string; icon: React.ReactNode; href: string }) {
-  return (
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-2">
-        {icon}
-        <h2 className="text-xl font-black text-gray-900">{title}</h2>
+        {items.length > 0 && (
+          <div className="text-center mt-6">
+            <Link href="/productos">
+              <Button className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-emerald-300 hover:text-emerald-700 rounded-xl px-8 h-10 text-sm font-bold transition-all shadow-sm">
+                Ver más productos <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
-      <Link href={href} className="text-sm font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-        Ver todos <ChevronRight className="w-4 h-4" />
-      </Link>
-    </div>
+    </section>
   );
 }
 
-function ProductSection({
-  title,
-  icon,
-  products,
-  loading,
-  href,
-  bg = "bg-gray-50",
-}: {
-  title: string;
-  icon: React.ReactNode;
-  products: any[];
-  loading: boolean;
-  href: string;
-  bg?: string;
-}) {
+// ── Logistics Section ──────────────────────────────────────────────────────────
+
+function LogisticsSection() {
   return (
-    <section className={`py-8 ${bg}`}>
-      <div className="max-w-7xl mx-auto px-4">
-        <SectionHeader title={title} icon={icon} href={href} />
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-          {loading
-            ? Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className="h-64 bg-gray-100 animate-pulse rounded-2xl" />
-              ))
-            : products.map(product => (
-                <ProductCard
-                  key={product.id}
-                  product={{ ...product, slug: product.slug || product.id, categories: product.categories || [] } as any}
-                />
-              ))
-          }
+    <section className="py-8 bg-white border-t border-gray-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg sm:text-xl font-black text-gray-900">Centro Logístico Olivo</h2>
+          <Link href="/centro-logistico" className="flex items-center gap-0.5 text-xs sm:text-sm font-bold text-emerald-600 hover:text-emerald-700">
+            Ver más <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { icon: PackageOpen, title: "Recibe", desc: "Punto pick-up oficial de MercadoLibre", color: "text-blue-600", bg: "bg-blue-50" },
+            { icon: Send, title: "Envía", desc: "Bluexpress, Chilexpress, Correos", color: "text-emerald-600", bg: "bg-emerald-50" },
+            { icon: RotateCcw, title: "Devuelve", desc: "Gestiona devoluciones fácil y rápido", color: "text-amber-600", bg: "bg-amber-50" },
+          ].map(({ icon: Icon, title, desc, color, bg }) => (
+            <div key={title} className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:shadow-md transition-all">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
+                <Icon className={`w-5 h-5 ${color}`} />
+              </div>
+              <div>
+                <p className="text-sm font-black text-gray-900">{title}</p>
+                <p className="text-xs text-gray-500">{desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
+  );
+}
+
+// ── Newsletter Section ─────────────────────────────────────────────────────────
+
+function NewsletterSection() {
+  return (
+    <section className="bg-emerald-700 py-8 sm:py-10">
+      <div className="max-w-2xl mx-auto px-4 text-center">
+        <Sparkles className="w-6 h-6 text-emerald-300 mx-auto mb-2" />
+        <h2 className="text-xl sm:text-2xl font-black text-white mb-1">¡Suscríbete y llévate 10% OFF!</h2>
+        <p className="text-emerald-200 text-sm mb-5">Recibe nuestras mejores ofertas en tu email. Sin spam.</p>
+        <NewsletterForm />
+      </div>
+    </section>
+  );
+}
+
+// ── Newsletter Form ────────────────────────────────────────────────────────────
+
+function NewsletterForm() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes("@")) {
+      showToast("Por favor, ingresa un email válido", "error");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, source: "homepage_footer" }),
+      });
+      if (res.ok) {
+        showToast("¡Gracias por suscribirte! Revisa tu email.", "success");
+        setEmail("");
+      } else {
+        const data = await res.json();
+        showToast(data.error || "Error al suscribirse", "error");
+      }
+    } catch {
+      showToast("Hubo un problema al conectar con el servidor", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubscribe} className="flex gap-2 max-w-md mx-auto">
+      <Input
+        type="email"
+        required
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        placeholder="tu@email.com"
+        className="flex-1 bg-white/15 border-white/30 text-white placeholder-white/50 focus:ring-white focus:border-white rounded-xl h-11"
+      />
+      <Button
+        type="submit"
+        loading={loading}
+        className="bg-white text-emerald-700 hover:bg-gray-100 border-none h-11 px-5 rounded-xl font-black text-sm shrink-0 transition-colors active:scale-95"
+      >
+        Suscribirme
+      </Button>
+    </form>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+
+export default function Home() {
+  const { settings: storeSettings } = useStoreSettings();
+
+  const blocks = storeSettings?.appearance?.blocks?.filter(b => b.enabled) ?? [];
+  const productsBlock = blocks.find(b => b.type === "products");
+  const productLimit = productsBlock?.itemsToShow ?? 10;
+  const productTitle = productsBlock?.title ?? "Lo más vendido";
+
+  return (
+    <div className="bg-gray-50 min-h-screen">
+      <ShippingStrip />
+      <HeroBanner />
+      <SearchBar />
+      <CategoryStrip />
+      <PromoBannersRow />
+      <ProductsSection title={productTitle} limit={productLimit} />
+      <LogisticsSection />
+      <NewsletterSection />
+    </div>
   );
 }
