@@ -2,7 +2,7 @@
 
 import { memo, useRef } from "react";
 import { hasRealImage } from "@/services/products";
-import { CheckBadgeIcon, ClipboardDocumentIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { CheckBadgeIcon, ClipboardDocumentIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useToast } from "@/contexts/ToastContext";
 import { isProductReady, type ProductChanges } from "../lib";
 import CategorySelector from "./CategorySelector";
@@ -14,6 +14,7 @@ const EditableRow = memo(function EditableRow({
   pendingImage,
   onImagePick,
   onClearPendingImage,
+  onDelete,
 }: {
   product: any;
   changes?: ProductChanges;
@@ -21,6 +22,7 @@ const EditableRow = memo(function EditableRow({
   pendingImage?: string;
   onImagePick: (productId: string, file?: File) => void;
   onClearPendingImage: (productId: string) => void;
+  onDelete: (productId: string, name: string) => void;
 }) {
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -95,9 +97,9 @@ const EditableRow = memo(function EditableRow({
                   }
                 }}
                 title="Copiar nombre"
-                className="shrink-0 p-1 rounded-md text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
               >
-                <ClipboardDocumentIcon className="w-3.5 h-3.5" />
+                <ClipboardDocumentIcon className="w-5 h-5" />
               </button>
             </div>
             <div className="flex items-center gap-2 px-1 mt-0.5">
@@ -195,6 +197,16 @@ const EditableRow = memo(function EditableRow({
             }`}
           />
         </div>
+      </td>
+      <td className="px-3 py-2.5 text-center w-16">
+        <button
+          type="button"
+          onClick={() => onDelete(product.id, changes?.name ?? product.name)}
+          title="Eliminar producto"
+          className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-300 hover:text-red-600 hover:bg-red-50 transition-colors"
+        >
+          <TrashIcon className="w-4 h-4" />
+        </button>
       </td>
     </tr>
   );

@@ -2,7 +2,7 @@
 
 import { memo, useRef } from "react";
 import { hasRealImage } from "@/services/products";
-import { CheckBadgeIcon, CheckIcon, ClipboardDocumentIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { CheckBadgeIcon, CheckIcon, ClipboardDocumentIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useToast } from "@/contexts/ToastContext";
 import { isProductReady, type ProductChanges } from "../lib";
 import CategorySelector from "./CategorySelector";
@@ -16,6 +16,7 @@ const ProductCard = memo(function ProductCard({
   pendingImage,
   onImagePick,
   onClearPendingImage,
+  onDelete,
 }: {
   product: any;
   changes?: ProductChanges;
@@ -25,6 +26,7 @@ const ProductCard = memo(function ProductCard({
   pendingImage?: string;
   onImagePick: (productId: string, file?: File) => void;
   onClearPendingImage: (productId: string) => void;
+  onDelete: (productId: string, name: string) => void;
 }) {
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -122,15 +124,19 @@ const ProductCard = memo(function ProductCard({
       </div>
 
       <div className="p-3 space-y-2">
+        <input
+          type="text"
+          value={changes?.name ?? product.name}
+          onChange={(e) => onChange(product.id, "name", e.target.value)}
+          className={`w-full text-sm font-black leading-tight bg-transparent border-b-2 pb-1 transition-all focus:outline-none focus:border-emerald-500 truncate ${
+            changes?.name !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-900 hover:border-gray-200"
+          }`}
+        />
+        <p className="text-[9px] font-black text-gray-400 tracking-tighter uppercase truncate opacity-60">
+          SKU: {product.barcode || String(product.id).slice(0, 15)}
+        </p>
+
         <div className="flex items-center gap-1.5">
-          <input
-            type="text"
-            value={changes?.name ?? product.name}
-            onChange={(e) => onChange(product.id, "name", e.target.value)}
-            className={`flex-1 min-w-0 text-sm font-black leading-tight bg-transparent border-b-2 pb-1 transition-all focus:outline-none focus:border-emerald-500 truncate ${
-              changes?.name !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-900 hover:border-gray-200"
-            }`}
-          />
           <button
             type="button"
             onClick={async () => {
@@ -142,14 +148,20 @@ const ProductCard = memo(function ProductCard({
               }
             }}
             title="Copiar nombre"
-            className="flex-shrink-0 p-1 rounded-md text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+            className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 text-[11px] font-black uppercase tracking-wide hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 transition-colors"
           >
             <ClipboardDocumentIcon className="w-4 h-4" />
+            Copiar nombre
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(product.id, changes?.name ?? product.name)}
+            title="Eliminar producto"
+            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-400 hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-colors"
+          >
+            <TrashIcon className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-[9px] font-black text-gray-400 tracking-tighter uppercase truncate opacity-60">
-          SKU: {product.barcode || String(product.id).slice(0, 15)}
-        </p>
 
         {missing.length > 0 && (
           <div className="flex flex-wrap gap-1">

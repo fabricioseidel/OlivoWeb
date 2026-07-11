@@ -13,6 +13,7 @@ interface ProductCardsGridProps {
   pendingImages: Record<string, string>;
   onImagePick: (productId: string, file?: File) => void;
   onClearPendingImage: (productId: string) => void;
+  onDelete: (productId: string, name: string) => void;
 }
 
 export default function ProductCardsGrid({
@@ -25,6 +26,7 @@ export default function ProductCardsGrid({
   pendingImages,
   onImagePick,
   onClearPendingImage,
+  onDelete,
 }: ProductCardsGridProps) {
   return (
     <div
@@ -45,6 +47,7 @@ export default function ProductCardsGrid({
           pendingImage={pendingImages[product.id]}
           onImagePick={onImagePick}
           onClearPendingImage={onClearPendingImage}
+          onDelete={onDelete}
         />
       ))}
     </div>

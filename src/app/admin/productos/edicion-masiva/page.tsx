@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue } from "react";
 import { useProducts } from "@/contexts/ProductContext";
 import { useCategories } from "@/contexts/CategoryContext";
+import { useConfirm } from "@/contexts/ConfirmContext";
 import { hasRealImage } from "@/services/products";
 import { useToast } from "@/contexts/ToastContext";
 import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
@@ -32,9 +33,10 @@ import ProductCardsGrid from "./components/ProductCardsGrid";
 import MobileSaveBar from "./components/MobileSaveBar";
 
 export default function BulkEditProductsPage() {
-  const { products, updateProductsBulk } = useProducts();
+  const { products, loading: productsLoading, updateProductsBulk, deleteProduct } = useProducts();
   const { categories: allCategories } = useCategories();
   const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -205,6 +207,38 @@ export default function BulkEditProductsPage() {
       return next;
     });
   }, []);
+
+  const handleDeleteProduct = useCallback(async (productId: string, name: string) => {
+    const confirmed = await confirm({
+      title: "Eliminar producto",
+      message: `¿Estás seguro de que deseas eliminar el producto "${name}"? Esta acción no se puede deshacer.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+    });
+    if (!confirmed) return;
+
+    try {
+      await deleteProduct(productId);
+      setEditedChanges((prev) => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
+      setPendingImages((prev) => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+      showToast(`Producto "${name}" eliminado correctamente`, "success");
+    } catch {
+      showToast("No se pudo eliminar el producto", "error");
+    }
+  }, [confirm, deleteProduct, showToast]);
 
   // Las acciones masivas se aplican a la selección si hay productos seleccionados;
   // si no, a todos los filtrados visibles.
@@ -580,55 +614,67 @@ export default function BulkEditProductsPage() {
       />
 
       <div className="relative">
-        {(viewMode === "cards" || selectedIds.size > 0) && (
-          <SelectionToolbar
-            visibleProductsCount={visibleProducts.length}
-            selectedCount={selectedIds.size}
-            onSelectAllVisible={selectAllVisible}
-            onClearSelection={() => setSelectedIds(new Set())}
-          />
-        )}
-
-        {viewMode === "table" && (
-          <ProductTable
-            visibleProducts={visibleProducts}
-            editedChanges={editedChanges}
-            onChange={handleInputChange}
-            pendingImages={pendingImages}
-            onImagePick={handleImagePick}
-            onClearPendingImage={clearPendingImage}
-          />
-        )}
-
-        <ProductCardsGrid
-          viewMode={viewMode}
-          visibleProducts={visibleProducts}
-          editedChanges={editedChanges}
-          onChange={handleInputChange}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
-          pendingImages={pendingImages}
-          onImagePick={handleImagePick}
-          onClearPendingImage={clearPendingImage}
-        />
-
-        {filteredProducts.length > visibleCount && (
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-              className="px-8 h-12 rounded-2xl bg-white border-2 border-gray-200 hover:border-emerald-400 font-black text-xs uppercase tracking-widest text-gray-500 hover:text-emerald-600 transition-colors shadow-sm"
-            >
-              Mostrar más ({filteredProducts.length - visibleCount} restantes)
-            </button>
+        {productsLoading && localProducts.length === 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+            {Array.from({ length: PAGE_SIZE / 4 }).map((_, i) => (
+              <div key={i} className="h-64 bg-gray-100 animate-pulse rounded-3xl" />
+            ))}
           </div>
-        )}
+        ) : (
+          <>
+            {(viewMode === "cards" || selectedIds.size > 0) && (
+              <SelectionToolbar
+                visibleProductsCount={visibleProducts.length}
+                selectedCount={selectedIds.size}
+                onSelectAllVisible={selectAllVisible}
+                onClearSelection={() => setSelectedIds(new Set())}
+              />
+            )}
 
-        {filteredProducts.length === 0 && (
-          <div className="py-24 md:py-32 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-gray-100">
-            <div className="bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">🔍</div>
-            <p className="text-xl font-black text-gray-300 mb-1 tracking-widest uppercase">Sin productos</p>
-            <p className="text-sm text-gray-400 font-medium italic">Prueba con términos más generales.</p>
-          </div>
+            {viewMode === "table" && (
+              <ProductTable
+                visibleProducts={visibleProducts}
+                editedChanges={editedChanges}
+                onChange={handleInputChange}
+                pendingImages={pendingImages}
+                onImagePick={handleImagePick}
+                onClearPendingImage={clearPendingImage}
+                onDelete={handleDeleteProduct}
+              />
+            )}
+
+            <ProductCardsGrid
+              viewMode={viewMode}
+              visibleProducts={visibleProducts}
+              editedChanges={editedChanges}
+              onChange={handleInputChange}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              pendingImages={pendingImages}
+              onImagePick={handleImagePick}
+              onClearPendingImage={clearPendingImage}
+              onDelete={handleDeleteProduct}
+            />
+
+            {filteredProducts.length > visibleCount && (
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                  className="px-8 h-12 rounded-2xl bg-white border-2 border-gray-200 hover:border-emerald-400 font-black text-xs uppercase tracking-widest text-gray-500 hover:text-emerald-600 transition-colors shadow-sm"
+                >
+                  Mostrar más ({filteredProducts.length - visibleCount} restantes)
+                </button>
+              </div>
+            )}
+
+            {filteredProducts.length === 0 && (
+              <div className="py-24 md:py-32 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-gray-100">
+                <div className="bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">🔍</div>
+                <p className="text-xl font-black text-gray-300 mb-1 tracking-widest uppercase">Sin productos</p>
+                <p className="text-sm text-gray-400 font-medium italic">Prueba con términos más generales.</p>
+              </div>
+            )}
+          </>
         )}
       </div>
 

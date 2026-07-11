@@ -10,6 +10,7 @@ interface ProductTableProps {
   pendingImages: Record<string, string>;
   onImagePick: (productId: string, file?: File) => void;
   onClearPendingImage: (productId: string) => void;
+  onDelete: (productId: string, name: string) => void;
 }
 
 export default function ProductTable({
@@ -19,6 +20,7 @@ export default function ProductTable({
   pendingImages,
   onImagePick,
   onClearPendingImage,
+  onDelete,
 }: ProductTableProps) {
   return (
     <div className="hidden lg:block bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/40 border border-gray-50 overflow-hidden">
@@ -32,6 +34,7 @@ export default function ProductTable({
             <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-24 text-right">Stock</th>
             <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-20 text-right">Mín.</th>
             <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-20 text-right">Ópt.</th>
+            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-16 text-center">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
@@ -44,6 +47,7 @@ export default function ProductTable({
               pendingImage={pendingImages[product.id]}
               onImagePick={onImagePick}
               onClearPendingImage={onClearPendingImage}
+              onDelete={onDelete}
             />
           ))}
         </tbody>
