@@ -9,13 +9,34 @@ import { ProductProvider } from "@/contexts/ProductContext";
 import { CategoryProvider } from "@/contexts/CategoryContext";
 import { DevErrorBoundary } from "@/components/debug/DevErrorBoundary";
 import { ClickTracker } from "@/components/debug/ClickTracker";
+import { supabase } from "@/lib/supabase";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "Olivo Market",
-  description: "Productos venezolanos premium en Chile",
-};
+// El favicon por defecto de Next.js (src/app/favicon.ico) es el triángulo de
+// Vercel; usamos el favicon o logo configurado en Admin → Configuración →
+// Apariencia si existe, para que la pestaña muestre la marca de la tienda.
+export const revalidate = 3600;
+
+export async function generateMetadata(): Promise<Metadata> {
+  let iconUrl: string | undefined;
+  try {
+    const { data } = await supabase
+      .from("settings")
+      .select("favicon_url, logo_url")
+      .eq("id", true)
+      .single();
+    iconUrl = data?.favicon_url || data?.logo_url || undefined;
+  } catch {
+    // Sin settings disponibles: cae al favicon.ico estático por defecto.
+  }
+
+  return {
+    title: "Olivo Market",
+    description: "Productos venezolanos premium en Chile",
+    ...(iconUrl ? { icons: { icon: iconUrl } } : {}),
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",

@@ -74,18 +74,10 @@ export function SettingsInjector() {
       document.title = settings.seoTitle;
     }
 
-    // Favicon: solo actualizar/crear NUESTRO link (no tocar el de Next.js, eso rompe React)
-    const faviconUrl = settings.appearance?.faviconUrl;
-    if (faviconUrl && (faviconUrl.startsWith('https://') || faviconUrl.startsWith('http://'))) {
-      let link = document.querySelector("link[rel='icon'][data-injected='settings']") as HTMLLinkElement | null;
-      if (!link) {
-        link = document.createElement("link");
-        link.rel = "icon";
-        link.setAttribute("data-injected", "settings");
-        document.head.appendChild(link);
-      }
-      if (link.href !== faviconUrl) link.href = faviconUrl;
-    }
+    // El favicon se resuelve server-side en generateMetadata (src/app/layout.tsx)
+    // a partir de favicon_url/logo_url, para que quede en el HTML inicial y el
+    // navegador lo muestre desde el primer render (inyectarlo por JS aquí llegaba
+    // tarde y el navegador no siempre lo tomaba).
   }, [settings]);
 
   return null;

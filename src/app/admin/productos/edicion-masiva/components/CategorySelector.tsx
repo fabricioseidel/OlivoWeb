@@ -34,13 +34,20 @@ export default function CategorySelector({ value, isDirty, onChange }: { value: 
       if (panelRef.current?.contains(e.target as Node) || btnRef.current?.contains(e.target as Node)) return;
       setOpen(false);
     };
+    // Cierra si la página/tabla detrás se desplaza (el panel es position:fixed y
+    // quedaría desalineado), pero ignora el scroll que ocurre dentro del propio
+    // panel — si no, listar categorías con scroll lo cerraba de inmediato.
+    const closeOnOutsideScroll = (e: Event) => {
+      if (panelRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
     const close = () => setOpen(false);
     document.addEventListener("mousedown", onClickOutside);
-    window.addEventListener("scroll", close, true);
+    window.addEventListener("scroll", closeOnOutsideScroll, true);
     window.addEventListener("resize", close);
     return () => {
       document.removeEventListener("mousedown", onClickOutside);
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("scroll", closeOnOutsideScroll, true);
       window.removeEventListener("resize", close);
     };
   }, [open]);
