@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
+import { slugify, toTitleCase } from '@/utils/string-utils';
 
 export async function POST(request: NextRequest) {
   // Solo admin
@@ -22,41 +23,41 @@ export async function POST(request: NextRequest) {
 
     const createdCategories: any[] = [];
 
-    const normalizeSlug = (value: string) => String(value)
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
+    // Comparar/insertar por nombre exacto (case-sensitive) creaba entradas
+    // duplicadas en minúscula ("agua") separadas de una ya existente en
+    // Title Case ("Agua"). Se normaliza el nombre a insertar y la
+    // verificación de existencia es case-insensitive.
+    const { data: existingCategories, error: existingErr } = await supabaseServer
+      .from('categories')
+      .select('name');
+    if (existingErr) throw existingErr;
+    const existingLower = new Set((existingCategories || []).map((c: any) => String(c.name).trim().toLowerCase()));
 
     for (const name of categories as string[]) {
       const trimmed = String(name).trim();
       if (!trimmed) continue;
-      // Existe?
-  const { data: existing, error: findErr } = await supabaseServer
+      if (existingLower.has(trimmed.toLowerCase())) continue;
+
+      const normalizedName = toTitleCase(trimmed);
+      if (existingLower.has(normalizedName.toLowerCase())) continue;
+
+      const payload = {
+        name: normalizedName,
+        slug: slugify(normalizedName),
+        description: `Categoría ${normalizedName}`,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      const { data: created, error: insErr } = await supabaseServer
         .from('categories')
-        .select('id')
-        .eq('name', trimmed)
+        .insert(payload)
+        .select('*')
         .maybeSingle();
-      if (findErr) throw findErr;
-      if (!existing) {
-        const payload = {
-          name: trimmed,
-          slug: normalizeSlug(trimmed),
-          description: `Categoría ${trimmed}`,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-  const { data: created, error: insErr } = await supabaseServer
-          .from('categories')
-          .insert(payload)
-          .select('*')
-          .maybeSingle();
-        if (insErr) throw insErr;
-        if (created) createdCategories.push(created);
+      if (insErr) throw insErr;
+      if (created) {
+        createdCategories.push(created);
+        existingLower.add(normalizedName.toLowerCase());
       }
     }
 

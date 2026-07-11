@@ -39,5 +39,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Si la BD no está disponible, devolver al menos las páginas estáticas
   }
 
-  return [...staticPages, ...productPages];
+  let categoryPages: MetadataRoute.Sitemap = [];
+  try {
+    const { data: categories } = await supabaseServer
+      .from('categories')
+      .select('name, slug, updated_at')
+      .eq('is_active', true);
+
+    categoryPages = (categories || [])
+      .filter((c) => c.name)
+      .map((c) => ({
+        url: `${base}/categorias/${c.slug || slugify(c.name)}`,
+        lastModified: c.updated_at ? new Date(c.updated_at) : undefined,
+        priority: 0.6,
+        changeFrequency: 'weekly' as const,
+      }));
+  } catch {
+    // Si la BD no está disponible, devolver al menos las páginas estáticas
+  }
+
+  return [...staticPages, ...categoryPages, ...productPages];
 }

@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { supabaseServer } from "@/lib/supabase-server";
 import { uploadImageToSupabase } from "@/utils/supabaseStorage";
+import { categoryTokenMatches, replaceCategoryToken } from "@/lib/category-tokens";
+import { slugify } from "@/utils/string-utils";
 
 export const dynamic = 'force-dynamic';
 
@@ -20,23 +22,24 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const name: string = data.name ?? data.label ?? "";
-    // Contar productos relacionados por coincidencia de categoría (texto)
-    const { count, error: countErr } = await supabase
+    // Contar productos relacionados por token exacto de categoría (no substring:
+    // "Te" no debe matchear "Aceite" ni "Detergente").
+    const { data: productsData, error: productsErr } = await supabase
       .from("products")
-      .select("barcode", { count: 'exact', head: true })
-      .ilike("category", `%${name}%`);
-    if (countErr) throw countErr;
+      .select("category");
+    if (productsErr) throw productsErr;
+    const count = (productsData || []).filter((p: any) => categoryTokenMatches(p.category, name)).length;
 
     return NextResponse.json({
       id: String(data.id ?? name),
       name,
-      slug: data.slug ?? (name ? String(name).toLowerCase().replace(/[^a-z0-9]+/gi, "-") : undefined),
+      slug: data.slug ?? (name ? slugify(String(name)) : undefined),
       description: data.description ?? data.desc ?? null,
       image: data.image_url ?? null, // Use correct column name
       isActive: data.is_active ?? true, // Use correct column name
       createdAt: data.created_at ?? data.createdAt ?? null,
       updatedAt: data.updated_at ?? data.updatedAt ?? null,
-      productsCount: count ?? 0,
+      productsCount: count,
     });
   } catch (e) {
     console.error(e);
@@ -89,6 +92,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       console.error('Error saving category image:', e?.message || e);
     }
     const { name, slug, description, isActive, image } = body;
+
+    // Necesitamos el nombre ANTERIOR para poder migrar los productos que lo
+    // referencian si el nombre cambia (products.category es texto libre, no
+    // hay FK — sin esto, renombrar una categoría huérfana silenciosamente a
+    // todos los productos que la usaban).
+    const { data: existingCategory } = await supabaseServer
+      .from('categories')
+      .select('name')
+      .eq('id', id)
+      .maybeSingle();
+    const oldName: string = existingCategory?.name ?? '';
+
     const normalizeSlug = (value: string) => value
       .toLowerCase()
       .normalize("NFD")
@@ -144,18 +159,38 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     const catName = updated?.name ?? '';
-    const { count } = await supabase
+
+    // Si el nombre cambió, migra products.category en los productos que
+    // referenciaban el nombre anterior, para que no queden huérfanos.
+    let cascadedCount = 0;
+    if (oldName && catName && oldName.toLowerCase() !== catName.toLowerCase()) {
+      const { data: affected, error: affectedErr } = await supabaseServer
+        .from('products')
+        .select('barcode, category')
+        .not('category', 'is', null);
+      if (!affectedErr && affected) {
+        const toUpdate = affected.filter((p: any) => categoryTokenMatches(p.category, oldName));
+        for (const p of toUpdate) {
+          const nextCategory = replaceCategoryToken(p.category, oldName, catName);
+          await supabaseServer.from('products').update({ category: nextCategory }).eq('barcode', p.barcode);
+        }
+        cascadedCount = toUpdate.length;
+      }
+    }
+
+    const { data: productsData } = await supabase
       .from('products')
-      .select('barcode', { count: 'exact', head: true })
-      .ilike('category', `%${catName}%`);
+      .select('category');
+    const count = (productsData || []).filter((p: any) => categoryTokenMatches(p.category, catName)).length;
 
     return NextResponse.json({
       id: String(updated?.id ?? id),
       name: updated?.name ?? '',
-      slug: updated?.slug ?? (updated?.name ? String(updated.name).toLowerCase().replace(/[^a-z0-9]+/gi, "-") : ''),
+      slug: updated?.slug ?? (updated?.name ? slugify(String(updated.name)) : ''),
       description: updated?.description ?? null,
       image: updated?.image_url ?? null, // Map from image_url to image for API response
       isActive: updated?.is_active ?? true, // Map from is_active to isActive for API response
+      cascadedProductsCount: cascadedCount,
       createdAt: updated?.created_at ?? updated?.createdAt ?? null,
       updatedAt: updated?.updated_at ?? updated?.updatedAt ?? null,
       productsCount: count ?? 0,
@@ -191,13 +226,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     if (!category) {
       return NextResponse.json({ error: "Categoría no encontrada" }, { status: 404 });
     }
-    // Contar referencias en products.category
+    // Contar referencias en products.category (token exacto, no substring)
     const name = category.name ?? '';
-    const { count } = await supabase
+    const { data: productsData } = await supabase
       .from('products')
-      .select('barcode', { count: 'exact', head: true })
-      .ilike('category', `%${name}%`);
-    if ((count ?? 0) > 0) {
+      .select('category');
+    const count = (productsData || []).filter((p: any) => categoryTokenMatches(p.category, name)).length;
+    if (count > 0) {
       return NextResponse.json({ error: "No se puede eliminar una categoría con productos asociados" }, { status: 400 });
     }
     const { error: delErr } = await supabaseServer.from('categories').delete().eq('id', id);

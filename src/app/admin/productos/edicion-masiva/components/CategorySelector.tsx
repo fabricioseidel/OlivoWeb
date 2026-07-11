@@ -1,21 +1,28 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useCategories } from "@/contexts/CategoryContext";
+import { useCategories } from "@/hooks/useCategories";
 import { ChevronDownIcon, CheckIcon } from "@heroicons/react/24/outline";
 
 export default function CategorySelector({ value, isDirty, onChange }: { value: string[]; isDirty: boolean; onChange: (next: string[]) => void }) {
-  const { categories: allCategories } = useCategories();
+  const { categories: categoryObjects } = useCategories();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Compara sin distinguir mayúsculas/minúsculas: si el valor guardado en el
+  // producto ("bebidas") difiere solo en casing de la categoría canónica
+  // ("Bebidas"), deben verse como la MISMA opción, no como dos entradas.
   const options = useMemo(() => {
-    const set = new Set<string>(allCategories);
-    value.forEach((c) => set.add(c));
-    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
-  }, [allCategories, value]);
+    const byLower = new Map<string, string>();
+    categoryObjects.forEach((c) => byLower.set(c.name.trim().toLowerCase(), c.name.trim()));
+    value.forEach((c) => {
+      const key = c.trim().toLowerCase();
+      if (!byLower.has(key)) byLower.set(key, c.trim());
+    });
+    return Array.from(byLower.values()).sort((a, b) => a.localeCompare(b, "es"));
+  }, [categoryObjects, value]);
 
   const toggleOpen = () => {
     if (!open && btnRef.current) {
@@ -53,7 +60,11 @@ export default function CategorySelector({ value, isDirty, onChange }: { value: 
   }, [open]);
 
   const toggleCategory = (cat: string) => {
-    const next = value.includes(cat) ? value.filter((c) => c !== cat) : [...value, cat];
+    const key = cat.trim().toLowerCase();
+    const alreadySelected = value.some((c) => c.trim().toLowerCase() === key);
+    const next = alreadySelected
+      ? value.filter((c) => c.trim().toLowerCase() !== key)
+      : [...value, cat];
     onChange(next);
   };
 
@@ -84,7 +95,7 @@ export default function CategorySelector({ value, isDirty, onChange }: { value: 
             <p className="px-2 py-2 text-[10px] text-gray-400 font-bold">No hay categorías creadas</p>
           )}
           {options.map((cat) => {
-            const checked = value.includes(cat);
+            const checked = value.some((c) => c.trim().toLowerCase() === cat.trim().toLowerCase());
             return (
               <button
                 key={cat}

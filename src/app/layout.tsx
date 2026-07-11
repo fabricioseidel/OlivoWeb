@@ -6,7 +6,6 @@ import Providers from "./providers";
 import ShopShell from "@/components/layout/ShopShell";
 import { SettingsInjector } from "@/components/admin/SettingsInjector";
 import { ProductProvider } from "@/contexts/ProductContext";
-import { CategoryProvider } from "@/contexts/CategoryContext";
 import { DevErrorBoundary } from "@/components/debug/DevErrorBoundary";
 import { ClickTracker } from "@/components/debug/ClickTracker";
 import { supabase } from "@/lib/supabase";
@@ -53,9 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <DevErrorBoundary>
             <SettingsInjector />
             <ProductProvider>
-              <CategoryProvider>
-                <ShopShell>{children}</ShopShell>
-              </CategoryProvider>
+              <ShopShell>{children}</ShopShell>
             </ProductProvider>
           </DevErrorBoundary>
         </Providers>

@@ -162,27 +162,6 @@ export default function AdminProductsPage() {
     return { total, active, featured, lowStock };
   }, [products]);
 
-  if (categoriesLoading) {
-    return (
-      <div className="p-8 text-center text-gray-500">
-        <span className="animate-pulse">Cargando categorías...</span>
-      </div>
-    );
-  }
-  if (!categories || categories.length === 0) {
-    return (
-      <div className="p-8 text-center text-gray-500">
-        No se encontraron categorías.{" "}
-        <Link
-          href="/admin/categorias"
-          className="text-emerald-700 hover:underline"
-        >
-          Crear una categoría
-        </Link>
-      </div>
-    );
-  }
-
   const SortHeader = ({
     field,
     children,
@@ -528,6 +507,15 @@ export default function AdminProductsPage() {
         />
       }
     >
+      {!categoriesLoading && (!categories || categories.length === 0) && (
+        <div className="mb-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-sm font-medium">
+          No se encontraron categorías activas. La gestión de productos sigue funcionando, pero no podrás asignarles categoría hasta que{" "}
+          <Link href="/admin/categorias" className="font-bold underline">
+            crees una
+          </Link>
+          .
+        </div>
+      )}
       <StatsRow cols={4}>
         <StatsCard
           label="Total productos"

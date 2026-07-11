@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue } from "react";
 import { useProducts } from "@/contexts/ProductContext";
-import { useCategories } from "@/contexts/CategoryContext";
+import { useCategories } from "@/hooks/useCategories";
 import { useConfirm } from "@/contexts/ConfirmContext";
 import { hasRealImage } from "@/services/products";
 import { useToast } from "@/contexts/ToastContext";
@@ -34,7 +34,10 @@ import MobileSaveBar from "./components/MobileSaveBar";
 
 export default function BulkEditProductsPage() {
   const { products, loading: productsLoading, updateProductsBulk, deleteProduct } = useProducts();
-  const { categories: allCategories } = useCategories();
+  const { categories: categoryObjects } = useCategories();
+  // Solo categorías activas (useCategories ya las filtra); nombres planos para
+  // los selects y comparaciones de este editor.
+  const allCategories = useMemo(() => categoryObjects.map((c) => c.name), [categoryObjects]);
   const { showToast } = useToast();
   const { confirm } = useConfirm();
 

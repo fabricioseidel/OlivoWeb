@@ -6,9 +6,8 @@ import ProductGrid from "@/components/ProductGrid";
 import { useProducts } from "@/contexts/ProductContext";
 import { isProductVisible } from "@/services/products";
 import { useCategories } from "@/hooks/useCategories";
+import { slugify } from "@/utils/string-utils";
 import { Search } from "lucide-react";
-
-const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/gi, "-");
 
 type SortKey = "name" | "price-asc" | "price-desc" | "offers";
 

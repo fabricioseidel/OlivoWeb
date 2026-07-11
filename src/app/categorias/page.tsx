@@ -5,6 +5,7 @@ import { useCategories as useCategoryHook } from "@/hooks/useCategories";
 import CategoryCard from "@/components/CategoryCard";
 import { useRouter } from "next/navigation";
 import { Sparkles, ArrowRight, LayoutGrid, X } from "lucide-react";
+import { slugify } from "@/utils/string-utils";
 
 export default function CategoriesPage() {
   const { categories, loading, error } = useCategoryHook();
@@ -54,7 +55,7 @@ export default function CategoriesPage() {
       <div className="max-w-7xl mx-auto px-4 py-10">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {[...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map((category) => {
-            const slug = category.slug || category.name.toLowerCase().replace(/[^a-z0-9]+/gi, "-");
+            const slug = category.slug || slugify(category.name);
             return (
               <CategoryCard
                 key={category.id}

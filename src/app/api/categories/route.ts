@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { supabaseServer } from "@/lib/supabase-server";
+import { parseCategoryTokens } from "@/lib/category-tokens";
+import { slugify } from "@/utils/string-utils";
 
 // GET /api/categories -> { categories: string[] }
 export async function GET() {
@@ -25,12 +27,10 @@ export async function GET() {
   const productCounts: Record<string, number> = {};
   if (!productsError && productsData) {
     productsData.forEach((p: any) => {
-      if (p.category) {
-        const cats = String(p.category).split(/[,/|]/).map((c) => c.trim().toLowerCase()).filter(Boolean);
-        cats.forEach(cat => {
-          productCounts[cat] = (productCounts[cat] || 0) + 1;
-        });
-      }
+      parseCategoryTokens(p.category).forEach((cat) => {
+        const key = cat.toLowerCase();
+        productCounts[key] = (productCounts[key] || 0) + 1;
+      });
     });
   }
 
@@ -43,7 +43,7 @@ export async function GET() {
       id: String(c.id ?? ""),
       name: c.name ?? "",
       slug:
-        c.slug ?? c.sku ?? (c.name ? String(c.name).toLowerCase().replace(/[^a-z0-9]+/gi, "-") : undefined),
+        c.slug ?? c.sku ?? (c.name ? slugify(String(c.name)) : undefined),
       description: c.description ?? c.desc ?? undefined,
       image: c.image_url ?? c.image ?? c.img ?? undefined,
       isActive:
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
   const mapped = {
     id: String(c.id ?? c.name ?? ''),
     name: c.name ?? '',
-    slug: c.slug ?? (c.name ? String(c.name).toLowerCase().replace(/[^a-z0-9]+/gi, '-') : ''),
+    slug: c.slug ?? (c.name ? slugify(String(c.name)) : ''),
     description: c.description ?? undefined,
     image: c.image ?? c.img ?? c.image_url ?? undefined,
     isActive: typeof c.is_active === 'boolean' ? c.is_active : true,

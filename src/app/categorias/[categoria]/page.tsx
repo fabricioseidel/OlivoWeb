@@ -4,19 +4,24 @@ import React, { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useProducts } from "@/contexts/ProductContext";
 import { isProductVisible } from "@/services/products";
+import { slugify } from "@/utils/string-utils";
 import ProductGrid from "@/components/ProductGrid";
 
 export default function CategoryDetailPage() {
   const { categoria } = useParams() as { categoria: string };
   const { products, loading, error } = useProducts();
 
+  // El link viene de /categorias como category.slug (o slugify(name) si no
+  // tiene slug propio) — hay que comparar contra el MISMO slug del lado del
+  // producto, no contra el nombre en minúsculas tal cual. Si no, categorías
+  // con espacios o acentos ("Cuidado Personal", "Café") nunca matchean.
   const target = decodeURIComponent(categoria || "").toLowerCase();
 
   const filtered = useMemo(() => {
     return products.filter((p) =>
       p.isActive !== false &&
       isProductVisible(p) &&
-      (p.categories || []).some((c) => c.toLowerCase() === target)
+      (p.categories || []).some((c) => slugify(c) === target)
     );
   }, [products, target]);
 
