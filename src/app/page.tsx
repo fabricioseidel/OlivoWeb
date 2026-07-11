@@ -30,18 +30,11 @@ import {
 
 // ── Promotional Banner Carousel ────────────────────────────────────────────────
 
-const SLIDES = [
-  {
-    id: "1",
-    title: "Lo mejor de Venezuela",
-    subtitle: "en Chile",
-    description: "Productos auténticos con el sabor de casa. Entregas en 24-48h.",
-    cta: "Ver catálogo",
-    href: "/productos",
-    bg: "from-emerald-700 to-emerald-900",
-    accent: "text-amber-400",
-    badge: "🔥 Más vendidos",
-  },
+const DEFAULT_HERO_TITLE = "Lo mejor de Venezuela";
+const DEFAULT_HERO_SUBTITLE = "en Chile";
+const DEFAULT_HERO_DESCRIPTION = "Productos auténticos con el sabor de casa. Entregas en 24-48h.";
+
+const PROMO_SLIDES = [
   {
     id: "2",
     title: "Despacho gratis",
@@ -66,12 +59,27 @@ const SLIDES = [
   },
 ];
 
-function HeroBanner() {
+function HeroBanner({ heroTitle, heroDescription }: { heroTitle?: string; heroDescription?: string }) {
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
 
-  const next = useCallback(() => setCurrent(c => (c + 1) % SLIDES.length), []);
-  const prev = useCallback(() => setCurrent(c => (c - 1 + SLIDES.length) % SLIDES.length), []);
+  const slides = [
+    {
+      id: "1",
+      title: heroTitle || DEFAULT_HERO_TITLE,
+      subtitle: heroTitle ? "" : DEFAULT_HERO_SUBTITLE,
+      description: heroDescription || DEFAULT_HERO_DESCRIPTION,
+      cta: "Ver catálogo",
+      href: "/productos",
+      bg: "from-emerald-700 to-emerald-900",
+      accent: "text-amber-400",
+      badge: "🔥 Más vendidos",
+    },
+    ...PROMO_SLIDES,
+  ];
+
+  const next = useCallback(() => setCurrent(c => (c + 1) % slides.length), [slides.length]);
+  const prev = useCallback(() => setCurrent(c => (c - 1 + slides.length) % slides.length), [slides.length]);
 
   useEffect(() => {
     if (paused) return;
@@ -79,7 +87,7 @@ function HeroBanner() {
     return () => clearInterval(t);
   }, [paused, next]);
 
-  const slide = SLIDES[current];
+  const slide = slides[current];
 
   return (
     <div
@@ -126,7 +134,7 @@ function HeroBanner() {
       </button>
 
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-        {SLIDES.map((_, i) => (
+        {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
@@ -449,7 +457,7 @@ export default function Home() {
   return (
     <div className="bg-gray-50 min-h-screen">
       <ShippingStrip />
-      <HeroBanner />
+      <HeroBanner heroTitle={storeSettings?.heroTitle} heroDescription={storeSettings?.heroDescription} />
       <SearchBar />
       <CategoryStrip />
       <PromoBannersRow />

@@ -33,9 +33,11 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      // Sales workflow consolidated into the POS page
-      { source: "/admin/productos/venta-rapida", destination: "/admin/pos", permanent: true },
-      { source: "/admin/productos/venta-rapida-iphone", destination: "/admin/pos", permanent: true },
+      // Sales workflow consolidated into Operaciones (modo Venta)
+      { source: "/admin/productos/venta-rapida", destination: "/admin/operaciones", permanent: true },
+      { source: "/admin/productos/venta-rapida-iphone", destination: "/admin/operaciones", permanent: true },
+      // Standalone POS page removed — POS now lives at Operaciones (modo Venta)
+      { source: "/admin/pos", destination: "/admin/operaciones", permanent: true },
       // Purchase workflow consolidated — keep regular compra-rapida as canonical
       { source: "/admin/productos/compra-rapida-iphone", destination: "/admin/productos/compra-rapida", permanent: true },
       // Reabastecimiento sub-pages now live as tabs in the main page
