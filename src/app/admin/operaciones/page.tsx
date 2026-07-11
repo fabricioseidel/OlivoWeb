@@ -1,25 +1,21 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   ShoppingCartIcon,
   ArchiveBoxArrowDownIcon,
   BanknotesIcon,
-  LockClosedIcon,
 } from "@heroicons/react/24/outline";
 import { POSProvider } from "@/contexts/POSContext";
 import SaleMode from "@/components/admin/operaciones/SaleMode";
 import ReceptionMode from "@/components/admin/operaciones/ReceptionMode";
-import CajaMode from "@/components/admin/operaciones/CajaMode";
-import CloseMode from "@/components/admin/operaciones/CloseMode";
 
-type OperationsMode = "VENTA" | "RECEPCION" | "CAJA" | "CIERRE";
+type OperationsMode = "VENTA" | "RECEPCION";
 
 const TABS: { id: OperationsMode; label: string; icon: typeof ShoppingCartIcon }[] = [
   { id: "VENTA",     label: "Venta",     icon: ShoppingCartIcon },
   { id: "RECEPCION", label: "Recepción", icon: ArchiveBoxArrowDownIcon },
-  { id: "CAJA",      label: "Caja",      icon: BanknotesIcon },
-  { id: "CIERRE",    label: "Cierre",    icon: LockClosedIcon },
 ];
 
 export default function OperacionesPage() {
@@ -45,6 +41,13 @@ export default function OperacionesPage() {
               {label}
             </button>
           ))}
+          <Link
+            href="/admin/caja"
+            className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-b-2 border-transparent text-white/30 hover:text-white/60"
+          >
+            <BanknotesIcon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+            Caja
+          </Link>
         </div>
       </div>
 
@@ -56,8 +59,6 @@ export default function OperacionesPage() {
           </POSProvider>
         )}
         {mode === "RECEPCION" && <ReceptionMode />}
-        {mode === "CAJA"      && <CajaMode />}
-        {mode === "CIERRE"    && <CloseMode />}
       </div>
     </div>
   );

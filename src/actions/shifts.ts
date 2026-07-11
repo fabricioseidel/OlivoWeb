@@ -10,7 +10,7 @@ import {
 } from "@/server/shifts.service";
 import type { ToastType } from "@/components/ui/Toast";
 
-const PATHS_TO_REVALIDATE = ["/admin/caja", "/admin/pos", "/admin/ventas", "/admin/operaciones"];
+const PATHS_TO_REVALIDATE = ["/admin/caja", "/admin/ventas", "/admin/operaciones"];
 
 type ShiftActionState = {
   message?: string | null;

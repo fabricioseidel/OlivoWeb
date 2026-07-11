@@ -17,8 +17,8 @@ export type InventoryMode = "SALE" | "PURCHASE";
  * Manage a queue of scanned items + confirm them as a real DB operation.
  * - PURCHASE: inserts inventory_movements (IN) and increments branch_stock
  *   via apply_reception RPC.
- * - SALE: deprecated path — sales should go through /admin/pos which uses
- *   createSaleAction (full sales + sale_items + sale_payments).
+ * - SALE: deprecated path — sales should go through /admin/operaciones (modo
+ *   Venta), which uses createSaleAction (full sales + sale_items + sale_payments).
  */
 export function useQuickInventory(mode: InventoryMode) {
   const { currentBranch } = useBranch();
@@ -105,7 +105,7 @@ export function useQuickInventory(mode: InventoryMode) {
         if (!result.ok) throw new Error(result.error);
         setSuccess(`Recepción registrada: ${result.count} producto${result.count === 1 ? "" : "s"}`);
       } else {
-        // SALE: deprecated path. Surface a clear error so the operator uses /admin/pos
+        // SALE: deprecated path. Surface a clear error so the operator uses /admin/operaciones
         throw new Error("Las ventas rápidas se procesan ahora desde el Punto de Venta. Usa /admin/operaciones (modo Venta).");
       }
 

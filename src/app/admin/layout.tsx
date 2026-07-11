@@ -17,7 +17,6 @@ import {
   ChevronRightIcon,
   XMarkIcon,
   Bars3Icon,
-  ShoppingCartIcon,
   BanknotesIcon,
   MegaphoneIcon,
   TicketIcon,
@@ -37,7 +36,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { Dialog, Transition } from "@headlessui/react";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { POSProvider } from "@/contexts/POSContext";
 import { BranchProvider } from "@/contexts/BranchContext";
 import BranchSelector from "@/components/admin/BranchSelector";
 
@@ -57,7 +55,6 @@ const menuGroupsOlivoTeam: MenuGroup[] = [
     label: "Operación diaria",
     items: [
       { name: "Operaciones", href: "/admin/operaciones", icon: BoltIcon },
-      { name: "POS", href: "/admin/pos", icon: ShoppingCartIcon },
       { name: "Caja", href: "/admin/caja", icon: BanknotesIcon },
     ],
   },
@@ -270,8 +267,6 @@ export default function AdminLayout({
   const userRole = ((session as any)?.role || (session as any)?.user?.role || "USER").toString().toUpperCase();
   if (userRole !== "ADMIN" && userRole !== "SELLER") return null;
 
-  const isPOS = pathname === "/admin/pos";
-
   // ── Sidebar nav content (shared between desktop and mobile) ──
   const NavContent = ({ mobile = false }: { mobile?: boolean }) => {
     const currentMenuGroups = panelMode === "OLIVOTEAM" ? menuGroupsOlivoTeam : menuGroupsLaboratorioFabri;
@@ -372,17 +367,11 @@ export default function AdminLayout({
   };
 
   // Content wrapper
-  const wrappedContent = isPOS ? (
-    <POSProvider>
-      <ErrorBoundary>{children}</ErrorBoundary>
-    </POSProvider>
-  ) : (
-    <ErrorBoundary>{children}</ErrorBoundary>
-  );
+  const wrappedContent = <ErrorBoundary>{children}</ErrorBoundary>;
 
   return (
     <BranchProvider>
-    <div className={`flex min-h-screen ${isPOS ? 'bg-black' : 'bg-[#fcfdfd]'}`}>
+    <div className="flex min-h-screen bg-[#fcfdfd]">
       {/* ── Mobile Sidebar (Slide-over) ── */}
       <Transition.Root show={mobileMenuOpen} as={Fragment}>
         <Dialog as="div" className="relative z-[100] md:hidden" onClose={setMobileMenuOpen}>
@@ -423,8 +412,7 @@ export default function AdminLayout({
       </Transition.Root>
 
       {/* ── Desktop Sidebar ── */}
-      {!isPOS && (
-        <div className={`hidden md:flex flex-col sticky top-0 h-screen bg-emerald-950 transition-all duration-500 ${isCollapsed ? "w-20" : "w-64"}`}>
+      <div className={`hidden md:flex flex-col sticky top-0 h-screen bg-emerald-950 transition-all duration-500 ${isCollapsed ? "w-20" : "w-64"}`}>
           <div className="flex items-center h-20 px-6 border-b border-white/5">
             {!isCollapsed && <span className="text-lg font-black text-white">OLIVO<span className="text-emerald-500 italic">ADMIN</span></span>}
             {isCollapsed && <span className="text-lg font-black text-emerald-500 mx-auto italic">OA</span>}
@@ -436,7 +424,6 @@ export default function AdminLayout({
             </button>
           </div>
         </div>
-      )}
 
       {/* ── Main Content ── */}
       <div className="flex-1 flex flex-col min-h-screen">
@@ -448,7 +435,7 @@ export default function AdminLayout({
           <div className="w-9" />
         </header>
 
-        <main className={`flex-1 ${isPOS ? 'p-0' : 'py-4 px-3 sm:px-6 lg:px-8'}`}>
+        <main className="flex-1 py-4 px-3 sm:px-6 lg:px-8">
           {wrappedContent}
         </main>
       </div>

@@ -102,7 +102,6 @@ export async function createSaleAction(data: CreateSaleActionInput): Promise<Sal
     });
 
     revalidatePath("/admin/ventas");
-    revalidatePath("/admin/pos");
     revalidatePath("/admin/caja");
     revalidatePath("/admin/operaciones");
 
