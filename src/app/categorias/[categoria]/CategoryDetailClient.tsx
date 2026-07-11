@@ -1,0 +1,45 @@
+"use client";
+
+import React, { useMemo } from "react";
+import { useParams } from "next/navigation";
+import { useProducts } from "@/contexts/ProductContext";
+import { isProductVisible } from "@/services/products";
+import { slugify } from "@/utils/string-utils";
+import ProductGrid from "@/components/ProductGrid";
+
+export default function CategoryDetailClient() {
+  const { categoria } = useParams() as { categoria: string };
+  const { products, loading, error } = useProducts();
+
+  // El link viene de /categorias como category.slug (o slugify(name) si no
+  // tiene slug propio) — hay que comparar contra el MISMO slug del lado del
+  // producto, no contra el nombre en minúsculas tal cual. Si no, categorías
+  // con espacios o acentos ("Cuidado Personal", "Café") nunca matchean.
+  const target = decodeURIComponent(categoria || "").toLowerCase();
+
+  const filtered = useMemo(() => {
+    return products.filter((p) =>
+      p.isActive !== false &&
+      isProductVisible(p) &&
+      (p.categories || []).some((c) => slugify(c) === target)
+    );
+  }, [products, target]);
+
+  if (loading) return <div className="p-6">Cargando productos...</div>;
+  if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
+  if (!filtered.length)
+    return (
+      <div className="p-6">
+        No hay productos en la categoría <strong>{decodeURIComponent(categoria)}</strong>.
+      </div>
+    );
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Categoría: {decodeURIComponent(categoria)}</h1>
+      </div>
+      <ProductGrid products={filtered} loading={false} />
+    </div>
+  );
+}

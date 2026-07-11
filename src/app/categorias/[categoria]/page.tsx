@@ -1,45 +1,77 @@
-"use client";
-
-import React, { useMemo } from "react";
-import { useParams } from "next/navigation";
-import { useProducts } from "@/contexts/ProductContext";
-import { isProductVisible } from "@/services/products";
+import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
+import { supabaseServer } from "@/lib/supabase-server";
 import { slugify } from "@/utils/string-utils";
-import ProductGrid from "@/components/ProductGrid";
+import CategoryDetailClient from "./CategoryDetailClient";
 
-export default function CategoryDetailPage() {
-  const { categoria } = useParams() as { categoria: string };
-  const { products, loading, error } = useProducts();
+// Antes esta ruta era 100% cliente: cada categoría (harinas, dulces,
+// bebidas...) mostraba el mismo <title>/descripción genérico heredado del
+// layout de /categorias — señal de contenido duplicado para buscadores.
+// Resolvemos el nombre real de la categoría server-side para dar a cada
+// URL su propio título/descripción/canonical.
+const getActiveCategories = unstable_cache(
+  async () => {
+    const { data } = await supabaseServer
+      .from("categories")
+      .select("name, slug, description")
+      .eq("is_active", true);
+    return data || [];
+  },
+  ["categories-meta"],
+  { revalidate: 300 }
+);
 
-  // El link viene de /categorias como category.slug (o slugify(name) si no
-  // tiene slug propio) — hay que comparar contra el MISMO slug del lado del
-  // producto, no contra el nombre en minúsculas tal cual. Si no, categorías
-  // con espacios o acentos ("Cuidado Personal", "Café") nunca matchean.
-  const target = decodeURIComponent(categoria || "").toLowerCase();
+async function findCategoryBySlug(slug: string) {
+  const categories = await getActiveCategories();
+  const target = decodeURIComponent(slug || "").toLowerCase();
+  return categories.find((c) => (c.slug || slugify(c.name || "")).toLowerCase() === target) ?? null;
+}
 
-  const filtered = useMemo(() => {
-    return products.filter((p) =>
-      p.isActive !== false &&
-      isProductVisible(p) &&
-      (p.categories || []).some((c) => slugify(c) === target)
-    );
-  }, [products, target]);
+export async function generateMetadata(
+  { params }: { params: Promise<{ categoria: string }> }
+): Promise<Metadata> {
+  const { categoria } = await params;
+  const category = await findCategoryBySlug(categoria);
+  const name = category?.name || decodeURIComponent(categoria || "");
 
-  if (loading) return <div className="p-6">Cargando productos...</div>;
-  if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
-  if (!filtered.length)
-    return (
-      <div className="p-6">
-        No hay productos en la categoría <strong>{decodeURIComponent(categoria)}</strong>.
-      </div>
-    );
+  const title = `${name} | Olivo Market`;
+  const description =
+    category?.description ||
+    `Descubre productos de ${name} en Olivo Market — productos venezolanos premium en Chile.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/categorias/${categoria}` },
+    openGraph: { title, description, type: "website" },
+    twitter: { card: "summary", title, description },
+  };
+}
+
+export default async function CategoryDetailPage(
+  { params }: { params: Promise<{ categoria: string }> }
+) {
+  const { categoria } = await params;
+  const category = await findCategoryBySlug(categoria);
+
+  const jsonLd = category
+    ? {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        name: category.name,
+        ...(category.description ? { description: category.description } : {}),
+      }
+    : null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Categoría: {decodeURIComponent(categoria)}</h1>
-      </div>
-      <ProductGrid products={filtered} loading={false} />
-    </div>
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      <CategoryDetailClient />
+    </>
   );
 }

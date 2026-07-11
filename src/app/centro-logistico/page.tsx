@@ -18,6 +18,7 @@ export const metadata = {
   title: "Centro Logístico | Olivo Market",
   description:
     "Recibe, envía y devuelve tus encomiendas en Olivo Market. Punto pick-up oficial de MercadoLibre y punto de envío Bluexpress, Chilexpress y Correos de Chile.",
+  alternates: { canonical: "/centro-logistico" },
 };
 
 const serviciosMain = [
