@@ -7,9 +7,19 @@ interface ProductTableProps {
   visibleProducts: any[];
   editedChanges: Record<string, ProductChanges>;
   onChange: (productId: string, field: keyof ProductChanges, value: string | string[]) => void;
+  pendingImages: Record<string, string>;
+  onImagePick: (productId: string, file?: File) => void;
+  onClearPendingImage: (productId: string) => void;
 }
 
-export default function ProductTable({ visibleProducts, editedChanges, onChange }: ProductTableProps) {
+export default function ProductTable({
+  visibleProducts,
+  editedChanges,
+  onChange,
+  pendingImages,
+  onImagePick,
+  onClearPendingImage,
+}: ProductTableProps) {
   return (
     <div className="hidden lg:block bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/40 border border-gray-50 overflow-hidden">
       <table className="w-full text-left border-collapse">
@@ -26,7 +36,15 @@ export default function ProductTable({ visibleProducts, editedChanges, onChange 
         </thead>
         <tbody className="divide-y divide-gray-50">
           {visibleProducts.map((product) => (
-            <EditableRow key={product.id} product={product} changes={editedChanges[product.id]} onChange={onChange} />
+            <EditableRow
+              key={product.id}
+              product={product}
+              changes={editedChanges[product.id]}
+              onChange={onChange}
+              pendingImage={pendingImages[product.id]}
+              onImagePick={onImagePick}
+              onClearPendingImage={onClearPendingImage}
+            />
           ))}
         </tbody>
       </table>

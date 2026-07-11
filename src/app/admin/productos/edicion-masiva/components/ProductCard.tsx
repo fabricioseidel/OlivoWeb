@@ -1,8 +1,9 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useRef } from "react";
 import { hasRealImage } from "@/services/products";
-import { CheckBadgeIcon, CheckIcon } from "@heroicons/react/24/outline";
+import { CheckBadgeIcon, CheckIcon, ClipboardDocumentIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { useToast } from "@/contexts/ToastContext";
 import { isProductReady, type ProductChanges } from "../lib";
 import CategorySelector from "./CategorySelector";
 
@@ -12,13 +13,21 @@ const ProductCard = memo(function ProductCard({
   onChange,
   selected,
   onToggleSelect,
+  pendingImage,
+  onImagePick,
+  onClearPendingImage,
 }: {
   product: any;
   changes?: ProductChanges;
   onChange: any;
   selected: boolean;
   onToggleSelect: (id: string) => void;
+  pendingImage?: string;
+  onImagePick: (productId: string, file?: File) => void;
+  onClearPendingImage: (productId: string) => void;
 }) {
+  const { showToast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isDirty = Object.keys(changes || {}).length > 0;
   const ready = isProductReady(product, changes);
   const price = changes?.price ?? product.price;
@@ -26,7 +35,7 @@ const ProductCard = memo(function ProductCard({
   const cats = changes?.categories ?? product.categories ?? [];
 
   const missing: string[] = [];
-  if (!hasRealImage(product)) missing.push("Sin foto");
+  if (!hasRealImage(product) && !pendingImage) missing.push("Sin foto");
   if (!(Number(price) > 0)) missing.push("Sin precio");
   if (!(Number(stock) > 0)) missing.push("Sin stock");
   if (!product.barcode) missing.push("Sin SKU");
@@ -69,26 +78,75 @@ const ProductCard = memo(function ProductCard({
       )}
 
       <div
-        className="h-28 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center cursor-pointer"
-        onClick={() => onToggleSelect(product.id)}
+        className="relative h-28 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center cursor-pointer group"
+        onClick={() => fileInputRef.current?.click()}
       >
-        {hasRealImage(product) ? (
+        {pendingImage || hasRealImage(product) ? (
           // eslint-disable-next-line @next/next/no-img-element -- admin-only card thumbnail with dynamic/external src
-          <img src={product.image} alt={product.name} loading="lazy" className="h-full w-full object-contain p-2" />
+          <img src={pendingImage || product.image} alt={product.name} loading="lazy" className="h-full w-full object-contain p-2" />
         ) : (
           <span className="text-4xl opacity-40">📦</span>
         )}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-[10px] font-bold bg-emerald-600 px-2.5 py-1 rounded-lg">
+            {pendingImage || hasRealImage(product) ? "Reemplazar" : "Subir imagen"}
+          </span>
+        </div>
+        {pendingImage && (
+          <>
+            <span className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide">
+              Pendiente
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClearPendingImage(product.id);
+              }}
+              className="absolute top-2 right-2 bg-white/90 hover:bg-white text-red-600 rounded-full p-1 shadow"
+            >
+              <XMarkIcon className="w-3.5 h-3.5" />
+            </button>
+          </>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            onImagePick(product.id, e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
       </div>
 
       <div className="p-3 space-y-2">
-        <input
-          type="text"
-          value={changes?.name ?? product.name}
-          onChange={(e) => onChange(product.id, "name", e.target.value)}
-          className={`w-full text-sm font-black leading-tight bg-transparent border-b-2 pb-1 transition-all focus:outline-none focus:border-emerald-500 truncate ${
-            changes?.name !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-900 hover:border-gray-200"
-          }`}
-        />
+        <div className="flex items-center gap-1.5">
+          <input
+            type="text"
+            value={changes?.name ?? product.name}
+            onChange={(e) => onChange(product.id, "name", e.target.value)}
+            className={`flex-1 min-w-0 text-sm font-black leading-tight bg-transparent border-b-2 pb-1 transition-all focus:outline-none focus:border-emerald-500 truncate ${
+              changes?.name !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-900 hover:border-gray-200"
+            }`}
+          />
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(changes?.name ?? product.name);
+                showToast("Nombre copiado", "success");
+              } catch {
+                showToast("No se pudo copiar", "error");
+              }
+            }}
+            title="Copiar nombre"
+            className="flex-shrink-0 p-1 rounded-md text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+          >
+            <ClipboardDocumentIcon className="w-4 h-4" />
+          </button>
+        </div>
         <p className="text-[9px] font-black text-gray-400 tracking-tighter uppercase truncate opacity-60">
           SKU: {product.barcode || String(product.id).slice(0, 15)}
         </p>

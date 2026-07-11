@@ -10,6 +10,9 @@ interface ProductCardsGridProps {
   onChange: (productId: string, field: keyof ProductChanges, value: string | string[]) => void;
   selectedIds: Set<string>;
   onToggleSelect: (id: string) => void;
+  pendingImages: Record<string, string>;
+  onImagePick: (productId: string, file?: File) => void;
+  onClearPendingImage: (productId: string) => void;
 }
 
 export default function ProductCardsGrid({
@@ -19,6 +22,9 @@ export default function ProductCardsGrid({
   onChange,
   selectedIds,
   onToggleSelect,
+  pendingImages,
+  onImagePick,
+  onClearPendingImage,
 }: ProductCardsGridProps) {
   return (
     <div
@@ -36,6 +42,9 @@ export default function ProductCardsGrid({
           onChange={onChange}
           selected={selectedIds.has(product.id)}
           onToggleSelect={onToggleSelect}
+          pendingImage={pendingImages[product.id]}
+          onImagePick={onImagePick}
+          onClearPendingImage={onClearPendingImage}
         />
       ))}
     </div>

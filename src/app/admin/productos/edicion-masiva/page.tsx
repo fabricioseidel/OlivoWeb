@@ -5,10 +5,12 @@ import { useProducts } from "@/contexts/ProductContext";
 import { useCategories } from "@/contexts/CategoryContext";
 import { hasRealImage } from "@/services/products";
 import { useToast } from "@/contexts/ToastContext";
+import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
 import { read, utils } from "xlsx";
 import {
   COLUMN_MAP,
   MAX_BACKUPS,
+  MAX_IMAGE_SIZE_KB,
   PAGE_SIZE,
   VIEW_KEY,
   addBackup,
@@ -16,6 +18,7 @@ import {
   isProductReady,
   loadBackups,
   normalizeHeader,
+  readFileAsDataUrl,
   saveBackups,
   type Backup,
   type ProductChanges,
@@ -49,6 +52,8 @@ export default function BulkEditProductsPage() {
   const [backups, setBackups] = useState<Backup[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // id -> data URL pendiente de subir a Cloudinary al guardar
+  const [pendingImages, setPendingImages] = useState<Record<string, string>>({});
 
   const [localProducts, setLocalProducts] = useState(products);
   useEffect(() => {
@@ -175,6 +180,32 @@ export default function BulkEditProductsPage() {
     }));
   }, [products]);
 
+  const handleImagePick = useCallback(async (productId: string, file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      showToast("El archivo debe ser una imagen", "error");
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE_KB * 1024) {
+      showToast(`La imagen supera el límite de ${(MAX_IMAGE_SIZE_KB / 1024).toFixed(0)}MB`, "error");
+      return;
+    }
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setPendingImages((prev) => ({ ...prev, [productId]: dataUrl }));
+    } catch {
+      showToast("No se pudo leer la imagen", "error");
+    }
+  }, [showToast]);
+
+  const clearPendingImage = useCallback((productId: string) => {
+    setPendingImages((prev) => {
+      const next = { ...prev };
+      delete next[productId];
+      return next;
+    });
+  }, []);
+
   // Las acciones masivas se aplican a la selección si hay productos seleccionados;
   // si no, a todos los filtrados visibles.
   const getBulkTargets = () =>
@@ -299,8 +330,7 @@ export default function BulkEditProductsPage() {
   };
 
   const saveAllChanges = async () => {
-    const targetIds = Object.keys(editedChanges);
-    const updateCount = targetIds.length;
+    const updateCount = changedIds.size;
 
     if (updateCount === 0) {
       showToast("No hay cambios pendientes", "info");
@@ -315,11 +345,26 @@ export default function BulkEditProductsPage() {
     setIsSaving(true);
 
     try {
-      await updateProductsBulk(editedChanges as any);
+      const imageIds = Object.keys(pendingImages);
+      const finalChanges: Record<string, ProductChanges> = { ...editedChanges };
+
+      if (imageIds.length > 0) {
+        showToast(`Subiendo ${imageIds.length} ${imageIds.length === 1 ? "imagen" : "imágenes"}…`, "info");
+        for (const id of imageIds) {
+          const res = await uploadImageToCloudinaryServerAction(pendingImages[id]);
+          if (!res.ok || !res.url) {
+            throw new Error(res.error || `Falló la subida de la imagen de ${id}`);
+          }
+          finalChanges[id] = { ...finalChanges[id], image: res.url };
+        }
+      }
+
+      await updateProductsBulk(finalChanges as any);
       showToast(`¡${updateCount} productos actualizados con éxito!`, "success");
       setEditedChanges({});
-    } catch {
-      showToast("Ocurrió un error al guardar los cambios", "error");
+      setPendingImages({});
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Ocurrió un error al guardar los cambios", "error");
     } finally {
       setIsSaving(false);
     }
@@ -470,8 +515,12 @@ export default function BulkEditProductsPage() {
     setBackups(updated);
   };
 
-  const hasChanges = Object.keys(editedChanges).length > 0;
-  const changedCount = Object.keys(editedChanges).length;
+  const changedIds = useMemo(
+    () => new Set([...Object.keys(editedChanges), ...Object.keys(pendingImages)]),
+    [editedChanges, pendingImages]
+  );
+  const hasChanges = changedIds.size > 0;
+  const changedCount = changedIds.size;
 
   return (
     <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4 md:py-6 pb-32">
@@ -545,6 +594,9 @@ export default function BulkEditProductsPage() {
             visibleProducts={visibleProducts}
             editedChanges={editedChanges}
             onChange={handleInputChange}
+            pendingImages={pendingImages}
+            onImagePick={handleImagePick}
+            onClearPendingImage={clearPendingImage}
           />
         )}
 
@@ -555,6 +607,9 @@ export default function BulkEditProductsPage() {
           onChange={handleInputChange}
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}
+          pendingImages={pendingImages}
+          onImagePick={handleImagePick}
+          onClearPendingImage={clearPendingImage}
         />
 
         {filteredProducts.length > visibleCount && (
