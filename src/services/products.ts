@@ -50,6 +50,7 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     features,
     stock: Number(p.stock ?? 0),
     featured: !!p.featured,
+    promo1000: !!p.promo_1000,
     createdAt: p.updated_at,
     views: 0,
     viewCount: 0,
@@ -71,9 +72,24 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
 export async function fetchAllProducts(): Promise<ProductUI[]> {
   const { data, error } = await supabase
     .from('products')
-    .select('barcode, name, category, sale_price, offer_price, image_url, stock, featured, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold, description')
+    .select('barcode, name, category, sale_price, offer_price, image_url, stock, featured, promo_1000, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold, description')
     .order('updated_at', { ascending: false })
     .limit(1000);
+
+  if (error) throw error;
+
+  return (data as unknown as SupaProduct[]).map(mapSupaToUI);
+}
+
+// Productos curados a mano para la sección "Todo a $1.000" (independiente del flag `featured`).
+export async function fetchPromo1000Products(): Promise<ProductUI[]> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('barcode, name, category, sale_price, offer_price, image_url, stock, featured, promo_1000, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold, description')
+    .eq('promo_1000', true)
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(100);
 
   if (error) throw error;
 

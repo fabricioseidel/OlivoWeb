@@ -6,7 +6,7 @@ import { authOptions } from "@/lib/auth";
 
 export type PageBlock = {
   id: string;
-  type: 'hero' | 'categories' | 'products' | 'features' | 'newsletter' | 'banner';
+  type: 'hero' | 'categories' | 'products' | 'products_1000' | 'features' | 'newsletter' | 'banner';
   enabled: boolean;
   title?: string;
   subtitle?: string;
@@ -158,6 +158,7 @@ export async function GET() {
             { id: 'b1', type: 'hero', enabled: true, title: 'Sabor que te conecta con casa', description: 'Llevamos lo mejor de Venezuela directo a tu puerta en Chile.' },
             { id: 'b2', type: 'categories', enabled: true, title: 'Nuestras Categorías' },
             { id: 'b3', type: 'products', enabled: true, title: 'Lo Más Vendido', itemsToShow: 8 },
+            { id: 'b3b', type: 'products_1000', enabled: true, title: 'Todo a $1.000', itemsToShow: 10 },
             { id: 'b4', type: 'features', enabled: true },
             { id: 'b5', type: 'newsletter', enabled: true }
           ]
@@ -194,6 +195,17 @@ export async function GET() {
       } as StoreSettings);
     }
 
+    // Bloques guardados en la DB. Si la tienda no tiene aún el bloque "Todo a $1.000"
+    // (instalado antes de esta feature), lo agregamos en memoria para que sea
+    // administrable desde el constructor sin requerir una migración manual.
+    const dbBlocks: PageBlock[] = data.blocks || [];
+    const blocks: PageBlock[] = dbBlocks.some((b) => b.type === 'products_1000')
+      ? dbBlocks
+      : [
+          ...dbBlocks,
+          { id: 'products_1000_default', type: 'products_1000', enabled: true, title: 'Todo a $1.000', itemsToShow: 10 },
+        ];
+
     // Mapear snake_case de DB a camelCase para la respuesta
     const settings: StoreSettings = {
       storeName: data.store_name,
@@ -216,7 +228,7 @@ export async function GET() {
         footerBackgroundColor: data.footer_background_color,
         footerTextColor: data.footer_text_color,
         enableDarkMode: data.enable_dark_mode,
-        blocks: data.blocks || [],
+        blocks,
       },
       shipping: {
         enableShipping: data.enable_shipping,

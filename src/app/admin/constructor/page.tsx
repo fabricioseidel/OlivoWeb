@@ -176,7 +176,7 @@ export default function ConstructorPage() {
             {editingBlockId === block.id && (
               <div className="px-6 pb-8 pt-2 border-t border-gray-100 animate-in slide-in-from-top-2 duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {(block.type === 'hero' || block.type === 'banner' || block.type === 'products' || block.type === 'categories') && (
+                  {(block.type === 'hero' || block.type === 'banner' || block.type === 'products' || block.type === 'products_1000' || block.type === 'categories') && (
                     <div className="space-y-2">
                       <label className="text-xs font-black uppercase tracking-widest text-gray-400">Título de la Sección</label>
                       <input 
@@ -198,7 +198,7 @@ export default function ConstructorPage() {
                       />
                     </div>
                   )}
-                  {block.type === 'products' && (
+                  {(block.type === 'products' || block.type === 'products_1000') && (
                     <div className="space-y-2">
                       <label className="text-xs font-black uppercase tracking-widest text-gray-400">Cantidad de productos</label>
                       <input 

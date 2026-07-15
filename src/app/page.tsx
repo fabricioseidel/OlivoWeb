@@ -8,6 +8,7 @@ import { useProducts } from "@/contexts/ProductContext";
 import { isProductVisible } from "@/services/products";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
+import Promo1000Section from "@/components/Promo1000Section";
 import { useCategories } from "@/hooks/useCategories";
 import {
   ChevronRight,
@@ -45,6 +46,13 @@ export default function Home() {
 
   const blocks = storeSettings?.appearance?.blocks?.filter(b => b.enabled) ?? [];
   const hasBlocks = blocks.length > 0;
+
+  const promo1000Block = blocks.find(b => b.type === "products_1000");
+  const promo1000Title = promo1000Block?.title || "Todo a $1.000";
+  const promo1000Products = visible
+    .filter(p => p.promo1000)
+    .sort((a, b) => a.name.localeCompare(b.name, "es"))
+    .slice(0, promo1000Block?.itemsToShow || 10);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -152,6 +160,15 @@ export default function Home() {
         loading={productsLoading}
         href="/productos"
       />
+
+      {/* ── TODO A $1.000 ── */}
+      {promo1000Block && (
+        <Promo1000Section
+          title={promo1000Title}
+          products={promo1000Products}
+          loading={productsLoading}
+        />
+      )}
 
       {/* ── BANNER PROMOCIONAL ── */}
       <section className="py-4 px-4 max-w-7xl mx-auto">

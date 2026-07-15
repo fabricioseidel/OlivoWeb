@@ -10,6 +10,7 @@ export type SupaProduct = {
   image_url?: string | null;
   gallery?: string[] | null; // JSONB
   featured?: boolean | null;
+  promo_1000?: boolean | null;
   reorder_threshold?: number | null;
   description?: string | null;
   features?: string[] | null; // JSONB
@@ -36,6 +37,7 @@ export type ProductUI = {
   features?: string[];
   stock: number;
   featured?: boolean;
+  promo1000?: boolean;
   createdAt?: string;
   views?: number;
   viewCount?: number;
