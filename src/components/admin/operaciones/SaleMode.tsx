@@ -8,6 +8,7 @@ import { ProductUI } from "@/types";
 import { createSaleAction } from "@/actions/sales";
 import { useToast } from "@/contexts/ToastContext";
 import UnifiedScanner from "@/components/admin/scanner/UnifiedScanner";
+import QuickCreateProductModal from "@/components/admin/pos/QuickCreateProductModal";
 import {
   MagnifyingGlassIcon, XMarkIcon, TrashIcon, MinusIcon, PlusIcon,
   BanknotesIcon, CreditCardIcon, ArrowPathIcon, CheckCircleIcon,
@@ -48,6 +49,7 @@ export default function SaleMode() {
   ]);
   const [processing, setProcessing] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [quickCreateBarcode, setQuickCreateBarcode] = useState<string | null>(null);
   const [view, setView] = useState<"products" | "cart">("products");
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -206,6 +208,19 @@ export default function SaleMode() {
               </button>
             </div>
           )}
+          {!loading && products.length === 0 && (
+            <div className="col-span-full py-16 text-center text-white/30">
+              <p className="text-xs font-black uppercase tracking-widest mb-3">Sin resultados</p>
+              {searchQuery.trim() && (
+                <button
+                  onClick={() => setQuickCreateBarcode(searchQuery.trim())}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-[10px] font-black uppercase tracking-widest"
+                >
+                  <PlusCircleIcon className="h-4 w-4" /> Crear &quot;{searchQuery.trim()}&quot;
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -352,10 +367,27 @@ export default function SaleMode() {
               onDetected={(barcode) => {
                 const found = allProducts.find(p => p.id === barcode || p.barcode === barcode);
                 if (found) { addToCart(found); showToast(`+ ${found.name}`, "success"); setShowScanner(false); }
-                else showToast(`No encontrado: ${barcode}`, "error");
+                else {
+                  showToast(`No encontrado: ${barcode}`, "error");
+                  setShowScanner(false);
+                  setQuickCreateBarcode(barcode);
+                }
               }} />
           </div>
         </div>
+      )}
+
+      {quickCreateBarcode !== null && (
+        <QuickCreateProductModal
+          initialBarcode={quickCreateBarcode}
+          onClose={() => setQuickCreateBarcode(null)}
+          onCreated={(product) => {
+            setAllProducts(prev => [product, ...prev]);
+            addToCart(product);
+            setQuickCreateBarcode(null);
+            setSearchQuery("");
+          }}
+        />
       )}
     </div>
   );

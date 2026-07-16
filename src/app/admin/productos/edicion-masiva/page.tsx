@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue } from "react";
 import { useProducts } from "@/contexts/ProductContext";
 import { useCategories } from "@/contexts/CategoryContext";
-import { hasRealImage } from "@/services/products";
+import { hasRealImage, renameProductBarcode, saveProductsBulk } from "@/services/products";
 import { useToast } from "@/contexts/ToastContext";
 import { read, utils } from "xlsx";
 import {
@@ -29,7 +29,7 @@ import ProductCardsGrid from "./components/ProductCardsGrid";
 import MobileSaveBar from "./components/MobileSaveBar";
 
 export default function BulkEditProductsPage() {
-  const { products, updateProductsBulk } = useProducts();
+  const { products, updateProductsBulk, refresh } = useProducts();
   const { categories: allCategories } = useCategories();
   const { showToast } = useToast();
 
@@ -140,6 +140,9 @@ export default function BulkEditProductsPage() {
     } else if (field === "name") {
       newValue = value;
       originalValue = originalProduct?.name;
+    } else if (field === "barcode") {
+      newValue = (value as string).trim();
+      originalValue = originalProduct?.barcode ?? "";
     } else if (field === "categories") {
       newValue = typeof value === "string" ? value.split(",").map((s) => s.trim()).filter(Boolean) : value;
       originalValue = originalProduct?.categories;
@@ -315,9 +318,96 @@ export default function BulkEditProductsPage() {
     setIsSaving(true);
 
     try {
-      await updateProductsBulk(editedChanges as any);
-      showToast(`¡${updateCount} productos actualizados con éxito!`, "success");
-      setEditedChanges({});
+      // El barcode es el identificador de negocio (onConflict:'barcode' en el
+      // upsert), así que un cambio de barcode no puede viajar por el mismo
+      // camino que el resto de los campos: en vez de renombrar la fila
+      // existente, el upsert crearía una fila nueva con el barcode nuevo y
+      // dejaría huérfana la original. Se resuelve aparte con un UPDATE real
+      // (rename-barcode). Además, para los productos renombrados, el resto
+      // de sus campos NO puede pasar por updateProductsBulk: esa función
+      // busca el producto existente en la caché del contexto por su id
+      // (barcode) actual, que en ese momento todavía es el viejo, así que
+      // se arma el payload a mano con los datos ya conocidos localmente.
+      const plainChanges: Record<string, ProductChanges> = {};
+      const renamedPayloads: (Partial<import("@/types").SupaProduct> & { barcode: string })[] = [];
+      const renameFailures: string[] = [];
+      let renamedCount = 0;
+
+      for (const id of targetIds) {
+        const { barcode: newBarcode, ...rest } = editedChanges[id];
+        if (newBarcode === undefined) {
+          plainChanges[id] = rest;
+          continue;
+        }
+
+        try {
+          await renameProductBarcode(id, newBarcode);
+          renamedCount++;
+          const original = localProducts.find((p) => p.id === id);
+          if (original && Object.keys(rest).length > 0) {
+            const merged = { ...original, ...rest };
+            renamedPayloads.push({
+              barcode: newBarcode,
+              name: merged.name,
+              category: Array.isArray(merged.categories) ? merged.categories.join(", ") : "",
+              purchase_price: Number((original as any).purchasePrice ?? 0),
+              sale_price: Number(merged.price ?? 0),
+              stock: Number(merged.stock ?? 0),
+              image_url: (original as any).image,
+              gallery: (original as any).gallery,
+              featured: (original as any).featured,
+              is_active: (original as any).isActive,
+              measurement_unit: (original as any).measurementUnit,
+              measurement_value: (original as any).measurementValue,
+              suggested_price: (original as any).suggestedPrice,
+              offer_price: merged.offerPrice ?? undefined,
+              description: merged.description,
+              min_stock: Number(merged.minStock ?? 5),
+              optimum_stock: Number(merged.optimumStock ?? 20),
+            });
+          }
+        } catch (err: any) {
+          renameFailures.push(`${id} → ${newBarcode}: ${err?.message || "error desconocido"}`);
+          // El rename falló: la fila sigue bajo el barcode viejo, así que el
+          // resto de los campos (si los hay) se guardan normalmente ahí, y
+          // el intento de barcode queda pendiente para reintentar.
+          plainChanges[id] = { ...rest, barcode: newBarcode };
+        }
+      }
+
+      if (Object.keys(plainChanges).length > 0) {
+        await updateProductsBulk(plainChanges as any);
+      }
+      if (renamedPayloads.length > 0) {
+        await saveProductsBulk(renamedPayloads);
+      }
+      // updateProductsBulk ya refresca por su cuenta, pero corre antes de
+      // guardar renamedPayloads (que no pasa por el contexto) — se refresca
+      // siempre al final para que la lista quede consistente con todo lo guardado.
+      if (renamedCount > 0 || renamedPayloads.length > 0) {
+        await refresh();
+      }
+
+      if (renameFailures.length > 0) {
+        showToast(
+          `${renamedCount > 0 ? `${renamedCount} código(s) renombrado(s). ` : ""}${renameFailures.length} código(s) no se pudieron renombrar: ${renameFailures.join("; ")}`,
+          "error"
+        );
+      } else {
+        showToast(`¡${updateCount} productos actualizados con éxito!`, "success");
+      }
+
+      // Los productos con rename fallido quedan con su cambio de barcode
+      // visible (para reintentar); el resto se limpia.
+      setEditedChanges((prev) => {
+        const next: Record<string, ProductChanges> = {};
+        for (const id of Object.keys(prev)) {
+          if (renameFailures.some((f) => f.startsWith(`${id} →`))) {
+            next[id] = { barcode: prev[id].barcode };
+          }
+        }
+        return next;
+      });
     } catch {
       showToast("Ocurrió un error al guardar los cambios", "error");
     } finally {

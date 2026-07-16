@@ -1,6 +1,6 @@
 import { hasRealImage } from "@/services/products";
 
-export type ProductChanges = { price?: number; offerPrice?: number | null; stock?: number; minStock?: number; optimumStock?: number; name?: string; categories?: string[]; description?: string };
+export type ProductChanges = { price?: number; offerPrice?: number | null; stock?: number; minStock?: number; optimumStock?: number; name?: string; barcode?: string; categories?: string[]; description?: string };
 
 export interface ProductSnapshot {
   id: string;
