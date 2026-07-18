@@ -12,12 +12,15 @@ const renameSchema = z.object({
 /**
  * POST /api/admin/products/rename-barcode
  *
- * `barcode` is the product's business primary key (upserts elsewhere use
+ * `barcode` is the product's business key (upserts elsewhere use
  * `onConflict: 'barcode'`), so this can't go through the normal bulk-save
  * upsert — that would create a duplicate row instead of renaming the
- * existing one. This does a real UPDATE, which the
- * `20260716000000_barcode_rename_cascade` migration made safe by adding
- * ON UPDATE CASCADE to every FK referencing products(barcode).
+ * existing one. It also can't be a plain UPDATE: sale_items, inventory_movements,
+ * branch_stock and product_suppliers all carry the barcode as a plain text
+ * column with no enforced FK in this database, so a bare UPDATE would
+ * silently orphan a product's history. The `rename_product_barcode` RPC
+ * (see 20260716000000_rename_product_barcode_rpc migration) updates all of
+ * them in one atomic transaction.
  *
  * Body: { oldBarcode: string; newBarcode: string }
  */
@@ -40,43 +43,15 @@ export async function POST(req: Request) {
     }
 
     const { oldBarcode, newBarcode } = parsed.data;
-    if (oldBarcode === newBarcode) {
-      return NextResponse.json({ error: "El nuevo código es igual al actual" }, { status: 400 });
-    }
 
-    const { data: existing, error: existingError } = await supabaseServer
-      .from("products")
-      .select("barcode")
-      .eq("barcode", oldBarcode)
-      .maybeSingle();
-    if (existingError) {
-      return NextResponse.json({ error: existingError.message }, { status: 500 });
-    }
-    if (!existing) {
-      return NextResponse.json({ error: `No existe ningún producto con código ${oldBarcode}` }, { status: 404 });
-    }
+    const { error } = await supabaseServer.rpc("rename_product_barcode", {
+      p_old_barcode: oldBarcode,
+      p_new_barcode: newBarcode,
+    });
 
-    const { data: conflict, error: conflictError } = await supabaseServer
-      .from("products")
-      .select("barcode")
-      .eq("barcode", newBarcode)
-      .maybeSingle();
-    if (conflictError) {
-      return NextResponse.json({ error: conflictError.message }, { status: 500 });
-    }
-    if (conflict) {
-      return NextResponse.json(
-        { error: `El código ${newBarcode} ya está en uso por otro producto` },
-        { status: 409 }
-      );
-    }
-
-    const { error: updateError } = await supabaseServer
-      .from("products")
-      .update({ barcode: newBarcode })
-      .eq("barcode", oldBarcode);
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    if (error) {
+      const status = /ya está en uso|inválido|es igual|no existe/i.test(error.message) ? 409 : 500;
+      return NextResponse.json({ error: error.message }, { status });
     }
 
     return NextResponse.json({ success: true, oldBarcode, newBarcode });
