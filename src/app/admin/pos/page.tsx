@@ -7,12 +7,14 @@ import OlivoButton from "@/components/OlivoButton";
 import { 
   TrashIcon, MinusIcon, PlusIcon, MagnifyingGlassIcon,
   ShoppingBagIcon, XMarkIcon, CreditCardIcon, BanknotesIcon,
-  CameraIcon, ArrowPathIcon, CheckCircleIcon, EnvelopeIcon
+  CameraIcon, ArrowPathIcon, CheckCircleIcon, EnvelopeIcon,
+  PlusCircleIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { createSaleAction } from "@/actions/sales";
 import { useToast } from "@/contexts/ToastContext";
 import UnifiedScanner from "@/components/admin/scanner/UnifiedScanner";
+import QuickCreateProductModal from "@/components/admin/pos/QuickCreateProductModal";
 
 const PRODUCTS_PER_PAGE = 40;
 
@@ -24,6 +26,7 @@ export default function POSPage() {
   const [loading, setLoading] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "transfer">("cash");
   const [showScanner, setShowScanner] = useState(false);
+  const [quickCreateBarcode, setQuickCreateBarcode] = useState<string | null>(null);
   const [cashReceived, setCashReceived] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [showCart, setShowCart] = useState(false); // Mobile toggle
@@ -258,7 +261,15 @@ export default function POSPage() {
           {!loading && products.length === 0 && (
             <div className="col-span-full py-20 text-center text-slate-600">
               <MagnifyingGlassIcon className="h-10 w-10 mx-auto mb-3 opacity-20" />
-              <p className="text-xs font-bold uppercase tracking-widest">Sin resultados</p>
+              <p className="text-xs font-bold uppercase tracking-widest mb-3">Sin resultados</p>
+              {searchQuery.trim() && (
+                <button
+                  onClick={() => setQuickCreateBarcode(searchQuery.trim())}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-[10px] font-black uppercase tracking-widest"
+                >
+                  <PlusCircleIcon className="h-4 w-4" /> Crear &quot;{searchQuery.trim()}&quot;
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -467,11 +478,26 @@ export default function POSPage() {
                   setShowScanner(false);
                 } else {
                   showToast(`No encontrado: ${barcode}`, "error");
+                  setShowScanner(false);
+                  setQuickCreateBarcode(barcode);
                 }
               }}
             />
           </div>
         </div>
+      )}
+
+      {quickCreateBarcode !== null && (
+        <QuickCreateProductModal
+          initialBarcode={quickCreateBarcode}
+          onClose={() => setQuickCreateBarcode(null)}
+          onCreated={(product) => {
+            setAllProducts((prev) => [product, ...prev]);
+            addToCart(product);
+            setQuickCreateBarcode(null);
+            setSearchQuery("");
+          }}
+        />
       )}
 
       {isScanning && (

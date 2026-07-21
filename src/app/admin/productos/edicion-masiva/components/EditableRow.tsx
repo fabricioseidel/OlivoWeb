@@ -36,11 +36,20 @@ const EditableRow = memo(function EditableRow({ product, changes, onChange }: { 
               />
             </div>
             <div className="flex items-center gap-2 px-1 mt-0.5">
-              {product.barcode ? (
-                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter">{product.barcode}</span>
-              ) : (
-                <span className="text-[9px] font-black text-rose-300 uppercase tracking-tighter">Sin SKU</span>
-              )}
+              <input
+                type="text"
+                title="Código de barras — cambiarlo renombra el identificador del producto"
+                value={changes?.barcode ?? product.barcode ?? ""}
+                onChange={(e) => onChange(product.id, "barcode", e.target.value)}
+                placeholder="Sin SKU"
+                className={`w-28 text-[9px] font-black uppercase tracking-tighter bg-transparent border-b transition-all focus:outline-none focus:border-violet-500 ${
+                  changes?.barcode !== undefined
+                    ? "border-violet-500 text-violet-600"
+                    : product.barcode
+                    ? "border-transparent text-emerald-400 hover:border-gray-300"
+                    : "border-transparent text-rose-300 hover:border-gray-300"
+                }`}
+              />
             </div>
           </div>
         </div>

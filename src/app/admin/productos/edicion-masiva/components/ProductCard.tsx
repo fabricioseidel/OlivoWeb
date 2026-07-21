@@ -89,9 +89,16 @@ const ProductCard = memo(function ProductCard({
             changes?.name !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-900 hover:border-gray-200"
           }`}
         />
-        <p className="text-[9px] font-black text-gray-400 tracking-tighter uppercase truncate opacity-60">
-          SKU: {product.barcode || String(product.id).slice(0, 15)}
-        </p>
+        <input
+          type="text"
+          title="Código de barras — cambiarlo renombra el identificador del producto"
+          value={changes?.barcode ?? product.barcode ?? ""}
+          onChange={(e) => onChange(product.id, "barcode", e.target.value)}
+          placeholder={`SKU: ${String(product.id).slice(0, 15)}`}
+          className={`w-full text-[9px] font-black tracking-tighter uppercase bg-transparent border-b truncate transition-all focus:outline-none focus:border-violet-500 ${
+            changes?.barcode !== undefined ? "border-violet-500 text-violet-600" : "border-transparent text-gray-400 opacity-60 hover:border-gray-200"
+          }`}
+        />
 
         {missing.length > 0 && (
           <div className="flex flex-wrap gap-1">

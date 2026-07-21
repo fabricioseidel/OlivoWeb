@@ -193,3 +193,20 @@ export async function deleteProduct(barcode: string) {
     throw new Error(err.error || 'Error deleting product');
   }
 }
+
+// El barcode es el identificador de negocio del producto (upserts usan
+// onConflict:'barcode'), así que renombrarlo no puede pasar por
+// saveProduct/saveProductsBulk (crearían una fila nueva en vez de renombrar
+// la existente). Este endpoint hace un UPDATE real de la fila.
+export async function renameProductBarcode(oldBarcode: string, newBarcode: string) {
+  const res = await fetch('/api/admin/products/rename-barcode', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ oldBarcode, newBarcode }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Error renombrando el código de barras');
+  }
+}
