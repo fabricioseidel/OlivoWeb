@@ -69,7 +69,7 @@ const ProductCard = memo(function ProductCard({
       )}
 
       <div
-        className="h-28 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center cursor-pointer"
+        className="h-44 sm:h-32 lg:h-28 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center cursor-pointer"
         onClick={() => onToggleSelect(product.id)}
       >
         {hasRealImage(product) ? (

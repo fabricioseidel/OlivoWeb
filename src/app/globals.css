@@ -53,10 +53,15 @@ svg[aria-hidden="true"] {
   height: 1.25rem !important;
 }
 
-/* Fix para imágenes en general */
-img {
-  max-width: 100%;
-  height: auto;
+/* Fix para imágenes en general.
+   En @layer base para que las utilidades de Tailwind (h-full, h-28, etc.)
+   puedan sobreescribirlo; sin capa, esta regla les ganaba a todas y las
+   imágenes ignoraban su alto asignado. */
+@layer base {
+  img {
+    max-width: 100%;
+    height: auto;
+  }
 }
 
 /* line-clamp util si no tienes el plugin (Tailwind 3.3+ ya trae truncation básica) */
