@@ -439,7 +439,7 @@ export default function AdminLayout({
       )}
 
       {/* ── Main Content ── */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-emerald-950 px-4 md:hidden border-b border-white/5">
           <button onClick={() => setMobileMenuOpen(true)} className="p-2 text-emerald-400">
             <Bars3Icon className="h-5 w-5" />

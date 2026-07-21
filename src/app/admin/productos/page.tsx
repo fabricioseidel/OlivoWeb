@@ -122,6 +122,19 @@ export default function AdminProductsPage() {
     }
   };
 
+  // Ventana de páginas: 1 … (actual±1) … última, para que la fila no crezca con el catálogo
+  const pageNumbers = useMemo(() => {
+    const pages: (number | "…")[] = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+        pages.push(i);
+      } else if (pages[pages.length - 1] !== "…") {
+        pages.push("…");
+      }
+    }
+    return pages;
+  }, [totalPages, currentPage]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory, onlyEditedToday]);
@@ -672,13 +685,13 @@ export default function AdminProductsPage() {
             de <span className="font-bold">{filteredProducts.length}</span>
           </p>
           <nav
-            className="inline-flex rounded-md shadow-sm -space-x-px"
+            className="inline-flex max-w-full rounded-md shadow-sm -space-x-px"
             aria-label="Pagination"
           >
             <button
               onClick={() => paginate(currentPage - 1)}
               disabled={currentPage === 1}
-              className={`relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-200 bg-white text-sm font-medium ${
+              className={`relative inline-flex shrink-0 items-center px-3 py-2 rounded-l-md border border-gray-200 bg-white text-sm font-medium ${
                 currentPage === 1
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700 hover:bg-gray-50"
@@ -687,23 +700,32 @@ export default function AdminProductsPage() {
               <span className="sr-only">Anterior</span>
               <ChevronLeftIcon className="h-5 w-5" />
             </button>
-            {Array.from({ length: totalPages }).map((_, index) => (
-              <button
-                key={index}
-                onClick={() => paginate(index + 1)}
-                className={`relative inline-flex items-center px-4 py-2 border border-gray-200 bg-white text-sm font-medium ${
-                  currentPage === index + 1
-                    ? "z-10 bg-emerald-50 border-emerald-500 text-emerald-700"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {index + 1}
-              </button>
-            ))}
+            {pageNumbers.map((page, index) =>
+              page === "…" ? (
+                <span
+                  key={`ellipsis-${index}`}
+                  className="relative inline-flex shrink-0 items-center px-2 sm:px-3 py-2 border border-gray-200 bg-white text-sm font-medium text-gray-400 select-none"
+                >
+                  …
+                </span>
+              ) : (
+                <button
+                  key={page}
+                  onClick={() => paginate(page)}
+                  className={`relative inline-flex shrink-0 items-center px-3 sm:px-4 py-2 border border-gray-200 bg-white text-sm font-medium ${
+                    currentPage === page
+                      ? "z-10 bg-emerald-50 border-emerald-500 text-emerald-700"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            )}
             <button
               onClick={() => paginate(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className={`relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-200 bg-white text-sm font-medium ${
+              className={`relative inline-flex shrink-0 items-center px-3 py-2 rounded-r-md border border-gray-200 bg-white text-sm font-medium ${
                 currentPage === totalPages
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-gray-700 hover:bg-gray-50"
