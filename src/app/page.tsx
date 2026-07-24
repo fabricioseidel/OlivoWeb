@@ -8,7 +8,9 @@ import { useProducts } from "@/contexts/ProductContext";
 import { isProductVisible } from "@/services/products";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
+import NewsletterWidget from "@/components/NewsletterWidget";
 import { useCategories } from "@/hooks/useCategories";
+import { DEFAULT_BLOCKS, type PageBlock } from "@/lib/page-blocks";
 import {
   ChevronRight,
   Truck,
@@ -24,6 +26,128 @@ export default function Home() {
   const { products, loading: productsLoading } = useProducts();
   const { categories, loading: categoriesLoading } = useCategories();
   const { settings: storeSettings } = useStoreSettings();
+
+  const visible = products.filter(p => p.isActive && isProductVisible(p));
+  const featured = visible.filter(p => p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const rest = visible.filter(p => !p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const ranked = [...featured, ...rest];
+  const offerProducts = visible.filter(p => p.offerPrice && p.offerPrice < p.price);
+
+  // Bloques del Constructor Visual (admin → Laboratorio). Fallback al layout
+  // por defecto si aún no hay bloques guardados o falló el fetch.
+  const savedBlocks = storeSettings?.appearance?.blocks;
+  const blocks = (savedBlocks && savedBlocks.length > 0 ? savedBlocks : DEFAULT_BLOCKS)
+    .filter(b => b.enabled);
+
+  // "Más productos" continúa donde terminó el bloque "Más vendidos"
+  const topCount = blocks.find(b => b.type === "products")?.itemsToShow ?? 10;
+
+  return (
+    <div className="bg-gray-50 min-h-screen">
+      {blocks.map(block => {
+        switch (block.type) {
+          case "hero":
+            return (
+              <HeroBlock
+                key={block.id}
+                block={block}
+                fallbackTitle={storeSettings?.heroTitle}
+                fallbackDescription={storeSettings?.heroDescription}
+                showCategoriesBar
+                categories={categories}
+                categoriesLoading={categoriesLoading}
+              />
+            );
+          case "features":
+            return <FeaturesBlock key={block.id} />;
+          case "products":
+            return (
+              <ProductSection
+                key={block.id}
+                title={block.title || "Lo más vendido"}
+                icon={<Flame className="w-5 h-5 text-orange-500" />}
+                products={ranked.slice(0, block.itemsToShow ?? 10)}
+                loading={productsLoading}
+                href="/productos"
+              />
+            );
+          case "banner":
+            return <BannerBlock key={block.id} block={block} />;
+          case "offers":
+            return offerProducts.length > 0 ? (
+              <ProductSection
+                key={block.id}
+                title={block.title || "Ofertas especiales"}
+                icon={<Tag className="w-5 h-5 text-red-500" />}
+                products={offerProducts.slice(0, block.itemsToShow ?? 10)}
+                loading={productsLoading}
+                href="/ofertas"
+              />
+            ) : null;
+          case "categories":
+            return (
+              <CategoriesBlock
+                key={block.id}
+                title={block.title || "Nuestras categorías"}
+                categories={categories}
+                loading={categoriesLoading}
+              />
+            );
+          case "more_products": {
+            const more = ranked.slice(topCount, topCount + (block.itemsToShow ?? 10));
+            return more.length > 0 ? (
+              <ProductSection
+                key={block.id}
+                title={block.title || "Más productos"}
+                icon={<Zap className="w-5 h-5 text-emerald-600" />}
+                products={more}
+                loading={productsLoading}
+                href="/productos"
+                bg="bg-white"
+              />
+            ) : null;
+          }
+          case "newsletter":
+            return (
+              <section key={block.id} className="py-8 px-4 max-w-7xl mx-auto">
+                <NewsletterWidget title={block.title} description={block.description} />
+              </section>
+            );
+          default:
+            return null;
+        }
+      })}
+
+      {/* ── VER TODOS ── */}
+      <section className="py-10 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <Link href="/productos"
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base px-10 h-14 rounded-xl transition-colors shadow-lg shadow-emerald-600/20">
+            Ver todos los productos <ChevronRight className="w-5 h-5" />
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ── Bloques ── */
+
+function HeroBlock({
+  block,
+  fallbackTitle,
+  fallbackDescription,
+  showCategoriesBar,
+  categories,
+  categoriesLoading,
+}: {
+  block: PageBlock;
+  fallbackTitle?: string;
+  fallbackDescription?: string;
+  showCategoriesBar?: boolean;
+  categories: any[];
+  categoriesLoading: boolean;
+}) {
   const router = useRouter();
   const [heroQuery, setHeroQuery] = useState("");
 
@@ -33,32 +157,25 @@ export default function Home() {
     router.push(q ? `/productos?q=${encodeURIComponent(q)}` : "/productos");
   };
 
-  const heroTitle = storeSettings?.heroTitle || "Sabor que te conecta con casa";
-  const heroDescription = storeSettings?.heroDescription || "Llevamos lo mejor de Venezuela directo a tu puerta en Chile.";
-
-  const visible = products.filter(p => p.isActive && isProductVisible(p));
-  const featured = visible.filter(p => p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
-  const rest = visible.filter(p => !p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
-  const topSellers = [...featured, ...rest].slice(0, 10);
-  const offerProducts = visible.filter(p => p.offerPrice && p.offerPrice < p.price).slice(0, 10);
-  const moreProducts = [...featured, ...rest].slice(10, 20);
-
-  const blocks = storeSettings?.appearance?.blocks?.filter(b => b.enabled) ?? [];
-  const hasBlocks = blocks.length > 0;
+  const title = block.title || fallbackTitle || "Sabor que te conecta con casa";
+  const description = block.description || fallbackDescription || "Llevamos lo mejor de Venezuela directo a tu puerta en Chile.";
+  const buttonText = block.buttonText || "Comprar ahora";
+  const buttonLink = block.buttonLink || "/productos";
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* ── HERO BANNER ── */}
+    <>
       <section className="bg-[#1a4731] relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 py-8 md:py-10 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 items-center">
           {/* Left: text + search */}
           <div className="text-white">
-            <p className="text-emerald-300 font-bold text-xs uppercase tracking-widest mb-2">🌿 Productos venezolanos premium</p>
+            <p className="text-emerald-300 font-bold text-xs uppercase tracking-widest mb-2">
+              🌿 {block.subtitle || "Productos venezolanos premium"}
+            </p>
             <h1 className="text-3xl md:text-5xl font-black leading-tight mb-2 tracking-tight">
-              {heroTitle}
+              {title}
             </h1>
             <p className="text-emerald-100/70 text-sm md:text-base mb-5 max-w-md">
-              {heroDescription}
+              {description}
             </p>
             <form onSubmit={submitHeroSearch} className="flex max-w-xl gap-2">
               <div className="relative flex-1">
@@ -79,8 +196,8 @@ export default function Home() {
               </button>
             </form>
             <div className="flex flex-wrap gap-3 mt-5">
-              <Link href="/productos" className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
-                Comprar ahora <ChevronRight className="w-4 h-4" />
+              <Link href={buttonLink} className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
+                {buttonText} <ChevronRight className="w-4 h-4" />
               </Link>
               <Link href="/ofertas" className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
                 <Tag className="w-4 h-4 text-amber-400" /> Ver ofertas
@@ -111,118 +228,99 @@ export default function Home() {
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Benefits bar */}
-        <div className="border-t border-white/10 bg-black/20">
-          <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap justify-center sm:justify-between gap-y-2 divide-x divide-white/10">
-            {[
-              { icon: Truck,      text: "Envío en 24-48h" },
-              { icon: BadgeCheck, text: "Calidad garantizada" },
-              { icon: Shield,     text: "Pago 100% seguro" },
-            ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-2 px-4 sm:px-8">
-                <Icon className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-[11px] font-bold text-emerald-100/70 uppercase tracking-wider whitespace-nowrap">{text}</span>
-              </div>
+      {/* ── CATEGORÍAS (barra de navegación horizontal) ── */}
+      {showCategoriesBar && (
+        <section className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
+            <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-bold whitespace-nowrap hover:bg-emerald-500 transition-colors">
+              Todo
+            </Link>
+            {!categoriesLoading && [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map(cat => (
+              <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}
+                className="shrink-0 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 text-xs font-bold whitespace-nowrap transition-colors">
+                {cat.name}
+              </Link>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ── CATEGORÍAS (horizontal) ── */}
-      <section className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
-          <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-bold whitespace-nowrap hover:bg-emerald-500 transition-colors">
-            Todo
-          </Link>
-          {!categoriesLoading && [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map(cat => (
-            <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}
-              className="shrink-0 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 text-xs font-bold whitespace-nowrap transition-colors">
-              {cat.name}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* ── LO MÁS VENDIDO ── */}
-      <ProductSection
-        title="Lo más vendido"
-        icon={<Flame className="w-5 h-5 text-orange-500" />}
-        products={topSellers}
-        loading={productsLoading}
-        href="/productos"
-      />
-
-      {/* ── BANNER PROMOCIONAL ── */}
-      <section className="py-4 px-4 max-w-7xl mx-auto">
-        <Link href="/ofertas" className="block rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 p-6 md:p-8 relative overflow-hidden hover:opacity-95 transition-opacity">
-          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-orange-600/40 to-transparent" />
-          <p className="text-white/80 text-xs font-black uppercase tracking-widest mb-1">Tiempo limitado</p>
-          <p className="text-white text-2xl md:text-4xl font-black leading-tight">Descuentos hasta<br /><span className="text-5xl md:text-6xl">40% OFF</span></p>
-          <p className="text-white/70 text-sm mt-2">En productos seleccionados de toda la tienda</p>
-          <span className="inline-flex items-center gap-1 mt-4 bg-white text-orange-600 font-black text-sm px-5 h-9 rounded-lg">
-            Ver ofertas <ChevronRight className="w-4 h-4" />
-          </span>
-        </Link>
-      </section>
-
-      {/* ── OFERTAS ── */}
-      {offerProducts.length > 0 && (
-        <ProductSection
-          title="Ofertas especiales"
-          icon={<Tag className="w-5 h-5 text-red-500" />}
-          products={offerProducts}
-          loading={productsLoading}
-          href="/ofertas"
-        />
+        </section>
       )}
+    </>
+  );
+}
 
-      {/* ── CATEGORÍAS VISUALES ── */}
-      <section className="py-8 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <SectionHeader title="Nuestras categorías" icon={null} href="/productos" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {categoriesLoading
-              ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-28 bg-gray-100 animate-pulse rounded-2xl" />)
-              : [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).slice(0, 6).map(cat => (
-                  <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}>
-                    <CategoryCard category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null }} />
-                  </Link>
-                ))
-            }
+function FeaturesBlock() {
+  return (
+    <section className="bg-[#1a4731]">
+      <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap justify-center sm:justify-between gap-y-2 divide-x divide-white/10">
+        {[
+          { icon: Truck,      text: "Envío en 24-48h" },
+          { icon: BadgeCheck, text: "Calidad garantizada" },
+          { icon: Shield,     text: "Pago 100% seguro" },
+        ].map(({ icon: Icon, text }) => (
+          <div key={text} className="flex items-center gap-2 px-4 sm:px-8">
+            <Icon className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="text-[11px] font-bold text-emerald-100/70 uppercase tracking-wider whitespace-nowrap">{text}</span>
           </div>
-          {categories.length > 6 && (
-            <div className="text-center mt-4">
-              <Link href="/categorias" className="inline-flex items-center gap-1 text-sm font-bold text-emerald-600 hover:text-emerald-700">
-                Ver todas las categorías <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-          )}
-        </div>
-      </section>
+        ))}
+      </div>
+    </section>
+  );
+}
 
-      {/* ── MÁS PRODUCTOS ── */}
-      {moreProducts.length > 0 && (
-        <ProductSection
-          title="Más productos"
-          icon={<Zap className="w-5 h-5 text-emerald-600" />}
-          products={moreProducts}
-          loading={productsLoading}
-          href="/productos"
-          bg="bg-white"
-        />
-      )}
+function BannerBlock({ block }: { block: PageBlock }) {
+  return (
+    <section className="py-4 px-4 max-w-7xl mx-auto">
+      <Link href={block.buttonLink || "/ofertas"} className="block rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 p-6 md:p-8 relative overflow-hidden hover:opacity-95 transition-opacity">
+        <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-orange-600/40 to-transparent" />
+        <p className="text-white/80 text-xs font-black uppercase tracking-widest mb-1">Tiempo limitado</p>
+        <p className="text-white text-2xl md:text-4xl font-black leading-tight">
+          {block.title || "Descuentos hasta 40% OFF"}
+        </p>
+        {block.description && (
+          <p className="text-white/70 text-sm mt-2">{block.description}</p>
+        )}
+        <span className="inline-flex items-center gap-1 mt-4 bg-white text-orange-600 font-black text-sm px-5 h-9 rounded-lg">
+          {block.buttonText || "Ver ofertas"} <ChevronRight className="w-4 h-4" />
+        </span>
+      </Link>
+    </section>
+  );
+}
 
-      {/* ── VER TODOS ── */}
-      <section className="py-10 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <Link href="/productos"
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base px-10 h-14 rounded-xl transition-colors shadow-lg shadow-emerald-600/20">
-            Ver todos los productos <ChevronRight className="w-5 h-5" />
-          </Link>
+function CategoriesBlock({
+  title,
+  categories,
+  loading,
+}: {
+  title: string;
+  categories: any[];
+  loading: boolean;
+}) {
+  return (
+    <section className="py-8 bg-white">
+      <div className="max-w-7xl mx-auto px-4">
+        <SectionHeader title={title} icon={null} href="/productos" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-28 bg-gray-100 animate-pulse rounded-2xl" />)
+            : [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).slice(0, 6).map(cat => (
+                <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}>
+                  <CategoryCard category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null }} />
+                </Link>
+              ))
+          }
         </div>
-      </section>
-    </div>
+        {categories.length > 6 && (
+          <div className="text-center mt-4">
+            <Link href="/categorias" className="inline-flex items-center gap-1 text-sm font-bold text-emerald-600 hover:text-emerald-700">
+              Ver todas las categorías <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 

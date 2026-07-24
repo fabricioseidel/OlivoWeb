@@ -2,7 +2,13 @@
 
 import React, { useState } from "react";
 
-export default function NewsletterWidget() {
+export default function NewsletterWidget({
+  title,
+  description,
+}: {
+  title?: string;
+  description?: string;
+} = {}) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -38,10 +44,10 @@ export default function NewsletterWidget() {
     <div className="w-full bg-gradient-to-r from-emerald-900 to-teal-900 rounded-2xl p-6 md:p-8">
       <div className="max-w-xl mx-auto text-center">
         <h3 className="text-xl md:text-2xl font-black text-white mb-2">
-          🌿 Únete a la familia Olivo
+          {title || "🌿 Únete a la familia Olivo"}
         </h3>
         <p className="text-emerald-200/70 text-sm mb-6">
-          Recibe ofertas exclusivas, cupones de descuento y novedades directamente en tu email.
+          {description || "Recibe ofertas exclusivas, cupones de descuento y novedades directamente en tu email."}
         </p>
 
         {status === "success" ? (

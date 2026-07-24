@@ -16,9 +16,11 @@ async function _fetchOnce(): Promise<StoreSettings> {
     console.log("[OLIVO:settings] ⏳ fetch ya en curso — esperando promise compartida");
     return _pending;
   }
-  console.group("[OLIVO:settings] 🌐 FETCH /api/admin/settings");
+  // Endpoint público: /api/admin/settings queda detrás del middleware de auth
+  // y los visitantes anónimos recibían 401 (y con eso, los defaults del código).
+  console.group("[OLIVO:settings] 🌐 FETCH /api/settings");
   const t0 = Date.now();
-  _pending = fetch("/api/admin/settings", { cache: "no-store" })
+  _pending = fetch("/api/settings", { cache: "no-store" })
     .then((r) => {
       if (!r.ok) throw new Error(r.statusText);
       return r.json() as Promise<StoreSettings>;
