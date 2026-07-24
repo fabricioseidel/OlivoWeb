@@ -81,40 +81,60 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Buscar el registro creado al enviar el correo (email.service.ts guarda resend_id)
-    const existing = resendId
-      ? (
-          await supabaseServer
-            .from("email_log")
-            .select("id, status")
-            .eq("resend_id", resendId)
-            .maybeSingle()
-        ).data
-      : null;
+    const statusUpdate = {
+      status,
+      ...(errorMessage ? { error_message: errorMessage } : {}),
+    };
+    // Filtro para no pisar estados terminales con eventos fuera de orden
+    // (ej: "delivered" después de "bounced")
+    const notTerminal = `(${[...TERMINAL_STATUSES].join(",")})`;
 
-    if (existing) {
-      // No pisar estados terminales con eventos que llegan fuera de orden
-      // (ej: "delivered" después de "bounced")
-      if (!TERMINAL_STATUSES.has(existing.status)) {
+    // Actualizar el registro creado al enviar el correo (email.service.ts guarda
+    // resend_id). Update directo por resend_id: idempotente ante reintentos de
+    // Resend y sin ventana de carrera entre leer e insertar.
+    let updated = false;
+    if (resendId) {
+      const { data: rows, error } = await supabaseServer
+        .from("email_log")
+        .update(statusUpdate)
+        .eq("resend_id", resendId)
+        .not("status", "in", notTerminal)
+        .select("id");
+      if (error) throw error;
+      updated = (rows?.length ?? 0) > 0;
+    }
+
+    // Sin registro previo (correo enviado fuera de la app, o ya en estado
+    // terminal): upsert apoyado en el índice único de resend_id, para que dos
+    // eventos simultáneos del mismo correo no dupliquen filas.
+    if (!updated && toEmail) {
+      const { data: inserted, error } = await supabaseServer
+        .from("email_log")
+        .upsert(
+          {
+            to_email: toEmail,
+            from_email: data.from ?? "unknown",
+            subject: data.subject ?? "(sin asunto)",
+            status,
+            resend_id: resendId,
+            error_message: errorMessage,
+            metadata: { webhook_event: type, created_at: event.created_at },
+          },
+          { onConflict: "resend_id", ignoreDuplicates: true }
+        )
+        .select("id");
+      if (error) throw error;
+
+      // Conflicto: otro evento insertó la fila entre el update y el upsert.
+      // Reintentar el update para no perder el estado de este evento.
+      if ((inserted?.length ?? 0) === 0 && resendId) {
         await supabaseServer
           .from("email_log")
-          .update({
-            status,
-            ...(errorMessage ? { error_message: errorMessage } : {}),
-          })
-          .eq("id", existing.id);
+          .update(statusUpdate)
+          .eq("resend_id", resendId)
+          .not("status", "in", notTerminal)
+          .select("id");
       }
-    } else if (toEmail) {
-      // Correo enviado fuera de la app (ej: dashboard de Resend) — registrarlo igual
-      await supabaseServer.from("email_log").insert({
-        to_email: toEmail,
-        from_email: data.from ?? "unknown",
-        subject: data.subject ?? "(sin asunto)",
-        status,
-        resend_id: resendId,
-        error_message: errorMessage,
-        metadata: { webhook_event: type, created_at: event.created_at },
-      });
     }
 
     if (toEmail) {
