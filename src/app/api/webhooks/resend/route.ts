@@ -35,6 +35,11 @@ const STATUS_BY_EVENT: Record<string, string> = {
 // Estados que no deben ser pisados por eventos que llegan después fuera de orden
 const TERMINAL_STATUSES = new Set(["bounced", "complained", "failed", "clicked"]);
 
+// Escapa comodines de LIKE para que ilike compare el email literal (case-insensitive)
+function emailPattern(email: string) {
+  return email.replace(/[\\%_]/g, "\\$&");
+}
+
 export async function POST(req: NextRequest) {
   const secret = process.env.RESEND_WEBHOOK_SECRET;
   if (!secret) {
@@ -61,7 +66,8 @@ export async function POST(req: NextRequest) {
   const data = event.data ?? {};
   const status = STATUS_BY_EVENT[type];
   const resendId = data.email_id ?? null;
-  const toEmail = Array.isArray(data.to) ? data.to[0] : data.to ?? null;
+  const rawTo = Array.isArray(data.to) ? data.to[0] : data.to;
+  const toEmail = rawTo?.toLowerCase() ?? null;
   const errorMessage =
     type === "email.bounced"
       ? data.bounce?.message ?? "Email rebotado"
@@ -117,12 +123,12 @@ export async function POST(req: NextRequest) {
         await supabaseServer
           .from("customers")
           .update({ email_verified: false })
-          .eq("email", toEmail);
+          .ilike("email", emailPattern(toEmail));
 
         await supabaseServer
           .from("newsletter_subscribers")
           .update({ is_active: false, unsubscribed_at: new Date().toISOString() })
-          .eq("email", toEmail);
+          .ilike("email", emailPattern(toEmail));
       }
 
       // Queja de spam → retirar consentimiento de marketing y dar de baja del newsletter
@@ -130,12 +136,12 @@ export async function POST(req: NextRequest) {
         await supabaseServer
           .from("customers")
           .update({ marketing_consent: false })
-          .eq("email", toEmail);
+          .ilike("email", emailPattern(toEmail));
 
         await supabaseServer
           .from("newsletter_subscribers")
           .update({ is_active: false, unsubscribed_at: new Date().toISOString() })
-          .eq("email", toEmail);
+          .ilike("email", emailPattern(toEmail));
       }
     }
 
