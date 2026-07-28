@@ -21,6 +21,7 @@ import PaymentForm, { PaymentMethod } from "./components/PaymentForm";
 import OrderSummary from "./components/OrderSummary";
 import { AddressResult } from "@/components/AddressAutocomplete";
 import { calculateDistance, calculateShippingCost } from "@/utils/shipping-calculator";
+import { quoteShipping } from "@/lib/shipping-policy";
 
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { validateShippingInfo, type ShippingFieldErrors } from "@/schemas/checkout.schema";
@@ -30,7 +31,9 @@ const paymentMethods: PaymentMethod[] = [
 ];
 
 const baseShippingMethods: ShippingMethod[] = [
-  { id: "pickup", name: "Retirar en Tienda (Providencia)", price: 0, days: "Listo en 1 hora (Gratis)" },
+  // La tienda está en Ñuñoa, no en Providencia. El retiro se confirma por
+  // correo cuando el pedido queda listo, normalmente en menos de una hora.
+  { id: "pickup", name: "Retirar en Tienda (Ñuñoa)", price: 0, days: "Te avisamos por correo, normalmente en menos de 1 hora (Gratis)" },
 ];
 
 export default function CheckoutPage() {
@@ -84,9 +87,24 @@ export default function CheckoutPage() {
   }, [dynamicShipping]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  
+
   const rawShippingCost = shippingMethods.find((method) => method.id === selectedShippingMethod)?.price || 0;
-  const shippingCost = appliedCoupon?.freeShipping ? 0 : rawShippingCost;
+
+  // El despacho a domicilio pasa por las reglas de tope por comuna y envío
+  // gratis por monto; el retiro en tienda ya es 0 y no se toca.
+  const quote = selectedShippingMethod === "dynamic"
+    ? quoteShipping({
+        rawPrice: rawShippingCost,
+        subtotal,
+        ciudad: shippingInfo.city,
+        freeShippingMinimum:
+          storeSettings?.shipping?.freeShippingEnabled
+            ? Number(storeSettings.shipping.freeShippingMinimum ?? 0) || null
+            : null,
+      })
+    : null;
+
+  const shippingCost = appliedCoupon?.freeShipping ? 0 : (quote ? quote.price : rawShippingCost);
   
   const couponDiscount = appliedCoupon?.discount || 0;
   const pointsDiscount = redeemedPoints * (loyaltyConfig?.redemption_value || 0);
@@ -519,6 +537,29 @@ export default function CheckoutPage() {
                               )}
                            </div>
                            
+                           {/* Feedback de las reglas de despacho: sin esto el cliente
+                               ve un precio distinto al calculado por distancia y no
+                               entiende por qué. */}
+                           {quote?.freeApplied && (
+                              <div className="bg-emerald-600 text-white p-5 rounded-3xl">
+                                 <p className="font-black">🎉 Tu envío es gratis</p>
+                                 <p className="text-sm text-emerald-50 mt-1">
+                                    Tu compra supera el mínimo para despacho gratis en tu comuna.
+                                 </p>
+                              </div>
+                           )}
+                           {quote?.capApplied && (
+                              <div className="bg-emerald-50 p-5 rounded-3xl border border-emerald-100">
+                                 <p className="font-bold text-emerald-900">
+                                    Despacho con tarifa preferente
+                                 </p>
+                                 <p className="text-sm text-emerald-800 mt-1">
+                                    Por tu comuna, el envío tiene un tope de ${quote.price.toLocaleString('es-CL')}
+                                    {' '}en vez de ${quote.rawPrice.toLocaleString('es-CL')}.
+                                 </p>
+                              </div>
+                           )}
+
                            {selectedShippingMethod === 'dynamic' && (
                               <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100">
                                  <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-3 flex items-center gap-2">

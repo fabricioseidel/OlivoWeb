@@ -55,8 +55,11 @@ export const DEFAULT_BLOCKS: PageBlock[] = [
     id: 'b1',
     type: 'hero',
     enabled: true,
-    title: 'Sabor que te conecta con casa',
-    description: 'Llevamos lo mejor de Venezuela directo a tu puerta en Chile.',
+    // El título del hero es el <h1> de la portada: debe nombrar la comuna y el
+    // posicionamiento dual (minimarket + paquetería) por SEO local.
+    title: 'Olivo Market Ñuñoa — Productos venezolanos y punto de envíos',
+    description:
+      'Minimarket venezolano y punto de retiro y envío de encomiendas en Av. José Pedro Alessandri 2010, Ñuñoa.',
     buttonText: 'Comprar ahora',
     buttonLink: '/productos',
   },

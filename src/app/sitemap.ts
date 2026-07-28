@@ -1,22 +1,38 @@
 import type { MetadataRoute } from 'next';
 import { supabaseServer } from '@/lib/supabase-server';
 import { slugify } from '@/utils/string-utils';
+import { BUSINESS } from '@/lib/seo/business';
 
 export const revalidate = 3600; // regenerar cada hora
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXTAUTH_URL ??
-    'http://localhost:3000';
+  // El dominio canónico manda: NEXT_PUBLIC_SITE_URL/NEXTAUTH_URL pueden apuntar
+  // a un preview de Vercel y ensuciarían el sitemap de producción.
+  const base = BUSINESS.url;
+  const now = new Date();
 
   const staticPages: MetadataRoute.Sitemap = [
-    { url: `${base}/`, priority: 1.0, changeFrequency: 'daily' },
-    { url: `${base}/productos`, priority: 0.9, changeFrequency: 'daily' },
-    { url: `${base}/categorias`, priority: 0.8, changeFrequency: 'weekly' },
-    { url: `${base}/ofertas`, priority: 0.8, changeFrequency: 'daily' },
-    { url: `${base}/contacto`, priority: 0.5, changeFrequency: 'monthly' },
-    { url: `${base}/bienvenidos`, priority: 0.5, changeFrequency: 'monthly' },
+    { url: `${base}/`, priority: 1.0, changeFrequency: 'daily', lastModified: now },
+    { url: `${base}/productos`, priority: 0.9, changeFrequency: 'daily', lastModified: now },
+
+    // Landings locales (SEO Ñuñoa)
+    { url: `${base}/tienda-nunoa`, priority: 0.9, changeFrequency: 'monthly', lastModified: now },
+    { url: `${base}/punto-de-envio`, priority: 0.9, changeFrequency: 'monthly', lastModified: now },
+    ...BUSINESS.services.map((s) => ({
+      url: `${base}/punto-de-envio/${s.slug}`,
+      priority: 0.8,
+      changeFrequency: 'monthly' as const,
+      lastModified: now,
+    })),
+    { url: `${base}/delivery/nunoa`, priority: 0.8, changeFrequency: 'monthly', lastModified: now },
+    { url: `${base}/delivery/macul`, priority: 0.7, changeFrequency: 'monthly', lastModified: now },
+    { url: `${base}/delivery/penalolen`, priority: 0.7, changeFrequency: 'monthly', lastModified: now },
+    { url: `${base}/delivery/san-joaquin`, priority: 0.7, changeFrequency: 'monthly', lastModified: now },
+
+    { url: `${base}/categorias`, priority: 0.8, changeFrequency: 'weekly', lastModified: now },
+    { url: `${base}/ofertas`, priority: 0.8, changeFrequency: 'daily', lastModified: now },
+    { url: `${base}/contacto`, priority: 0.6, changeFrequency: 'monthly', lastModified: now },
+    { url: `${base}/bienvenidos`, priority: 0.5, changeFrequency: 'monthly', lastModified: now },
   ];
 
   let productPages: MetadataRoute.Sitemap = [];

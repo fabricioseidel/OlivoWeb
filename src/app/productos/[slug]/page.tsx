@@ -3,6 +3,8 @@ import { unstable_cache } from "next/cache";
 import { supabaseServer } from "@/lib/supabase-server";
 import { slugify } from "@/utils/string-utils";
 import ProductDetailClient from "./ProductDetailClient";
+import JsonLd from "@/components/seo/JsonLd";
+import { productSchema, breadcrumbSchema } from "@/lib/seo/schema";
 
 // El slug se deriva del nombre (slugify), no existe como columna: se busca
 // sobre la lista de productos activos, cacheada 5 min para no golpear la BD
@@ -63,31 +65,29 @@ export default async function ProductDetailPage(
   const { slug } = await params;
   const product = await findProductBySlug(slug);
 
-  // JSON-LD Product para rich snippets en buscadores
+  // JSON-LD Product + BreadcrumbList para rich snippets en buscadores
   const jsonLd = product
-    ? {
-        "@context": "https://schema.org",
-        "@type": "Product",
+    ? productSchema({
         name: product.name,
-        ...(product.description ? { description: product.description } : {}),
-        ...(product.image_url ? { image: product.image_url } : {}),
-        offers: {
-          "@type": "Offer",
-          price: product.sale_price ?? 0,
-          priceCurrency: "CLP",
-          availability: "https://schema.org/InStock",
-        },
-      }
+        description: product.description,
+        image: product.image_url,
+        price: product.sale_price,
+        slug,
+      })
+    : null;
+
+  const breadcrumbs = product
+    ? breadcrumbSchema([
+        { name: "Inicio", path: "/" },
+        { name: "Productos", path: "/productos" },
+        { name: product.name, path: `/productos/${slug}` },
+      ])
     : null;
 
   return (
     <>
-      {jsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-      )}
+      <JsonLd data={jsonLd} />
+      <JsonLd data={breadcrumbs} />
       <ProductDetailClient slug={slug} />
     </>
   );

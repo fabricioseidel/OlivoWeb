@@ -11,6 +11,7 @@ import { CategoryProvider } from "@/contexts/CategoryContext";
 import { DevErrorBoundary } from "@/components/debug/DevErrorBoundary";
 import { ClickTracker } from "@/components/debug/ClickTracker";
 import { supabase } from "@/lib/supabase";
+import { BUSINESS } from "@/lib/seo/business";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,8 +38,10 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
+    // Base para resolver los canonical relativos de todas las páginas
+    metadataBase: new URL(BUSINESS.url),
     title: "Olivo Market",
-    description: "Productos venezolanos premium en Chile",
+    description: BUSINESS.description,
     icons: faviconUrl
       ? { icon: faviconUrl, shortcut: faviconUrl, apple: faviconUrl }
       : undefined,
@@ -53,7 +56,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className="h-full" suppressHydrationWarning>
+    <html lang="es-CL" className="h-full" suppressHydrationWarning>
       <body className={`${inter.className} h-full bg-gray-50 antialiased`} suppressHydrationWarning>
         <Providers>
           <ClickTracker />

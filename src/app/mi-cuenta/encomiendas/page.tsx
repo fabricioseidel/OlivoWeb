@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function EncomiendasPage() {
-  redirect("/centro-logistico");
+  redirect("/punto-de-envio");
 }

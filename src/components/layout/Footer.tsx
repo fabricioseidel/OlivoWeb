@@ -3,28 +3,25 @@
 import React, { useEffect, useState } from 'react';
 import Link from "next/link";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { BUSINESS } from "@/lib/seo/business";
 
 const Footer = () => {
   const { settings } = useStoreSettings();
-  const [contactInfo, setContactInfo] = useState({
-    storeName: "OLIVOMARKET",
-    storeEmail: "contacto@olivomarket.cl",
-    storePhone: "+56 9 1234 5678",
-    storeAddress: "Av. Principal 123, Santiago, Chile",
-    socialMedia: {} as any,
-  });
+  // El NAP sale de BUSINESS, no de settings: debe ser idéntico en todo el sitio
+  // y coincidir carácter por carácter con Google Business Profile.
+  const [socialMedia, setSocialMedia] = useState<any>({});
 
   useEffect(() => {
-    if (settings) {
-      setContactInfo(prev => ({
-        storeName: settings.storeName || prev.storeName,
-        storeEmail: settings.storeEmail || prev.storeEmail,
-        storePhone: settings.storePhone || prev.storePhone,
-        storeAddress: settings.storeAddress || prev.storeAddress,
-        socialMedia: settings.socialMedia || {},
-      }));
-    }
+    if (settings?.socialMedia) setSocialMedia(settings.socialMedia);
   }, [settings]);
+
+  const contactInfo = {
+    storeName: BUSINESS.name,
+    storeEmail: BUSINESS.email,
+    storePhone: BUSINESS.phoneDisplay,
+    storeAddress: BUSINESS.addressFull,
+    socialMedia,
+  };
 
   return (
     <footer className="bg-emerald-950 text-white pt-24 pb-12 rounded-t-[3rem] sm:rounded-t-[4rem] relative overflow-hidden mt-20">
@@ -36,8 +33,9 @@ const Footer = () => {
             <h3 className="text-2xl font-black tracking-tighter text-emerald-400">
                 {contactInfo.storeName}
             </h3>
+            {/* Frase de entidad: idéntica en todo el sitio */}
             <p className="text-emerald-100/60 font-medium leading-relaxed max-w-xs">
-              Tu tienda online de confianza para productos de calidad a precios accesibles. Lo mejor de Venezuela y Chile en tu mesa.
+              {BUSINESS.entityPhrase}
             </p>
             {/* Redes Sociales Premium */}
             {Object.keys(contactInfo.socialMedia).length > 0 && (
@@ -80,8 +78,23 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-emerald-500 mb-8 italic">Atención</h3>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-emerald-500 mb-8 italic">Punto de envíos</h3>
             <ul className="space-y-4">
+              {BUSINESS.services.map((s) => (
+                <li key={s.slug}>
+                  <Link
+                    href={`/punto-de-envio/${s.slug}`}
+                    className="text-emerald-100/70 hover:text-white transition-colors font-bold text-sm"
+                  >
+                    {s.nombre}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link href="/tienda-nunoa" className="text-emerald-100/70 hover:text-white transition-colors font-bold text-sm">
+                  Tienda en Ñuñoa
+                </Link>
+              </li>
               <li><Link href="/contacto" className="text-emerald-100/70 hover:text-white transition-colors font-bold text-sm">Centro de Contacto</Link></li>
               {settings.faqUrl && <li><a href={settings.faqUrl} className="text-emerald-100/70 hover:text-white transition-colors font-bold text-sm">Preguntas Frecuentes</a></li>}
               {settings.termsUrl && <li><a href={settings.termsUrl} className="text-emerald-100/70 hover:text-white transition-colors font-bold text-sm">Términos Legales</a></li>}
@@ -90,20 +103,32 @@ const Footer = () => {
 
           <div>
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-emerald-500 mb-8 italic">Contáctanos</h3>
-            <ul className="space-y-4 text-sm font-bold text-emerald-100/70">
-              <li className="flex items-center gap-2">
-                <div className="size-1.5 rounded-full bg-emerald-500" />
-                {contactInfo.storeEmail}
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="size-1.5 rounded-full bg-emerald-500" />
-                {contactInfo.storePhone}
-              </li>
-              <li className="flex items-start gap-2">
-                <div className="size-1.5 rounded-full bg-emerald-500 mt-1.5" />
-                {contactInfo.storeAddress}
-              </li>
-            </ul>
+            {/* NAP en texto plano (nunca imagen) y teléfono como enlace tel: */}
+            <address className="not-italic space-y-4 text-sm font-bold text-emerald-100/70">
+              <p className="flex items-center gap-2">
+                <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <a href={`mailto:${contactInfo.storeEmail}`} className="hover:text-white transition-colors">
+                  {contactInfo.storeEmail}
+                </a>
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <a href={`tel:${BUSINESS.phoneE164}`} className="hover:text-white transition-colors">
+                  {contactInfo.storePhone}
+                </a>
+              </p>
+              <p className="flex items-start gap-2">
+                <span className="size-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                <span>{contactInfo.storeAddress}</span>
+              </p>
+            </address>
+            <div className="mt-6 space-y-1 text-xs font-bold text-emerald-100/50">
+              {BUSINESS.openingHoursDisplay.map((h) => (
+                <p key={h.label}>
+                  {h.label}: {h.value}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
         
