@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { createSale, type SalePaymentInput } from "@/server/sales.service";
 import { supabaseServer } from "@/lib/supabase-server";
 import type { ToastType } from "@/components/ui/Toast";
+import { normalizePaymentMethod, STAFF_CREDIT } from "@/lib/pos/payments";
 
 type SaleActionState = {
   ok?: boolean;
@@ -36,47 +37,54 @@ interface CreateSaleActionInput {
   customerName?: string;
   transferReceiptUri?: string;
   transferReceiptName?: string;
+  /** Compra de personal: 25% de descuento, asociada al vendedor que atiende. */
+  isStaffPurchase?: boolean;
+  /** La compra de personal queda por cobrar y se descuenta del sueldo. */
+  staffUnpaid?: boolean;
 }
-
-const normalizeMethod = (m?: string): SalePaymentInput["method"] => {
-  if (!m) return "CASH";
-  const l = m.toLowerCase();
-  if (/cash|efectivo/.test(l))     return "CASH";
-  if (/debit|debito|débito/.test(l)) return "DEBIT";
-  if (/credit|credito|crédito/.test(l)) return "CREDIT";
-  if (/card|tarjeta/.test(l))      return "CREDIT";
-  if (/transfer/.test(l))          return "TRANSFER";
-  if (/wallet|mercadopago/.test(l)) return "WALLET";
-  return "OTHER";
-};
 
 export async function createSaleAction(data: CreateSaleActionInput): Promise<SaleActionState> {
   try {
     const session = await getServerSession(authOptions);
     const sellerName = session?.user?.name || "Web POS";
+    const sellerId = (session?.user as { id?: string } | undefined)?.id ?? null;
 
     if (!data.items?.length) {
       return { ok: false, toastMessage: "Carrito vacío", toastType: "error" };
     }
 
+    // Toda venta debe quedar dentro de un turno de caja abierto. Sin esto, las
+    // ventas quedan huérfanas y el arqueo del día no cuadra nunca. Se valida en
+    // el servidor a propósito: bloquear sólo la UI no impide el registro.
+    const { data: shift } = await supabaseServer
+      .from("cash_shifts")
+      .select("id")
+      .eq("status", "OPEN")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const shiftId: string | null = shift?.id ?? null;
+    if (!shiftId) {
+      return {
+        ok: false,
+        toastMessage: "No hay caja abierta. Abre la caja antes de registrar ventas.",
+        toastType: "error",
+      };
+    }
+
     // Resolver pagos: si vienen explícitos, validar y usarlos. Si no, derivar del método único.
     const payments: SalePaymentInput[] =
       data.payments && data.payments.length > 0
-        ? data.payments
-        : [{ method: normalizeMethod(data.paymentMethod), amount: data.total }];
-
-    // Detectar turno activo
-    let shiftId: string | null = null;
-    try {
-      const { data: shift } = await supabaseServer
-        .from("cash_shifts")
-        .select("id")
-        .eq("status", "OPEN")
-        .order("started_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      shiftId = shift?.id ?? null;
-    } catch { /* noop */ }
+        ? data.payments.map((p) => ({ ...p, method: normalizePaymentMethod(p.method) }))
+        : [
+            {
+              method: data.isStaffPurchase && data.staffUnpaid
+                ? STAFF_CREDIT
+                : normalizePaymentMethod(data.paymentMethod),
+              amount: data.total,
+            },
+          ];
 
     const result = await createSale({
       branchId: data.branchId ?? null,
@@ -88,6 +96,8 @@ export async function createSaleAction(data: CreateSaleActionInput): Promise<Sal
       cashReceived: data.cashReceived,
       changeGiven: data.changeGiven,
       sellerName,
+      sellerId,
+      isStaffPurchase: data.isStaffPurchase ?? false,
       customerEmail: data.customerEmail,
       transferReceiptUri: data.transferReceiptUri,
       transferReceiptName: data.transferReceiptName,
@@ -109,7 +119,11 @@ export async function createSaleAction(data: CreateSaleActionInput): Promise<Sal
     return {
       ok: true,
       saleId: result.id,
-      toastMessage: "Venta registrada correctamente",
+      toastMessage: data.isStaffPurchase
+        ? (data.staffUnpaid
+            ? "Compra propia registrada como por cobrar"
+            : "Compra propia registrada")
+        : "Venta registrada correctamente",
       toastType: "success",
     };
   } catch (error: any) {

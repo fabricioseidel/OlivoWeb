@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePOS } from "@/contexts/POSContext";
 import { useBranch } from "@/contexts/BranchContext";
 import { ProductUI } from "@/types";
+import type { PosPaymentMethod } from "@/lib/pos/payments";
 import { createSaleAction } from "@/actions/sales";
 import { useToast } from "@/contexts/ToastContext";
 import UnifiedScanner from "@/components/admin/scanner/UnifiedScanner";
@@ -17,7 +18,9 @@ import {
 
 const PRODUCTS_PER_PAGE = 40;
 
-type PaymentMethod = "CASH" | "DEBIT" | "CREDIT" | "TRANSFER" | "WALLET" | "OTHER";
+// El local no distingue débito/crédito/prepago: todo pago con tarjeta llega al
+// mismo extracto bancario, así que en el POS es un solo botón.
+type PaymentMethod = PosPaymentMethod;
 
 interface PaymentRow {
   id: string;
@@ -27,13 +30,11 @@ interface PaymentRow {
 }
 
 const METHOD_LABEL: Record<PaymentMethod, string> = {
-  CASH: "Efectivo", DEBIT: "Débito", CREDIT: "Crédito",
-  TRANSFER: "Transf.", WALLET: "Billetera", OTHER: "Otro",
+  CASH: "Efectivo", CARD: "Tarjeta", TRANSFER: "Transf.",
 };
 
 const METHOD_ICONS: Record<PaymentMethod, typeof BanknotesIcon> = {
-  CASH: BanknotesIcon, DEBIT: CreditCardIcon, CREDIT: CreditCardIcon,
-  TRANSFER: ArrowPathIcon, WALLET: CreditCardIcon, OTHER: CreditCardIcon,
+  CASH: BanknotesIcon, CARD: CreditCardIcon, TRANSFER: ArrowPathIcon,
 };
 
 export default function SaleMode() {
