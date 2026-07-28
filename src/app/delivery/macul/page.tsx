@@ -34,7 +34,7 @@ const QA = [
   {
     pregunta: "¿Cuánto cuesta el despacho a Macul?",
     respuesta:
-      "Se calcula por distancia desde la tienda; al ser comuna colindante, el trayecto es corto.",
+      "Máximo $1.500. Sobre $35.000 de compra el envío es gratis.",
   },
   {
     pregunta: "¿Dónde queda la tienda si prefiero retirar?",
@@ -78,13 +78,14 @@ export default function DeliveryMaculPage() {
 
         <section className="mt-8 space-y-4">
           <h2 className="text-2xl font-black text-gray-900">Costo y tiempo de despacho</h2>
-          <DespachoInfo />
-          {/* TODO-HUMANO: confirmar el tiempo de entrega comprometido para Macul
-              y si hay algún sector de la comuna fuera de cobertura. */}
+          <DespachoInfo comuna="macul" />
           <p className="text-gray-700 leading-relaxed">
-            La tarifa se calcula según los kilómetros reales entre la tienda y tu dirección, y la ves
-            antes de pagar. Por la cercanía entre ambas comunas, los pedidos a Macul quedan entre los
-            más económicos de nuestro radio de reparto.
+            Macul tiene el mismo <strong>tope de $1.500</strong> que Ñuñoa, por la cercanía con el
+            local: es el valor máximo que pagas por el despacho, sin importar en qué punto de la comuna
+            estés. Sobre $35.000 de compra el envío queda sin costo. La entrega es entre las 08:00 y
+            las 14:00, el mismo día si el pedido entró antes de las 08:00 y al día siguiente si entró
+            después. También puedes retirar en el local: te avisamos por correo cuando esté listo,
+            normalmente en menos de una hora.
           </p>
         </section>
 

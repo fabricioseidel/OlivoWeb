@@ -34,7 +34,7 @@ const QA = [
   {
     pregunta: "¿Conviene pedir un pedido grande?",
     respuesta:
-      "Sí. Al ser una comuna más distante, agrupar la compra en un solo pedido rinde más que varios envíos chicos.",
+      "Sí. Sobre $35.000 el envío es gratis, y como el costo depende de la distancia y no de la cantidad, agrupar la compra rinde más que varios envíos chicos.",
   },
   {
     pregunta: "¿Desde dónde sale el despacho?",
@@ -77,13 +77,13 @@ export default function DeliveryPenalolenPage() {
 
         <section className="mt-8 space-y-4">
           <h2 className="text-2xl font-black text-gray-900">Costo y tiempo de despacho</h2>
-          <DespachoInfo />
-          {/* TODO-HUMANO: confirmar el tiempo de entrega comprometido para
-              Peñalolén y si hay sectores altos de la comuna fuera de cobertura. */}
+          <DespachoInfo comuna="penalolen" />
           <p className="text-gray-700 leading-relaxed">
-            Al confirmar el pedido calculamos los kilómetros exactos hasta tu dirección y verás el
-            monto antes de pagar. Peñalolén queda en el tramo más externo de nuestra cobertura, así
-            que conviene revisar si te acomoda superar el mínimo de despacho gratis.
+            En Peñalolén la tarifa se calcula por distancia recorrida, sin tope por comuna, porque el
+            trayecto es más largo que en Ñuñoa o Macul. Por eso acá el envío gratis pesa más: sobre
+            $35.000 de compra no pagas despacho, y a esta distancia esa diferencia es la más grande de
+            toda nuestra cobertura. La entrega es entre las 08:00 y las 14:00, el mismo día si el
+            pedido entra antes de las 08:00 y al día siguiente si entra después.
           </p>
         </section>
 

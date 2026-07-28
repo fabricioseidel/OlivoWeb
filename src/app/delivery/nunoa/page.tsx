@@ -34,12 +34,12 @@ const QA = [
   {
     pregunta: "¿Cuánto demora el despacho en Ñuñoa?",
     respuesta:
-      "Es la comuna donde está la tienda, así que es el despacho más rápido de nuestra cobertura.",
+      "Se entrega entre las 08:00 y las 14:00: el mismo día si el pedido entra antes de las 08:00, y al día siguiente si entra después.",
   },
   {
     pregunta: "¿Puedo retirar en tienda en vez de pedir despacho?",
     respuesta:
-      "Sí, puedes retirar en Av. José Pedro Alessandri 2010, Local A, dentro del horario de atención.",
+      "Sí. Te avisamos por correo cuando el pedido esté listo, normalmente en menos de una hora, y lo retiras en Av. José Pedro Alessandri 2010, Local A.",
   },
 ];
 
@@ -79,14 +79,14 @@ export default function DeliveryNunoaPage() {
 
         <section className="mt-8 space-y-4">
           <h2 className="text-2xl font-black text-gray-900">Costo y tiempo de despacho</h2>
-          <DespachoInfo />
-          {/* TODO-HUMANO: confirmar el tiempo de entrega comprometido para Ñuñoa
-              (¿mismo día si el pedido entra antes de cierta hora? ¿franjas
-              horarias?) para reemplazar la redacción cualitativa. */}
+          <DespachoInfo comuna="nunoa" />
           <p className="text-gray-700 leading-relaxed">
-            El valor exacto se calcula por la distancia entre la tienda y tu dirección al momento de
-            confirmar el pedido, así que lo ves antes de pagar. Al ser la comuna de origen, Ñuñoa
-            tiene el trayecto más corto y por lo tanto la tarifa más baja del radio de reparto.
+            El despacho a Ñuñoa tiene un <strong>tope de $1.500</strong>: aunque la tarifa se calcula
+            por distancia, en esta comuna nunca pagas más que eso. Y si tu compra supera los $35.000,
+            el envío es gratis. Entregamos entre las 08:00 y las 14:00: los pedidos que entran antes
+            de las 08:00 salen ese mismo día, y los posteriores al día siguiente en esa misma ventana.
+            Si prefieres no esperar, el retiro en tienda queda listo en menos de una hora y te avisamos
+            por correo apenas esté disponible.
           </p>
         </section>
 

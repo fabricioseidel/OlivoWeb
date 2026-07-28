@@ -45,19 +45,6 @@ Al resolver cada punto, edita el archivo indicado y borra el comentario
 - **Qué hacer:** sube la foto (por ejemplo desde el Constructor Visual) y pega la URL
   pública en ese campo. Idealmente con el letrero visible.
 
-### 4. Tiempos de entrega del despacho propio por comuna
-- **Archivos:** `src/app/delivery/{nunoa,macul,penalolen,san-joaquin}/page.tsx`
-- **Pregunta:** para el **despacho de productos del minimarket** (no encomiendas de
-  courier): ¿cuál es el tiempo de entrega comprometido en cada comuna? ¿Hay entrega el
-  mismo día si el pedido entra antes de cierta hora? ¿Algún sector fuera de cobertura,
-  por ejemplo los sectores altos de Peñalolén?
-- **Estado:** las páginas describen la distancia relativa pero no comprometen un plazo.
-  **Los costos sí son reales**: se leen en vivo desde la configuración de la tienda
-  (`settings`), así que no hay riesgo de publicar un precio que el checkout no respete.
-- **Nota:** lo que confirmaste sobre "el tiempo depende de la app del courier" aplica a
-  las encomiendas y ya está reflejado en las páginas de courier. Esto es distinto: es
-  el reparto propio de la tienda.
-
 ---
 
 ## ✅ Resuelto con los datos que entregaste
@@ -82,8 +69,28 @@ Al resolver cada punto, edita el archivo indicado y borra el comentario
 - **Falabella vía Chilexpress**: agregado, es una búsqueda con volumen propio.
 - **Tiempos de entrega de encomiendas**: aclarado en cada página que dependen del
   servicio contratado en la app del courier, no del punto de admisión.
+- **La colecta no rechaza paquetes**: se aclaró en el hub y en las 4 páginas de courier
+  que después de las 16:00 se sigue recibiendo, solo que sale en la colecta siguiente.
+  Antes la redacción podía leerse como "después de las 16:00 no reciben".
+- **Despacho propio**: ventana de entrega 08:00–14:00, con corte a las 08:00 para
+  entrega el mismo día, y retiro en tienda confirmado por correo en menos de una hora.
+  Aplicado en las 4 landings de comuna y en el checkout.
+- **Tarifas de despacho**: tope de $1.500 para Ñuñoa y Macul, y envío gratis sobre
+  $35.000 en las comunas con cobertura. Implementado en `src/lib/shipping-policy.ts`,
+  con 15 tests, y conectado al checkout (antes el envío gratis por monto estaba
+  configurado en la base de datos pero **el checkout nunca lo aplicaba**).
 
 ---
+
+## 🔵 Planificado a futuro (no publicado)
+
+### Uber Direct
+- **Estado:** mencionado como plan, **no** aparece en el sitio. No se publica un
+  servicio que todavía no existe: marcarlo en schema o prometerlo en una landing sin
+  tenerlo operativo daña la confianza y contradice las guías de Google.
+- **Cuando esté operativo:** avísame y lo agrego como servicio con su propia sección en
+  las landings de comuna y en el schema (`GroceryStore.makesOffer`), además de ajustar
+  los plazos de entrega, que pasarían de "día siguiente 08:00–14:00" a minutos.
 
 ## Decisiones tomadas que conviene revisar
 
@@ -93,6 +100,12 @@ Al resolver cada punto, edita el archivo indicado y borra el comentario
 - **El H1 de la portada se edita desde el Constructor Visual.** Su valor por defecto es
   "Olivo Market Ñuñoa — Productos venezolanos y punto de envíos". Si se edita y se le
   quita "Ñuñoa", se pierde la señal local más fuerte de la home.
-- **La comuna La Reina** está declarada en `areaServed` del schema pero **no tiene
-  landing** propia (el spec pedía 4 landings de comuna, no 5). Si se quiere posicionar,
-  replicar el patrón de las otras cuatro con contenido propio.
+- **La comuna La Reina** está declarada en `areaServed` del schema y **sí recibe el
+  envío gratis sobre $35.000**, pero no tiene landing propia (el spec pedía 4 landings
+  de comuna, no 5). Si se quiere posicionar, replicar el patrón de las otras cuatro.
+- **El tope de $1.500 aplica solo a Ñuñoa y Macul**, según lo indicado. Vive en
+  `TOPE_POR_COMUNA` (`src/lib/shipping-policy.ts`); agregar otra comuna es una línea.
+- **Si no se puede determinar la comuna** de la dirección, el checkout cobra la tarifa
+  por distancia sin tope. Es deliberado: ante la duda nunca cobra de menos.
+- **`free_shipping_minimum` pasó de $25.000 a $35.000** en la configuración de la
+  tienda, según lo pedido.

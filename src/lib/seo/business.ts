@@ -141,7 +141,7 @@ export const BUSINESS = {
   colecta: {
     horaLimite: "16:00",
     resumen:
-      "Las compañías retiran de lunes a viernes antes de las 16:00. Lo que ingresa después de esa hora, o durante el fin de semana, sale en la siguiente colecta hábil.",
+      "Las compañías retiran de lunes a viernes antes de las 16:00. Seguimos recibiendo paquetes después de esa hora y también los fines de semana: simplemente salen en la siguiente colecta hábil, no se rechaza ninguno.",
   },
 
   // ── Servicios de paquetería ─────────────────────────────────────────────

@@ -37,8 +37,9 @@ const QA = [
       "Baja por el eje de Av. José Pedro Alessandri, que conecta directo con la comuna.",
   },
   {
-    pregunta: "¿Puedo pagar con tarjeta?",
-    respuesta: "Sí, el checkout online acepta tarjetas de débito y crédito.",
+    pregunta: "¿Cuándo llega mi pedido?",
+    respuesta:
+      "Entre las 08:00 y las 14:00: el mismo día si entró antes de las 08:00, y al día siguiente si entró después. Sobre $35.000 el envío es gratis.",
   },
 ];
 
@@ -77,13 +78,13 @@ export default function DeliverySanJoaquinPage() {
 
         <section className="mt-8 space-y-4">
           <h2 className="text-2xl font-black text-gray-900">Costo y tiempo de despacho</h2>
-          <DespachoInfo />
-          {/* TODO-HUMANO: confirmar el tiempo de entrega comprometido para San
-              Joaquín y si hay restricciones de horario en algún sector. */}
+          <DespachoInfo comuna="san-joaquin" />
           <p className="text-gray-700 leading-relaxed">
-            El monto sale del cálculo por distancia que hace el checkout con tu dirección, y se
-            muestra antes del pago. Por la conexión directa a través de Alessandri, San Joaquín queda
-            en el rango cercano de nuestra cobertura.
+            En San Joaquín el costo se calcula por los kilómetros recorridos desde el local, y como la
+            conexión por Alessandri es directa, el trayecto queda en el rango corto de nuestra
+            cobertura. Sobre $35.000 de compra el despacho es gratis. Entregamos entre las 08:00 y las
+            14:00: si tu pedido entra antes de las 08:00 sale ese mismo día, y si entra después queda
+            para el día siguiente en la misma ventana horaria.
           </p>
         </section>
 

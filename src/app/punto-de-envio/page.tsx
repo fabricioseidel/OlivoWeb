@@ -39,7 +39,7 @@ const FAQS = [
   {
     pregunta: "¿Hasta qué hora puedo dejar un paquete?",
     respuesta:
-      "Recibimos paquetes durante todo el horario del minimarket, pero las compañías retiran de lunes a viernes antes de las 16:00. Lo que ingresa después de esa hora, o durante el fin de semana, sale en la siguiente colecta hábil.",
+      "Puedes dejarlo a cualquier hora del horario del minimarket: no rechazamos paquetes. Lo que sí tiene hora es la colecta, que pasa de lunes a viernes antes de las 16:00. Si llegas después, el paquete se recibe igual y sale en la colecta del día siguiente.",
   },
   {
     pregunta: "¿Atienden todos los couriers el fin de semana?",
