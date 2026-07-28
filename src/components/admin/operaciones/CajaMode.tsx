@@ -13,7 +13,7 @@ import {
 interface CashMovement { id: string; amount: number; type: "IN" | "OUT"; reason: string; created_at: string; }
 interface ShiftSale { id: number; total: number; payment_method: string; ts: string; }
 
-export default function CajaMode() {
+export default function CajaMode({ onShiftChange }: { onShiftChange?: () => void } = {}) {
   const { data: session } = useSession();
   const { showToast } = useToast();
   const [shift, setShift] = useState<CashShift | null>(null);
@@ -52,6 +52,8 @@ export default function CajaMode() {
   const handleOpen = async () => {
     const userId = (session as any)?.userId || (session?.user as any)?.id;
     const res = await openShiftAction(startingCash, userId);
+    // Avisar al contenedor para que desbloquee la pestaña de venta
+    onShiftChange?.();
     if (res.ok) { showToast("Caja abierta ✓", "success"); fetchShift(); }
     else showToast(res.toastMessage || "Error", "error");
   };

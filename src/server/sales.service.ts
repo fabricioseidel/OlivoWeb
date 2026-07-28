@@ -2,7 +2,21 @@ import { supabaseServer } from "@/lib/supabase-server";
 import { earnPoints } from "@/server/loyalty.service";
 import { logger } from "@/utils/logger";
 
-export type SalePaymentMethod = "CASH" | "DEBIT" | "CREDIT" | "TRANSFER" | "WALLET" | "OTHER";
+/**
+ * Métodos aceptados por la base (enum payment_method).
+ * CARD unifica débito/crédito/prepago; STAFF_CREDIT es la compra de personal
+ * por cobrar, que no entra al arqueo. DEBIT/CREDIT/WALLET se conservan sólo
+ * porque existen en registros históricos.
+ */
+export type SalePaymentMethod =
+  | "CASH"
+  | "CARD"
+  | "TRANSFER"
+  | "STAFF_CREDIT"
+  | "DEBIT"
+  | "CREDIT"
+  | "WALLET"
+  | "OTHER";
 
 export interface SalePaymentInput {
   method: SalePaymentMethod;
@@ -20,6 +34,10 @@ export interface CreateSaleInput {
   cashReceived?: number;
   changeGiven?: number;
   sellerName?: string;
+  /** Vendedor autenticado, para asociar compras de personal. */
+  sellerId?: string | null;
+  /** Compra de personal (descuento fijo, asociada al vendedor). */
+  isStaffPurchase?: boolean;
   customerEmail?: string;
   transferReceiptUri?: string;
   transferReceiptName?: string;
@@ -89,6 +107,22 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: number }
   const saleId = Number(data);
   if (!Number.isFinite(saleId) || saleId <= 0) {
     throw new Error("apply_sale no devolvió un id válido");
+  }
+
+  // seller_id e is_staff_purchase se marcan aparte: la RPC apply_sale es
+  // compartida con la app y el POS offline, así que se deja intacta.
+  if (input.sellerId || input.isStaffPurchase) {
+    const { error: markErr } = await supabaseServer
+      .from("sales")
+      .update({
+        ...(input.sellerId ? { seller_id: input.sellerId } : {}),
+        ...(input.isStaffPurchase ? { is_staff_purchase: true } : {}),
+      })
+      .eq("id", saleId);
+    if (markErr) {
+      // No revierte la venta: ya está registrada y el stock descontado.
+      console.error("[sales] no se pudo marcar seller_id/compra propia:", markErr.message);
+    }
   }
 
   // Loyalty points (no-crítico)

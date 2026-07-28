@@ -26,7 +26,9 @@ import {
   StatsCard,
 } from "@/components/admin/shell";
 
-type Method = "CASH" | "DEBIT" | "CREDIT" | "TRANSFER" | "WALLET" | "OTHER";
+// Incluye CARD (pago con tarjeta unificado) y STAFF_CREDIT (compra de personal
+// por cobrar). DEBIT/CREDIT/WALLET quedan sólo para registros históricos.
+type Method = "CASH" | "CARD" | "TRANSFER" | "STAFF_CREDIT" | "DEBIT" | "CREDIT" | "WALLET" | "OTHER";
 
 interface SalePayment {
   id: string;
@@ -68,11 +70,10 @@ interface SaleItem {
 }
 
 const METHOD_LABEL: Record<Method, string> = {
-  CASH: "Efectivo",
-  DEBIT: "Débito",
-  CREDIT: "Crédito",
+  CASH: "Efectivo", CARD: "Tarjeta", DEBIT: "Tarjeta (débito)", CREDIT: "Tarjeta (crédito)",
   TRANSFER: "Transferencia",
-  WALLET: "Billetera",
+  STAFF_CREDIT: "Por cobrar (personal)",
+  WALLET: "Tarjeta (billetera)",
   OTHER: "Otro",
 };
 

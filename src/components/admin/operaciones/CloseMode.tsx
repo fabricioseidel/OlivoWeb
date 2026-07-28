@@ -4,17 +4,23 @@ import React, { useState, useEffect, useCallback } from "react";
 import { getCurrentShift, closeShiftAction } from "@/actions/shifts";
 import { useToast } from "@/contexts/ToastContext";
 import { CashShift } from "@/server/shifts.service";
-import { LockClosedIcon, ArrowPathIcon, BanknotesIcon, CreditCardIcon } from "@heroicons/react/24/outline";
+import { LockClosedIcon, ArrowPathIcon, BanknotesIcon, CreditCardIcon, UserIcon } from "@heroicons/react/24/outline";
 
-type Method = "CASH" | "DEBIT" | "CREDIT" | "TRANSFER" | "WALLET" | "OTHER";
+// Incluye CARD (pago con tarjeta unificado) y STAFF_CREDIT (compra de personal
+// por cobrar). DEBIT/CREDIT/WALLET quedan sólo para registros históricos.
+type Method = "CASH" | "CARD" | "TRANSFER" | "STAFF_CREDIT" | "DEBIT" | "CREDIT" | "WALLET" | "OTHER";
 
 const METHOD_LABEL: Record<Method, string> = {
-  CASH: "Efectivo", DEBIT: "Débito", CREDIT: "Crédito",
-  TRANSFER: "Transferencia", WALLET: "Billetera", OTHER: "Otro",
+  CASH: "Efectivo", CARD: "Tarjeta", TRANSFER: "Transferencia",
+  STAFF_CREDIT: "Por cobrar (personal)",
+  DEBIT: "Tarjeta (débito)", CREDIT: "Tarjeta (crédito)", WALLET: "Tarjeta (billetera)",
+  OTHER: "Otro",
 };
 const METHOD_ICON: Record<Method, typeof BanknotesIcon> = {
-  CASH: BanknotesIcon, DEBIT: CreditCardIcon, CREDIT: CreditCardIcon,
-  TRANSFER: ArrowPathIcon, WALLET: CreditCardIcon, OTHER: CreditCardIcon,
+  CASH: BanknotesIcon, CARD: CreditCardIcon, TRANSFER: ArrowPathIcon,
+  STAFF_CREDIT: UserIcon,
+  DEBIT: CreditCardIcon, CREDIT: CreditCardIcon, WALLET: CreditCardIcon,
+  OTHER: CreditCardIcon,
 };
 
 interface SalePayment { method: Method; amount: number; sale_id: number; }
@@ -52,11 +58,12 @@ export default function CloseMode() {
           });
         } else {
           // Fallback al método único legacy
+          // Débito/crédito/billetera colapsan en tarjeta: el extracto bancario
+          // no los separa, así que el arqueo tampoco debe hacerlo.
           const m: Method =
             /cash|efectivo/i.test(s.payment_method || "") ? "CASH" :
-            /debit/i.test(s.payment_method || "")          ? "DEBIT" :
-            /credit|card|tarjeta/i.test(s.payment_method || "") ? "CREDIT" :
             /transfer/i.test(s.payment_method || "")        ? "TRANSFER" :
+            /debit|credit|card|tarjeta|wallet|prepago/i.test(s.payment_method || "") ? "CARD" :
             "OTHER";
           byMethod[m] = (byMethod[m] || 0) + Number(s.total);
         }
