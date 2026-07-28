@@ -13,6 +13,8 @@ import {
   XMarkIcon
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
+import SingleImageUpload from "@/components/ui/SingleImageUpload";
+import { uploadImageServerAction } from "@/actions/upload";
 import type { StoreSettings } from "@/app/api/admin/settings/route";
 import {
   BLOCK_TYPE_LABELS,
@@ -59,6 +61,44 @@ export default function ConstructorPage() {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveAppearanceImage = async (field: "logoUrl" | "faviconUrl", dataUrl: string) => {
+    setSaving(true);
+    try {
+      let url = dataUrl;
+      if (dataUrl.startsWith("data:image")) {
+        const oldUrl = settings?.appearance?.[field] || undefined;
+        const resp = await uploadImageServerAction(dataUrl, oldUrl);
+        if (!resp.ok || !resp.url) {
+          console.error("Error subiendo imagen:", resp.error);
+          return;
+        }
+        url = resp.url;
+      }
+
+      const newSettings = {
+        ...settings,
+        appearance: {
+          ...settings?.appearance,
+          [field]: url,
+        },
+      };
+
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newSettings),
+      });
+
+      if (res.ok) {
+        setSettings(newSettings as StoreSettings);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -151,6 +191,35 @@ export default function ConstructorPage() {
                 <EyeIcon className="w-4 h-4 mr-2" />
                 Ver Tienda
             </Button>
+        </div>
+      </div>
+
+      {/* Marca de la tienda: logo y favicon */}
+      <div className="bg-white rounded-[2rem] border border-gray-200 shadow-sm p-6 space-y-4">
+        <div>
+          <h2 className="font-bold text-gray-900">Marca de la tienda</h2>
+          <p className="text-xs text-gray-500 font-medium mt-0.5">
+            El logo aparece en el menú superior de tu tienda. El favicon es el ícono pequeño que se ve en la pestaña del navegador y en los resultados de Google.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="text-xs font-black uppercase tracking-widest text-gray-400">Logo</label>
+            <SingleImageUpload
+              label={settings?.appearance?.logoUrl ? "Cambiar logo" : "Subir logo"}
+              value={settings?.appearance?.logoUrl || ""}
+              onChange={(dataUrl) => saveAppearanceImage("logoUrl", dataUrl)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-black uppercase tracking-widest text-gray-400">Favicon</label>
+            <SingleImageUpload
+              label={settings?.appearance?.faviconUrl ? "Cambiar favicon" : "Subir favicon"}
+              value={settings?.appearance?.faviconUrl || ""}
+              onChange={(dataUrl) => saveAppearanceImage("faviconUrl", dataUrl)}
+            />
+            <p className="text-[11px] text-gray-400">Ideal: imagen cuadrada, fondo simple. Se ajusta automáticamente.</p>
+          </div>
         </div>
       </div>
 
