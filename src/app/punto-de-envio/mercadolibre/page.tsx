@@ -9,12 +9,14 @@ import {
   FaqBlock,
   QaPlano,
   WhatsappCta,
+  ServiciosCourier,
+  ColectaBlock,
 } from "@/components/seo/LocalBlocks";
 
 export const metadata: Metadata = {
   title: "Punto MercadoLibre en Ñuñoa | Retiro y Devolución",
   description:
-    "Retira y devuelve tus compras de MercadoLibre en Ñuñoa, en Av. José Pedro Alessandri 2010. Punto asociado con código QR, sin cita previa y con atención hasta las 21:00 de lunes a sábado.",
+    "Retira, envía, devuelve y cambia compras de MercadoLibre en Ñuñoa, en Av. José Pedro Alessandri 2010. Punto asociado con código QR, 7 días de plazo para retirar y atención de lunes a domingo.",
   alternates: { canonical: "/punto-de-envio/mercadolibre" },
   openGraph: {
     locale: "es_CL",
@@ -45,7 +47,12 @@ const FAQS = [
   {
     pregunta: "¿Cuántos días guardan mi paquete?",
     respuesta:
-      "MercadoLibre define el plazo de retiro y te lo informa por la app y por correo. Pasado ese plazo el paquete vuelve al vendedor, así que conviene retirar apenas te llegue el aviso.",
+      "Tienes 7 días desde que el paquete llega al local para pasar a retirarlo. Cumplido ese plazo, el paquete se devuelve al vendedor, así que conviene venir apenas te llegue el aviso.",
+  },
+  {
+    pregunta: "¿Puedo hacer un cambio de producto acá?",
+    respuesta:
+      "Sí. El cambio se coordina primero en la app de MercadoLibre, que genera un código QR; con ese código traes el producto al local y nosotros gestionamos el cambio.",
   },
   {
     pregunta: "¿Puede retirar otra persona por mí?",
@@ -66,7 +73,7 @@ const QA = [
   {
     pregunta: "¿Hasta qué hora atienden?",
     respuesta:
-      "Lunes a viernes hasta las 21:00, sábado hasta las 21:00 y domingo hasta las 18:00.",
+      "En el horario del minimarket: lunes a viernes de 07:45 a 20:30, sábado y domingo de 10:00 a 18:00.",
   },
 ];
 
@@ -118,25 +125,29 @@ export default function MercadoLibrePage() {
           </p>
         </section>
 
+        <section className="mt-10 space-y-4">
+          <h2 className="text-2xl font-black text-gray-900">Servicios disponibles</h2>
+          <ServiciosCourier slug="mercadolibre" />
+        </section>
+
         <section className="mt-10 space-y-3">
           <h2 className="text-2xl font-black text-gray-900">Qué tienes que llevar</h2>
           <ul className="space-y-2 text-gray-700">
             <li>Código QR o código de retiro visible en tu teléfono.</li>
             <li>Cédula de identidad de quien retira.</li>
-            <li>En devoluciones: el producto en su empaque, cerrado y listo para despacho.</li>
+            <li>En devoluciones y cambios: el producto en su empaque y el QR que genera la app.</li>
           </ul>
         </section>
 
         <section className="mt-10 space-y-3">
-          <h2 className="text-2xl font-black text-gray-900">Horario de corte</h2>
+          <h2 className="text-2xl font-black text-gray-900">Horario de colecta</h2>
+          <ColectaBlock />
           <p className="text-gray-700 leading-relaxed">
-            Recibimos devoluciones durante todo el horario de atención, pero el camión de MercadoLibre
-            pasa una vez al día: lo que ingresa después de ese paso queda para el retiro del día hábil
-            siguiente. Si tu devolución tiene plazo límite, conviene traerla temprano o consultarnos
-            el corte del día por WhatsApp.
+            Recibimos paquetes durante todo el horario del minimarket, incluidos sábado y domingo. La
+            colecta en sí ocurre de lunes a viernes, así que lo que dejes el fin de semana sale el
+            lunes. El tiempo de entrega posterior lo define el servicio que contrataste en la app de
+            MercadoLibre, no el punto.
           </p>
-          {/* TODO-HUMANO: indicar la hora exacta de corte diario del retiro de
-              MercadoLibre en el local, para reemplazar la redacción genérica. */}
         </section>
 
         <div className="mt-10">

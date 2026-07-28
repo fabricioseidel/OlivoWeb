@@ -15,6 +15,17 @@ export type CourierService = {
   nombre: string;
   /** Descripción corta usada en schema (makesOffer) y en tarjetas de UI */
   descripcion: string;
+  /** Qué se puede hacer con este courier en el local. */
+  puedeHacer: string[];
+  /** Servicios que este courier NO ofrece acá (evita viajes en vano). */
+  noDisponible?: string[];
+  /**
+   * Horario propio del courier, si difiere del horario del minimarket.
+   * `null` = se atiende en el horario corrido de la tienda.
+   */
+  horarioPropio: { dayOfWeek: string[]; opens: string; closes: string } | null;
+  /** Horario legible para mostrar en la UI. */
+  horarioDisplay: string;
 };
 
 export type ComunaSlug = "nunoa" | "macul" | "penalolen" | "san-joaquin" | "la-reina";
@@ -101,19 +112,17 @@ export const BUSINESS = {
   googleCid: null as string | null,
 
   /**
-   * Horarios de atención. Fuente única para schema, footer y /contacto —
+   * Horario del minimarket. Fuente única para schema, footer y /contacto —
    * cualquier divergencia entre esos tres puntos penaliza el SEO local.
-   * // TODO-HUMANO: confirmar horarios reales de atención de la tienda física
-   * (apertura y cierre por día, y si hay horario distinto sábado/domingo).
+   * Confirmado por el dueño.
    */
   openingHours: [
     {
       dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      opens: "09:00",
-      closes: "21:00",
+      opens: "07:45",
+      closes: "20:30",
     },
-    { dayOfWeek: ["Saturday"], opens: "10:00", closes: "21:00" },
-    { dayOfWeek: ["Sunday"], opens: "11:00", closes: "18:00" },
+    { dayOfWeek: ["Saturday", "Sunday"], opens: "10:00", closes: "18:00" },
   ] as OpeningHours[],
 
   /**
@@ -121,10 +130,19 @@ export const BUSINESS = {
    * Se mantiene en el mismo objeto para que no exista una segunda fuente.
    */
   openingHoursDisplay: [
-    { label: "Lunes a viernes", value: "09:00 – 21:00" },
-    { label: "Sábado", value: "10:00 – 21:00" },
-    { label: "Domingo", value: "11:00 – 18:00" },
+    { label: "Lunes a viernes", value: "07:45 – 20:30" },
+    { label: "Sábado y domingo", value: "10:00 – 18:00" },
   ],
+
+  /**
+   * Colecta: hora a la que las compañías retiran lo admitido en el local.
+   * Es el dato que responde "¿hasta qué hora puedo dejar un paquete?".
+   */
+  colecta: {
+    horaLimite: "16:00",
+    resumen:
+      "Las compañías retiran de lunes a viernes antes de las 16:00. Lo que ingresa después de esa hora, o durante el fin de semana, sale en la siguiente colecta hábil.",
+  },
 
   // ── Servicios de paquetería ─────────────────────────────────────────────
   services: [
@@ -132,25 +150,66 @@ export const BUSINESS = {
       slug: "mercadolibre",
       nombre: "MercadoLibre",
       descripcion:
-        "Punto de retiro y devolución de compras de MercadoLibre con código QR.",
+        "Punto de retiro, envío, devolución y cambio de compras de MercadoLibre con código QR.",
+      puedeHacer: [
+        "Enviar paquetes ya etiquetados (vendedores)",
+        "Retirar tus compras (pickup), con 7 días de plazo para pasar a buscarlas",
+        "Devolver compras de MercadoLibre, solo con código QR",
+        "Cambiar productos, coordinando antes por la app y con código QR",
+      ],
+      horarioPropio: null,
+      horarioDisplay: "Horario corrido del minimarket",
     },
     {
       slug: "chilexpress",
       nombre: "Chilexpress",
       descripcion:
-        "Admisión de envíos y retiro de encomiendas Chilexpress en Ñuñoa.",
+        "Recepción y envío de encomiendas Chilexpress y Falabella en Ñuñoa.",
+      puedeHacer: [
+        "Recibir encomiendas Chilexpress",
+        "Recibir envíos de Falabella, que despacha por Chilexpress",
+        "Enviar encomiendas",
+      ],
+      noDisponible: [
+        "Servicio de cobro (pago contra entrega)",
+        "Western Union",
+        "Impresión de etiquetas",
+      ],
+      // Único courier con horario propio: no opera fines de semana.
+      horarioPropio: {
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "08:00",
+        closes: "20:00",
+      },
+      horarioDisplay: "Lunes a viernes, 08:00 – 20:00",
     },
     {
       slug: "bluexpress",
       nombre: "Bluexpress",
       descripcion:
-        "Punto de entrega y retiro de encomiendas Bluexpress en Ñuñoa.",
+        "Punto Bluexpress con impresión de etiquetas, envío, devolución, pickup y sistema de cobro.",
+      puedeHacer: [
+        "Imprimir etiquetas adhesivas en el local (tenemos máquina)",
+        "Enviar paquetes con etiqueta creada antes en la app",
+        "Enviar paquetes preetiquetados (vendedores)",
+        "Devolver paquetes",
+        "Pagar encomiendas: contamos con sistema de cobro Bluexpress",
+        "Retirar tus pedidos (pickup)",
+      ],
+      horarioPropio: null,
+      horarioDisplay: "Horario corrido del minimarket",
     },
     {
       slug: "correos-de-chile",
       nombre: "Correos de Chile",
       descripcion:
-        "Envío y retiro de encomiendas de Correos de Chile en Ñuñoa.",
+        "Punto de retiro (pickup) y envío de encomiendas preetiquetadas de Correos de Chile.",
+      puedeHacer: [
+        "Retirar tus encomiendas (pickup)",
+        "Enviar encomiendas preetiquetadas",
+      ],
+      horarioPropio: null,
+      horarioDisplay: "Horario corrido del minimarket",
     },
   ] as CourierService[],
 

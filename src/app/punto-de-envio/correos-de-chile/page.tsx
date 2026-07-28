@@ -9,12 +9,14 @@ import {
   FaqBlock,
   QaPlano,
   WhatsappCta,
+  ServiciosCourier,
+  ColectaBlock,
 } from "@/components/seo/LocalBlocks";
 
 export const metadata: Metadata = {
   title: "Correos de Chile en Ñuñoa | Envío y Retiro",
   description:
-    "Punto de Correos de Chile en Ñuñoa: envía y retira encomiendas en Av. José Pedro Alessandri 2010. Horario extendido de lunes a domingo, sin fila de sucursal y con atención por orden de llegada.",
+    "Punto de Correos de Chile en Ñuñoa: retiro (pickup) y envío de encomiendas preetiquetadas en Av. José Pedro Alessandri 2010. Atención de lunes a domingo, sin fila de sucursal y por orden de llegada.",
   alternates: { canonical: "/punto-de-envio/correos-de-chile" },
   openGraph: {
     locale: "es_CL",
@@ -48,9 +50,9 @@ const FAQS = [
       "Tu cédula de identidad y el número de seguimiento del envío. Si retira otra persona, debe traer su propia cédula junto con el número de seguimiento.",
   },
   {
-    pregunta: "¿Puedo comprar el franqueo acá?",
+    pregunta: "¿Puedo comprar el franqueo o imprimir la etiqueta acá?",
     respuesta:
-      "El envío se paga en el sitio o la app de Correos de Chile al generarlo. En el local recibimos el paquete ya pagado y etiquetado.",
+      "No. Con Correos de Chile solo admitimos paquetes preetiquetados: el envío se genera, se paga y se imprime la etiqueta en el sitio o la app de Correos antes de venir. Si necesitas impresión de etiquetas en el local, la tenemos disponible para Bluexpress.",
   },
 ];
 
@@ -67,7 +69,7 @@ const QA = [
   {
     pregunta: "¿Atienden domingo?",
     respuesta:
-      "Sí, domingo de 11:00 a 18:00, aunque el retiro del courier ocurre en días hábiles.",
+      "Sí, sábado y domingo de 10:00 a 18:00, aunque la colecta del courier ocurre de lunes a viernes.",
   },
 ];
 
@@ -112,25 +114,28 @@ export default function CorreosDeChilePage() {
           </ol>
         </section>
 
+        <section className="mt-10 space-y-4">
+          <h2 className="text-2xl font-black text-gray-900">Servicios disponibles</h2>
+          <ServiciosCourier slug="correos-de-chile" />
+        </section>
+
         <section className="mt-10 space-y-3">
           <h2 className="text-2xl font-black text-gray-900">Qué tienes que llevar</h2>
           <ul className="space-y-2 text-gray-700">
-            <li>Paquete cerrado con la etiqueta de Correos de Chile adherida.</li>
+            <li>Paquete cerrado con la etiqueta de Correos de Chile ya impresa y adherida.</li>
             <li>Número de seguimiento del envío.</li>
             <li>Para retiros: cédula de identidad y número de seguimiento.</li>
           </ul>
         </section>
 
         <section className="mt-10 space-y-3">
-          <h2 className="text-2xl font-black text-gray-900">Horario de corte</h2>
+          <h2 className="text-2xl font-black text-gray-900">Horario de colecta</h2>
+          <ColectaBlock />
           <p className="text-gray-700 leading-relaxed">
-            El retiro de Correos de Chile ocurre en días hábiles. Los paquetes que dejes el sábado o
-            el domingo se despachan el lunes siguiente, y lo que ingrese después del paso del día sale
-            al día hábil siguiente. Para envíos con fecha comprometida, consúltanos el corte antes de
-            venir.
+            Recibimos encomiendas todos los días en el horario del minimarket, pero la colecta de
+            Correos de Chile ocurre de lunes a viernes: lo que dejes el sábado o el domingo sale el
+            lunes. El plazo de entrega lo define el servicio contratado en Correos de Chile.
           </p>
-          {/* TODO-HUMANO: indicar la hora exacta de corte diario del retiro de
-              Correos de Chile en el local. */}
         </section>
 
         <div className="mt-10">

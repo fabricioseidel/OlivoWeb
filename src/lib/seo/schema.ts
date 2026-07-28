@@ -125,6 +125,12 @@ export function serviceSchema(slug: CourierSlug): JsonLdObject | null {
   const service = BUSINESS.services.find((s) => s.slug === slug);
   if (!service) return null;
 
+  // Chilexpress tiene horario propio (no opera fin de semana); el resto se
+  // atiende en el horario corrido del minimarket.
+  const horas = service.horarioPropio
+    ? [service.horarioPropio]
+    : BUSINESS.openingHours;
+
   return clean({
     "@context": "https://schema.org",
     "@type": "Service",
@@ -134,6 +140,21 @@ export function serviceSchema(slug: CourierSlug): JsonLdObject | null {
     description: service.descripcion,
     provider: { "@id": STORE_ID },
     areaServed: areaServed(),
+    // Cada prestación concreta que se ofrece en el local, visible en la página
+    hasOfferCatalog: {
+      "@type": "OfferCatalog",
+      name: `Servicios ${service.nombre} en Olivo Market`,
+      itemListElement: service.puedeHacer.map((item) => ({
+        "@type": "Offer",
+        itemOffered: { "@type": "Service", name: item },
+      })),
+    },
+    hoursAvailable: horas.map((tramo) => ({
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: tramo.dayOfWeek,
+      opens: tramo.opens,
+      closes: tramo.closes,
+    })),
     availableChannel: {
       "@type": "ServiceChannel",
       serviceLocation: {

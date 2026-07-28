@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: "Punto de Envío en Ñuñoa | MercadoLibre y Couriers",
   description:
-    "Punto de retiro y envío de encomiendas en Ñuñoa: MercadoLibre, Chilexpress, Bluexpress y Correos de Chile en Av. José Pedro Alessandri 2010. Horario extendido, sin cita previa y con atención de lunes a domingo.",
+    "Punto de retiro y envío de encomiendas en Ñuñoa: MercadoLibre, Chilexpress, Bluexpress y Correos de Chile en Av. José Pedro Alessandri 2010. Impresión de etiquetas, sin cita previa y atención de lunes a domingo.",
   alternates: { canonical: "/punto-de-envio" },
   openGraph: {
     locale: "es_CL",
@@ -34,22 +34,27 @@ const FAQS = [
   {
     pregunta: "¿Necesito imprimir la etiqueta antes de llegar?",
     respuesta:
-      "Depende del courier. Para devoluciones de MercadoLibre basta con el código QR en el teléfono. Para Chilexpress, Bluexpress y Correos de Chile lo habitual es traer la etiqueta o el número de envío generado en la app del courier. Si tienes dudas, escríbenos por WhatsApp antes de venir.",
+      "Depende del courier. Con Bluexpress no hace falta: tenemos máquina de impresión de etiquetas adhesivas en el local. Con MercadoLibre basta el código QR en el teléfono. Con Chilexpress y Correos de Chile el paquete debe llegar ya etiquetado, porque no imprimimos etiquetas de esas empresas.",
   },
   {
     pregunta: "¿Hasta qué hora puedo dejar un paquete?",
     respuesta:
-      "Recibimos paquetes durante todo el horario de atención de la tienda, pero el retiro del courier tiene un horario de corte diario: lo que entra después de esa hora sale al día hábil siguiente. Consúltanos el corte del día por WhatsApp.",
+      "Recibimos paquetes durante todo el horario del minimarket, pero las compañías retiran de lunes a viernes antes de las 16:00. Lo que ingresa después de esa hora, o durante el fin de semana, sale en la siguiente colecta hábil.",
   },
   {
-    pregunta: "¿Tiene costo dejar o retirar una encomienda?",
+    pregunta: "¿Atienden todos los couriers el fin de semana?",
     respuesta:
-      "El costo lo define cada courier según el servicio que contrataste en su app o sitio web. Como punto asociado no cobramos un cargo adicional por recibir o entregar el paquete.",
+      "MercadoLibre, Bluexpress y Correos de Chile sí, en el horario del minimarket (sábado y domingo de 10:00 a 18:00). Chilexpress es la excepción: opera solo de lunes a viernes de 08:00 a 20:00.",
   },
   {
-    pregunta: "¿Necesito cita previa?",
+    pregunta: "¿Puedo pagar una encomienda en el local?",
     respuesta:
-      "No. La atención es por orden de llegada dentro del horario de la tienda, sin reserva.",
+      "Solo con Bluexpress, para el que contamos con sistema de cobro habilitado. Con Chilexpress no tenemos servicio de cobro ni Western Union.",
+  },
+  {
+    pregunta: "¿Cuánto se demora en llegar mi envío?",
+    respuesta:
+      "El plazo de entrega lo define el servicio que contrataste en la app de cada courier, no el punto de admisión. Nosotros garantizamos que el paquete salga en la siguiente colecta.",
   },
   {
     pregunta: "¿Qué documento tengo que llevar para retirar?",
@@ -71,7 +76,7 @@ const QA = [
   {
     pregunta: "¿Está abierto ahora?",
     respuesta:
-      "El horario es lunes a viernes de 09:00 a 21:00, sábado de 10:00 a 21:00 y domingo de 11:00 a 18:00.",
+      "El minimarket abre lunes a viernes de 07:45 a 20:30, y sábado y domingo de 10:00 a 18:00. Chilexpress solo lunes a viernes de 08:00 a 20:00.",
   },
 ];
 
@@ -92,16 +97,23 @@ export default function PuntoDeEnvioPage() {
           Olivo Market funciona como punto de paquetería en{" "}
           <strong>Av. José Pedro Alessandri 2010, Local A, Ñuñoa</strong>. Aquí puedes dejar envíos,
           retirar compras online y gestionar devoluciones de cuatro operadores: MercadoLibre,
-          Chilexpress, Bluexpress y Correos de Chile. Todo en el mismo local, sin cita previa y
-          con horario extendido de lunes a domingo.
+          Chilexpress, Bluexpress y Correos de Chile. Todo en el mismo local, sin cita previa y por
+          orden de llegada.
         </p>
 
         <p className="mt-4 text-gray-700 leading-relaxed">
           La ventaja de un punto asociado frente a una sucursal es el horario y la cercanía: estamos
-          sobre una avenida principal, atendemos hasta las 21:00 de lunes a sábado y no cerramos al
-          mediodía. Si trabajas fuera de la comuna y sueles llegar tarde, este es el tipo de punto
-          pensado para eso. Además, mientras dejas o retiras el paquete puedes aprovechar de comprar
-          en el minimarket, que funciona en el mismo lugar.
+          sobre una avenida principal, abrimos a las 07:45 de lunes a viernes y no cerramos al
+          mediodía. MercadoLibre, Bluexpress y Correos de Chile se atienden también sábado y domingo;
+          Chilexpress es el único que opera solo en días hábiles. Además, mientras dejas o retiras el
+          paquete puedes aprovechar de comprar en el minimarket, que funciona en el mismo lugar.
+        </p>
+
+        <p className="mt-4 text-gray-700 leading-relaxed">
+          Un dato que suele decidir a quién vende online: con <strong>Bluexpress imprimimos la
+          etiqueta acá mismo</strong> y contamos con sistema de cobro de encomiendas, algo que no
+          todos los puntos ofrecen. Con Chilexpress y Correos de Chile, en cambio, el paquete debe
+          llegar ya etiquetado.
         </p>
 
         <section className="mt-10 space-y-4">
@@ -113,43 +125,51 @@ export default function PuntoDeEnvioPage() {
                   <th className="py-3 pr-4 font-black">Courier</th>
                   <th className="py-3 pr-4 font-black">Retiro</th>
                   <th className="py-3 pr-4 font-black">Envío</th>
-                  <th className="py-3 font-black">Devolución</th>
+                  <th className="py-3 pr-4 font-black">Devolución</th>
+                  <th className="py-3 pr-4 font-black">Etiqueta en local</th>
+                  <th className="py-3 font-black">Horario</th>
                 </tr>
               </thead>
               <tbody className="text-gray-700">
                 <tr className="border-b border-gray-100">
                   <td className="py-3 pr-4 font-bold text-gray-900">MercadoLibre</td>
-                  <td className="py-3 pr-4">Sí, con código QR</td>
-                  <td className="py-3 pr-4">Según etiqueta de la app</td>
-                  <td className="py-3">Sí</td>
-                </tr>
-                <tr className="border-b border-gray-100">
-                  <td className="py-3 pr-4 font-bold text-gray-900">Chilexpress</td>
-                  <td className="py-3 pr-4">Sí</td>
-                  <td className="py-3 pr-4">Sí</td>
-                  <td className="py-3">Según el vendedor</td>
+                  <td className="py-3 pr-4">Sí, con QR (7 días)</td>
+                  <td className="py-3 pr-4">Sí, etiquetados</td>
+                  <td className="py-3 pr-4">Sí, con QR</td>
+                  <td className="py-3 pr-4">No</td>
+                  <td className="py-3">Corrido</td>
                 </tr>
                 <tr className="border-b border-gray-100">
                   <td className="py-3 pr-4 font-bold text-gray-900">Bluexpress</td>
+                  <td className="py-3 pr-4">Sí, pickup</td>
                   <td className="py-3 pr-4">Sí</td>
                   <td className="py-3 pr-4">Sí</td>
-                  <td className="py-3">Según el vendedor</td>
+                  <td className="py-3 pr-4 font-bold text-emerald-700">Sí</td>
+                  <td className="py-3">Corrido</td>
+                </tr>
+                <tr className="border-b border-gray-100">
+                  <td className="py-3 pr-4 font-bold text-gray-900">Chilexpress</td>
+                  <td className="py-3 pr-4">Sí (incluye Falabella)</td>
+                  <td className="py-3 pr-4">Sí</td>
+                  <td className="py-3 pr-4">—</td>
+                  <td className="py-3 pr-4">No</td>
+                  <td className="py-3 font-bold">L-V 08:00–20:00</td>
                 </tr>
                 <tr>
                   <td className="py-3 pr-4 font-bold text-gray-900">Correos de Chile</td>
-                  <td className="py-3 pr-4">Sí</td>
-                  <td className="py-3 pr-4">Sí</td>
-                  <td className="py-3">Según el vendedor</td>
+                  <td className="py-3 pr-4">Sí, pickup</td>
+                  <td className="py-3 pr-4">Solo preetiquetados</td>
+                  <td className="py-3 pr-4">—</td>
+                  <td className="py-3 pr-4">No</td>
+                  <td className="py-3">Corrido</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          {/* TODO-HUMANO: confirmar por courier si el local admite devoluciones y
-              envíos con etiqueta impresa en tienda, para reemplazar los "Según
-              el vendedor" por la respuesta real. */}
           <p className="text-sm text-gray-500">
-            Las condiciones exactas dependen del servicio que hayas contratado en la app de cada
-            courier. Ante cualquier duda puntual, escríbenos antes de venir.
+            &quot;Corrido&quot; significa el horario completo del minimarket, incluidos sábado y
+            domingo. Chilexpress es el único courier que no opera los fines de semana. Bluexpress es
+            el único con impresión de etiquetas y sistema de cobro en el local.
           </p>
         </section>
 

@@ -9,12 +9,14 @@ import {
   FaqBlock,
   QaPlano,
   WhatsappCta,
+  ServiciosCourier,
+  ColectaBlock,
 } from "@/components/seo/LocalBlocks";
 
 export const metadata: Metadata = {
   title: "Bluexpress en Ñuñoa | Punto de Entrega y Retiro",
   description:
-    "Punto Bluexpress en Ñuñoa: entrega y retiro de encomiendas en Av. José Pedro Alessandri 2010. Atención de lunes a domingo, por orden de llegada y con horario de tarde para quienes trabajan.",
+    "Punto Bluexpress en Ñuñoa, Av. José Pedro Alessandri 2010: envío, pickup, devoluciones, impresión de etiquetas en el local y sistema de cobro de encomiendas. Atención de lunes a domingo.",
   alternates: { canonical: "/punto-de-envio/bluexpress" },
   openGraph: {
     locale: "es_CL",
@@ -43,9 +45,19 @@ const FAQS = [
       "Bluexpress fija un plazo de permanencia en el punto. Cumplido ese plazo, la encomienda se devuelve al remitente. Por eso conviene retirar apenas te llegue la notificación.",
   },
   {
+    pregunta: "¿Puedo imprimir la etiqueta en el local?",
+    respuesta:
+      "Sí. Con Bluexpress contamos con máquina de impresión de etiquetas adhesivas, así que si generaste el envío en la app pero no pudiste imprimir, lo resolvemos acá mismo.",
+  },
+  {
+    pregunta: "¿Puedo pagar una encomienda Bluexpress en el punto?",
+    respuesta:
+      "Sí. Tenemos sistema de cobro habilitado para encomiendas Bluexpress, así que puedes pagar en el local al momento de retirar.",
+  },
+  {
     pregunta: "¿Puedo despachar un envío Bluexpress desde acá?",
     respuesta:
-      "Sí, siempre que traigas el envío ya generado y pagado en Bluexpress, con su etiqueta impresa y pegada en el paquete.",
+      "Sí. Puedes traer el envío ya generado en la app, o llegar con el envío creado y que te imprimamos la etiqueta acá. También admitimos paquetes preetiquetados de vendedores.",
   },
   {
     pregunta: "¿Atienden sin reserva?",
@@ -66,7 +78,7 @@ const QA = [
   {
     pregunta: "¿Hasta qué hora puedo pasar?",
     respuesta:
-      "Hasta las 21:00 de lunes a sábado y hasta las 18:00 el domingo.",
+      "En el horario del minimarket: lunes a viernes de 07:45 a 20:30, sábado y domingo de 10:00 a 18:00.",
   },
 ];
 
@@ -109,24 +121,30 @@ export default function BluexpressPage() {
           </ol>
         </section>
 
+        <section className="mt-10 space-y-4">
+          <h2 className="text-2xl font-black text-gray-900">Servicios disponibles</h2>
+          <ServiciosCourier slug="bluexpress" />
+        </section>
+
         <section className="mt-10 space-y-3">
           <h2 className="text-2xl font-black text-gray-900">Qué tienes que llevar</h2>
           <ul className="space-y-2 text-gray-700">
             <li>Cédula de identidad de quien retira.</li>
             <li>Número de seguimiento de Bluexpress.</li>
-            <li>Para despachos: paquete cerrado con la etiqueta Bluexpress ya impresa.</li>
+            <li>
+              Para despachos: el paquete cerrado. La etiqueta puede venir impresa o la imprimimos acá.
+            </li>
           </ul>
         </section>
 
         <section className="mt-10 space-y-3">
-          <h2 className="text-2xl font-black text-gray-900">Horario de corte</h2>
+          <h2 className="text-2xl font-black text-gray-900">Horario de colecta</h2>
+          <ColectaBlock />
           <p className="text-gray-700 leading-relaxed">
-            El retiro de Bluexpress pasa por el local una vez al día en días hábiles. Los envíos
-            admitidos después de ese paso, o durante el fin de semana, salen el siguiente día hábil.
-            Para envíos con plazo ajustado, consúltanos el corte del día antes de venir.
+            Recibimos encomiendas Bluexpress todos los días en el horario del minimarket, incluidos
+            sábado y domingo, pero la colecta ocurre de lunes a viernes. El plazo de entrega posterior
+            depende del servicio contratado en la app de Bluexpress, no del punto.
           </p>
-          {/* TODO-HUMANO: indicar la hora exacta de corte diario del retiro de
-              Bluexpress y confirmar si pasa también sábado. */}
         </section>
 
         <div className="mt-10">

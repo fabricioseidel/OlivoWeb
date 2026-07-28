@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BUSINESS, whatsappLink } from "@/lib/seo/business";
+import { BUSINESS, whatsappLink, getService, type CourierSlug } from "@/lib/seo/business";
 
 /**
  * Bloques de UI compartidos por las landings locales.
@@ -133,6 +133,63 @@ export function Breadcrumbs({
         ))}
       </ol>
     </nav>
+  );
+}
+
+/**
+ * Qué se puede y qué NO se puede hacer con un courier en el local, más su
+ * horario. Decir explícitamente lo que no hay evita viajes en vano.
+ */
+export function ServiciosCourier({ slug }: { slug: CourierSlug }) {
+  const service = getService(slug);
+  if (!service) return null;
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
+        <h3 className="font-black text-emerald-900">Qué puedes hacer acá</h3>
+        <ul className="mt-3 space-y-2 text-emerald-900">
+          {service.puedeHacer.map((item) => (
+            <li key={item} className="flex gap-2">
+              <span aria-hidden="true" className="font-black">✓</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-sm font-bold text-emerald-800">
+          Horario: {service.horarioDisplay}
+        </p>
+      </div>
+
+      {service.noDisponible && service.noDisponible.length > 0 && (
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h3 className="font-black text-gray-900">Qué no ofrecemos con {service.nombre}</h3>
+          <ul className="mt-3 space-y-2 text-gray-600">
+            {service.noDisponible.map((item) => (
+              <li key={item} className="flex gap-2">
+                <span aria-hidden="true" className="font-black">✕</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-sm text-gray-500">
+            Lo indicamos para que no hagas el viaje en vano.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Horario de colecta: responde "¿hasta qué hora puedo dejar un paquete?". */
+export function ColectaBlock() {
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+      <p className="font-black text-amber-900">
+        Colecta: lunes a viernes antes de las {BUSINESS.colecta.horaLimite}
+      </p>
+      <p className="mt-2 text-amber-900 leading-relaxed">{BUSINESS.colecta.resumen}</p>
+    </div>
   );
 }
 

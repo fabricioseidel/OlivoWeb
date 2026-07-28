@@ -26,7 +26,7 @@ const QA = [
   {
     pregunta: "¿Cuál es el horario de atención?",
     respuesta:
-      "Lunes a viernes de 09:00 a 21:00, sábado de 10:00 a 21:00 y domingo de 11:00 a 18:00.",
+      "Lunes a viernes de 07:45 a 20:30, sábado y domingo de 10:00 a 18:00.",
   },
 ];
 

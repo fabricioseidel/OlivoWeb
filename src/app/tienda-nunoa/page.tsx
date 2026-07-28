@@ -40,7 +40,7 @@ const QA = [
   {
     pregunta: "¿Está abierto ahora?",
     respuesta:
-      "Atendemos de lunes a viernes de 09:00 a 21:00, sábado de 10:00 a 21:00 y domingo de 11:00 a 18:00.",
+      "Atendemos de lunes a viernes de 07:45 a 20:30, y sábado y domingo de 10:00 a 18:00.",
   },
   {
     pregunta: "¿Hay un minimarket venezolano cerca de mí en Ñuñoa?",

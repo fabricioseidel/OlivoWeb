@@ -9,12 +9,14 @@ import {
   FaqBlock,
   QaPlano,
   WhatsappCta,
+  ServiciosCourier,
+  ColectaBlock,
 } from "@/components/seo/LocalBlocks";
 
 export const metadata: Metadata = {
   title: "Chilexpress en Ñuñoa | Envío y Retiro de Encomiendas",
   description:
-    "Envía y retira encomiendas Chilexpress en Ñuñoa, en Av. José Pedro Alessandri 2010. Punto de admisión con horario extendido, atención por orden de llegada y sin necesidad de reservar hora.",
+    "Envía y retira encomiendas Chilexpress y Falabella en Ñuñoa, en Av. José Pedro Alessandri 2010. Punto de admisión abierto de lunes a viernes de 08:00 a 20:00, por orden de llegada y sin reservar hora.",
   alternates: { canonical: "/punto-de-envio/chilexpress" },
   openGraph: {
     locale: "es_CL",
@@ -33,9 +35,19 @@ const BREADCRUMBS = [
 
 const FAQS = [
   {
-    pregunta: "¿Puedo generar el envío en el local o tengo que hacerlo antes?",
+    pregunta: "¿Imprimen la etiqueta en el local?",
     respuesta:
-      "Lo habitual es que generes el envío en la app o el sitio de Chilexpress, pagues ahí y llegues con la etiqueta o el número de seguimiento. Así evitas esperas y el paquete queda admitido de inmediato.",
+      "No. Con Chilexpress no contamos con impresión de etiquetas, así que el paquete debe llegar ya etiquetado. Genera y paga el envío en la app o el sitio de Chilexpress, imprime la etiqueta y pégala antes de venir.",
+  },
+  {
+    pregunta: "¿Reciben envíos de Falabella?",
+    respuesta:
+      "Sí. Falabella despacha a través de Chilexpress, así que las compras de Falabella que llegan a este punto se retiran acá igual que cualquier encomienda Chilexpress.",
+  },
+  {
+    pregunta: "¿Tienen servicio de cobro o Western Union?",
+    respuesta:
+      "No. Con Chilexpress no ofrecemos servicio de cobro (pago contra entrega) ni Western Union. Si necesitas pagar una encomienda en el punto, sí contamos con sistema de cobro para Bluexpress.",
   },
   {
     pregunta: "¿Cómo tengo que embalar el paquete?",
@@ -65,9 +77,9 @@ const QA = [
       "El envío generado en la app de Chilexpress y la etiqueta pegada en el paquete.",
   },
   {
-    pregunta: "¿Atienden los fines de semana?",
+    pregunta: "¿Atienden Chilexpress los fines de semana?",
     respuesta:
-      "Sí, sábado de 10:00 a 21:00 y domingo de 11:00 a 18:00, sujeto al corte de retiro del courier.",
+      "No. Chilexpress opera de lunes a viernes de 08:00 a 20:00. El minimarket abre igual el fin de semana, pero ese día no se admiten ni entregan encomiendas Chilexpress.",
   },
 ];
 
@@ -87,16 +99,18 @@ export default function ChilexpressPage() {
 
         <p className="mt-4 text-lg text-gray-700 leading-relaxed">
           En Olivo Market, <strong>Av. José Pedro Alessandri 2010, Local A, Ñuñoa</strong>, funcionamos
-          como punto Chilexpress para que despaches tus envíos y retires las encomiendas que te llegan.
-          Es una alternativa cómoda a las sucursales cuando necesitas horario de tarde o atención el
-          fin de semana.
+          como punto Chilexpress para que despaches tus envíos y retires las encomiendas que te llegan,
+          incluidas las compras de Falabella, que despacha por esta misma empresa.{" "}
+          <strong>La atención Chilexpress es de lunes a viernes, de 08:00 a 20:00</strong>: es el único
+          courier del local que no opera los fines de semana.
         </p>
 
         <p className="mt-4 text-gray-700 leading-relaxed">
           El caso de uso más frecuente acá son las personas que venden online y necesitan despachar
           varios paquetes por semana sin perder media mañana en fila. Como estamos sobre una avenida
-          principal y atendemos de corrido, puedes pasar cuando te acomode dentro del horario y dejar
-          el paquete admitido en pocos minutos.
+          principal y atendemos de corrido, puedes pasar cuando te acomode dentro de ese horario y
+          dejar el paquete admitido en pocos minutos. Eso sí, con Chilexpress el paquete debe llegar
+          ya etiquetado: en este punto no imprimimos etiquetas de esta empresa.
         </p>
 
         <section className="mt-8 space-y-4">
@@ -115,25 +129,28 @@ export default function ChilexpressPage() {
           </ol>
         </section>
 
+        <section className="mt-10 space-y-4">
+          <h2 className="text-2xl font-black text-gray-900">Servicios disponibles</h2>
+          <ServiciosCourier slug="chilexpress" />
+        </section>
+
         <section className="mt-10 space-y-3">
           <h2 className="text-2xl font-black text-gray-900">Qué tienes que llevar</h2>
           <ul className="space-y-2 text-gray-700">
-            <li>Paquete cerrado y embalado, con la etiqueta Chilexpress adherida.</li>
+            <li>Paquete cerrado y embalado, con la etiqueta Chilexpress ya impresa y adherida.</li>
             <li>Número de seguimiento del envío (en el teléfono basta).</li>
             <li>Para retiros: cédula de identidad y número de seguimiento.</li>
           </ul>
         </section>
 
         <section className="mt-10 space-y-3">
-          <h2 className="text-2xl font-black text-gray-900">Horario de corte</h2>
+          <h2 className="text-2xl font-black text-gray-900">Horario de colecta</h2>
+          <ColectaBlock />
           <p className="text-gray-700 leading-relaxed">
-            El retiro de Chilexpress pasa una vez al día por el local. Los paquetes admitidos después
-            de ese paso salen al día hábil siguiente, lo que corre la fecha estimada de entrega en un
-            día. Si tu envío es urgente, consúltanos por WhatsApp la hora de corte del día antes de
-            venir.
+            A diferencia de los otros couriers, la atención Chilexpress en el local es solo de lunes a
+            viernes entre 08:00 y 20:00. El tiempo de tránsito posterior lo define el servicio que
+            hayas contratado en la app de Chilexpress, no el punto de admisión.
           </p>
-          {/* TODO-HUMANO: indicar la hora exacta de corte diario del retiro de
-              Chilexpress en el local. */}
         </section>
 
         <div className="mt-10">
