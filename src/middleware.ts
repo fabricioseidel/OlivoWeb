@@ -60,6 +60,10 @@ export const config = {
     "/operaciones",
     "/dashboard/:path*",
     "/dashboard",
+    // Alias público que reexporta el panel de admin de Uber Eats — sin esto
+    // quedaba sin protección de sesión (ver plan de remediación P0-2).
+    "/uber-eats-editor/:path*",
+    "/uber-eats-editor",
     "/api/admin/:path*",
   ],
 };

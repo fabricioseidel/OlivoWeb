@@ -4,9 +4,9 @@ import { useState } from 'react';
 
 export default function DebugBootstrapPage() {
   const [token, setToken] = useState('');
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('admin123');
-  const [name, setName] = useState('Administrador');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string>('');
 

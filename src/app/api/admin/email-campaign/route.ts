@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
 import { sendEmail, getTemplate, renderTemplate } from "@/server/email.service";
 import { requireApiAdmin } from "@/lib/api-auth";
+import { unsubscribeToken } from "@/lib/newsletter-token";
 
 /** Trigger a mass email campaign */
 export async function POST(req: NextRequest) {
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
         ...customVariables,
         customerName: sub.name || "Cliente",
         year: new Date().getFullYear(),
+        unsubscribeUrl: `https://olivomarket.cl/newsletter/baja?email=${encodeURIComponent(sub.email)}&token=${unsubscribeToken(sub.email)}`,
       };
 
       const html = renderTemplate(template.html, vars);

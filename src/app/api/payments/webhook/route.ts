@@ -12,10 +12,13 @@ import crypto from 'crypto';
 function verifyMercadoPagoSignature(request: NextRequest, dataId: string): boolean {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
   if (!secret) {
-    // Sin secret configurado no podemos validar origen. Se permite para no
-    // romper producción, pero debe configurarse cuanto antes en Vercel.
-    console.warn('[MP Webhook] ⚠️ MERCADOPAGO_WEBHOOK_SECRET no configurado — firma NO verificada');
-    return true;
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[MP Webhook] ⚠️ Sin secret en desarrollo — firma NO verificada');
+      return true;
+    }
+    // En producción, sin secret no se procesa nada: fail-closed.
+    console.error('[MP Webhook] ❌ MERCADOPAGO_WEBHOOK_SECRET ausente en producción — notificación rechazada');
+    return false;
   }
 
   const xSignature = request.headers.get('x-signature');

@@ -121,15 +121,15 @@ src/
 └── __tests__/            # Tests unitarios
 ```
 
-## 🔐 Credenciales por Defecto
+## 🔐 Primer administrador
 
-**Administrador:**
-- Email: admin@example.com
-- Password: admin123
+El primer usuario ADMIN se crea con `POST /api/admin/bootstrap`, que exige la
+cabecera `x-setup-token` con el valor de `ADMIN_SETUP_TOKEN`. El endpoint se
+deshabilita solo una vez que existe un ADMIN en la base.
 
-**Usuario de prueba:**
-- Email: user@example.com  
-- Password: user123
+Generar el token con:
+
+    openssl rand -hex 32
 
 ## 📊 Características Técnicas
 

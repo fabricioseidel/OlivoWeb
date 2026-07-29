@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase-server";
 import { sendEmail } from "@/server/email.service";
+import { unsubscribeToken } from "@/lib/newsletter-token";
 
 // GET /api/campaigns — List campaigns
 export async function GET() {
@@ -122,7 +123,7 @@ export async function PATCH(request: NextRequest) {
           <p>Hola,</p>
           <p>Te traemos novedades de OlivoMarket.</p>
           <p style="color:#6B7280;font-size:12px;margin-top:32px">
-            <a href="#" style="color:#10B981">Desuscribirse</a>
+            <a href="{{unsubscribeUrl}}" style="color:#10B981">Desuscribirse</a>
           </p>
         </div>`;
 
@@ -143,16 +144,19 @@ export async function PATCH(request: NextRequest) {
       for (let i = 0; i < subscribers.length; i += BATCH_SIZE) {
         const batch = subscribers.slice(i, i + BATCH_SIZE);
         const results = await Promise.allSettled(
-          batch.map((sub: any) =>
-            sendEmail({
+          batch.map((sub: any) => {
+            const unsubscribeUrl = `https://olivomarket.cl/newsletter/baja?email=${encodeURIComponent(sub.email)}&token=${unsubscribeToken(sub.email)}`;
+            return sendEmail({
               to: sub.email,
               toName: sub.name,
               subject: campaign.subject,
-              html: htmlContent.replace(/\{\{customerName\}\}/g, sub.name || "Cliente"),
+              html: htmlContent
+                .replace(/\{\{customerName\}\}/g, sub.name || "Cliente")
+                .replace(/\{\{unsubscribeUrl\}\}/g, unsubscribeUrl),
               templateSlug: "campaign",
               metadata: { campaignId: id },
-            })
-          )
+            });
+          })
         );
 
         results.forEach((r, idx) => {
