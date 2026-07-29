@@ -16,9 +16,15 @@ const eslintConfig = [
   // Project overrides: allow explicit any for now to keep the build green.
   {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off'
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     }
-  }
+  },
+  // Scripts de mantenimiento en CommonJS: no aplica la regla de imports ES.
+  {
+    files: ["scripts/**/*.js"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
 ];
 
 export default eslintConfig;
