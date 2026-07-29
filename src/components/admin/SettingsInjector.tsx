@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 
 /**
@@ -8,6 +9,17 @@ import { useStoreSettings } from "@/hooks/useStoreSettings";
  * Inyecta CSS variables globales y meta tags
  */
 export function SettingsInjector() {
+  // El admin no usa los colores ni el favicon de la tienda: saltarse el fetch
+  // aquí evita una request extra al abrir el POS desde el teléfono.
+  const pathname = usePathname();
+  const esAdmin = pathname?.startsWith("/admin") ?? false;
+
+  if (esAdmin) return null;
+
+  return <SettingsInjectorInner />;
+}
+
+function SettingsInjectorInner() {
   const { settings } = useStoreSettings();
 
   useEffect(() => {

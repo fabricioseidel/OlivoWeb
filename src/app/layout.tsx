@@ -4,10 +4,7 @@ import { unstable_cache } from "next/cache";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import Providers from "./providers";
-import ShopShell from "@/components/layout/ShopShell";
-import { SettingsInjector } from "@/components/admin/SettingsInjector";
-import { ProductProvider } from "@/contexts/ProductContext";
-import { CategoryProvider } from "@/contexts/CategoryContext";
+import AppShell from "@/components/layout/AppShell";
 import { DevErrorBoundary } from "@/components/debug/DevErrorBoundary";
 import { ClickTracker } from "@/components/debug/ClickTracker";
 import { supabase } from "@/lib/supabase";
@@ -61,12 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <ClickTracker />
           <DevErrorBoundary>
-            <SettingsInjector />
-            <ProductProvider>
-              <CategoryProvider>
-                <ShopShell>{children}</ShopShell>
-              </CategoryProvider>
-            </ProductProvider>
+            <AppShell>{children}</AppShell>
           </DevErrorBoundary>
         </Providers>
         <Analytics />

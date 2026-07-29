@@ -55,6 +55,9 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/admin",
+    // App de operaciones del teléfono: mismo control de acceso que el admin
+    "/operaciones/:path*",
+    "/operaciones",
     "/dashboard/:path*",
     "/dashboard",
     "/api/admin/:path*",
