@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePOS } from "@/contexts/POSContext";
 import { useBranch } from "@/contexts/BranchContext";
 import { ProductUI } from "@/types";
-import type { PosPaymentMethod } from "@/lib/pos/payments";
+import { STAFF_DISCOUNT_RATE, type PosPaymentMethod } from "@/lib/pos/payments";
 import { createSaleAction } from "@/actions/sales";
 import { useToast } from "@/contexts/ToastContext";
 import UnifiedScanner from "@/components/admin/scanner/UnifiedScanner";
@@ -38,7 +38,7 @@ const METHOD_ICONS: Record<PaymentMethod, typeof BanknotesIcon> = {
 };
 
 export default function SaleMode() {
-  const { cart, addToCart, updateQuantity, removeFromCart, clearCart, discount, finalTotal, appliedCoupon, setAppliedCoupon, applyDiscount } = usePOS();
+  const { cart, addToCart, updateQuantity, removeFromCart, clearCart, discount, total, finalTotal, appliedCoupon, setAppliedCoupon, applyDiscount } = usePOS();
   const { currentBranch } = useBranch();
   const { showToast } = useToast();
 
@@ -52,8 +52,24 @@ export default function SaleMode() {
   const [showScanner, setShowScanner] = useState(false);
   const [quickCreateBarcode, setQuickCreateBarcode] = useState<string | null>(null);
   const [view, setView] = useState<"products" | "cart">("products");
+  // Compra propia: 25% de descuento, asociada al vendedor autenticado.
+  const [compraPropia, setCompraPropia] = useState(false);
+  const [porCobrar, setPorCobrar] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // El descuento se recalcula cuando cambia el carrito para que siga siendo el
+  // 25% del total vigente, no un monto congelado del momento en que se activó.
+  useEffect(() => {
+    if (compraPropia) {
+      applyDiscount(Math.round(total * STAFF_DISCOUNT_RATE));
+    } else if (discount > 0 && !appliedCoupon) {
+      applyDiscount(0);
+    }
+    // `discount` fuera de deps a propósito: incluirlo genera un bucle porque
+    // applyDiscount lo modifica.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compraPropia, total, applyDiscount, appliedCoupon]);
 
   const paymentSum = useMemo(() => payments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0), [payments]);
   const remaining = useMemo(() => Math.max(0, finalTotal - paymentSum), [finalTotal, paymentSum]);
@@ -64,7 +80,10 @@ export default function SaleMode() {
     const cashOwed = Math.max(0, finalTotal - nonCash);
     return Math.max(0, cashPaid - cashOwed);
   }, [paymentSum, cashPaid, finalTotal]);
-  const paymentsOk = Math.abs(paymentSum - change - finalTotal) < 0.01 && paymentSum >= finalTotal;
+  // Una compra propia por cobrar no recibe dinero ahora: no hay pagos que cuadrar.
+  const paymentsOk = porCobrar
+    ? true
+    : Math.abs(paymentSum - change - finalTotal) < 0.01 && paymentSum >= finalTotal;
   const products = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return q ? allProducts.filter(p => p.name.toLowerCase().includes(q) || p.id.includes(q)) : allProducts;
@@ -128,10 +147,15 @@ export default function SaleMode() {
       const result = await createSaleAction({
         total: finalTotal,
         branchId: currentBranch?.id ?? null,
-        cashReceived: payments.filter(p => p.method === "CASH").reduce((a, p) => a + p.amount, 0),
-        changeGiven: change,
+        cashReceived: porCobrar ? 0 : payments.filter(p => p.method === "CASH").reduce((a, p) => a + p.amount, 0),
+        changeGiven: porCobrar ? 0 : change,
         tax: 0,
-        payments: payloadPayments,
+        isStaffPurchase: compraPropia,
+        staffUnpaid: compraPropia && porCobrar,
+        staffDiscountRate: compraPropia ? STAFF_DISCOUNT_RATE : undefined,
+        discount: compraPropia ? discount : 0,
+        // Por cobrar: sin lista de pagos, el servidor registra STAFF_CREDIT
+        ...(porCobrar ? {} : { payments: payloadPayments }),
         items: cart.map(item => ({
           product_id: item.id, name: item.name, quantity: item.quantity,
           unit_price: item.offerPrice || item.price,
@@ -141,8 +165,10 @@ export default function SaleMode() {
       if (result.ok) {
         clearCart();
         setPayments([{ id: "p1", method: "CASH", amount: 0 }]);
+        setCompraPropia(false);
+        setPorCobrar(false);
         setView("products");
-        showToast("✓ Venta registrada", "success");
+        showToast(result.toastMessage || "✓ Venta registrada", "success");
       } else {
         showToast(result.toastMessage || "Error en la venta", "error");
       }
@@ -276,13 +302,57 @@ export default function SaleMode() {
                   </div>
                 </div>
               )}
+              {/* Compra propia: descuento de personal asociado al vendedor */}
+              {compraPropia && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+                    Compra propia −{Math.round(STAFF_DISCOUNT_RATE * 100)}%
+                  </span>
+                  <span className="text-amber-400 font-black">- $ {discount.toLocaleString()}</span>
+                </div>
+              )}
+
               <div className="flex justify-between items-end">
                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Total</span>
                 <span className="text-3xl font-black">$ {finalTotal.toLocaleString()}</span>
               </div>
 
-              {/* Payment rows */}
-              <div className="space-y-2">
+              {/* Botón compra propia. Deshabilitado si hay cupón: dos descuentos
+                  encimados dan un precio que después nadie sabe explicar. */}
+              <button
+                type="button"
+                onClick={() => {
+                  const activando = !compraPropia;
+                  setCompraPropia(activando);
+                  if (!activando) setPorCobrar(false);
+                }}
+                disabled={Boolean(appliedCoupon)}
+                className={`w-full rounded-xl border px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-colors disabled:opacity-30 ${
+                  compraPropia
+                    ? "bg-amber-500 border-amber-500 text-black"
+                    : "bg-white/5 border-white/10 text-white/60 hover:text-white"
+                }`}
+              >
+                {compraPropia ? "✓ Compra propia activa" : "Compra propia (−25%)"}
+              </button>
+
+              {compraPropia && (
+                <label className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={porCobrar}
+                    onChange={(e) => setPorCobrar(e.target.checked)}
+                    className="h-4 w-4 accent-amber-500"
+                  />
+                  <span className="text-[11px] font-bold text-amber-200">
+                    Dejar por cobrar (se descuenta del sueldo a fin de mes)
+                  </span>
+                </label>
+              )}
+
+              {/* Payment rows — ocultas cuando la compra queda por cobrar: no
+                  entra dinero a la caja, así que no hay nada que cuadrar. */}
+              <div className={`space-y-2 ${porCobrar ? "hidden" : ""}`}>
                 {payments.map((row, idx) => {
                   const Icon = METHOD_ICONS[row.method];
                   return (
