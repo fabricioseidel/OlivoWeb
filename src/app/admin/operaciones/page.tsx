@@ -6,19 +6,22 @@ import {
   ArchiveBoxArrowDownIcon,
   BanknotesIcon,
   LockClosedIcon,
+  QrCodeIcon,
 } from "@heroicons/react/24/outline";
 import { POSProvider } from "@/contexts/POSContext";
 import SaleMode from "@/components/admin/operaciones/SaleMode";
 import ReceptionMode from "@/components/admin/operaciones/ReceptionMode";
 import CajaMode from "@/components/admin/operaciones/CajaMode";
 import CloseMode from "@/components/admin/operaciones/CloseMode";
+import InventarioMode from "@/components/admin/operaciones/InventarioMode";
 import { useOpenShift } from "@/hooks/useOpenShift";
 
-type OperationsMode = "VENTA" | "RECEPCION" | "CAJA" | "CIERRE";
+type OperationsMode = "VENTA" | "RECEPCION" | "INVENTARIO" | "CAJA" | "CIERRE";
 
 const TABS: { id: OperationsMode; label: string; icon: typeof ShoppingCartIcon }[] = [
   { id: "VENTA",     label: "Venta",     icon: ShoppingCartIcon },
   { id: "RECEPCION", label: "Recepción", icon: ArchiveBoxArrowDownIcon },
+  { id: "INVENTARIO", label: "Inventario", icon: QrCodeIcon },
   { id: "CAJA",      label: "Caja",      icon: BanknotesIcon },
   { id: "CIERRE",    label: "Cierre",    icon: LockClosedIcon },
 ];
@@ -89,6 +92,7 @@ export default function OperacionesPage() {
           </POSProvider>
         )}
         {mode === "RECEPCION" && <ReceptionMode />}
+        {mode === "INVENTARIO" && <InventarioMode />}
         {mode === "CAJA"      && <CajaMode onShiftChange={refrescarCaja} />}
         {mode === "CIERRE"    && <CloseMode />}
       </div>
