@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { fetchAllProducts, isProductVisible } from "@/services/products";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
+import { requireApiAdminOrSeller } from "@/lib/api-auth";
 
 async function readJsonBody(req: Request) {
   const text = await req.text();
@@ -96,10 +95,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return errorResponse(new Error("Unauthorized"), 401);
-    }
+    const auth = await requireApiAdminOrSeller();
+    if (!auth.ok) return auth.response;
 
     const body = await readJsonBody(req);
     const items = Array.isArray(body?.items) ? body.items : [body];
@@ -128,10 +125,8 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return errorResponse(new Error("Unauthorized"), 401);
-    }
+    const auth = await requireApiAdminOrSeller();
+    if (!auth.ok) return auth.response;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');

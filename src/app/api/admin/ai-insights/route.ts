@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
-import { requireApiAdminOrSeller } from "@/lib/api-auth";
+import { requireApiAdmin } from "@/lib/api-auth";
 
 export async function GET() {
-  const auth = await requireApiAdminOrSeller();
+  const auth = await requireApiAdmin();
   if (!auth.ok) return auth.response;
   try {
     // 1. Fetch products with low stock relative to their optimum
