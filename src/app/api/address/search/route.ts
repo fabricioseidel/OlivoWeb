@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Simple in-memory cache to reduce load on Nominatim
 // Key: query string, Value: { timestamp: number, data: any }
@@ -12,6 +13,17 @@ export async function GET(request: NextRequest) {
 
   if (!q) {
     return NextResponse.json({ error: "Query parameter 'q' is required" }, { status: 400 });
+  }
+
+  const { allowed, retryAfterSeconds } = rateLimit(`address-search:${getClientIp(request)}`, {
+    limit: 30,
+    windowMs: 60 * 1000,
+  });
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes. Intenta más tarde." },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
   }
 
   const cacheKey = `${country}:${q.toLowerCase().trim()}`;

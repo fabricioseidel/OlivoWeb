@@ -8,6 +8,7 @@ import { earnPoints, redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@
 import { createPaymentPreference } from '@/server/payments.service';
 import { format, getHours } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 const MAX_ORDERS_PER_SLOT = 5;
 const TIMEZONE = "America/Santiago";
@@ -74,6 +75,17 @@ async function calculateServerShippingCost(
 
 export async function POST(request: NextRequest) {
   try {
+    const { allowed, retryAfterSeconds } = rateLimit(`create-order:${getClientIp(request)}`, {
+      limit: 10,
+      windowMs: 5 * 60 * 1000,
+    });
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Demasiadas solicitudes. Intenta más tarde.' },
+        { status: 429, headers: { 'Retry-After': String(retryAfterSeconds) } }
+      );
+    }
+
     const session = await getServerSession(authOptions);
     const body = await request.json();
     // Del cliente solo se toman: items (id+cantidad), datos de envío, método

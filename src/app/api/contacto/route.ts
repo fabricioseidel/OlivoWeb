@@ -1,20 +1,18 @@
 import { NextResponse } from "next/server";
-
-// Simple in-memory rate limiter (dev only). For production use a durable store like Redis.
-const WINDOW_MS = 60_000; // 1 min
-const MAX_REQ = 5;
-let hits: { ts: number; ip: string }[] = [];
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   try {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const now = Date.now();
-    hits = hits.filter(h => now - h.ts < WINDOW_MS);
-    const count = hits.filter(h => h.ip === ip).length;
-    if (count >= MAX_REQ) {
-      return NextResponse.json({ error: "Demasiados intentos, espera un minuto" }, { status: 429 });
+    const { allowed, retryAfterSeconds } = rateLimit(`contacto:${getClientIp(req)}`, {
+      limit: 3,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Demasiados intentos, espera un momento" },
+        { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+      );
     }
-    hits.push({ ts: now, ip });
 
     const body = await req.json().catch(() => null);
     if (!body) {
