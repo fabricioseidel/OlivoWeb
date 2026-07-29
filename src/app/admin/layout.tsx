@@ -34,6 +34,7 @@ import {
   ChevronDownIcon,
   BuildingStorefrontIcon,
   BeakerIcon,
+  UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { Dialog, Transition } from "@headlessui/react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -59,6 +60,7 @@ const menuGroupsOlivoTeam: MenuGroup[] = [
       { name: "Operaciones", href: "/admin/operaciones", icon: BoltIcon },
       { name: "POS", href: "/admin/pos", icon: ShoppingCartIcon },
       { name: "Caja", href: "/admin/caja", icon: BanknotesIcon },
+      { name: "Compras del personal", href: "/admin/compras-personal", icon: UserGroupIcon },
     ],
   },
   {

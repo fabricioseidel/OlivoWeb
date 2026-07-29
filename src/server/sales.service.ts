@@ -38,6 +38,8 @@ export interface CreateSaleInput {
   sellerId?: string | null;
   /** Compra de personal (descuento fijo, asociada al vendedor). */
   isStaffPurchase?: boolean;
+  /** Tasa de descuento del personal vigente al registrar la venta. */
+  staffDiscountRate?: number;
   customerEmail?: string;
   transferReceiptUri?: string;
   transferReceiptName?: string;
@@ -117,6 +119,9 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: number }
       .update({
         ...(input.sellerId ? { seller_id: input.sellerId } : {}),
         ...(input.isStaffPurchase ? { is_staff_purchase: true } : {}),
+        ...(input.staffDiscountRate !== undefined
+          ? { staff_discount_rate: input.staffDiscountRate }
+          : {}),
       })
       .eq("id", saleId);
     if (markErr) {

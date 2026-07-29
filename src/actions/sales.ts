@@ -41,6 +41,10 @@ interface CreateSaleActionInput {
   isStaffPurchase?: boolean;
   /** La compra de personal queda por cobrar y se descuenta del sueldo. */
   staffUnpaid?: boolean;
+  /** Tasa de descuento aplicada, guardada para no depender del valor vigente. */
+  staffDiscountRate?: number;
+  /** Monto de descuento aplicado a la venta. */
+  discount?: number;
 }
 
 export async function createSaleAction(data: CreateSaleActionInput): Promise<SaleActionState> {
@@ -90,7 +94,7 @@ export async function createSaleAction(data: CreateSaleActionInput): Promise<Sal
       branchId: data.branchId ?? null,
       shiftId,
       total: data.total,
-      discount: 0,
+      discount: data.discount ?? 0,
       tax: data.tax ?? 0,
       notes: data.notas,
       cashReceived: data.cashReceived,
@@ -98,6 +102,7 @@ export async function createSaleAction(data: CreateSaleActionInput): Promise<Sal
       sellerName,
       sellerId,
       isStaffPurchase: data.isStaffPurchase ?? false,
+      staffDiscountRate: data.staffDiscountRate,
       customerEmail: data.customerEmail,
       transferReceiptUri: data.transferReceiptUri,
       transferReceiptName: data.transferReceiptName,
