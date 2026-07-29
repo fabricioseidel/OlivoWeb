@@ -13,22 +13,20 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install
         run: npm ci
 
       - name: Typecheck
-        run: npm run -s typecheck || npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Lint
-        run: npm run -s lint || npx eslint . --ext .ts,.tsx
-
-  # Prisma removed
+        run: npm run lint
 
       - name: Tests
-        run: npm test --silent -- --coverage || npm test --silent || true
+        run: npm test
 
       - name: Build
-        run: npm run -s build
+        run: npm run build
