@@ -4,6 +4,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useMemo,
   ReactNode,
@@ -32,6 +33,8 @@ interface ProductContextType {
   trackProductView: (id: string) => void;
   trackOrderIntent: (id: string) => void;
   fetchDetails: (id: string) => Promise<Product>;
+  /** Dispara la carga del catálogo la primera vez que alguien lo consume. */
+  ensureLoaded: () => void;
   // Back-compat alias expected by some admin pages
   addProduct: (productData: Partial<Product>) => Promise<void>;
   createProduct: (productData: Partial<Product>) => Promise<void>;
@@ -74,11 +77,15 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     return () => { mounted = false; };
   }, []);
 
-  useEffect(() => {
-    const cleanup = load();
-    return () => {
-      cleanup.then((fn) => fn && fn());
-    };
+  // Carga perezosa: el catálogo completo sólo se pide cuando algún componente
+  // realmente lo consume. Antes se cargaba en el layout raíz, así que abrir
+  // /admin/operaciones desde el teléfono descargaba los ~650 productos de la
+  // tienda antes de mostrar la caja, sin que ninguna pantalla los usara.
+  const solicitado = useRef(false);
+  const ensureLoaded = useCallback(() => {
+    if (solicitado.current) return;
+    solicitado.current = true;
+    load();
   }, [load]);  const refresh = async () => {
     await load();
   };
@@ -296,6 +303,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     trackProductView,
     trackOrderIntent,
     fetchDetails: fetchProductDetails,
+    ensureLoaded,
     addProduct: createProduct,
     createProduct,
     updateProduct,
@@ -317,5 +325,11 @@ export function useProducts() {
   if (!ctx) {
     throw new Error('useProducts debe usarse dentro de ProductProvider');
   }
+  // Consumir el contexto es lo que dispara la carga. Así las pantallas que no
+  // necesitan el catálogo (todo el POS y operaciones) no lo descargan.
+  const { ensureLoaded } = ctx;
+  useEffect(() => {
+    ensureLoaded();
+  }, [ensureLoaded]);
   return ctx;
 }
