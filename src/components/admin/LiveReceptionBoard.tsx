@@ -27,9 +27,9 @@ export default function LiveReceptionBoard({ orders, onUpdateStatus }: LiveRecep
     return [...orders].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
   }, [orders]);
 
-  const newOrders = sortedOrders.filter(o => o.estado === "Pendiente" || o.estado === "pending");
-  const inPrepOrders = sortedOrders.filter(o => o.estado === "Procesando");
-  const readyOrders = sortedOrders.filter(o => o.estado === "Gestionado" || o.estado === "Enviado");
+  const newOrders = sortedOrders.filter(o => o.estado === "pending");
+  const inPrepOrders = sortedOrders.filter(o => o.estado === "processing");
+  const readyOrders = sortedOrders.filter(o => o.estado === "shipped" || o.estado === "delivered");
 
   const getElapsedTime = (dateString?: string) => {
     if (!dateString) return "Desconocido";
@@ -104,7 +104,7 @@ export default function LiveReceptionBoard({ orders, onUpdateStatus }: LiveRecep
         {newOrders.length === 0 ? (
           <div className="bg-white/50 border-2 border-dashed border-gray-200 rounded-3xl h-32 flex items-center justify-center text-gray-400 font-medium text-sm">Sin pedidos nuevos</div>
         ) : (
-          newOrders.map(order => <OrderCard key={order.id} order={order} nextAction="A Preparación" nextStatus="Procesando" isWarning={true} />)
+          newOrders.map(order => <OrderCard key={order.id} order={order} nextAction="A Preparación" nextStatus="processing" isWarning={true} />)
         )}
       </div>
 
@@ -121,7 +121,7 @@ export default function LiveReceptionBoard({ orders, onUpdateStatus }: LiveRecep
         {inPrepOrders.length === 0 ? (
           <div className="bg-white/50 border-2 border-dashed border-gray-200 rounded-3xl h-32 flex items-center justify-center text-gray-400 font-medium text-sm">Nada en preparación</div>
         ) : (
-          inPrepOrders.map(order => <OrderCard key={order.id} order={order} nextAction="Marcar Listo" nextStatus="Gestionado" />)
+          inPrepOrders.map(order => <OrderCard key={order.id} order={order} nextAction="Marcar Listo" nextStatus="shipped" />)
         )}
       </div>
 
@@ -138,7 +138,7 @@ export default function LiveReceptionBoard({ orders, onUpdateStatus }: LiveRecep
         {readyOrders.length === 0 ? (
           <div className="bg-white/50 border-2 border-dashed border-gray-200 rounded-3xl h-32 flex items-center justify-center text-gray-400 font-medium text-sm">Nada listo aún</div>
         ) : (
-          readyOrders.map(order => <OrderCard key={order.id} order={order} nextAction="Cerrar Pedido" nextStatus="Completado" />)
+          readyOrders.map(order => <OrderCard key={order.id} order={order} nextAction="Cerrar Pedido" nextStatus="delivered" />)
         )}
       </div>
 

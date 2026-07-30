@@ -2,10 +2,11 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { 
-  QrCodeIcon, 
-  GiftIcon, 
-  StarIcon, 
+import { useSession } from "next-auth/react";
+import {
+  QrCodeIcon,
+  GiftIcon,
+  StarIcon,
   ArrowRightIcon,
   ShoppingBagIcon,
   SparklesIcon
@@ -13,12 +14,14 @@ import {
 import Button from "@/components/ui/Button";
 
 export default function BienvenidosPage() {
+  const { data: session } = useSession();
+
   // Guardar en sessionStorage que el usuario vino desde el QR de la tienda física
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !session) {
       sessionStorage.setItem("registration_source", "tienda_fisica");
     }
-  }, []);
+  }, [session]);
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">
@@ -78,33 +81,50 @@ export default function BienvenidosPage() {
                   <QrCodeIcon className="w-8 h-8 text-emerald-600" />
                </div>
 
-               <h2 className="text-3xl font-black text-gray-900 mb-6 tracking-tight">Crea tu cuenta gratis</h2>
-               
-               <div className="space-y-4">
-                 <Link href="/login?mode=register" className="block">
-                    <Button className="w-full h-16 rounded-2xl font-black text-lg bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 group">
-                      Registrarme Ahora
-                      <ArrowRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" />
-                    </Button>
-                 </Link>
-                 
-                 <div className="relative py-4">
-                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100"></div></div>
-                    <div className="relative flex justify-center text-xs uppercase font-black tracking-widest text-gray-300">
-                       <span className="bg-white px-4 italic">O si ya tienes cuenta</span>
-                    </div>
-                 </div>
+               {session ? (
+                 <>
+                   <h2 className="text-3xl font-black text-gray-900 mb-6 tracking-tight">¡Ya tienes cuenta!</h2>
+                   <p className="text-sm text-gray-500 font-medium mb-6">
+                     Ya iniciaste sesión, {session.user?.name || "bienvenido/a"}. Revisa tus puntos y beneficios en tu cuenta.
+                   </p>
+                   <Link href="/mi-cuenta/puntos" className="block">
+                     <Button className="w-full h-16 rounded-2xl font-black text-lg bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 group">
+                       Ver mis puntos
+                       <ArrowRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" />
+                     </Button>
+                   </Link>
+                 </>
+               ) : (
+                 <>
+                   <h2 className="text-3xl font-black text-gray-900 mb-6 tracking-tight">Crea tu cuenta gratis</h2>
 
-                 <Link href="/login" className="block">
-                    <Button variant="outline" className="w-full h-16 rounded-2xl font-black text-gray-700 border-2 hover:bg-gray-50 transition-all">
-                      Iniciar Sesión
-                    </Button>
-                 </Link>
-               </div>
+                   <div className="space-y-4">
+                     <Link href="/login?mode=register" className="block">
+                        <Button className="w-full h-16 rounded-2xl font-black text-lg bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 group">
+                          Registrarme Ahora
+                          <ArrowRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" />
+                        </Button>
+                     </Link>
 
-               <p className="mt-8 text-xs text-gray-400 font-medium px-4">
-                 Al registrarte aceptas unirte a nuestro programa de fidelización y recibir beneficios exclusivos de OlivoMarket Gourmet.
-               </p>
+                     <div className="relative py-4">
+                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100"></div></div>
+                        <div className="relative flex justify-center text-xs uppercase font-black tracking-widest text-gray-300">
+                           <span className="bg-white px-4 italic">O si ya tienes cuenta</span>
+                        </div>
+                     </div>
+
+                     <Link href="/login" className="block">
+                        <Button variant="outline" className="w-full h-16 rounded-2xl font-black text-gray-700 border-2 hover:bg-gray-50 transition-all">
+                          Iniciar Sesión
+                        </Button>
+                     </Link>
+                   </div>
+
+                   <p className="mt-8 text-xs text-gray-400 font-medium px-4">
+                     Al registrarte aceptas unirte a nuestro programa de fidelización y recibir beneficios exclusivos de OlivoMarket Gourmet.
+                   </p>
+                 </>
+               )}
             </div>
 
             {/* Float Element: Trust Badge */}
