@@ -8,24 +8,27 @@
 -- mostraban stock en el catálogo pero fallaban en el checkout con
 -- "Stock insuficiente".
 --
--- Esta migración asume que products.stock es, hoy, el número correcto.
--- NO aplicar sin confirmar eso — no hay forma de saber desde el código
--- cuál de los dos campos refleja el inventario físico real.
+-- Confirmado por Fabri (30-jul-2026): products.stock es hoy el número
+-- correcto, y por el momento ambas sucursales (Principal y Sucursal 2)
+-- manejan un solo stock combinado, sin distinción real entre ellas. Por
+-- eso esta reconciliación se aplica a todas las sucursales activas, no
+-- solo a la default.
 
--- 1. Actualizar filas existentes que no coinciden
+-- 1. Actualizar filas existentes que no coinciden, en todas las sucursales
 UPDATE public.branch_stock bs
 SET stock = p.stock, updated_at = now()
 FROM public.products p
 WHERE bs.product_barcode = p.barcode
-  AND bs.branch_id = (SELECT id FROM public.branches WHERE is_default = true LIMIT 1)
   AND bs.stock IS DISTINCT FROM p.stock;
 
--- 2. Crear filas faltantes (productos que nunca tuvieron branch_stock)
+-- 2. Crear filas faltantes (producto x sucursal activa que nunca tuvo fila)
 INSERT INTO public.branch_stock (branch_id, product_barcode, stock, min_stock)
 SELECT
-  (SELECT id FROM public.branches WHERE is_default = true LIMIT 1),
+  b.id,
   p.barcode,
   COALESCE(p.stock, 0),
   COALESCE(p.min_stock, 5)
 FROM public.products p
+CROSS JOIN public.branches b
+WHERE b.is_active = true
 ON CONFLICT (branch_id, product_barcode) DO NOTHING;
