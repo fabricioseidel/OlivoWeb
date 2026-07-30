@@ -85,15 +85,10 @@ export const BUSINESS = {
     "https://www.ubereats.com/cl/store/olivo-market-nunoa/BrtCgOgzUziAUqrTXiwWrg",
 
   // ── Datos que requieren confirmación humana ─────────────────────────────
-  /**
-   * Coordenadas exactas del local. Se omiten del JSON-LD mientras sean null
-   * (emitir `null` en JSON-LD lo invalida).
-   * // TODO-HUMANO: obtener latitud y longitud exactas del local desde Google
-   * Maps (clic derecho sobre el pin → copiar coordenadas).
-   */
+  /** Coordenadas exactas del local, provistas por Fabri (30-jul-2026). */
   geo: {
-    latitude: null as number | null,
-    longitude: null as number | null,
+    latitude: -33.472904287482656 as number | null,
+    longitude: -70.59850517606597 as number | null,
   },
 
   /**

@@ -11,21 +11,7 @@ Al resolver cada punto, edita el archivo indicado y borra el comentario
 
 ## 🔴 Pendiente — bloquea señales de SEO local
 
-### 1. Coordenadas exactas del local
-- **Archivo:** `src/lib/seo/business.ts` (`BUSINESS.geo`)
-- **Estado:** `null`. La propiedad `geo` se **omite** del JSON-LD (no se emite `null`,
-  que invalidaría el bloque). Sin `geo`, Google infiere la ubicación desde la
-  dirección de texto, lo que debilita el ranking en búsquedas "cerca de mí".
-- **Cómo obtenerlas (2 minutos, desde el computador):**
-  1. Abre [google.com/maps](https://www.google.com/maps) y busca "Olivo Market Ñuñoa".
-  2. **Clic derecho** sobre el pin rojo del local.
-  3. La primera línea del menú son dos números, por ejemplo `-33.487123, -70.610456`.
-     Haz clic ahí: se copian al portapapeles.
-  4. Pégalos en `BUSINESS.geo` → `latitude: -33.487123, longitude: -70.610456`.
-- **Nota:** el enlace corto que compartiste (`maps.app.goo.gl/...`) no expone las
-  coordenadas; hay que abrirlo en Maps y hacer el clic derecho sobre el pin.
-
-### 2. CID de Google Business Profile
+### 1. CID de Google Business Profile
 - **Archivo:** `src/lib/seo/business.ts` (`BUSINESS.googleCid`)
 - **Estado:** `null`. Se omite `hasMap` del schema. Con el CID se enlaza el sitio con
   la ficha de Google, que es la señal que más pesa en el pack local.
@@ -38,7 +24,7 @@ Al resolver cada punto, edita el archivo indicado y borra el comentario
 
 ## 🟡 Pendiente — mejora conversión y contenido
 
-### 3. Foto real de la fachada
+### 2. Foto real de la fachada
 - **Archivo:** `src/lib/seo/business.ts` (`BUSINESS.facadePhoto`)
 - **Estado:** `null`, por lo que `image[]` se omite del schema y las landings locales
   no muestran foto. El `alt` ya está preparado para incluir "Ñuñoa".
@@ -79,6 +65,12 @@ Al resolver cada punto, edita el archivo indicado y borra el comentario
   $35.000 en las comunas con cobertura. Implementado en `src/lib/shipping-policy.ts`,
   con 15 tests, y conectado al checkout (antes el envío gratis por monto estaba
   configurado en la base de datos pero **el checkout nunca lo aplicaba**).
+- **Coordenadas exactas del local**: `-33.472904287482656, -70.59850517606597`.
+  Aplicado en `BUSINESS.geo` (antes `null`, se omitía del JSON-LD) y en
+  `settings.shipping_origin_lat/lng`, la coordenada real que usa el checkout para
+  calcular el envío a domicilio. El valor anterior en `settings` estaba desfasado
+  ~2.3km del local real — se detectó en una compra de prueba real y se corrigió
+  con la migración `20260730000000_set_real_shipping_origin_coords.sql`.
 
 ---
 
