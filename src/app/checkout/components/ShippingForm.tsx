@@ -348,6 +348,13 @@ export default function ShippingForm({
                           </svg>
                         </div>
                       )}
+                      {method.id === 'express' && (
+                        <div className="w-12 h-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-lg shadow-gray-900/20">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                      )}
                       {method.id === 'pickup' && (
                         <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20">
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -456,6 +463,20 @@ export default function ShippingForm({
                             ⚠️ Por favor selecciona un horario para continuar.
                           </p>
                         )}
+                     </div>
+                  </div>
+                )}
+
+                {/* Sub UI for express when selected */}
+                {isSelected && method.id === 'express' && (
+                  <div className="px-5 pb-5 pt-2 border-t border-gray-100 mt-1 bg-gray-50/70 rounded-b-[1.3rem]">
+                     <div className="flex items-start gap-3">
+                        <svg className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <p className="text-xs font-medium text-gray-700 leading-relaxed">
+                          Un repartidor retira tu pedido en la tienda apenas se confirma el pago.
+                          Te enviamos el <strong className="font-black">enlace de seguimiento</strong> por correo
+                          para que veas dónde va.
+                        </p>
                      </div>
                   </div>
                 )}

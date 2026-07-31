@@ -152,6 +152,28 @@ export function firstSelectableDate(todayStr: string, currentHour: number, maxDi
   return todayStr;
 }
 
+/**
+ * Margen antes del cierre en que ya no se acepta envío inmediato: el repartidor
+ * tiene que alcanzar a llegar al local mientras siga habiendo alguien adentro.
+ */
+export const CIERRE_EXPRESS_MINUTOS_ANTES = 30;
+
+/**
+ * ¿Se puede despachar un envío inmediato en este momento?
+ *
+ * Sirve tanto entre semana (07:45–20:30) como los fines de semana
+ * (10:00–18:00): el horario sale de `BUSINESS.openingHours`, no de una
+ * constante aparte.
+ */
+export function admiteEnvioInmediato(dateStr: string, minutosDelDia: number): boolean {
+  const horario = openingHoursFor(dateStr);
+  if (!horario) return false;
+
+  const abre = toMinutes(horario.opens);
+  const cierra = toMinutes(horario.closes) - CIERRE_EXPRESS_MINUTOS_ANTES;
+  return minutosDelDia >= abre && minutosDelDia <= cierra;
+}
+
 /** Rango de entrega publicable, derivado de los bloques reales. */
 export function ventanaPublicable(): { semana: string; finDeSemana: string } {
   const format = (slots: DeliverySlot[]) =>

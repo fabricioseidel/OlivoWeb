@@ -46,6 +46,7 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(1);
   const [fieldErrors, setFieldErrors] = useState<ShippingFieldErrors>({});
   const [dynamicShipping, setDynamicShipping] = useState<ShippingMethod | null>(null);
+  const [expressShipping, setExpressShipping] = useState<ShippingMethod | null>(null);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState("pickup");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("mercadopago");
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
@@ -104,6 +105,11 @@ export default function CheckoutPage() {
 
   const shippingMethods = useMemo(() => {
     const list = [...baseShippingMethods];
+
+    // Envío inmediato: primero, porque es el más rápido y el que la mayoría
+    // busca cuando lo necesita hoy.
+    if (expressShipping) list.unshift(expressShipping);
+
     if (!dynamicShipping) return list;
 
     const priced: ShippingMethod = quote
@@ -116,7 +122,7 @@ export default function CheckoutPage() {
       : dynamicShipping;
 
     return [priced, ...list];
-  }, [dynamicShipping, quote]);
+  }, [dynamicShipping, quote, expressShipping]);
 
   const rawShippingCost = shippingMethods.find((method) => method.id === selectedShippingMethod)?.price || 0;
 
@@ -181,6 +187,66 @@ export default function CheckoutPage() {
       triggerShippingCalculation(coords);
     }
   }, [coords, storeSettings, dynamicShipping, isCalculatingDistance, triggerShippingCalculation]);
+
+  // Cotización de envío inmediato (Uber Direct).
+  //
+  // El servidor decide si la opción corresponde: fuera del horario de la
+  // tienda, bajo el mínimo o sin cobertura responde `available: false` y la
+  // opción simplemente no aparece. Nunca es un error visible para el cliente.
+  useEffect(() => {
+    if (!shippingInfo.address || !shippingInfo.city || subtotal <= 0) {
+      setExpressShipping(null);
+      return;
+    }
+
+    let cancelado = false;
+    // La dirección se escribe carácter a carácter y cada cotización es un
+    // llamado a la API de Uber: se espera a que el cliente termine.
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/shipping/express-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            address: shippingInfo.address,
+            city: shippingInfo.city,
+            state: shippingInfo.state,
+            zipCode: shippingInfo.zipCode,
+            apartment: shippingInfo.apartment,
+            tower: shippingInfo.tower,
+            subtotal,
+          }),
+        });
+        const data = await res.json();
+        if (cancelado) return;
+
+        setExpressShipping(
+          data.available
+            ? {
+                id: 'express',
+                name: 'Envío inmediato',
+                price: data.price,
+                days: data.etaMinutes
+                  ? `Llega en ~${data.etaMinutes} min`
+                  : 'Llega hoy, en el día',
+              }
+            : null
+        );
+      } catch {
+        if (!cancelado) setExpressShipping(null);
+      }
+    }, 800);
+
+    return () => { cancelado = true; clearTimeout(timer); };
+  }, [shippingInfo.address, shippingInfo.city, shippingInfo.state, shippingInfo.zipCode, shippingInfo.apartment, shippingInfo.tower, subtotal]);
+
+  // Si el envío inmediato deja de estar disponible (cambió la dirección, cerró
+  // la tienda) no puede quedar seleccionado un método que ya no existe.
+  useEffect(() => {
+    if (selectedShippingMethod === 'express' && !expressShipping) {
+      setSelectedShippingMethod(dynamicShipping ? 'dynamic' : 'pickup');
+    }
+  }, [expressShipping, selectedShippingMethod, dynamicShipping]);
 
   useEffect(() => {
     const loadLoyalty = async () => {

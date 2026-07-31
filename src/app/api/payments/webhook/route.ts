@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { supabaseServer } from '@/lib/supabase-server';
 import { auditLog } from '@/server/audit.service';
+import { crearEnvioParaOrden } from '@/server/express-delivery.service';
 import crypto from 'crypto';
 
 /**
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
         // Update Order Status in Supabase to PAID
         const { error } = await supabaseServer
           .from('orders')
-          .update({ 
+          .update({
             payment_status: 'paid',
             status: 'processing',
             updated_at: new Date().toISOString()
@@ -114,6 +115,23 @@ export async function POST(request: NextRequest) {
           actor: 'mp-webhook',
           details: { paymentId: String(paymentId), amount: paidAmount, mpStatus: status },
         });
+
+        // Recién ahora se pide el repartidor. Si falla, la orden queda marcada
+        // y sigue pagada: la resuelve operaciones, no se revierte sola.
+        // `crearEnvioParaOrden` es idempotente, así que un reintento del
+        // webhook no pide un segundo repartidor.
+        const { data: paidOrder } = await supabaseServer
+          .from('orders')
+          .select('shipping_method')
+          .eq('id', orderId)
+          .maybeSingle();
+
+        if (paidOrder?.shipping_method === 'express') {
+          const envio = await crearEnvioParaOrden(String(orderId));
+          if (!envio.ok) {
+            console.error(`[MP Webhook] Envío inmediato falló para la orden ${orderId}: ${envio.motivo}`);
+          }
+        }
       } else if (orderId && (status === 'rejected' || status === 'cancelled' || status === 'refunded' || status === 'in_mediation')) {
         console.log(`[MP Webhook] 🔄 Restaurando stock para orden ${orderId} debido a estado: ${status}`);
 
