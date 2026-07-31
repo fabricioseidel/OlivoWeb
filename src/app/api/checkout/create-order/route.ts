@@ -7,10 +7,16 @@ import { recordCouponUsage, getCouponByCode, validateCoupon } from '@/server/cou
 import { earnPoints, redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
 import { quoteShipping } from '@/lib/shipping-policy';
+import {
+  MAX_ORDERS_PER_SLOT,
+  SAME_DAY_CUTOFF_HOUR,
+  sameDaySlotIsAllowed,
+  slotMatches,
+  slotsForDate,
+} from '@/lib/delivery-slots';
 import { format, getHours } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 
-const MAX_ORDERS_PER_SLOT = 5;
 const TIMEZONE = "America/Santiago";
 
 /** Distancia Haversine ×1.3 (mismo cálculo que /api/shipping/calculate). */
@@ -119,39 +125,44 @@ export async function POST(request: NextRequest) {
          return NextResponse.json({ error: 'Debe seleccionar una fecha y bloque horario para el envío a domicilio.' }, { status: 400 });
       }
 
-      // 0a: Verify slot hasn't reached maximum capacity dynamically
+      // 0a: El bloque tiene que existir para esa fecha. Fuera del horario de
+      // atención no hay quien despache, así que no se acepta aunque el
+      // navegador lo haya mandado.
+      const slotsDelDia = slotsForDate(deliveryDate);
+      const slot = slotsDelDia.find((s) => s.id === deliveryTimeSlot);
+      if (!slot) {
+        return NextResponse.json({ error: 'El bloque horario seleccionado no está disponible para esa fecha.' }, { status: 400 });
+      }
+
+      // 0b: Verify slot hasn't reached maximum capacity dynamically
       const { data: slotOrders, error: slotErr } = await supabaseServer
         .from('orders')
         .select('shipping_address')
         .neq('status', 'cancelled');
-        
+
       if (!slotErr && slotOrders) {
-        let count = 0;
-        slotOrders.forEach(o => {
+        const count = slotOrders.filter(o => {
           const addr = o.shipping_address as any;
-          if (addr && addr.deliveryDate === deliveryDate && addr.deliveryTimeSlot === deliveryTimeSlot) {
-            count++;
-          }
-        });
-        
+          return addr && addr.deliveryDate === deliveryDate && slotMatches(slot, addr.deliveryTimeSlot);
+        }).length;
+
         if (count >= MAX_ORDERS_PER_SLOT) {
           return NextResponse.json({ error: 'Lo sentimos, este bloque horario acaba de llenarse. Por favor seleccione otro.' }, { status: 400 });
         }
       }
 
-      // 0b: Validate same day logic
+      // 0c: Validate same day logic
       const nowUtc = new Date();
       const nowInChile = toZonedTime(nowUtc, TIMEZONE);
       const currentHour = getHours(nowInChile);
       const todayStr = format(nowInChile, "yyyy-MM-dd");
 
-      if (deliveryDate === todayStr) {
-        if (currentHour >= 13) {
-           return NextResponse.json({ error: 'Ya pasó la hora límite (1 PM) para envíos del mismo día. Seleccione mañana.' }, { status: 400 });
+      if (deliveryDate === todayStr && !sameDaySlotIsAllowed(slot, slotsDelDia, currentHour)) {
+        if (currentHour >= SAME_DAY_CUTOFF_HOUR) {
+          return NextResponse.json({ error: `Ya pasó la hora límite (${SAME_DAY_CUTOFF_HOUR}:00) para envíos del mismo día. Seleccione otra fecha.` }, { status: 400 });
         }
-        if (deliveryTimeSlot !== "18:00-21:00") {
-           return NextResponse.json({ error: 'Para el mismo día solo está disponible el horario de 18:00 a 21:00 hrs.' }, { status: 400 });
-        }
+        const ultimo = slotsDelDia[slotsDelDia.length - 1];
+        return NextResponse.json({ error: `Para el mismo día solo está disponible el horario de ${ultimo.label}.` }, { status: 400 });
       }
     }
 

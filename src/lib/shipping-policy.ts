@@ -12,6 +12,7 @@
  */
 
 import { BUSINESS, type ComunaSlug } from "@/lib/seo/business";
+import { SAME_DAY_CUTOFF_HOUR, ventanaPublicable } from "@/lib/delivery-slots";
 
 /** Tope de despacho para las comunas más cercanas al local. */
 export const TOPE_POR_COMUNA: Partial<Record<ComunaSlug, number>> = {
@@ -22,13 +23,21 @@ export const TOPE_POR_COMUNA: Partial<Record<ComunaSlug, number>> = {
 /** Comunas aledañas: las que acceden al envío gratis por monto. */
 export const COMUNAS_CON_DESPACHO: ComunaSlug[] = BUSINESS.comunas.map((c) => c.slug);
 
-/** Ventana de entrega del despacho propio. */
+/**
+ * Ventana de entrega del despacho propio.
+ *
+ * Se deriva de los bloques reales del checkout (`delivery-slots`), no se
+ * escribe a mano: lo que publican las landings tiene que ser exactamente lo
+ * que el cliente después puede elegir al pagar.
+ */
+const VENTANA = ventanaPublicable();
+
 export const ENTREGA = {
-  ventana: "08:00 a 14:00",
-  /** Pedidos ingresados antes de esta hora salen el mismo día. */
-  corteMismoDia: "08:00",
+  ventana: `${VENTANA.semana} de lunes a viernes, ${VENTANA.finDeSemana} sábados y domingos`,
+  /** Pedidos ingresados antes de esta hora alcanzan a salir el mismo día. */
+  corteMismoDia: `${SAME_DAY_CUTOFF_HOUR}:00`,
   resumen:
-    "Los pedidos ingresados antes de las 08:00 se entregan el mismo día entre las 08:00 y las 14:00. Los que entran después se entregan al día siguiente en esa misma ventana.",
+    `Los pedidos ingresados antes de las ${SAME_DAY_CUTOFF_HOUR}:00 se pueden entregar el mismo día en el último bloque de la jornada. Los que entran después se agendan para el día siguiente, en el bloque de tu preferencia.`,
   retiroEnTienda:
     "El retiro en tienda se confirma por correo: te llega un aviso de «pedido listo», normalmente en menos de una hora.",
 };

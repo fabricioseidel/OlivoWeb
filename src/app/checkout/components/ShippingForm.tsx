@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Input from "@/components/ui/Input";
 import AddressAutocomplete, { AddressResult } from "@/components/AddressAutocomplete";
+import { firstSelectableDate, slotsForDate } from "@/lib/delivery-slots";
 
 export interface ShippingInfo {
   fullName: string;
@@ -38,13 +39,21 @@ interface ShippingFormProps {
   fieldErrors?: Partial<Record<"fullName" | "email" | "phone" | "address", string>>;
 }
 
+// Format YYYY-MM-DD
+const formatDateForApi = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * Próximos días con despacho. Se saltan los días en que el local no abre:
+ * ofrecer una fecha sin bloques deja al cliente mirando una lista vacía.
+ */
 const getNextDays = (numDays: number) => {
-  const days = [];
+  const days: Date[] = [];
   const today = new Date();
-  for (let i = 0; i < numDays; i++) {
+  for (let i = 0; days.length < numDays && i < numDays * 3; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() + i);
-    days.push(d);
+    if (slotsForDate(formatDateForApi(d)).length > 0) days.push(d);
   }
   return days;
 };
@@ -60,15 +69,10 @@ export default function ShippingForm({
   fieldErrors = {}
 }: ShippingFormProps) {
   
-  const [availableDays] = useState<Date[]>(() => getNextDays(7)); // Today + 6 = 7 days total
+  const [availableDays] = useState<Date[]>(() => getNextDays(7)); // 7 días con despacho
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotsError, setSlotsError] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<{ id: string; label: string; available: boolean; capacityRatio: string }[]>([]);
-
-  // Format YYYY-MM-DD
-  const formatDateForApi = (d: Date) => {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  };
 
   // Format short display (Ej: Lun 13, Abr)
   const formatShortDate = (d: Date) => {
@@ -89,10 +93,13 @@ export default function ShippingForm({
   };
 
   useEffect(() => {
-    // Si el usuario no ha seleccionado fecha aún, select "Hoy" por defecto
-    if (selectedMethod === 'dynamic' && !shippingInfo.deliveryDate) {
-       const todayStr = formatDateForApi(availableDays[0]);
-       onChange({ target: { name: 'deliveryDate', value: todayStr } });
+    // Se preselecciona la primera fecha que admite despacho, no "hoy" a secas:
+    // pasada la hora de corte hoy ya no tiene bloques, y el cliente entraba
+    // directo a "no hay horarios disponibles para esta fecha".
+    if (selectedMethod === 'dynamic' && !shippingInfo.deliveryDate && availableDays.length > 0) {
+       const now = new Date();
+       const inicial = firstSelectableDate(formatDateForApi(now), now.getHours());
+       onChange({ target: { name: 'deliveryDate', value: inicial } });
     }
   }, [selectedMethod, shippingInfo.deliveryDate, availableDays, onChange]);
 
