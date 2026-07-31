@@ -80,31 +80,47 @@ export default function CheckoutPage() {
     }
   }, [cartItems.length, router, status]);
 
-  const shippingMethods = useMemo(() => {
-    const list = [...baseShippingMethods];
-    if (dynamicShipping) return [dynamicShipping, ...list];
-    return list;
-  }, [dynamicShipping]);
-
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  const rawShippingCost = shippingMethods.find((method) => method.id === selectedShippingMethod)?.price || 0;
 
   // El despacho a domicilio pasa por las reglas de tope por comuna y envío
   // gratis por monto; el retiro en tienda ya es 0 y no se toca.
-  const quote = selectedShippingMethod === "dynamic"
-    ? quoteShipping({
-        rawPrice: rawShippingCost,
-        subtotal,
-        ciudad: shippingInfo.city,
-        freeShippingMinimum:
-          storeSettings?.shipping?.freeShippingEnabled
-            ? Number(storeSettings.shipping.freeShippingMinimum ?? 0) || null
-            : null,
-      })
-    : null;
+  //
+  // Se cotiza siempre que la opción exista, no solo cuando está seleccionada:
+  // el precio que se muestra en la tarjeta tiene que ser el mismo que entra al
+  // total. Antes la tarjeta mostraba la tarifa cruda por distancia y el resumen
+  // la ya ajustada, así que no coincidían.
+  const quote = useMemo(() => {
+    if (!dynamicShipping) return null;
+    return quoteShipping({
+      rawPrice: dynamicShipping.price,
+      subtotal,
+      ciudad: shippingInfo.city,
+      freeShippingMinimum:
+        storeSettings?.shipping?.freeShippingEnabled
+          ? Number(storeSettings.shipping.freeShippingMinimum ?? 0) || null
+          : null,
+    });
+  }, [dynamicShipping, subtotal, shippingInfo.city, storeSettings]);
 
-  const shippingCost = appliedCoupon?.freeShipping ? 0 : (quote ? quote.price : rawShippingCost);
+  const shippingMethods = useMemo(() => {
+    const list = [...baseShippingMethods];
+    if (!dynamicShipping) return list;
+
+    const priced: ShippingMethod = quote
+      ? {
+          ...dynamicShipping,
+          price: quote.price,
+          // Tarifa antes del tope/envío gratis, para tacharla en la tarjeta.
+          originalPrice: quote.price !== quote.rawPrice ? quote.rawPrice : undefined,
+        }
+      : dynamicShipping;
+
+    return [priced, ...list];
+  }, [dynamicShipping, quote]);
+
+  const rawShippingCost = shippingMethods.find((method) => method.id === selectedShippingMethod)?.price || 0;
+
+  const shippingCost = appliedCoupon?.freeShipping ? 0 : rawShippingCost;
   
   const couponDiscount = appliedCoupon?.discount || 0;
   const pointsDiscount = redeemedPoints * (loyaltyConfig?.redemption_value || 0);
@@ -540,7 +556,7 @@ export default function CheckoutPage() {
                            {/* Feedback de las reglas de despacho: sin esto el cliente
                                ve un precio distinto al calculado por distancia y no
                                entiende por qué. */}
-                           {quote?.freeApplied && (
+                           {selectedShippingMethod === 'dynamic' && quote?.freeApplied && (
                               <div className="bg-emerald-600 text-white p-5 rounded-3xl">
                                  <p className="font-black">🎉 Tu envío es gratis</p>
                                  <p className="text-sm text-emerald-50 mt-1">
@@ -548,7 +564,7 @@ export default function CheckoutPage() {
                                  </p>
                               </div>
                            )}
-                           {quote?.capApplied && (
+                           {selectedShippingMethod === 'dynamic' && quote?.capApplied && (
                               <div className="bg-emerald-50 p-5 rounded-3xl border border-emerald-100">
                                  <p className="font-bold text-emerald-900">
                                     Despacho con tarifa preferente

@@ -6,6 +6,7 @@ import { sendOrderConfirmation } from '@/server/email.service';
 import { recordCouponUsage, getCouponByCode, validateCoupon } from '@/server/coupon.service';
 import { earnPoints, redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
+import { quoteShipping } from '@/lib/shipping-policy';
 import { format, getHours } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 
@@ -33,17 +34,24 @@ function haversineKm(
 /**
  * Recalcula el costo de envío en servidor. Nunca confía en el valor que
  * envía el navegador.
+ *
+ * Aplica las mismas reglas de `quoteShipping` que usa el checkout para
+ * mostrar el precio (tope por comuna y envío gratis por monto). Antes solo
+ * devolvía la tarifa por distancia, así que el cliente veía "Gratis" o el
+ * tope de $1.500 y se le cobraba la tarifa completa.
  */
 async function calculateServerShippingCost(
   shippingMethod: string,
-  coords: { lat: number; lng: number } | null | undefined
+  coords: { lat: number; lng: number } | null | undefined,
+  subtotal: number,
+  ciudad: string | null | undefined
 ): Promise<{ cost: number } | { error: string }> {
   if (shippingMethod === 'pickup') return { cost: 0 };
 
   if (shippingMethod === 'dynamic') {
     const { data: settings } = await supabaseServer
       .from('settings')
-      .select('enable_dynamic_shipping, shipping_base_fee, shipping_price_per_km, shipping_origin_lat, shipping_origin_lng')
+      .select('enable_dynamic_shipping, shipping_base_fee, shipping_price_per_km, shipping_origin_lat, shipping_origin_lng, free_shipping_enabled, free_shipping_minimum')
       .eq('id', true)
       .maybeSingle();
 
@@ -61,11 +69,21 @@ async function calculateServerShippingCost(
       { lat: Number(settings.shipping_origin_lat), lng: Number(settings.shipping_origin_lng) },
       coords
     );
-    const cost = Number(settings.shipping_base_fee || 0) + distanceKm * Number(settings.shipping_price_per_km || 0);
-    if (!Number.isFinite(cost) || cost < 0) {
+    const rawCost = Number(settings.shipping_base_fee || 0) + distanceKm * Number(settings.shipping_price_per_km || 0);
+    if (!Number.isFinite(rawCost) || rawCost < 0) {
       return { error: 'No se pudo calcular el costo de envío.' };
     }
-    return { cost: Math.round(cost) };
+
+    const quote = quoteShipping({
+      rawPrice: rawCost,
+      subtotal,
+      ciudad,
+      freeShippingMinimum: settings.free_shipping_enabled
+        ? Number(settings.free_shipping_minimum ?? 0) || null
+        : null,
+    });
+
+    return { cost: quote.price };
   }
 
   return { error: 'Método de envío no válido.' };
@@ -173,7 +191,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Recalcular envío, cupón y puntos en servidor (nunca confiar en el cliente)
-    const shippingResult = await calculateServerShippingCost(shippingMethod, shippingInfo?.coords);
+    const shippingResult = await calculateServerShippingCost(
+      shippingMethod,
+      shippingInfo?.coords,
+      calculatedSubtotal,
+      shippingInfo?.city
+    );
     if ('error' in shippingResult) {
       return NextResponse.json({ error: shippingResult.error }, { status: 400 });
     }

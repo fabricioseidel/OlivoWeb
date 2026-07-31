@@ -20,8 +20,11 @@ export interface ShippingInfo {
 export interface ShippingMethod {
   id: string;
   name: string;
+  /** Precio final a cobrar, ya con tope por comuna y envío gratis aplicados. */
   price: number;
   days: string;
+  /** Tarifa antes del ajuste, solo si difiere de `price` (se muestra tachada). */
+  originalPrice?: number;
 }
 
 interface ShippingFormProps {
@@ -353,6 +356,11 @@ export default function ShippingForm({
                   </div>
                   
                   <div className="text-right">
+                    {typeof method.originalPrice === 'number' && (
+                      <span className="block text-gray-400 line-through font-bold text-xs">
+                        ${method.originalPrice.toLocaleString('es-CL')}
+                      </span>
+                    )}
                     {method.price === 0 ? (
                       <span className="text-emerald-600 font-black text-lg">Gratis</span>
                     ) : (
