@@ -6,11 +6,18 @@ import { sendOrderConfirmation } from '@/server/email.service';
 import { recordCouponUsage, getCouponByCode, validateCoupon } from '@/server/coupon.service';
 import { earnPoints, redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
+import { quoteShipping } from '@/lib/shipping-policy';
+import {
+  MAX_ORDERS_PER_SLOT,
+  SAME_DAY_CUTOFF_HOUR,
+  sameDaySlotIsAllowed,
+  slotMatches,
+  slotsForDate,
+} from '@/lib/delivery-slots';
 import { format, getHours } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
-const MAX_ORDERS_PER_SLOT = 5;
 const TIMEZONE = "America/Santiago";
 
 /** Distancia Haversine ×1.3 (mismo cálculo que /api/shipping/calculate). */
@@ -34,17 +41,24 @@ function haversineKm(
 /**
  * Recalcula el costo de envío en servidor. Nunca confía en el valor que
  * envía el navegador.
+ *
+ * Aplica las mismas reglas de `quoteShipping` que usa el checkout para
+ * mostrar el precio (tope por comuna y envío gratis por monto). Antes solo
+ * devolvía la tarifa por distancia, así que el cliente veía "Gratis" o el
+ * tope de $1.500 y se le cobraba la tarifa completa.
  */
 async function calculateServerShippingCost(
   shippingMethod: string,
-  coords: { lat: number; lng: number } | null | undefined
+  coords: { lat: number; lng: number } | null | undefined,
+  subtotal: number,
+  ciudad: string | null | undefined
 ): Promise<{ cost: number } | { error: string }> {
   if (shippingMethod === 'pickup') return { cost: 0 };
 
   if (shippingMethod === 'dynamic') {
     const { data: settings } = await supabaseServer
       .from('settings')
-      .select('enable_dynamic_shipping, shipping_base_fee, shipping_price_per_km, shipping_origin_lat, shipping_origin_lng')
+      .select('enable_dynamic_shipping, shipping_base_fee, shipping_price_per_km, shipping_origin_lat, shipping_origin_lng, free_shipping_enabled, free_shipping_minimum')
       .eq('id', true)
       .maybeSingle();
 
@@ -62,11 +76,21 @@ async function calculateServerShippingCost(
       { lat: Number(settings.shipping_origin_lat), lng: Number(settings.shipping_origin_lng) },
       coords
     );
-    const cost = Number(settings.shipping_base_fee || 0) + distanceKm * Number(settings.shipping_price_per_km || 0);
-    if (!Number.isFinite(cost) || cost < 0) {
+    const rawCost = Number(settings.shipping_base_fee || 0) + distanceKm * Number(settings.shipping_price_per_km || 0);
+    if (!Number.isFinite(rawCost) || rawCost < 0) {
       return { error: 'No se pudo calcular el costo de envío.' };
     }
-    return { cost: Math.round(cost) };
+
+    const quote = quoteShipping({
+      rawPrice: rawCost,
+      subtotal,
+      ciudad,
+      freeShippingMinimum: settings.free_shipping_enabled
+        ? Number(settings.free_shipping_minimum ?? 0) || null
+        : null,
+    });
+
+    return { cost: quote.price };
   }
 
   return { error: 'Método de envío no válido.' };
@@ -113,39 +137,44 @@ export async function POST(request: NextRequest) {
          return NextResponse.json({ error: 'Debe seleccionar una fecha y bloque horario para el envío a domicilio.' }, { status: 400 });
       }
 
-      // 0a: Verify slot hasn't reached maximum capacity dynamically
+      // 0a: El bloque tiene que existir para esa fecha. Fuera del horario de
+      // atención no hay quien despache, así que no se acepta aunque el
+      // navegador lo haya mandado.
+      const slotsDelDia = slotsForDate(deliveryDate);
+      const slot = slotsDelDia.find((s) => s.id === deliveryTimeSlot);
+      if (!slot) {
+        return NextResponse.json({ error: 'El bloque horario seleccionado no está disponible para esa fecha.' }, { status: 400 });
+      }
+
+      // 0b: Verify slot hasn't reached maximum capacity dynamically
       const { data: slotOrders, error: slotErr } = await supabaseServer
         .from('orders')
         .select('shipping_address')
         .neq('status', 'cancelled');
-        
+
       if (!slotErr && slotOrders) {
-        let count = 0;
-        slotOrders.forEach(o => {
+        const count = slotOrders.filter(o => {
           const addr = o.shipping_address as any;
-          if (addr && addr.deliveryDate === deliveryDate && addr.deliveryTimeSlot === deliveryTimeSlot) {
-            count++;
-          }
-        });
-        
+          return addr && addr.deliveryDate === deliveryDate && slotMatches(slot, addr.deliveryTimeSlot);
+        }).length;
+
         if (count >= MAX_ORDERS_PER_SLOT) {
           return NextResponse.json({ error: 'Lo sentimos, este bloque horario acaba de llenarse. Por favor seleccione otro.' }, { status: 400 });
         }
       }
 
-      // 0b: Validate same day logic
+      // 0c: Validate same day logic
       const nowUtc = new Date();
       const nowInChile = toZonedTime(nowUtc, TIMEZONE);
       const currentHour = getHours(nowInChile);
       const todayStr = format(nowInChile, "yyyy-MM-dd");
 
-      if (deliveryDate === todayStr) {
-        if (currentHour >= 13) {
-           return NextResponse.json({ error: 'Ya pasó la hora límite (1 PM) para envíos del mismo día. Seleccione mañana.' }, { status: 400 });
+      if (deliveryDate === todayStr && !sameDaySlotIsAllowed(slot, slotsDelDia, currentHour)) {
+        if (currentHour >= SAME_DAY_CUTOFF_HOUR) {
+          return NextResponse.json({ error: `Ya pasó la hora límite (${SAME_DAY_CUTOFF_HOUR}:00) para envíos del mismo día. Seleccione otra fecha.` }, { status: 400 });
         }
-        if (deliveryTimeSlot !== "18:00-21:00") {
-           return NextResponse.json({ error: 'Para el mismo día solo está disponible el horario de 18:00 a 21:00 hrs.' }, { status: 400 });
-        }
+        const ultimo = slotsDelDia[slotsDelDia.length - 1];
+        return NextResponse.json({ error: `Para el mismo día solo está disponible el horario de ${ultimo.label}.` }, { status: 400 });
       }
     }
 
@@ -185,7 +214,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Recalcular envío, cupón y puntos en servidor (nunca confiar en el cliente)
-    const shippingResult = await calculateServerShippingCost(shippingMethod, shippingInfo?.coords);
+    const shippingResult = await calculateServerShippingCost(
+      shippingMethod,
+      shippingInfo?.coords,
+      calculatedSubtotal,
+      shippingInfo?.city
+    );
     if ('error' in shippingResult) {
       return NextResponse.json({ error: shippingResult.error }, { status: 400 });
     }
