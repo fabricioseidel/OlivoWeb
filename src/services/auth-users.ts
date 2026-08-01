@@ -9,69 +9,28 @@ export type DbUser = {
   role: string | null;
 };
 
+/**
+ * Lee un usuario de `users` por email, con la service_role key para saltarse
+ * RLS. La contraseña vive en `password_hash` (bcrypt); es la columna que
+ * escribe `createUser`.
+ *
+ * El callback `jwt` de NextAuth llama a esto en cada request para re-leer el
+ * rol, así que tiene que ser una sola consulta: la versión anterior sondeaba
+ * el esquema con tres selects encadenados más dos consultas de diagnóstico, y
+ * cada sesión cuyo email ya no estaba en la tabla dejaba un error
+ * `column users.password does not exist` en los logs de Postgres por request.
+ */
 export async function getUserByEmail(email: string): Promise<DbUser | null> {
-  logger.log("[AUTH-SERVICE] Looking up email:", email);
-
-  // First, let's check if there are any users in the table at all
-  const { data: allUsers, error: countError } = await supabaseServer
+  const { data, error } = await supabaseServer
     .from("users")
-    .select("email", { count: 'exact', head: true });
-  logger.log("[AUTH-SERVICE] Total users in table:", { count: allUsers, error: countError?.message });
+    .select("id, email, password_hash, name, role")
+    .eq("email", email)
+    .maybeSingle();
 
-  // Also check recent users to see the actual email format
-  const { data: recentUsers } = await supabaseServer
-    .from("users")
-    .select("email,id")
-    .order("created_at", { ascending: false })
-    .limit(3);
-  logger.log("[AUTH-SERVICE] Recent users:", recentUsers);
-
-  // Try different column combinations to match any schema
-  const queries = [
-    "id,email,password_hash,name,role",
-    "id,email,password,name,role",
-    "*", // Get all columns to see what's available
-  ];
-
-  for (let i = 0; i < queries.length; i++) {
-    const sel = queries[i];
-    if (process.env.NODE_ENV !== 'production') logger.log(`[AUTH-SERVICE] Trying query ${i + 1}:`, sel);
-
-    // Use admin client to bypass RLS
-    const { data, error } = await supabaseServer
-      .from("users")
-      .select(sel)
-      .eq("email", email)
-      .maybeSingle();
-
-    if (process.env.NODE_ENV !== 'production') logger.log(`[AUTH-SERVICE] Query ${i + 1} result:`, {
-      data: data ? Object.keys(data) : null,
-      error: error?.message,
-      fullData: data
-    });
-
-    if (!error && data) {
-      // Normalize the data to our expected format
-      const normalized = {
-        id: (data as any).id,
-        email: (data as any).email,
-        password_hash: (data as any).password_hash || (data as any).password || (data as any).passwordHash,
-        name: (data as any).name,
-        role: (data as any).role
-      };
-
-      if (process.env.NODE_ENV !== 'production') logger.log("[AUTH-SERVICE] Normalized result:", {
-        id: normalized.id,
-        email: normalized.email,
-        hasHash: !!normalized.password_hash,
-        hashLength: normalized.password_hash?.length,
-        role: normalized.role
-      });
-
-      return normalized as DbUser;
-    }
+  if (error) {
+    logger.error("[AUTH-SERVICE] Error al buscar usuario:", error.message);
+    return null;
   }
 
-  logger.log("[AUTH-SERVICE] No user found for email:", email);
-  return null;
+  return (data as DbUser) ?? null;
 }

@@ -200,10 +200,12 @@ export const authOptions: NextAuthOptions = {
         try {
           const existing = await getUserByEmail(email);
           if (existing) {
-            if (!(token as any).uid) {
-              (token as any).uid = existing.id;
-              token.sub = existing.id;
-            }
+            // El id se re-sincroniza siempre, no sólo cuando falta: un token
+            // viejo puede traer un uid que ya no está en `users` (usuario
+            // recreado con otro uuid) y ese id fantasma revienta cualquier
+            // insert con FK contra users, con la sesión pareciendo válida.
+            (token as any).uid = existing.id;
+            token.sub = existing.id;
             // SIEMPRE forzar el rol desde la base de datos
             (token as any).role = existing.role || "USER";
           }

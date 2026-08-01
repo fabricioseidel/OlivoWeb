@@ -14,7 +14,9 @@ export async function GET() {
   try {
     const { data, error } = await supabaseServer
       .from("cash_shifts")
-      .select("id, started_at, opening_amount")
+      // El monto de apertura está en `starting_cash`; `opening_amount` no
+      // existe en la tabla y hacía fallar la consulta entera en cada sondeo.
+      .select("id, started_at, starting_cash")
       .eq("status", "OPEN")
       .order("started_at", { ascending: false })
       .limit(1)
@@ -26,6 +28,7 @@ export async function GET() {
       open: Boolean(data?.id),
       shiftId: data?.id ?? null,
       startedAt: data?.started_at ?? null,
+      startingCash: data?.starting_cash ?? null,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error interno";
