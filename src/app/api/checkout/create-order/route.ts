@@ -14,11 +14,26 @@ import {
   slotMatches,
   slotsForDate,
 } from '@/lib/delivery-slots';
-import { format, getHours } from 'date-fns';
+import {
+  UberDirectError,
+  cotizarEnvio,
+  direccionDestino,
+  uberDirectConfigurado,
+} from '@/lib/uber-direct/client';
+import { EXPRESS_MIN_SUBTOTAL, alcanzaMinimoExpress, quoteExpress } from '@/lib/uber-direct/pricing';
+import { admiteEnvioInmediato } from '@/lib/delivery-slots';
+import { format, getHours, getMinutes } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 const TIMEZONE = "America/Santiago";
+
+/** Datos del envío inmediato que hay que guardar junto a la orden. */
+type ExpressInfo = {
+  quoteId: string;
+  uberFee: number;
+  paidByStore: boolean;
+};
 
 /** Distancia Haversine ×1.3 (mismo cálculo que /api/shipping/calculate). */
 function haversineKm(
@@ -51,9 +66,56 @@ async function calculateServerShippingCost(
   shippingMethod: string,
   coords: { lat: number; lng: number } | null | undefined,
   subtotal: number,
-  ciudad: string | null | undefined
-): Promise<{ cost: number } | { error: string }> {
+  ciudad: string | null | undefined,
+  shippingInfo: any
+): Promise<{ cost: number; express?: ExpressInfo } | { error: string }> {
   if (shippingMethod === 'pickup') return { cost: 0 };
+
+  // Envío inmediato con Uber Direct. La cotización que vio el navegador ya
+  // pudo vencer —duran pocos minutos— así que se pide una nueva y esa es la
+  // que manda.
+  if (shippingMethod === 'express') {
+    if (!uberDirectConfigurado()) {
+      return { error: 'El envío inmediato no está disponible en este momento.' };
+    }
+    if (!alcanzaMinimoExpress(subtotal)) {
+      return { error: `El envío inmediato requiere un pedido de al menos $${EXPRESS_MIN_SUBTOTAL.toLocaleString('es-CL')}.` };
+    }
+
+    const ahora = toZonedTime(new Date(), TIMEZONE);
+    const minutosDelDia = getHours(ahora) * 60 + getMinutes(ahora);
+    if (!admiteEnvioInmediato(format(ahora, 'yyyy-MM-dd'), minutosDelDia)) {
+      return { error: 'El envío inmediato solo está disponible en horario de atención de la tienda.' };
+    }
+
+    try {
+      const destino = direccionDestino({
+        address: shippingInfo?.address,
+        city: shippingInfo?.city,
+        state: shippingInfo?.state,
+        zipCode: shippingInfo?.zipCode,
+        apartment: shippingInfo?.apartment,
+        tower: shippingInfo?.tower,
+      });
+      const quote = await cotizarEnvio({ destino, valorPedido: subtotal });
+      const pricing = quoteExpress({ uberFee: quote.fee, subtotal });
+
+      return {
+        cost: pricing.price,
+        express: {
+          quoteId: quote.id,
+          uberFee: pricing.uberFee,
+          paidByStore: pricing.paidByStore,
+        },
+      };
+    } catch (err) {
+      if (err instanceof UberDirectError && err.esFaltaDeCobertura) {
+        return { error: 'No hay cobertura de envío inmediato para esa dirección. Elige despacho programado o retiro en tienda.' };
+      }
+      console.error('[Uber Direct] Error cotizando al crear la orden:', err);
+      return { error: 'No pudimos cotizar el envío inmediato. Intenta de nuevo o elige otro método.' };
+    }
+  }
 
   if (shippingMethod === 'dynamic') {
     const { data: settings } = await supabaseServer
@@ -218,12 +280,14 @@ export async function POST(request: NextRequest) {
       shippingMethod,
       shippingInfo?.coords,
       calculatedSubtotal,
-      shippingInfo?.city
+      shippingInfo?.city,
+      shippingInfo
     );
     if ('error' in shippingResult) {
       return NextResponse.json({ error: shippingResult.error }, { status: 400 });
     }
     let serverShippingCost = shippingResult.cost;
+    const expressInfo = shippingResult.express ?? null;
 
     let couponDiscount = 0;
     if (couponCode) {
@@ -284,7 +348,12 @@ export async function POST(request: NextRequest) {
         payment_method: paymentMethod,
         payment_status: 'pending',
         coupon_code: couponCode || null,
-        discount_amount: couponDiscount + pointsDiscount
+        discount_amount: couponDiscount + pointsDiscount,
+        // El envío se pide recién cuando el pago está confirmado; acá solo
+        // queda registrado cuánto cobra Uber y quién lo paga, para poder ver
+        // después cuánto se subsidió.
+        express_fee: expressInfo?.uberFee ?? null,
+        express_fee_paid_by: expressInfo ? (expressInfo.paidByStore ? 'store' : 'customer') : null
     };
 
     const { data: order, error: orderError } = await supabaseServer

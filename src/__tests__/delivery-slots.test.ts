@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  CIERRE_EXPRESS_MINUTOS_ANTES,
   SAME_DAY_CUTOFF_HOUR,
+  admiteEnvioInmediato,
   firstSelectableDate,
   openingHoursFor,
   sameDaySlotIsAllowed,
@@ -81,6 +83,35 @@ describe("sameDaySlotIsAllowed", () => {
   it("pasada la hora de corte no admite ninguno", () => {
     const permitidos = slots.filter((s) => sameDaySlotIsAllowed(s, slots, SAME_DAY_CUTOFF_HOUR));
     expect(permitidos).toHaveLength(0);
+  });
+});
+
+describe("admiteEnvioInmediato", () => {
+  const alas = (h: number, m = 0) => h * 60 + m;
+
+  it("acepta dentro del horario de semana", () => {
+    expect(admiteEnvioInmediato(LUNES, alas(8))).toBe(true);
+    expect(admiteEnvioInmediato(LUNES, alas(19))).toBe(true);
+  });
+
+  it("rechaza antes de abrir", () => {
+    expect(admiteEnvioInmediato(LUNES, alas(7, 30))).toBe(false);
+  });
+
+  it("corta antes del cierre para que el repartidor alcance a llegar", () => {
+    // Cierra 20:30; el margen deja el último minuto útil en 20:00.
+    const limite = alas(20, 30) - CIERRE_EXPRESS_MINUTOS_ANTES;
+    expect(admiteEnvioInmediato(LUNES, limite)).toBe(true);
+    expect(admiteEnvioInmediato(LUNES, limite + 1)).toBe(false);
+    expect(admiteEnvioInmediato(LUNES, alas(20, 15))).toBe(false);
+  });
+
+  it("respeta el horario más corto del fin de semana", () => {
+    // Sábado abre 10:00 y cierra 18:00.
+    expect(admiteEnvioInmediato(SABADO, alas(9, 30))).toBe(false);
+    expect(admiteEnvioInmediato(SABADO, alas(11))).toBe(true);
+    expect(admiteEnvioInmediato(SABADO, alas(17, 45))).toBe(false);
+    expect(admiteEnvioInmediato(DOMINGO, alas(12))).toBe(true);
   });
 });
 
