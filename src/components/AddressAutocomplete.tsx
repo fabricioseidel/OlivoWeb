@@ -38,9 +38,8 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
   useEffect(() => {
-    // Google Maps initialization removed for cost reasons.
     return () => {};
-  }, [country]); 
+  }, [country]);
 
   const handleCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -54,9 +53,8 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
       (position) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { latitude, longitude } = position.coords;
-        // Google Geocoder disabled for cost reasons. 
         setIsLocating(false);
-        alert("Geolocalización inversa (Google) desactivada por costos. Por favor busca tu dirección manualmente.");
+        alert("Geolocalización inversa no disponible. Por favor busca tu dirección manualmente.");
       },
       (error) => {
         logger.error("Error getting location", error);

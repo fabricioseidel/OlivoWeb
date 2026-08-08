@@ -1,22 +1,9 @@
-import { randomUUID } from "crypto";
 import { type NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { getUserByEmail } from "@/services/auth-users";
-import { supabaseServer } from "@/lib/supabase-server";
 
 const __dev = process.env.NODE_ENV !== "production";
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const googleProviderEnabled = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
-
-// Solo emails configurados explícitamente vía env pueden elevarse a ADMIN con Google OAuth.
-// Sin GOOGLE_ADMIN_EMAILS definido, nadie se eleva automáticamente.
-const GOOGLE_ADMIN_EMAILS = (process.env.GOOGLE_ADMIN_EMAILS || "")
-  .split(",")
-  .map((email) => email.trim().toLowerCase())
-  .filter(Boolean);
 
 function buildProviders() {
   const providers: any[] = [];
@@ -64,24 +51,6 @@ function buildProviders() {
     })
   );
   
-  if (googleProviderEnabled) {
-    providers.push(
-      Google({
-        clientId: GOOGLE_CLIENT_ID!,
-        clientSecret: GOOGLE_CLIENT_SECRET!,
-        authorization: {
-          params: {
-            prompt: "consent",
-            access_type: "offline",
-            response_type: "code",
-          },
-        },
-      })
-    );
-  } else if (__dev) {
-    console.warn("[AUTH] Google provider disabled: missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET");
-  }
-  
   return providers;
 }
 
@@ -93,84 +62,6 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (!account || account.provider !== "google") {
-        return true;
-      }
-      
-      const email = user?.email?.toLowerCase().trim();
-      if (!email) {
-        if (__dev) console.warn("[AUTH][Google] Sign-in attempt without email");
-        return false;
-      }
-      
-      const displayName =
-        user?.name ||
-        (typeof profile === "object" && profile && "name" in profile && typeof profile.name === "string"
-          ? profile.name
-          : undefined) ||
-        email.split("@")[0];
-      
-      try {
-        const existing = await getUserByEmail(email);
-        if (existing) {
-          (user as any).id = existing.id;
-          const isAdminEmail = GOOGLE_ADMIN_EMAILS.includes(email);
-          const nextRole = isAdminEmail ? "ADMIN" : existing.role ?? "USER";
-          (user as any).role = nextRole;
-          
-          if (existing.role !== nextRole) {
-            await supabaseServer
-              .from("users")
-              .update({ role: nextRole })
-              .eq("id", existing.id);
-          }
-          
-          if (!existing.name && displayName) {
-            await supabaseServer
-              .from("users")
-              .update({ name: displayName })
-              .eq("id", existing.id);
-          }
-          
-          enrichUserWithProfile(user, profile);
-          return true;
-        }
-        
-        const randomSecret = `oauth-google-${randomUUID()}`;
-        const fallbackHash = await bcrypt.hash(randomSecret, 10);
-        const isAdminEmail = GOOGLE_ADMIN_EMAILS.includes(email);
-        const roleToUse = isAdminEmail ? "ADMIN" : "USER";
-        
-        const { data, error } = await supabaseServer
-          .from("users")
-          .insert({
-            email,
-            name: displayName,
-            role: roleToUse,
-            password_hash: fallbackHash,
-          })
-          .select("id, role, name")
-          .maybeSingle();
-        
-        if (error) {
-          throw error;
-        }
-        
-        (user as any).id = data?.id;
-        (user as any).role = data?.role ?? roleToUse;
-        if (data?.name && !user.name) {
-          user.name = data.name;
-        }
-        
-        enrichUserWithProfile(user, profile);
-        return true;
-      } catch (error) {
-        console.error("[AUTH][Google] Failed to sync user with Supabase:", error);
-        return false;
-      }
-    },
-    
     async jwt({ token, user }) {
       // Cuando se crea un nuevo token (en el login)
       if (user) {
@@ -249,25 +140,3 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
-
-function enrichUserWithProfile(user: any, profile: any) {
-  if (!profile || typeof profile !== "object") return;
-  
-  const givenName = profile.given_name || profile.givenName;
-  const familyName = profile.family_name || profile.familyName;
-  
-  if (givenName) {
-    user.firstName = givenName;
-  }
-  if (familyName) {
-    user.lastName = familyName;
-  }
-  if (profile.picture && !user.image) {
-    user.image = profile.picture;
-  }
-  if (profile.addresses && Array.isArray(profile.addresses) && profile.addresses.length > 0) {
-    user.address = profile.addresses[0];
-  } else if (profile.address) {
-    user.address = profile.address;
-  }
-}
