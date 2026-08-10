@@ -6,6 +6,7 @@ import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
 import Button from "@/components/ui/Button";
 import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
+import { compressImageFile } from "@/utils/image";
 import {
   MagnifyingGlassIcon,
   ArrowLeftIcon,
@@ -16,16 +17,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 const DEFAULT_IMAGE = "/file.svg";
-const MAX_SIZE_KB = 10240;
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target?.result as string);
-    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
-    reader.readAsDataURL(file);
-  });
-}
+const MAX_SIZE_KB = 20480;
 
 export default function BulkImageEditorPage() {
   const { products, loading, updateProductsBulk } = useProducts();
@@ -69,10 +61,10 @@ export default function BulkImageEditorPage() {
       return;
     }
     try {
-      const dataUrl = await readFileAsDataUrl(file);
+      const dataUrl = await compressImageFile(file);
       setPending((prev) => ({ ...prev, [id]: dataUrl }));
     } catch {
-      showToast("No se pudo leer la imagen", "error");
+      showToast("No se pudo procesar la imagen", "error");
     }
   };
 
@@ -89,22 +81,41 @@ export default function BulkImageEditorPage() {
     if (ids.length === 0) return;
     setSaving(true);
     setProgress(0);
-    try {
-      const updates: Record<string, { image: string }> = {};
-      for (let i = 0; i < ids.length; i++) {
-        const id = ids[i];
+
+    const updates: Record<string, { image: string }> = {};
+    const failed: string[] = [];
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      try {
         const res = await uploadImageToCloudinaryServerAction(pending[id]);
-        if (!res.ok || !res.url) {
-          throw new Error(res.error || `Falló la subida de ${id}`);
-        }
+        if (!res.ok || !res.url) throw new Error(res.error || "Falló la subida");
         updates[id] = { image: res.url };
-        setProgress(i + 1);
+      } catch (err) {
+        const name = products.find((p) => p.id === id)?.name || id;
+        failed.push(name);
       }
-      await updateProductsBulk(updates as any);
-      showToast(`${ids.length} ${ids.length === 1 ? "imagen actualizada" : "imágenes actualizadas"}`, "success");
-      setPending({});
+      setProgress(i + 1);
+    }
+
+    try {
+      const okIds = Object.keys(updates);
+      if (okIds.length > 0) {
+        await updateProductsBulk(updates as any);
+        setPending((prev) => {
+          const next = { ...prev };
+          for (const id of okIds) delete next[id];
+          return next;
+        });
+      }
+      if (failed.length === 0) {
+        showToast(`${okIds.length} ${okIds.length === 1 ? "imagen actualizada" : "imágenes actualizadas"}`, "success");
+      } else if (okIds.length === 0) {
+        showToast(`No se pudo subir ninguna imagen. Falló: ${failed.slice(0, 3).join(", ")}${failed.length > 3 ? "…" : ""}`, "error");
+      } else {
+        showToast(`${okIds.length} guardadas, ${failed.length} fallaron (${failed.slice(0, 3).join(", ")}${failed.length > 3 ? "…" : ""})`, "warning");
+      }
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Error al guardar imágenes", "error");
+      showToast(err instanceof Error ? err.message : "Error al guardar los cambios", "error");
     } finally {
       setSaving(false);
       setProgress(0);

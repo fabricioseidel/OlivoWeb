@@ -1,3 +1,57 @@
+/**
+ * Redimensiona y comprime una imagen en el navegador antes de enviarla al
+ * servidor. Las fotos tomadas con celular suelen pesar 5-12MB, lo que excede
+ * el límite de payload de las Server Actions (y el límite duro de 4.5MB de
+ * las funciones serverless de Vercel), provocando el error genérico
+ * "An unexpected response was received from the server". Comprimir en el
+ * cliente evita ese error y acelera la subida.
+ */
+export function compressImageFile(
+  file: File,
+  options: { maxDimension?: number; quality?: number; maxOutputBytes?: number } = {}
+): Promise<string> {
+  const { maxDimension = 1600, quality = 0.82, maxOutputBytes = 3 * 1024 * 1024 } = options;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("No se pudo procesar la imagen"));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("No se pudo procesar la imagen"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        let q = quality;
+        let dataUrl = canvas.toDataURL("image/jpeg", q);
+        while (dataUrl.length * 0.75 > maxOutputBytes && q > 0.4) {
+          q -= 0.1;
+          dataUrl = canvas.toDataURL("image/jpeg", q);
+        }
+        resolve(dataUrl);
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export function normalizeImage(src?: string | null) {
   if (!src || typeof src !== "string") return "/file.svg";
   if (src.startsWith("http") || src.startsWith("/")) return src;
