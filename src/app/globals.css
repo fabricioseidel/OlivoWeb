@@ -261,3 +261,150 @@ body {
   background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
   background-size: 24px 24px;
 }
+/* ═══════════════════════════════════════════════════════════════════════
+   SISTEMA DE DISEÑO OLIVO
+   ═══════════════════════════════════════════════════════════════════════
+
+   El sitio venía con 705 usos de `font-black`, 336 de `tracking-widest` y
+   seis escalas de radio distintas conviviendo. Con todo en el peso máximo
+   no hay jerarquía: el ojo no sabe qué mirar primero y el conjunto se lee
+   como una plantilla genérica.
+
+   Reglas de este sistema:
+   1. El peso comunica jerarquía. 400 cuerpo · 500 apoyo · 600 títulos ·
+      700 solo cifras y titulares. `font-black` (900) no se usa.
+   2. Los grises estructuran, el verde de marca solo marca acciones.
+      Si todo es verde, nada destaca.
+   3. Una sola escala de radios y dos niveles de sombra.
+   4. Espaciado en múltiplos de 4px, con un ritmo vertical fijo por sección.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* ── Radios: una sola escala ── */
+  --radius-control: 0.625rem; /* 10px — botones, inputs, chips */
+  --radius-surface: 1rem;     /* 16px — tarjetas y paneles */
+  --radius-modal: 1.25rem;    /* 20px — modales y hojas */
+
+  /* ── Sombras: elevación discreta, no dramática ── */
+  --shadow-raised: 0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.06);
+  --shadow-floating: 0 4px 12px -2px rgb(16 24 40 / 0.08), 0 2px 6px -2px rgb(16 24 40 / 0.04);
+
+  /* ── Ritmo vertical de secciones ── */
+  --space-section: 3rem;
+  --space-section-lg: 4.5rem;
+}
+
+@layer base {
+  /* Tabulares para precios: evita que los montos "bailen" al actualizarse
+     en el carrito, donde los dígitos cambian pero la columna debe quedar fija. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* ── Contenedor y ritmo ──────────────────────────────────────────────
+     Ancho de línea controlado: a más de ~1280px el ojo pierde el renglón. */
+  .o-container {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .o-container { padding-inline: 1.5rem; }
+  }
+  @media (min-width: 1024px) {
+    .o-container { padding-inline: 2rem; }
+  }
+
+  .o-section {
+    padding-block: var(--space-section);
+  }
+  @media (min-width: 768px) {
+    .o-section { padding-block: var(--space-section-lg); }
+  }
+
+  /* ── Escala tipográfica ──────────────────────────────────────────────
+     Cada nivel baja de peso a medida que baja de tamaño; así la jerarquía
+     se sostiene incluso cuando dos niveles quedan uno al lado del otro. */
+  .o-display {
+    font-size: clamp(1.875rem, 1.2rem + 2.4vw, 3rem);
+    line-height: 1.08;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+  .o-h1 {
+    font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2rem);
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .o-h2 {
+    font-size: clamp(1.25rem, 1.05rem + 0.7vw, 1.5rem);
+    line-height: 1.25;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  .o-h3 {
+    font-size: 1.0625rem;
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .o-body {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+  .o-caption {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    font-weight: 400;
+  }
+
+  /* Etiqueta de sección. Reemplaza al patrón
+     `text-[10px] font-black uppercase tracking-widest`, que a ese tamaño
+     resulta ilegible y aparecía sobre casi todos los bloques. */
+  .o-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+    color: color-mix(in srgb, var(--color-primary), black 8%);
+  }
+
+  /* ── Superficies ─────────────────────────────────────────────────────
+     Una tarjeta se define por su borde, no por una sombra pesada. La
+     sombra solo sube al levantarse por interacción. */
+  .o-card {
+    background: #fff;
+    border: 1px solid rgb(229 231 235);
+    border-radius: var(--radius-surface);
+  }
+  .o-card-interactive {
+    transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  }
+  .o-card-interactive:hover {
+    border-color: rgb(209 213 219);
+    box-shadow: var(--shadow-floating);
+  }
+
+  /* ── Foco visible y consistente en todo el sitio ── */
+  .o-focus:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Respeta a quien pidió menos movimiento en su sistema operativo. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

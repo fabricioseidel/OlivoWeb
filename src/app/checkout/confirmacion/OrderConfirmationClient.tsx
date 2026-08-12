@@ -17,6 +17,7 @@ import Button from "@/components/ui/Button";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { whatsappLink } from "@/utils/whatsapp";
+import { useSiteCopy } from "@/hooks/useSiteCopy";
 
 /**
  * Estado real del pedido, derivado de la BD y no del query param.
@@ -33,6 +34,7 @@ const MAX_POLLS = 8; // ~20s: el webhook de MP suele acreditar en pocos segundos
 export default function OrderConfirmationClient() {
   const { clearCart } = useCart();
   const { settings } = useStoreSettings();
+  const { t } = useSiteCopy();
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
   const paymentHint = searchParams.get("payment"); // 'success' | 'failure' | 'pending'
@@ -140,19 +142,19 @@ export default function OrderConfirmationClient() {
     },
     paid: {
       badge: "Pago acreditado",
-      title: "¡Listo! Tu pedido está confirmado",
+      title: t("confirm.paid.title"),
       body: `Recibimos tu pago del pedido #${shortId}. Te enviamos un email con el detalle de la compra.`,
       tone: "success" as const,
     },
     pending: {
       badge: "Pago pendiente",
-      title: "Tu pago aún no se acredita",
+      title: t("confirm.pending.title"),
       body: `El pedido #${shortId} quedó registrado, pero todavía no recibimos la confirmación de pago. Si ya pagaste, se acreditará en unos minutos. Si no alcanzaste a completarlo, puedes retomarlo aquí.`,
       tone: "warning" as const,
     },
     failed: {
       badge: "Pago no completado",
-      title: "No pudimos procesar tu pago",
+      title: t("confirm.failed.title"),
       body: `El pedido #${shortId} quedó registrado pero sin pagar. Puedes reintentar el pago con otro medio o escribirnos y lo resolvemos contigo.`,
       tone: "danger" as const,
     },
@@ -230,7 +232,7 @@ export default function OrderConfirmationClient() {
                   ) : (
                     <>
                       <ArrowPathIcon className="h-4 w-4" />
-                      Reintentar el pago
+                      {t("confirm.retryCta")}
                     </>
                   )}
                 </button>
@@ -291,8 +293,8 @@ export default function OrderConfirmationClient() {
                 <ChatBubbleBottomCenterTextIcon className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-neutral-900">¿Necesitas ayuda con tu pedido?</p>
-                <p className="text-xs text-neutral-500">Te respondemos por WhatsApp en horario de tienda.</p>
+                <p className="text-sm font-semibold text-neutral-900">{t("confirm.supportTitle")}</p>
+                <p className="text-xs text-neutral-500">{t("confirm.supportBody")}</p>
               </div>
             </div>
             {supportPhone && (
