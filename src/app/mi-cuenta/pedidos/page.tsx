@@ -18,6 +18,8 @@ type Pedido = {
   total: number;
   estado: string;
   productos: number;
+  /** Permite ofrecer "Pagar ahora" en pedidos que quedaron sin acreditar. */
+  pagable: boolean;
 };
 
 const STATUS_MAP: Record<string, string> = {
@@ -52,6 +54,8 @@ const getEstadoStyle = (estado: string) => {
 export default function PedidosPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [payingId, setPayingId] = useState<string | null>(null);
+  const [payError, setPayError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -79,6 +83,10 @@ export default function PedidosPage() {
                 total: Number(o.total) || 0,
                 estado: mapStatus((o.status as string) || "pending"),
                 productos: (o.items_count as number) || 0,
+                pagable:
+                  o.payment_method === "mercadopago" &&
+                  o.payment_status !== "paid" &&
+                  !["cancelled", "refunded"].includes(String(o.status || "")),
               }))
             );
           }
@@ -90,6 +98,21 @@ export default function PedidosPage() {
         .finally(() => setIsLoading(false));
     }
   }, [status, router, session]);
+
+  /** Regenera el link de MercadoPago del pedido sin crear uno nuevo. */
+  const handlePagar = async (id: string) => {
+    setPayingId(id);
+    setPayError(null);
+    try {
+      const res = await fetch(`/api/orders/${id}/retry-payment`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.initPoint) throw new Error(data.error || "No se pudo generar el link de pago.");
+      window.location.href = data.initPoint;
+    } catch (err: any) {
+      setPayError(err.message);
+      setPayingId(null);
+    }
+  };
 
   const filteredPedidos = pedidos.filter((p) => {
     const matchEstado = filtroEstado === "Todos" || p.estado === filtroEstado;
@@ -136,6 +159,12 @@ export default function PedidosPage() {
           >
             Reintentar
           </button>
+        </div>
+      )}
+
+      {payError && (
+        <div role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {payError}
         </div>
       )}
 
@@ -201,13 +230,24 @@ export default function PedidosPage() {
                         {pedido.estado}
                       </span>
                     </td>
-                    <td className="px-8 py-5 text-right">
-                      <Link
-                        href={`/mi-cuenta/pedidos/${pedido.id}`}
-                        className="text-xs font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-wider"
-                      >
-                        Ver detalles →
-                      </Link>
+                    <td className="px-8 py-5">
+                      <div className="flex items-center justify-end gap-3">
+                        {pedido.pagable && (
+                          <button
+                            onClick={() => handlePagar(pedido.id)}
+                            disabled={payingId === pedido.id}
+                            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                          >
+                            {payingId === pedido.id ? "Generando…" : "Pagar ahora"}
+                          </button>
+                        )}
+                        <Link
+                          href={`/mi-cuenta/pedidos/${pedido.id}`}
+                          className="text-xs font-semibold text-neutral-500 hover:text-emerald-700"
+                        >
+                          Ver detalles
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -218,27 +258,46 @@ export default function PedidosPage() {
           {/* Cards móvil */}
           <div className="grid grid-cols-1 gap-3 md:hidden mb-6">
             {pedidosPaginados.map((pedido) => (
-              <Link
+              <div
                 key={pedido.id}
-                href={`/mi-cuenta/pedidos/${pedido.id}`}
-                className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 active:scale-[0.98] transition-all"
+                className="rounded-2xl border border-neutral-200 bg-white p-5"
               >
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
-                      Pedido #{pedido.id.substring(0, 8).toUpperCase()}
-                    </p>
-                    <p className="text-xl font-black text-gray-900">${pedido.total.toLocaleString("es-CL")}</p>
+                <Link href={`/mi-cuenta/pedidos/${pedido.id}`} className="block">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="mb-1 text-xs font-medium text-neutral-400">
+                        Pedido #{pedido.id.substring(0, 8).toUpperCase()}
+                      </p>
+                      <p className="text-xl font-bold text-neutral-900">
+                        ${pedido.total.toLocaleString("es-CL")}
+                      </p>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getEstadoStyle(pedido.estado)}`}>
+                      {pedido.estado}
+                    </span>
                   </div>
-                  <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-full ${getEstadoStyle(pedido.estado)}`}>
-                    {pedido.estado}
-                  </span>
+                  <p className="text-xs text-neutral-500">
+                    {pedido.fecha} · {pedido.productos} {pedido.productos === 1 ? "producto" : "productos"}
+                  </p>
+                </Link>
+                <div className="mt-4 flex items-center gap-2">
+                  {pedido.pagable && (
+                    <button
+                      onClick={() => handlePagar(pedido.id)}
+                      disabled={payingId === pedido.id}
+                      className="h-10 flex-1 rounded-xl bg-emerald-600 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-60"
+                    >
+                      {payingId === pedido.id ? "Generando…" : "Pagar ahora"}
+                    </button>
+                  )}
+                  <Link
+                    href={`/mi-cuenta/pedidos/${pedido.id}`}
+                    className="flex h-10 flex-1 items-center justify-center rounded-xl border border-neutral-200 text-sm font-semibold text-neutral-700"
+                  >
+                    Ver detalles
+                  </Link>
                 </div>
-                <div className="flex justify-between items-center text-xs text-gray-400 font-medium">
-                  <span>{pedido.fecha} · {pedido.productos} {pedido.productos === 1 ? "producto" : "productos"}</span>
-                  <span className="text-emerald-600 font-black">VER →</span>
-                </div>
-              </Link>
+              </div>
             ))}
           </div>
 
