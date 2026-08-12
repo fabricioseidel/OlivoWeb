@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
-import { requireApiAuth } from '@/lib/api-auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/config/auth.config';
 import { createPaymentPreference } from '@/server/payments.service';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
@@ -21,8 +22,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { id } = await params;
 
   try {
-    const auth = await requireApiAuth();
-    if (!auth.ok) return auth.response;
+    const session = await getServerSession(authOptions);
+    const sessionUserId = (session?.user as any)?.id || null;
 
     const { allowed, retryAfterSeconds } = rateLimit(`retry-payment:${getClientIp(request)}`, {
       limit: 10,
@@ -35,15 +36,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    // Solo el dueño de la orden puede regenerar su pago.
     const { data: order, error } = await supabaseServer
       .from('orders')
       .select('id, user_id, total, shipping_cost, discount_amount, status, payment_status, payment_method, shipping_address, order_items(name, quantity, price, product_id)')
       .eq('id', id)
-      .eq('user_id', auth.userId)
       .maybeSingle();
 
     if (error || !order) {
+      return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+    }
+
+    // El pedido es del usuario en sesión, o es una compra de invitado
+    // (user_id NULL) y quien llama conoce su UUID —el mismo que recibió en la
+    // URL de confirmación y en su email—. Regenerar el link solo permite PAGAR
+    // el pedido, nunca leer datos personales, así que no se expone nada.
+    const isOwner = sessionUserId && order.user_id === sessionUserId;
+    const isGuestOrder = order.user_id === null;
+    if (!isOwner && !isGuestOrder) {
       return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
     }
 
@@ -76,7 +85,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const customerEmail =
-      (order.shipping_address as any)?.email || auth.session.user?.email || 'anon@olivomarket.cl';
+      (order.shipping_address as any)?.email || session?.user?.email || 'anon@olivomarket.cl';
 
     const mp = await createPaymentPreference({
       orderId: String(order.id),

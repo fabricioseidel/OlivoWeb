@@ -68,7 +68,13 @@ export default function OrderConfirmationClient() {
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
+        // Con sesión, /api/orders/[id] trae el pedido completo. Sin sesión
+        // (compra como invitado) ese endpoint responde 401, así que se cae al
+        // endpoint de estado, que no expone datos personales.
+        let res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
+        if (!res.ok) {
+          res = await fetch(`/api/orders/${orderId}/status`, { cache: "no-store" });
+        }
         if (!res.ok) throw new Error("no-order");
         const data = await res.json();
         if (cancelled) return;
