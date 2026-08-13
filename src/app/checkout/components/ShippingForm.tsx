@@ -153,7 +153,7 @@ export default function ShippingForm({
 
   return (
     <div className="p-6">
-      <h2 className="text-lg font-black text-gray-900 mb-6">Información de Envío</h2>
+      <h2 className="o-h3 mb-5 text-neutral-900">Información de envío</h2>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="sm:col-span-2">
@@ -196,7 +196,7 @@ export default function ShippingForm({
         </div>
 
         <div className="sm:col-span-2">
-          <label htmlFor="address" className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Dirección</label>
+          <label htmlFor="address" className="mb-1.5 block text-sm font-medium text-neutral-700">Dirección</label>
           <AddressAutocomplete
             id="address"
             name="address"
@@ -289,7 +289,7 @@ export default function ShippingForm({
 
       <div className="mt-10">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-black text-gray-900 tracking-tight">Método de Envío</h3>
+          <h3 className="o-h3 text-neutral-900">Método de envío</h3>
           {isCalculating && (
             <div className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full animate-pulse">
               <div className="animate-spin h-3.3 w-3.5 border-2 border-emerald-600 border-t-transparent rounded-full mr-2" />
@@ -300,7 +300,7 @@ export default function ShippingForm({
 
         <div className="space-y-4">
           {(!shippingMethods.find(m => m.id === 'dynamic')) && (
-            <div className="flex items-center justify-between p-5 border-2 border-dashed border-gray-100 rounded-[1.5rem] bg-gray-50/50 opacity-80">
+            <div className="flex items-center justify-between p-5 rounded-xl border border-dashed border-neutral-200 bg-neutral-50">
               <div className="flex items-center">
                 <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mr-4 border border-gray-200">
                   <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -308,12 +308,12 @@ export default function ShippingForm({
                   </svg>
                 </div>
                 <div>
-                  <div className="text-gray-400 font-black uppercase tracking-[0.15em] text-[10px] mb-1">Envío a Domicilio</div>
+                  <div className="mb-0.5 text-sm font-medium text-neutral-500">Envío a domicilio</div>
                   <div className="text-gray-400 text-xs font-bold italic line-clamp-1">Esperando dirección para calcular costo...</div>
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest bg-gray-200/50 px-2 py-1 rounded-lg">Pendiente</span>
+                <span className="rounded-md bg-neutral-200 px-2 py-1 text-xs font-medium text-neutral-600">Pendiente</span>
               </div>
             </div>
           )}
@@ -321,7 +321,7 @@ export default function ShippingForm({
           {shippingMethods.map((method) => {
             const isSelected = selectedMethod === method.id;
             return (
-              <div key={method.id} className={`border-2 rounded-[1.5rem] transition-all duration-300 overflow-hidden ${isSelected ? 'border-emerald-600 bg-emerald-50/30 shadow-lg shadow-emerald-900/5 translate-y-[-2px]' : 'border-gray-50 hover:border-emerald-200 bg-white shadow-sm'}`}>
+              <div key={method.id} className={`overflow-hidden rounded-xl border transition-colors ${isSelected ? 'border-emerald-500 bg-emerald-50/50' : 'border-neutral-200 bg-white hover:border-neutral-300'}`}>
                 <label
                   htmlFor={method.id}
                   className="flex items-center justify-between p-5 cursor-pointer"
@@ -356,8 +356,8 @@ export default function ShippingForm({
                         </div>
                       )}
                       <div>
-                        <p className="text-gray-900 font-black tracking-tight leading-none mb-1">{method.name}</p>
-                        <p className="text-gray-500 text-[11px] font-bold uppercase tracking-widest">{method.days}</p>
+                        <p className="mb-0.5 text-sm font-semibold leading-snug text-neutral-900">{method.name}</p>
+                        <p className="text-xs leading-relaxed text-neutral-500">{method.days}</p>
                       </div>
                     </div>
                   </div>
@@ -369,9 +369,9 @@ export default function ShippingForm({
                       </span>
                     )}
                     {method.price === 0 ? (
-                      <span className="text-emerald-600 font-black text-lg">Gratis</span>
+                      <span className="text-[15px] font-semibold text-emerald-700">Gratis</span>
                     ) : (
-                      <span className="text-gray-900 font-black text-lg">${method.price.toLocaleString('es-CL')}</span>
+                      <span className="tabular text-[15px] font-semibold text-neutral-900">${method.price.toLocaleString('es-CL')}</span>
                     )}
                   </div>
                 </label>
@@ -429,10 +429,10 @@ export default function ShippingForm({
                                            : 'border-gray-200 hover:border-emerald-300 bg-white'
                                       }`}
                                     >
-                                      <p className={`text-xs font-black ${!slot.available ? 'text-gray-400' : isSlotSelected ? 'text-emerald-900' : 'text-gray-700'}`}>
+                                      <p className={`text-sm font-medium ${!slot.available ? 'text-neutral-400' : isSlotSelected ? 'text-emerald-900' : 'text-neutral-700'}`}>
                                         {slot.label}
                                       </p>
-                                      <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">
+                                      <p className="mt-0.5 text-xs text-neutral-500">
                                         {!slot.available ? 'Agotado' : 'Disponible'}
                                       </p>
                                     </button>
@@ -441,12 +441,12 @@ export default function ShippingForm({
                               ) : slotsError ? (
                                 <div role="alert" className="col-span-2 text-center py-4 bg-red-50 rounded-xl border border-red-100">
                                   <p className="text-red-700 text-xs font-bold">No pudimos cargar los horarios de despacho.</p>
-                                  <p className="text-red-500 text-[10px] mt-1">Revisa tu conexión y vuelve a seleccionar la fecha.</p>
+                                  <p className="mt-1 text-xs text-red-600">Revisa tu conexión y vuelve a seleccionar la fecha.</p>
                                 </div>
                               ) : (
                                 <div className="col-span-2 text-center py-4 bg-amber-50 rounded-xl border border-amber-100">
                                   <p className="text-amber-800 text-xs font-bold">No hay horarios disponibles para esta fecha.</p>
-                                  <p className="text-amber-600 text-[10px] mt-1">Intenta seleccionando el día siguiente.</p>
+                                  <p className="mt-1 text-xs text-amber-700">Intenta seleccionando el día siguiente.</p>
                                 </div>
                               )}
                            </div>
@@ -466,7 +466,7 @@ export default function ShippingForm({
                      <div className="flex items-start gap-3">
                         <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         <p className="text-xs font-medium text-blue-900 leading-relaxed">
-                          <strong className="font-black">Importante:</strong> Su pedido estará listo en aproximadamente <strong className="font-black text-blue-700">90 minutos</strong> tras la confirmación del pago. Recibirá un correo electrónico cuando esté listo para retirar.
+                          <strong className="font-semibold">Importante:</strong> Su pedido estará listo en aproximadamente <strong className="font-semibold text-neutral-900">90 minutos</strong> tras la confirmación del pago. Recibirá un correo electrónico cuando esté listo para retirar.
                         </p>
                      </div>
                   </div>

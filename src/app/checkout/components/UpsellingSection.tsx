@@ -50,20 +50,20 @@ export default function UpsellingSection() {
 
   return (
     <div className="mt-8 pt-8 border-t border-gray-100">
-      <h4 className="text-[11px] font-black uppercase tracking-widest text-emerald-600 mb-4 flex items-center gap-2">
-        <SparklesIcon className="h-4 w-4" /> Frecuentemente comprados juntos
+      <h4 className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-900">
+        <SparklesIcon className="size-4 text-neutral-400" /> Se suelen comprar juntos
       </h4>
       <div className="space-y-3">
         {recommendations.map((product) => {
            const price = product.offerPrice || product.price;
            return (
-             <div key={product.id} className="group relative flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:shadow-lg hover:shadow-emerald-900/5 transition-all">
+             <div key={product.id} className="group relative flex items-center gap-3 rounded-xl border border-neutral-200 p-3 transition-colors hover:border-neutral-300">
                 <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-white shadow-sm shrink-0">
-                  <Image src={product.image || "/images/placeholder.jpg"} alt={product.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" sizes="60px" />
+                  <Image src={product.image || "/images/placeholder.jpg"} alt={product.name} fill className="object-cover" sizes="60px" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-gray-900 truncate pr-2">{product.name}</p>
-                  <p className="text-sm font-black text-emerald-600">${price.toLocaleString('es-CL')}</p>
+                  <p className="truncate pr-2 text-sm font-medium text-neutral-900">{product.name}</p>
+                  <p className="tabular text-sm font-semibold text-neutral-900">${price.toLocaleString('es-CL')}</p>
                 </div>
                 <button
                   onClick={() => addToCart({

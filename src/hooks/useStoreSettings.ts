@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { StoreSettings } from "@/app/api/admin/settings/route";
+import { WHATSAPP_PHONE } from "@/config/constants";
 
 // Module-level cache — shared across ALL instances of the hook so the
 // network request fires only once per session (or after settings:updated).
@@ -44,7 +45,7 @@ async function _fetchOnce(): Promise<StoreSettings> {
 const DEFAULT_SETTINGS: StoreSettings = {
   storeName: "OLIVOMARKET",
   storeEmail: "contacto@olivomarket.cl",
-  storePhone: "+56 9 1234 5678",
+  storePhone: WHATSAPP_PHONE,
   currency: "CLP",
   language: "es",
   timezone: "America/Santiago",

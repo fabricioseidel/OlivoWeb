@@ -67,7 +67,8 @@ describe('CheckoutPage Integration', () => {
       </SessionProvider>
     );
 
-    const continueBtn = screen.getByRole('button', { name: /Continuar a Pago/i });
+    // El checkout ofrece el mismo avance en el formulario y en el resumen fijo.
+    const [continueBtn] = screen.getAllByRole('button', { name: /Continuar al pago/i });
     fireEvent.click(continueBtn);
 
     expect(window.alert).toHaveBeenCalledWith(
@@ -90,13 +91,13 @@ describe('CheckoutPage Integration', () => {
     fireEvent.change(screen.getByLabelText(/Ciudad/i), { target: { value: 'Santiago' } });
 
     // Go to step 2
-    fireEvent.click(screen.getByRole('button', { name: /Continuar a Pago/i }));
+    fireEvent.click(screen.getAllByRole('button', { name: /Continuar al pago/i })[0]);
 
     // Step 2: confirmación de ruta + método de pago + botón de finalizar
     await waitFor(() => {
-      expect(screen.getByText(/Confirmar Ruta/i)).toBeInTheDocument();
+      expect(screen.getByText(/Revisa tu entrega/i)).toBeInTheDocument();
     });
     expect(screen.getAllByText(/MercadoPago/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /Finalizar por/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Pagar \$/i })).toBeInTheDocument();
   });
 });
