@@ -129,33 +129,33 @@ export default function PedidosPage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500" />
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="size-10 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="o-container o-section max-w-5xl">
       <Link
         href="/mi-cuenta"
-        className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-emerald-600 mb-8 transition-colors"
+        className="o-focus group mb-6 inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-emerald-700"
       >
-        <ArrowLeftIcon className="w-4 h-4 mr-2" />
-        Volver a Mi Cuenta
+        <ArrowLeftIcon className="size-4 transition-transform group-hover:-translate-x-0.5" />
+        Volver a mi cuenta
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Mis Pedidos</h1>
-        <p className="text-gray-500 font-medium">Revisa el estado y el historial de todas tus compras.</p>
+        <h1 className="o-h1 mb-1 text-neutral-900">Mis pedidos</h1>
+        <p className="o-body text-neutral-500">Revisa el estado y el historial de tus compras.</p>
       </div>
 
       {loadError && (
-        <div role="alert" className="mb-6 bg-red-50 border border-red-100 text-red-700 px-5 py-4 rounded-2xl text-sm font-bold flex items-center justify-between gap-4">
+        <div role="alert" className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <span>{loadError}</span>
           <button
             onClick={() => window.location.reload()}
-            className="shrink-0 px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-black uppercase tracking-wide hover:bg-red-700 transition-colors"
+            className="o-focus shrink-0 rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-700"
           >
             Reintentar
           </button>
@@ -169,16 +169,16 @@ export default function PedidosPage() {
       )}
 
       {/* Filtros */}
-      <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-6 mb-6">
+      <div className="o-card mb-6 p-5">
         {/* Barra de búsqueda */}
         <div className="relative mb-5">
-          <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <MagnifyingGlassIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-neutral-400" />
           <input
             type="text"
             placeholder="Buscar por número de pedido o fecha…"
             value={busqueda}
             onChange={(e) => { setBusqueda(e.target.value); setPaginaActual(1); }}
-            className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+            className="h-11 w-full rounded-xl border border-neutral-200 pl-11 pr-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-emerald-500"
           />
         </div>
 
@@ -188,10 +188,10 @@ export default function PedidosPage() {
             <button
               key={f}
               onClick={() => { setFiltroEstado(f); setPaginaActual(1); }}
-              className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 ${
+              className={`o-focus rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 filtroEstado === f
-                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  ? "bg-emerald-600 text-white"
+                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
               }`}
             >
               {f}
@@ -204,29 +204,29 @@ export default function PedidosPage() {
       {filteredPedidos.length > 0 ? (
         <>
           {/* Tabla desktop */}
-          <div className="hidden md:block bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden mb-6">
+          <div className="o-card mb-6 hidden overflow-hidden md:block">
             <table className="min-w-full">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Pedido</th>
-                  <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Fecha</th>
-                  <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Total</th>
-                  <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Estado</th>
-                  <th className="px-8 py-5 text-right text-[10px] font-black text-emerald-600 uppercase tracking-[0.15em]">Acciones</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500">Pedido</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500">Fecha</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500">Total</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500">Estado</th>
+                  <th className="px-6 py-3.5 text-right text-xs font-medium text-neutral-500">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {pedidosPaginados.map((pedido) => (
                   <tr key={pedido.id} className="hover:bg-emerald-50/30 transition-colors group">
                     <td className="px-8 py-5">
-                      <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                      <span className="rounded-md bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-700">
                         #{pedido.id.substring(0, 8).toUpperCase()}
                       </span>
                     </td>
                     <td className="px-8 py-5 text-sm font-medium text-gray-500">{pedido.fecha}</td>
-                    <td className="px-8 py-5 text-sm font-black text-gray-900">${pedido.total.toLocaleString("es-CL")}</td>
+                    <td className="tabular px-6 py-4 text-sm font-semibold text-neutral-900">${pedido.total.toLocaleString("es-CL")}</td>
                     <td className="px-8 py-5">
-                      <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-full ${getEstadoStyle(pedido.estado)}`}>
+                      <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${getEstadoStyle(pedido.estado)}`}>
                         {pedido.estado}
                       </span>
                     </td>
@@ -311,7 +311,7 @@ export default function PedidosPage() {
               >
                 <ChevronLeftIcon className="w-5 h-5" />
               </button>
-              <span className="px-5 py-2.5 bg-white rounded-2xl border border-gray-100 shadow-sm text-sm font-black text-gray-700">
+              <span className="tabular rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700">
                 {paginaActual} / {totalPaginas}
               </span>
               <button
@@ -325,11 +325,11 @@ export default function PedidosPage() {
           )}
         </>
       ) : (
-        <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 py-20 px-6 text-center">
+        <div className="o-card px-6 py-16 text-center">
           <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-gray-100">
             <ShoppingBagIcon className="w-10 h-10 text-gray-200" />
           </div>
-          <h3 className="text-2xl font-black text-gray-900 mb-2">
+          <h3 className="o-h2 mb-2 text-neutral-900">
             {busqueda || filtroEstado !== "Todos" ? "Sin resultados" : "Aún no hay pedidos"}
           </h3>
           <p className="text-gray-400 font-medium mb-8 max-w-xs mx-auto">
@@ -341,14 +341,14 @@ export default function PedidosPage() {
             {(busqueda || filtroEstado !== "Todos") && (
               <button
                 onClick={() => { setBusqueda(""); setFiltroEstado("Todos"); }}
-                className="px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-black text-sm uppercase tracking-wider hover:bg-gray-200 active:scale-95 transition-all"
+                className="o-focus h-11 rounded-xl border border-neutral-200 px-5 text-sm font-semibold text-neutral-700 transition-colors hover:border-neutral-300"
               >
                 Limpiar filtros
               </button>
             )}
             <Link
               href="/productos"
-              className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 active:scale-95 transition-all"
+              className="o-focus inline-flex h-11 items-center rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
             >
               Ir a la tienda
             </Link>

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeftIcon, CheckCircleIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
-const labelClass = "block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2";
+const labelClass = "mb-1.5 block text-sm font-medium text-neutral-700";
 
 function PasswordInput({
   name,
@@ -121,11 +121,11 @@ export default function CambiarContrasenaPage() {
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Cambiar Contraseña</h1>
+        <h1 className="o-h1 mb-1 text-neutral-900">Cambiar contraseña</h1>
         <p className="text-gray-500 font-medium">Elige una contraseña segura con al menos 8 caracteres.</p>
       </div>
 
-      <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-8">
+      <div className="o-card p-6">
         {success && (
           <div className="flex items-center gap-3 mb-6 px-5 py-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
             <CheckCircleIcon className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -173,7 +173,7 @@ export default function CambiarContrasenaPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="o-focus inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
               {isSubmitting ? "Actualizando…" : "Cambiar contraseña"}
