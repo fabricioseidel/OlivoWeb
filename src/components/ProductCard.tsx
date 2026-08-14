@@ -149,7 +149,12 @@ function ProductCard({ product }: Props) {
           </h3>
         </Link>
 
-        <div className="mt-auto flex items-end justify-between gap-3">
+        {/* En la grilla de 2 columnas del móvil la tarjeta mide ~135px de
+            contenido, y el selector de cantidad (dos botones + contador) ocupa
+            casi todo eso. Puestos en la misma fila que el precio, se salían de
+            la tarjeta al agregar un producto. Por eso el precio va arriba y los
+            controles debajo, y solo se ponen en fila cuando hay ancho. */}
+        <div className="mt-auto flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
           <div className="min-w-0">
             {hasDiscount && (
               <span className="tabular block text-xs text-neutral-400 line-through">
@@ -162,7 +167,7 @@ function ProductCard({ product }: Props) {
           </div>
 
           {quantityInCart > 0 ? (
-            <div className="flex shrink-0 items-center gap-1 rounded-xl border border-neutral-200 p-1">
+            <div className="flex w-full shrink-0 items-center justify-between gap-1 rounded-xl border border-neutral-200 p-1 sm:w-auto sm:justify-start">
               <button
                 onClick={handleRemoveOne}
                 aria-label={quantityInCart === 1 ? `Quitar ${product.name} del carrito` : `Quitar una unidad de ${product.name}`}
@@ -187,7 +192,7 @@ function ProductCard({ product }: Props) {
               onClick={handleAddOne}
               disabled={isAdding || outOfStock}
               aria-label={outOfStock ? `${product.name} sin stock` : `Agregar ${product.name} al carrito`}
-              className={`o-focus flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+              className={`o-focus flex h-10 w-full shrink-0 items-center justify-center rounded-xl transition-colors sm:w-10 ${
                 outOfStock
                   ? 'cursor-not-allowed bg-neutral-100 text-neutral-300'
                   : 'bg-emerald-600 text-white hover:bg-emerald-700'

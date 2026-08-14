@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { useGoogleAuthAvailable } from "@/hooks/useGoogleAuthAvailable";
 
 function mapNextAuthError(code?: string) {
   switch (code) {
@@ -46,9 +47,7 @@ function LoginForm() {
     [oauthErr]
   );
 
-  const googleEnabled =
-    process.env.NEXT_PUBLIC_AUTH_GOOGLE === "1" ||
-    !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const googleEnabled = useGoogleAuthAvailable();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -172,6 +171,9 @@ function LoginForm() {
             </Button>
           </form>
 
+          {/* El separador se muestra solo si hay algo debajo: con Google
+              desactivado quedaba un "o continúa con" seguido de nada. */}
+          {googleEnabled && (
           <div className="mt-8">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -182,7 +184,7 @@ function LoginForm() {
               </div>
             </div>
 
-            {googleEnabled && (
+            {(
               <div className="mt-6">
                 <Button
                   type="button"
@@ -202,6 +204,7 @@ function LoginForm() {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>

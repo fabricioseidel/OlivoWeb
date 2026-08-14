@@ -16,7 +16,7 @@ import {
 import Button from "@/components/ui/Button";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
-import { whatsappLink } from "@/utils/whatsapp";
+import { whatsappLink, orderInquiryMessage } from "@/utils/whatsapp";
 import { useSiteCopy } from "@/hooks/useSiteCopy";
 
 /**
@@ -305,7 +305,7 @@ export default function OrderConfirmationClient() {
             </div>
             {supportPhone && (
               <a
-                href={whatsappLink(supportPhone, `Hola! Tengo una consulta sobre mi pedido #${shortId}`)}
+                href={whatsappLink(supportPhone, orderInquiryMessage({ shortId, total: order?.total, status: copy.badge }))}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex h-11 shrink-0 items-center rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white transition hover:bg-emerald-700"
