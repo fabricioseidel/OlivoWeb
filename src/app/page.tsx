@@ -3,6 +3,7 @@ import JsonLd from "@/components/seo/JsonLd";
 import { groceryStoreSchema } from "@/lib/seo/schema";
 import { BUSINESS } from "@/lib/seo/business";
 import HomeClient from "./HomeClient";
+import { getStoreSettingsServer } from "@/server/settings.server";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BUSINESS.url),
@@ -21,14 +22,24 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
+// La portada depende de la configuración guardada, así que no puede ser
+// estática; se revalida cada minuto, igual que el cache de /api/settings.
+export const revalidate = 60;
+
+export default async function Home() {
   // Único bloque GroceryStore de esta página (el otro vive en /tienda-nunoa)
   const images = BUSINESS.facadePhoto ? [BUSINESS.facadePhoto] : [];
+
+  // Los bloques se leen en el servidor para que el HTML inicial ya traiga el
+  // hero configurado. Si se dejan al hook de cliente, la portada muestra
+  // primero el hero por defecto y lo reemplaza al llegar la configuración.
+  const settings = await getStoreSettingsServer();
+  const initialBlocks = settings?.appearance?.blocks ?? null;
 
   return (
     <>
       <JsonLd data={groceryStoreSchema(images)} />
-      <HomeClient />
+      <HomeClient initialBlocks={initialBlocks} />
     </>
   );
 }
