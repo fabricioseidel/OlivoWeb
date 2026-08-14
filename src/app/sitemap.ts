@@ -35,6 +35,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/bienvenidos`, priority: 0.5, changeFrequency: 'monthly', lastModified: now },
   ];
 
+  // Categorías: cada una es una página propia con su metadata, así que vale
+  // la pena declararlas. Se incluyen SOLO las que tienen productos activos:
+  // enviar categorías vacías al buscador es contenido pobre y resta más de lo
+  // que suma.
+  let categoryPages: MetadataRoute.Sitemap = [];
+
   let productPages: MetadataRoute.Sitemap = [];
   try {
     const { data: products } = await supabaseServer
@@ -55,5 +61,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Si la BD no está disponible, devolver al menos las páginas estáticas
   }
 
-  return [...staticPages, ...productPages];
+  try {
+    const { data: rows } = await supabaseServer
+      .from('products')
+      .select('category')
+      .eq('is_active', true)
+      .not('category', 'is', null)
+      .limit(2000);
+
+    // `category` guarda las categorías separadas por coma.
+    const slugs = new Set<string>();
+    for (const row of rows || []) {
+      for (const name of String(row.category).split(',')) {
+        const slug = slugify(name.trim());
+        if (slug) slugs.add(slug);
+      }
+    }
+
+    categoryPages = [...slugs].map((slug) => ({
+      url: `${base}/categorias/${slug}`,
+      priority: 0.7,
+      changeFrequency: 'weekly' as const,
+      lastModified: now,
+    }));
+  } catch {
+    // Sin BD, el sitemap igual sale con lo estático
+  }
+
+  return [...staticPages, ...categoryPages, ...productPages];
 }

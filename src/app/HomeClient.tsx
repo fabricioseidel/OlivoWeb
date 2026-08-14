@@ -23,7 +23,7 @@ import {
   Zap,
 } from "lucide-react";
 
-export default function HomeClient() {
+export default function HomeClient({ initialBlocks = null }: { initialBlocks?: PageBlock[] | null }) {
   const { products, loading: productsLoading } = useProducts();
   const { categories, loading: categoriesLoading } = useCategories();
   const { settings: storeSettings } = useStoreSettings();
@@ -34,11 +34,17 @@ export default function HomeClient() {
   const ranked = [...featured, ...rest];
   const offerProducts = visible.filter(p => p.offerPrice && p.offerPrice < p.price);
 
-  // Bloques del Constructor Visual (admin → Laboratorio). Fallback al layout
-  // por defecto si aún no hay bloques guardados o falló el fetch.
+  // Bloques del Constructor Visual (admin → Laboratorio).
+  // Prioridad: los que llegaron del servidor (evitan el cambio de contenido en
+  // la primera carga) → los del hook una vez cargado → el layout por defecto.
   const savedBlocks = storeSettings?.appearance?.blocks;
-  const blocks = (savedBlocks && savedBlocks.length > 0 ? savedBlocks : DEFAULT_BLOCKS)
-    .filter(b => b.enabled);
+  const effectiveBlocks =
+    savedBlocks && savedBlocks.length > 0
+      ? savedBlocks
+      : initialBlocks && initialBlocks.length > 0
+      ? initialBlocks
+      : DEFAULT_BLOCKS;
+  const blocks = effectiveBlocks.filter(b => b.enabled);
 
   // "Más productos" continúa donde terminó el bloque "Más vendidos"
   const topCount = blocks.find(b => b.type === "products")?.itemsToShow ?? 10;
