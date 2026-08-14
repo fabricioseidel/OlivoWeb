@@ -345,9 +345,11 @@ function CategoriesBlock({
           {loading
             ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-28 bg-gray-100 animate-pulse rounded-2xl" />)
             : [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).slice(0, 6).map(cat => (
-                <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}>
-                  <CategoryCard category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null }} />
-                </Link>
+                <CategoryCard
+                  key={cat.id}
+                  href={`/productos?categoria=${cat.slug || cat.id}`}
+                  category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null }}
+                />
               ))
           }
         </div>
