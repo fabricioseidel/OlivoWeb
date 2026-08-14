@@ -26,6 +26,44 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ updates: [] }, { status: 500 });
     }
 
+    /**
+     * Stock real de la sucursal que despacha.
+     *
+     * `products.stock` es un consolidado que puede quedar desfasado del stock
+     * por sucursal: se han visto productos con 4 en products.stock y 2 en
+     * branch_stock. La creación del pedido descuenta de branch_stock vía
+     * decrement_stock_atomic, así que validar contra products.stock dejaba
+     * pasar carritos que después el checkout rechazaba con "Stock
+     * insuficiente" — sin forma de que el cliente supiera cuál era el máximo.
+     *
+     * Se valida contra la misma fuente que descuenta. Si no hay fila en
+     * branch_stock para ese producto, se cae a products.stock (mismo criterio
+     * que la RPC).
+     */
+    const { data: defaultBranch } = await supabaseServer
+      .from("branches")
+      .select("id")
+      .eq("is_default", true)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    const branchStock = new Map<string, number>();
+    if (defaultBranch?.id) {
+      const { data: rows } = await supabaseServer
+        .from("branch_stock")
+        .select("product_barcode, stock")
+        .eq("branch_id", defaultBranch.id)
+        .in("product_barcode", itemIds);
+      for (const r of rows || []) {
+        branchStock.set(String(r.product_barcode), Number(r.stock) || 0);
+      }
+    }
+
+    const stockFor = (barcode: string, fallback: number) => {
+      const b = branchStock.get(String(barcode));
+      return typeof b === "number" ? b : fallback;
+    };
+
     console.log("[OLIVO:api:validate] 🗄️ Productos encontrados en DB:", dbProducts?.length, dbProducts?.map((p: any) => `${p.barcode}:stock=${p.stock},precio=$${p.sale_price},activo=${p.is_active}`));
 
     const updates: any[] = [];
@@ -46,11 +84,12 @@ export async function POST(req: NextRequest) {
       let needsUpdate = false;
       const updatePayload: any = { id: item.id };
 
-      // Validar Stock
-      if (dbProduct.stock < item.quantity) {
+      // Validar Stock contra la sucursal que despacha
+      const disponible = stockFor(dbProduct.barcode, Number(dbProduct.stock) || 0);
+      if (disponible < item.quantity) {
         needsUpdate = true;
         updatePayload.insufficientStock = true;
-        updatePayload.availableQty = dbProduct.stock;
+        updatePayload.availableQty = disponible;
       }
 
       // Validar Precio

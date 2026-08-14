@@ -20,8 +20,18 @@ export const TOPE_POR_COMUNA: Partial<Record<ComunaSlug, number>> = {
   macul: 1500,
 };
 
-/** Comunas aledañas: las que acceden al envío gratis por monto. */
+/** Comunas aledañas: las que publicamos como zona de reparto. */
 export const COMUNAS_CON_DESPACHO: ComunaSlug[] = BUSINESS.comunas.map((c) => c.slug);
+
+/**
+ * Radio de reparto por defecto, en kilómetros.
+ *
+ * Es el respaldo cuando la configuración de la tienda no trae un radio propio
+ * (`settings.shipping_max_distance_km`, editable desde el admin). 8 km cubre
+ * las cinco comunas que publicamos midiendo desde el local, con la distancia
+ * ya ajustada por el factor de calles (×1.3) del cálculo Haversine.
+ */
+export const RADIO_DESPACHO_KM_DEFAULT = 8;
 
 /**
  * Ventana de entrega del despacho propio.
@@ -71,15 +81,37 @@ export type ShippingQuote = {
   capApplied: boolean;
   /** Comuna detectada, si se pudo determinar. */
   comuna: ComunaSlug | null;
+  /**
+   * Por qué NO se aplicó el envío gratis pese a alcanzar el monto.
+   *
+   * `fuera-de-rango` es el único motivo real: la dirección quedó más lejos que
+   * el radio de reparto. Los dos motivos de comuna solo aparecen cuando no hay
+   * distancia calculada, que es el caso degradado.
+   */
+  freeBlockedReason:
+    | "fuera-de-rango"
+    | "comuna-desconocida"
+    | "comuna-sin-cobertura"
+    | null;
+  /** Distancia usada para decidir, si se conocía. */
+  distanceKm: number | null;
 };
 
 /**
  * Calcula el costo de despacho aplicando, en orden:
- *  1. Envío gratis si el subtotal alcanza el mínimo y la comuna tiene cobertura.
+ *  1. Envío gratis si el subtotal alcanza el mínimo y la dirección está dentro
+ *     del radio de reparto.
  *  2. Tope por comuna (Ñuñoa y Macul).
  *
- * Si no se puede determinar la comuna, se cobra la tarifa por distancia sin
- * tope: es el comportamiento conservador, nunca cobra de menos por error.
+ * El criterio del envío gratis es la DISTANCIA, no el nombre de la comuna.
+ * Antes exigía que el buscador de direcciones devolviera exactamente "Ñuñoa",
+ * "Macul", etc.; cuando devolvía "Santiago" o "Región Metropolitana" —cosa
+ * frecuente— el cliente alcanzaba el mínimo y de todas formas se le cobraba el
+ * despacho. La distancia ya la calculamos nosotros con Haversine, sin depender
+ * de ningún servicio externo ni de cómo venga escrito el texto de la dirección.
+ *
+ * El nombre de la comuna sigue usándose para el tope por comuna y como
+ * respaldo cuando no hay coordenadas.
  */
 export function quoteShipping(params: {
   /** Costo calculado por distancia: tarifa base + km × valor por km. */
@@ -90,27 +122,67 @@ export function quoteShipping(params: {
   ciudad?: string | null;
   /** Monto mínimo de compra para envío gratis. `null` desactiva la regla. */
   freeShippingMinimum: number | null;
+  /**
+   * Distancia al destino en km. Cuando viene, manda ella. Si no viene, se cae
+   * al criterio antiguo por nombre de comuna.
+   */
+  distanceKm?: number | null;
+  /** Radio de reparto configurado por el admin. */
+  maxDistanceKm?: number | null;
 }): ShippingQuote {
   const { rawPrice, subtotal, ciudad, freeShippingMinimum } = params;
   const comuna = comunaToSlug(ciudad);
   const base = Math.max(0, Math.round(rawPrice));
 
-  // 1. Envío gratis por monto, solo en comunas con cobertura
-  const aplicaGratis =
-    freeShippingMinimum !== null &&
-    subtotal >= freeShippingMinimum &&
-    comuna !== null &&
-    COMUNAS_CON_DESPACHO.includes(comuna);
+  const distanceKm =
+    typeof params.distanceKm === "number" && Number.isFinite(params.distanceKm)
+      ? params.distanceKm
+      : null;
+  const radio =
+    typeof params.maxDistanceKm === "number" &&
+    Number.isFinite(params.maxDistanceKm) &&
+    params.maxDistanceKm > 0
+      ? params.maxDistanceKm
+      : RADIO_DESPACHO_KM_DEFAULT;
 
-  if (aplicaGratis) {
-    return { price: 0, rawPrice: base, freeApplied: true, capApplied: false, comuna };
+  const alcanzoElMonto = freeShippingMinimum !== null && subtotal >= freeShippingMinimum;
+
+  // ¿La dirección está dentro de la zona de reparto? Con distancia conocida es
+  // una comparación directa; sin ella se usa el nombre de la comuna.
+  const dentroDeZona =
+    distanceKm !== null
+      ? distanceKm <= radio
+      : comuna !== null && COMUNAS_CON_DESPACHO.includes(comuna);
+
+  // 1. Envío gratis por monto, dentro de la zona de reparto
+  if (alcanzoElMonto && dentroDeZona) {
+    return {
+      price: 0, rawPrice: base, freeApplied: true, capApplied: false,
+      comuna, freeBlockedReason: null, distanceKm,
+    };
   }
+
+  // Si alcanzó el monto pero no se aplicó, se registra el motivo para poder
+  // explicárselo al cliente en vez de cobrarle sin más.
+  const freeBlockedReason = !alcanzoElMonto
+    ? null
+    : distanceKm !== null
+      ? ("fuera-de-rango" as const)
+      : comuna === null
+        ? ("comuna-desconocida" as const)
+        : ("comuna-sin-cobertura" as const);
 
   // 2. Tope por comuna
   const tope = comuna ? TOPE_POR_COMUNA[comuna] : undefined;
   if (typeof tope === "number" && base > tope) {
-    return { price: tope, rawPrice: base, freeApplied: false, capApplied: true, comuna };
+    return {
+      price: tope, rawPrice: base, freeApplied: false, capApplied: true,
+      comuna, freeBlockedReason, distanceKm,
+    };
   }
 
-  return { price: base, rawPrice: base, freeApplied: false, capApplied: false, comuna };
+  return {
+    price: base, rawPrice: base, freeApplied: false, capApplied: false,
+    comuna, freeBlockedReason, distanceKm,
+  };
 }

@@ -185,9 +185,18 @@ export default function CartPage() {
             {showFreeShippingMeter && (
               <div className="mb-6 rounded-xl bg-emerald-50 p-4">
                 {reachedFreeShipping ? (
-                  <p className="text-sm font-medium text-emerald-800">
-                    Tienes envío gratis en este pedido.
-                  </p>
+                  <>
+                    <p className="text-sm font-medium text-emerald-800">
+                      Alcanzaste el monto para envío gratis.
+                    </p>
+                    {/* En el carrito todavía no hay dirección, y el envío gratis
+                        depende de que el despacho quede dentro de la zona de
+                        reparto. Prometerlo sin condiciones acá deja al checkout
+                        desdiciéndose solo. */}
+                    <p className="mt-1 text-xs text-emerald-700">
+                      Se aplica al pagar si tu dirección está dentro de nuestra zona de reparto.
+                    </p>
+                  </>
                 ) : (
                   <>
                     <div className="mb-2 flex items-baseline justify-between gap-2">

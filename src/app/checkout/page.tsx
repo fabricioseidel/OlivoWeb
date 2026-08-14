@@ -49,6 +49,9 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(1);
   const [fieldErrors, setFieldErrors] = useState<ShippingFieldErrors>({});
   const [dynamicShipping, setDynamicShipping] = useState<ShippingMethod | null>(null);
+  // Distancia real al destino. El envío gratis se decide con esto, no con el
+  // nombre de la comuna que devuelva el buscador de direcciones.
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState("pickup");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("mercadopago");
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
@@ -98,12 +101,14 @@ export default function CheckoutPage() {
       rawPrice: dynamicShipping.price,
       subtotal,
       ciudad: shippingInfo.city,
+      distanceKm,
+      maxDistanceKm: storeSettings?.shipping?.shippingMaxDistanceKm ?? null,
       freeShippingMinimum:
         storeSettings?.shipping?.freeShippingEnabled
           ? Number(storeSettings.shipping.freeShippingMinimum ?? 0) || null
           : null,
     });
-  }, [dynamicShipping, subtotal, shippingInfo.city, storeSettings]);
+  }, [dynamicShipping, subtotal, shippingInfo.city, distanceKm, storeSettings]);
 
   const shippingMethods = useMemo(() => {
     const list = [...baseShippingMethods];
@@ -166,6 +171,7 @@ export default function CheckoutPage() {
           );
           
           if (!isNaN(cost)) {
+            setDistanceKm(dist);
             setDynamicShipping({
               id: "dynamic",
               name: `Envío a domicilio (${dist.toFixed(1)} km)`,
@@ -177,6 +183,7 @@ export default function CheckoutPage() {
         } else {
           console.error("Distance calculation failed:", result.error);
           alert(`⚠️ No pudimos calcular el costo de envío: ${result.error || 'Verifica tu dirección'}. Por favor, selecciona una dirección sugerida por el buscador.`);
+          setDistanceKm(null);
           setDynamicShipping(null);
         }
       } catch (err: any) { 
@@ -583,10 +590,27 @@ export default function CheckoutPage() {
                       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                         <p className="text-sm font-semibold text-emerald-900">Tu envío es gratis</p>
                         <p className="mt-1 text-sm text-emerald-800">
-                          Tu compra supera el mínimo para despacho gratis en tu comuna.
+                          Tu compra supera el mínimo y tu dirección está dentro de nuestra zona de reparto.
                         </p>
                       </div>
                     )}
+                    {/* Si alcanzó el mínimo pero igual se cobra el despacho,
+                        se explica el motivo. Antes solo aparecía el cobro. */}
+                    {selectedShippingMethod === 'dynamic' && quote?.freeBlockedReason && (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                        <p className="text-sm font-semibold text-amber-900">
+                          Tu compra alcanza el monto de envío gratis, pero no pudimos aplicarlo
+                        </p>
+                        <p className="mt-1 text-sm text-amber-800">
+                          {quote.freeBlockedReason === 'fuera-de-rango'
+                            ? `Tu dirección queda a ${quote.distanceKm?.toFixed(1)} km del local, fuera de nuestra zona de reparto con envío gratis. Igual te llevamos el pedido cobrando el despacho, o puedes retirarlo en tienda sin costo.`
+                            : quote.freeBlockedReason === 'comuna-desconocida'
+                              ? 'No logramos identificar tu comuna a partir de la dirección. Elige una dirección sugerida por el buscador que incluya la comuna, o escríbenos y lo ajustamos.'
+                              : 'El envío gratis aplica en las comunas donde hacemos despacho propio. Escríbenos y vemos cómo ayudarte.'}
+                        </p>
+                      </div>
+                    )}
+
                     {selectedShippingMethod === 'dynamic' && quote?.capApplied && (
                       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                         <p className="text-sm font-semibold text-emerald-900">Tarifa preferente</p>
