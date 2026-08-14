@@ -4,6 +4,7 @@ import { supabaseServer } from "@/lib/supabase-server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { mapSettingsRow, FALLBACK_SETTINGS } from "@/lib/settings-shared";
+import { RADIO_DESPACHO_KM_DEFAULT } from "@/lib/shipping-policy";
 
 // Tipos movidos a @/lib/settings-shared (re-export para los imports existentes)
 export type { StoreSettings, PageBlock } from "@/lib/settings-shared";
@@ -91,6 +92,12 @@ export async function PATCH(req: Request) {
       shipping_price_per_km: body.shipping?.shippingPricePerKm ?? 0,
       shipping_origin_lat: body.shipping?.shippingOriginLat ?? null,
       shipping_origin_lng: body.shipping?.shippingOriginLng ?? null,
+      // La columna es NOT NULL: un radio vacío o 0 desactivaría el reparto
+      // entero sin que nadie lo pidiera, así que cae al valor por defecto.
+      shipping_max_distance_km:
+        Number(body.shipping?.shippingMaxDistanceKm) > 0
+          ? Number(body.shipping.shippingMaxDistanceKm)
+          : RADIO_DESPACHO_KM_DEFAULT,
       is_high_demand: body.shipping?.isHighDemand ?? false,
       payment_methods: body.paymentMethods ?? {},
       payment_test_mode: body.paymentTestMode ?? true,

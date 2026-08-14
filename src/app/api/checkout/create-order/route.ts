@@ -58,7 +58,7 @@ async function calculateServerShippingCost(
   if (shippingMethod === 'dynamic') {
     const { data: settings } = await supabaseServer
       .from('settings')
-      .select('enable_dynamic_shipping, shipping_base_fee, shipping_price_per_km, shipping_origin_lat, shipping_origin_lng, free_shipping_enabled, free_shipping_minimum')
+      .select('enable_dynamic_shipping, shipping_base_fee, shipping_price_per_km, shipping_origin_lat, shipping_origin_lng, shipping_max_distance_km, free_shipping_enabled, free_shipping_minimum')
       .eq('id', true)
       .maybeSingle();
 
@@ -85,6 +85,10 @@ async function calculateServerShippingCost(
       rawPrice: rawCost,
       subtotal,
       ciudad,
+      // La misma distancia que se acaba de calcular: el envío gratis se decide
+      // por cercanía, no por cómo venga escrito el nombre de la comuna.
+      distanceKm,
+      maxDistanceKm: Number(settings.shipping_max_distance_km) || null,
       freeShippingMinimum: settings.free_shipping_enabled
         ? Number(settings.free_shipping_minimum ?? 0) || null
         : null,

@@ -83,6 +83,83 @@ describe('quoteShipping — envío gratis por monto', () => {
   });
 });
 
+describe('quoteShipping — envío gratis por distancia', () => {
+  // El caso que motivó el cambio: el buscador de direcciones devuelve
+  // "Santiago" o "Región Metropolitana" en vez de la comuna, y antes eso
+  // bastaba para cobrarle el despacho a un pedido de $80.000.
+  it('aplica el gratis aunque la comuna no se reconozca, si está en rango', () => {
+    const q = quoteShipping({
+      rawPrice: 4000, subtotal: 80000, ciudad: 'Santiago',
+      distanceKm: 3.2, freeShippingMinimum: MIN,
+    });
+    expect(q.price).toBe(0);
+    expect(q.freeApplied).toBe(true);
+    expect(q.freeBlockedReason).toBeNull();
+  });
+
+  it('aplica el gratis sin ciudad alguna, si está en rango', () => {
+    const q = quoteShipping({
+      rawPrice: 4000, subtotal: 40000, ciudad: null,
+      distanceKm: 5, freeShippingMinimum: MIN,
+    });
+    expect(q.freeApplied).toBe(true);
+  });
+
+  it('no lo aplica fuera del radio, aunque la comuna sea de cobertura', () => {
+    const q = quoteShipping({
+      rawPrice: 6000, subtotal: 80000, ciudad: 'Peñalolén',
+      distanceKm: 14, freeShippingMinimum: MIN,
+    });
+    expect(q.price).toBe(6000);
+    expect(q.freeApplied).toBe(false);
+    expect(q.freeBlockedReason).toBe('fuera-de-rango');
+  });
+
+  it('respeta el radio configurado por el admin', () => {
+    const lejos = {
+      rawPrice: 5000, subtotal: 40000, ciudad: 'Santiago',
+      distanceKm: 12, freeShippingMinimum: MIN,
+    };
+    expect(quoteShipping(lejos).freeApplied).toBe(false);
+    expect(quoteShipping({ ...lejos, maxDistanceKm: 20 }).freeApplied).toBe(true);
+  });
+
+  it('un radio inválido cae al valor por defecto en vez de anular el reparto', () => {
+    const q = quoteShipping({
+      rawPrice: 4000, subtotal: 40000, ciudad: 'Santiago',
+      distanceKm: 4, maxDistanceKm: 0, freeShippingMinimum: MIN,
+    });
+    expect(q.freeApplied).toBe(true);
+  });
+
+  it('el borde exacto del radio cuenta como dentro', () => {
+    const q = quoteShipping({
+      rawPrice: 4000, subtotal: 40000, ciudad: null,
+      distanceKm: 8, maxDistanceKm: 8, freeShippingMinimum: MIN,
+    });
+    expect(q.freeApplied).toBe(true);
+  });
+
+  it('sigue aplicando el tope por comuna cuando el gratis no corresponde', () => {
+    const q = quoteShipping({
+      rawPrice: 3000, subtotal: 10000, ciudad: 'Ñuñoa',
+      distanceKm: 2, freeShippingMinimum: MIN,
+    });
+    expect(q.price).toBe(1500);
+    expect(q.capApplied).toBe(true);
+    expect(q.distanceKm).toBe(2);
+  });
+
+  it('una distancia no numérica cae al criterio por comuna', () => {
+    const q = quoteShipping({
+      rawPrice: 4000, subtotal: 40000, ciudad: 'Macul',
+      distanceKm: NaN, freeShippingMinimum: MIN,
+    });
+    expect(q.freeApplied).toBe(true);
+    expect(q.distanceKm).toBeNull();
+  });
+});
+
 describe('quoteShipping — casos límite', () => {
   it('sin comuna detectada cobra la tarifa completa (conservador)', () => {
     const q = quoteShipping({ rawPrice: 5000, subtotal: 40000, ciudad: null, freeShippingMinimum: MIN });

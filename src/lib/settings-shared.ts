@@ -4,6 +4,7 @@
 
 import { DEFAULT_BLOCKS, type PageBlock } from "@/lib/page-blocks";
 import type { SiteCopy } from "@/lib/site-copy";
+import { RADIO_DESPACHO_KM_DEFAULT } from "@/lib/shipping-policy";
 
 export type { PageBlock };
 
@@ -53,6 +54,12 @@ export type StoreSettings = {
     shippingPricePerKm?: number;
     shippingOriginLat?: number;
     shippingOriginLng?: number;
+    /**
+     * Radio de reparto propio, en km. Define hasta dónde repartimos y hasta
+     * dónde aplica el envío gratis por monto. Antes ese límite era el nombre
+     * de la comuna, que depende de cómo escriba la dirección el buscador.
+     */
+    shippingMaxDistanceKm?: number;
 
     // Alta Demanda
     isHighDemand?: boolean;
@@ -142,6 +149,7 @@ export const FALLBACK_SETTINGS: StoreSettings = {
     shippingPricePerKm: 250,
     shippingOriginLat: -33.4312,
     shippingOriginLng: -70.6166,
+    shippingMaxDistanceKm: RADIO_DESPACHO_KM_DEFAULT,
     isHighDemand: false,
   },
   paymentMethods: {
@@ -199,6 +207,10 @@ export function mapSettingsRow(data: Record<string, any>): StoreSettings {
       shippingPricePerKm: data.shipping_price_per_km,
       shippingOriginLat: data.shipping_origin_lat,
       shippingOriginLng: data.shipping_origin_lng,
+      shippingMaxDistanceKm:
+        Number(data.shipping_max_distance_km) > 0
+          ? Number(data.shipping_max_distance_km)
+          : RADIO_DESPACHO_KM_DEFAULT,
       isHighDemand: data.is_high_demand ?? false,
     },
     paymentMethods: data.payment_methods || {},

@@ -72,6 +72,16 @@ export default function ShippingSection({ settings, handleChange }: ShippingSect
                 prefix="$"
                 hint="Costo adicional por cada KM de distancia"
               />
+              <InputField
+                label="Radio de reparto"
+                type="number"
+                value={settings.shipping?.shippingMaxDistanceKm ?? 8}
+                onChange={(val) =>
+                  handleChange(["shipping", "shippingMaxDistanceKm"], Number(val))
+                }
+                suffix="km"
+                hint="Hasta esta distancia aplica el envío gratis por monto. Más lejos igual despachamos, pero cobrando la tarifa por distancia."
+              />
             </div>
 
             <div className="pt-4 border-t border-emerald-200">
