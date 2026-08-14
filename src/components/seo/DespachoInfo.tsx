@@ -41,7 +41,7 @@ export default async function DespachoInfo({ comuna }: { comuna?: ComunaSlug }) 
         {filas.map((f) => (
           <div key={f.label} className="flex justify-between gap-4">
             <dt className="text-emerald-900 font-medium">{f.label}</dt>
-            <dd className={`text-emerald-900 ${f.destacado ? "font-black" : "font-bold"}`}>
+            <dd className={`text-emerald-900 ${f.destacado ? "font-semibold" : "font-bold"}`}>
               {f.value}
             </dd>
           </div>

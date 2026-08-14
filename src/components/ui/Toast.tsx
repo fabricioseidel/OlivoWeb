@@ -62,12 +62,12 @@ const Toast = ({ type = "info", message, show, onClose, duration = 4000 }: Toast
       leaveFrom="opacity-100 scale-100"
       leaveTo="opacity-0 scale-95"
     >
-      <div className={`pointer-events-auto overflow-hidden rounded-full bg-slate-900/80 backdrop-blur-lg shadow-2xl ring-1 ring-white/10 transition-all border ${config.border.replace('bg-', 'border-').replace('50', '500/20')}`}>
+      <div className={`pointer-events-auto overflow-hidden rounded-full bg-slate-900/90 backdrop-blur-lg shadow-lg ring-1 ring-white/10 transition-all border ${config.border.replace('bg-', 'border-').replace('50', '500/20')}`}>
         <div className="px-4 py-2 flex items-center gap-2.5">
           <div className={`flex-shrink-0`}>
             <Icon className={`h-3.5 w-3.5 ${config.color}`} />
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.1em] text-white whitespace-nowrap">
+          <p className="whitespace-nowrap text-sm font-medium text-white">
             {message}
           </p>
           <button onClick={onClose} className="ml-1 p-0.5 rounded-full text-white/30 hover:text-white transition-colors">

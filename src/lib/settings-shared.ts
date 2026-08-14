@@ -3,6 +3,7 @@
 // y /api/settings (lectura pública para la tienda).
 
 import { DEFAULT_BLOCKS, type PageBlock } from "@/lib/page-blocks";
+import type { SiteCopy } from "@/lib/site-copy";
 
 export type { PageBlock };
 
@@ -76,6 +77,9 @@ export type StoreSettings = {
   orderCancellationEnabled?: boolean;
   customerSignupWelcomeEnabled?: boolean;
   marketingEmailsEnabled?: boolean;
+
+  /** Overrides de textos del front editables desde el admin. */
+  siteCopy?: SiteCopy;
 
   // Redes Sociales
   socialMedia?: {
@@ -206,6 +210,7 @@ export function mapSettingsRow(data: Record<string, any>): StoreSettings {
     orderCancellationEnabled: data.order_cancellation_enabled,
     customerSignupWelcomeEnabled: data.customer_signup_welcome_enabled,
     marketingEmailsEnabled: data.marketing_emails_enabled,
+    siteCopy: data.site_copy || {},
     socialMedia: data.social_media || {},
     seoTitle: data.seo_title,
     seoDescription: data.seo_description,

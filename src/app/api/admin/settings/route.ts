@@ -101,6 +101,7 @@ export async function PATCH(req: Request) {
       order_cancellation_enabled: body.orderCancellationEnabled ?? true,
       customer_signup_welcome_enabled: body.customerSignupWelcomeEnabled ?? true,
       marketing_emails_enabled: body.marketingEmailsEnabled ?? false,
+      site_copy: body.siteCopy ?? {},
       social_media: body.socialMedia ?? {},
       seo_title: body.seoTitle ?? null,
       seo_description: body.seoDescription ?? null,

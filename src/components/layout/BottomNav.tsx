@@ -41,15 +41,17 @@ export default function BottomNav() {
                                 }`}
                         >
                             <div className="relative">
-                                <Icon className={`h-5 w-5 ${active ? "animate-bounce" : ""}`} strokeWidth={active ? 2.5 : 2} />
+                                {/* El icono activo rebotaba en bucle con animate-bounce.
+                                    El grosor de trazo ya distingue el estado. */}
+                                <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
                                 {/* Cart badge */}
                                 {item.href === "/carrito" && itemCount > 0 && (
-                                    <span className="absolute -top-2 -right-3 bg-emerald-600 text-white text-[10px] font-black rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white shadow-lg animate-pulse">
+                                    <span className="absolute -right-3 -top-2 flex size-5 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white ring-2 ring-white">
                                         {itemCount > 9 ? "9+" : itemCount}
                                     </span>
                                 )}
                             </div>
-                            <span className={`text-[10px] font-medium ${active ? "font-semibold" : ""}`}>
+                            <span className={`text-xs ${active ? "font-semibold" : "font-medium"}`}>
                                 {item.label}
                             </span>
                             {/* Active indicator dot */}

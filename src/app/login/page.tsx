@@ -96,21 +96,21 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-4xl font-black text-gray-900 tracking-tight">
+          <h2 className="o-h1 mt-6 text-center text-neutral-900">
             Iniciar Sesión
           </h2>
           <p className="mt-2 text-center text-sm text-gray-500 font-medium">
             ¿No tienes una cuenta?{" "}
             <Link
               href="/registro"
-              className="font-black text-emerald-600 hover:text-emerald-500 transition-colors"
+              className="o-focus rounded font-semibold text-emerald-700 transition-colors hover:text-emerald-800"
             >
               Regístrate aquí
             </Link>
           </p>
         </div>
 
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100">
+        <div className="o-card p-6 sm:p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {(error || oauthErr) && (
               <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-2xl text-sm font-bold animate-shake">
@@ -167,7 +167,7 @@ function LoginForm() {
               </div>
             </div>
 
-            <Button type="submit" fullWidth disabled={loading} className="h-14 rounded-2xl text-lg font-black shadow-lg shadow-emerald-500/20 translate-y-0 active:translate-y-1 transition-all">
+            <Button type="submit" fullWidth disabled={loading} className="h-12 text-base">
               {loading ? "Iniciando sesión..." : "Entrar a mi cuenta"}
             </Button>
           </form>
@@ -178,7 +178,7 @@ function LoginForm() {
                 <div className="w-full border-t border-gray-100" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="px-4 bg-white text-gray-400 font-black uppercase tracking-widest">O continúa con</span>
+                <span className="bg-white px-4 text-sm text-neutral-500">o continúa con</span>
               </div>
             </div>
 
@@ -189,7 +189,7 @@ function LoginForm() {
                   fullWidth
                   variant="outline"
                   onClick={handleGoogleSignIn}
-                  className="h-14 rounded-2xl border-2 font-black hover:bg-gray-50 transition-all gap-3 flex items-center justify-center text-gray-700"
+                  className="flex h-12 items-center justify-center gap-3 rounded-xl border border-neutral-200 font-semibold text-neutral-700 transition-colors hover:bg-neutral-50"
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -212,7 +212,7 @@ export default function LoginPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center flex-col gap-4">
       <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-emerald-500"></div>
-      <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Cargando acceso...</p>
+      <p className="text-sm text-neutral-500">Cargando…</p>
     </div>}>
       <LoginForm />
     </Suspense>

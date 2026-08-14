@@ -152,7 +152,7 @@ export default function Navbar() {
             >
               <ShoppingBag className="h-6 w-6" strokeWidth={2} />
               {itemCount > 0 && (
-                <span className={`absolute -top-1 -right-1 bg-emerald-600 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white ${animateCart ? 'scale-125' : ''}`}>
+                <span className={`absolute -top-1 -right-1 bg-emerald-600 text-white text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white ${animateCart ? 'scale-125' : ''}`}>
                   {itemCount}
                 </span>
               )}
@@ -188,7 +188,7 @@ export default function Navbar() {
             <Link href="/carrito" className={`relative p-2 rounded-xl text-gray-400 hover:text-emerald-600 ${animateCart ? 'scale-110 text-emerald-600' : ''}`}>
               <ShoppingBag className="h-5 w-5" strokeWidth={2} />
               {itemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-emerald-600 text-white text-[9px] font-bold rounded-full h-4 w-4 flex items-center justify-center ring-1.5 ring-white">
+                <span className="absolute -top-0.5 -right-0.5 bg-emerald-600 text-white text-xs font-semibold rounded-full h-4.5 w-4.5 flex items-center justify-center ring-2 ring-white">
                   {itemCount}
                 </span>
               )}

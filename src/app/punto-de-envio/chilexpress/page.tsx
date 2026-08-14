@@ -93,7 +93,7 @@ export default function ChilexpressPage() {
       <main className="max-w-4xl mx-auto px-4 py-10">
         <Breadcrumbs items={BREADCRUMBS} />
 
-        <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
+        <h1 className="o-display text-neutral-900">
           Chilexpress en Ñuñoa: envío y retiro de encomiendas
         </h1>
 
@@ -114,7 +114,7 @@ export default function ChilexpressPage() {
         </p>
 
         <section className="mt-8 space-y-4">
-          <h2 className="text-2xl font-black text-gray-900">Cómo despachar tu envío</h2>
+          <h2 className="o-h2 text-neutral-900">Cómo despachar tu envío</h2>
           <ol className="space-y-3 text-gray-700 list-decimal list-inside leading-relaxed">
             <li>
               Genera el envío en la app o el sitio de Chilexpress, indicando origen y destino, y paga
@@ -130,12 +130,12 @@ export default function ChilexpressPage() {
         </section>
 
         <section className="mt-10 space-y-4">
-          <h2 className="text-2xl font-black text-gray-900">Servicios disponibles</h2>
+          <h2 className="o-h2 text-neutral-900">Servicios disponibles</h2>
           <ServiciosCourier slug="chilexpress" />
         </section>
 
         <section className="mt-10 space-y-3">
-          <h2 className="text-2xl font-black text-gray-900">Qué tienes que llevar</h2>
+          <h2 className="o-h2 text-neutral-900">Qué tienes que llevar</h2>
           <ul className="space-y-2 text-gray-700">
             <li>Paquete cerrado y embalado, con la etiqueta Chilexpress ya impresa y adherida.</li>
             <li>Número de seguimiento del envío (en el teléfono basta).</li>
@@ -144,7 +144,7 @@ export default function ChilexpressPage() {
         </section>
 
         <section className="mt-10 space-y-3">
-          <h2 className="text-2xl font-black text-gray-900">Horario de colecta</h2>
+          <h2 className="o-h2 text-neutral-900">Horario de colecta</h2>
           <ColectaBlock />
           <p className="text-gray-700 leading-relaxed">
             A diferencia de los otros couriers, la atención Chilexpress en el local es solo de lunes a

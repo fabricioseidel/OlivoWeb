@@ -123,7 +123,7 @@ export default function HomeClient() {
       <section className="py-10 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <Link href="/productos"
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base px-10 h-14 rounded-xl transition-colors shadow-lg shadow-emerald-600/20">
+            className="o-focus inline-flex h-12 items-center gap-2 rounded-xl bg-emerald-600 px-8 text-base font-semibold text-white transition-colors hover:bg-emerald-700">
             Ver todos los productos <ChevronRight className="w-5 h-5" />
           </Link>
         </div>
@@ -175,10 +175,10 @@ function HeroBlock({
         <div className="max-w-7xl mx-auto px-4 py-8 md:py-10 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 items-center">
           {/* Left: text + search */}
           <div className="text-white">
-            <p className="text-emerald-300 font-bold text-xs uppercase tracking-widest mb-2">
-              🌿 {block.subtitle || "Productos venezolanos premium"}
+            <p className="mb-2 text-sm font-medium text-emerald-300">
+              {block.subtitle || "Productos venezolanos"}
             </p>
-            <h1 className="text-3xl md:text-5xl font-black leading-tight mb-2 tracking-tight">
+            <h1 className="o-display mb-2 text-white">
               {title}
             </h1>
             <p className="text-emerald-100/70 text-sm md:text-base mb-5 max-w-md">
@@ -197,7 +197,7 @@ function HeroBlock({
               </div>
               <button
                 type="submit"
-                className="h-12 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-colors"
+                className="o-focus h-12 shrink-0 rounded-xl bg-emerald-500 px-6 text-sm font-semibold text-white transition-colors hover:bg-emerald-400"
               >
                 Buscar
               </button>
@@ -214,7 +214,7 @@ function HeroBlock({
             {/* Punto de envíos: couriers, horario y dirección en texto plano.
                 Es el contenido que respalda el schema y las búsquedas locales. */}
             <div className="mt-6 pt-5 border-t border-white/10 space-y-3">
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
+              <p className="text-sm font-semibold text-emerald-300">
                 También somos punto de envíos en Ñuñoa
               </p>
               <ul className="flex flex-wrap gap-2">
@@ -247,21 +247,21 @@ function HeroBlock({
           {/* Right: promo cards */}
           <div className="hidden lg:grid grid-cols-2 gap-3">
             <Link href="/ofertas" className="col-span-2 bg-amber-400/20 border border-amber-400/30 rounded-2xl p-5 text-center hover:bg-amber-400/30 transition-colors">
-              <p className="text-amber-300 text-xs font-black uppercase tracking-widest mb-1">Ofertas especiales</p>
-              <p className="text-white text-4xl font-black">40% OFF</p>
+              <p className="mb-1 text-sm font-medium text-amber-200">Ofertas especiales</p>
+              <p className="text-2xl font-bold text-white">Ver descuentos</p>
               <p className="text-amber-200/70 text-xs mt-1">en productos seleccionados</p>
             </Link>
             <div className="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3">
               <Truck className="w-8 h-8 text-emerald-400 shrink-0" />
               <div>
-                <p className="text-white font-black text-sm leading-tight">Envío rápido</p>
+                <p className="text-sm font-semibold leading-snug text-white">Envío rápido</p>
                 <p className="text-emerald-300/70 text-xs">Llega en 24-48h</p>
               </div>
             </div>
             <div className="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3">
               <BadgeCheck className="w-8 h-8 text-emerald-400 shrink-0" />
               <div>
-                <p className="text-white font-black text-sm leading-tight">100% garantizado</p>
+                <p className="text-sm font-semibold leading-snug text-white">Compra protegida</p>
                 <p className="text-emerald-300/70 text-xs">Calidad asegurada</p>
               </div>
             </div>
@@ -300,7 +300,7 @@ function FeaturesBlock() {
         ].map(({ icon: Icon, text }) => (
           <div key={text} className="flex items-center gap-2 px-4 sm:px-8">
             <Icon className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-[11px] font-bold text-emerald-100/70 uppercase tracking-wider whitespace-nowrap">{text}</span>
+            <span className="whitespace-nowrap text-sm text-emerald-100/80">{text}</span>
           </div>
         ))}
       </div>
@@ -313,14 +313,14 @@ function BannerBlock({ block }: { block: PageBlock }) {
     <section className="py-4 px-4 max-w-7xl mx-auto">
       <Link href={block.buttonLink || "/ofertas"} className="block rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 p-6 md:p-8 relative overflow-hidden hover:opacity-95 transition-opacity">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-orange-600/40 to-transparent" />
-        <p className="text-white/80 text-xs font-black uppercase tracking-widest mb-1">Tiempo limitado</p>
-        <p className="text-white text-2xl md:text-4xl font-black leading-tight">
+        
+        <p className="o-h1 text-white">
           {block.title || "Descuentos hasta 40% OFF"}
         </p>
         {block.description && (
           <p className="text-white/70 text-sm mt-2">{block.description}</p>
         )}
-        <span className="inline-flex items-center gap-1 mt-4 bg-white text-orange-600 font-black text-sm px-5 h-9 rounded-lg">
+        <span className="mt-4 inline-flex h-10 items-center gap-1 rounded-lg bg-white px-5 text-sm font-semibold text-orange-700">
           {block.buttonText || "Ver ofertas"} <ChevronRight className="w-4 h-4" />
         </span>
       </Link>
@@ -345,15 +345,17 @@ function CategoriesBlock({
           {loading
             ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-28 bg-gray-100 animate-pulse rounded-2xl" />)
             : [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).slice(0, 6).map(cat => (
-                <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}>
-                  <CategoryCard category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null }} />
-                </Link>
+                <CategoryCard
+                  key={cat.id}
+                  href={`/productos?categoria=${cat.slug || cat.id}`}
+                  category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null }}
+                />
               ))
           }
         </div>
         {categories.length > 6 && (
           <div className="text-center mt-4">
-            <Link href="/categorias" className="inline-flex items-center gap-1 text-sm font-bold text-emerald-600 hover:text-emerald-700">
+            <Link href="/categorias" className="o-focus inline-flex items-center gap-1 rounded text-sm font-medium text-emerald-700 hover:text-emerald-800">
               Ver todas las categorías <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -370,9 +372,9 @@ function SectionHeader({ title, icon, href }: { title: string; icon: React.React
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-2">
         {icon}
-        <h2 className="text-xl font-black text-gray-900">{title}</h2>
+        <h2 className="o-h2 text-neutral-900">{title}</h2>
       </div>
-      <Link href={href} className="text-sm font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+      <Link href={href} className="o-focus flex items-center gap-1 rounded text-sm font-medium text-emerald-700 hover:text-emerald-800">
         Ver todos <ChevronRight className="w-4 h-4" />
       </Link>
     </div>

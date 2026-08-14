@@ -51,7 +51,7 @@ export default function DeliverySanJoaquinPage() {
       <main className="max-w-3xl mx-auto px-4 py-10">
         <Breadcrumbs items={BREADCRUMBS} />
 
-        <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
+        <h1 className="o-display text-neutral-900">
           Delivery de productos venezolanos en San Joaquín
         </h1>
 
@@ -77,7 +77,7 @@ export default function DeliverySanJoaquinPage() {
         </p>
 
         <section className="mt-8 space-y-4">
-          <h2 className="text-2xl font-black text-gray-900">Costo y tiempo de despacho</h2>
+          <h2 className="o-h2 text-neutral-900">Costo y tiempo de despacho</h2>
           <DespachoInfo comuna="san-joaquin" />
           <p className="text-gray-700 leading-relaxed">
             En San Joaquín el costo se calcula por los kilómetros recorridos desde el local, y como la
@@ -89,7 +89,7 @@ export default function DeliverySanJoaquinPage() {
         </section>
 
         <section className="mt-8 space-y-3">
-          <h2 className="text-2xl font-black text-gray-900">Cómo pedir</h2>
+          <h2 className="o-h2 text-neutral-900">Cómo pedir</h2>
           <p className="text-gray-700 leading-relaxed">
             Arma el pedido desde el catálogo online y elige despacho a domicilio, o consúltanos por
             WhatsApp si buscas un producto específico y quieres saber si está disponible.

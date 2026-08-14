@@ -4,6 +4,7 @@ import { CreditCardIcon } from "@heroicons/react/24/outline";
 import type { StoreSettings } from "@/app/api/admin/settings/route";
 import type { HandleChange } from "../lib";
 import { CheckBoxField } from "./fields";
+import MercadoPagoDiagnostics from "./MercadoPagoDiagnostics";
 
 interface PaymentSectionProps {
   settings: StoreSettings;
@@ -68,6 +69,8 @@ export default function PaymentSection({ settings, handleChange }: PaymentSectio
           </p>
         </div>
       </div>
+
+      <MercadoPagoDiagnostics />
     </div>
   );
 }

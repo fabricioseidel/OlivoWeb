@@ -98,7 +98,7 @@ function ProductsContent() {
       <section className="bg-emerald-950 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 py-7 md:py-9 relative z-10">
-          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-1">
+          <h1 className="o-display text-neutral-900">
             {activeCategoryName || "Nuestro Catálogo"}
           </h1>
           <p className="text-emerald-100/60 text-sm font-medium">
@@ -180,7 +180,7 @@ export default function ProductsPage() {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-72 bg-gray-100 animate-pulse rounded-[2rem]" />
+              <div key={i} className="h-72 bg-gray-100 animate-pulse rounded-2xl" />
             ))}
           </div>
         </div>

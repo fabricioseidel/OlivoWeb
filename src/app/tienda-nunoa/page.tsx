@@ -65,7 +65,7 @@ export default function TiendaNunoaPage() {
       <main className="max-w-4xl mx-auto px-4 py-10">
         <Breadcrumbs items={BREADCRUMBS} />
 
-        <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
+        <h1 className="o-display text-neutral-900">
           Tienda Olivo Market en Ñuñoa
         </h1>
 
@@ -96,7 +96,7 @@ export default function TiendaNunoaPage() {
         </div>
 
         <section className="mt-10 space-y-4">
-          <h2 className="text-2xl font-black text-gray-900">Cómo llegar</h2>
+          <h2 className="o-h2 text-neutral-900">Cómo llegar</h2>
           <p className="text-gray-700 leading-relaxed">
             La entrada del local da directamente a Av. José Pedro Alessandri. Si vienes en transporte
             público, cualquier recorrido que circule por esa avenida te deja a pocos metros. Si vienes
@@ -109,17 +109,17 @@ export default function TiendaNunoaPage() {
 
         <section className="mt-10 grid gap-8 md:grid-cols-2">
           <div className="space-y-3">
-            <h2 className="text-xl font-black text-gray-900">Datos de contacto</h2>
+            <h2 className="o-h3 text-neutral-900">Datos de contacto</h2>
             <NapBlock />
           </div>
           <div className="space-y-3">
-            <h2 className="text-xl font-black text-gray-900">Horarios</h2>
+            <h2 className="o-h3 text-neutral-900">Horarios</h2>
             <HorariosBlock />
           </div>
         </section>
 
         <section className="mt-10 space-y-4">
-          <h2 className="text-2xl font-black text-gray-900">Qué encuentras en el local</h2>
+          <h2 className="o-h2 text-neutral-900">Qué encuentras en el local</h2>
           <ul className="grid gap-2 sm:grid-cols-2 text-gray-700">
             <li>Harina PAN y harinas de maíz precocida</li>
             <li>Quesos y charcutería venezolana</li>

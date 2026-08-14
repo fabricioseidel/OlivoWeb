@@ -13,6 +13,7 @@ import PaymentSection from "./components/PaymentSection";
 import EmailSection from "./components/EmailSection";
 import SocialSection from "./components/SocialSection";
 import SeoSection from "./components/SeoSection";
+import ContentSection from "./components/ContentSection";
 import PolicySection from "./components/PolicySection";
 import SaveActions from "./components/SaveActions";
 
@@ -170,6 +171,10 @@ export default function SettingsPage() {
               )}
 
               {/* SEO */}
+              {activeTab === "content" && (
+                <ContentSection settings={settings} handleChange={handleChange} />
+              )}
+
               {activeTab === "seo" && (
                 <SeoSection settings={settings} handleChange={handleChange} />
               )}

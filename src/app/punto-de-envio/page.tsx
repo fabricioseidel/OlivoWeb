@@ -89,7 +89,7 @@ export default function PuntoDeEnvioPage() {
       <main className="max-w-4xl mx-auto px-4 py-10">
         <Breadcrumbs items={BREADCRUMBS} />
 
-        <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
+        <h1 className="o-display text-neutral-900">
           Punto de envío y retiro de encomiendas en Ñuñoa
         </h1>
 
@@ -117,17 +117,17 @@ export default function PuntoDeEnvioPage() {
         </p>
 
         <section className="mt-10 space-y-4">
-          <h2 className="text-2xl font-black text-gray-900">Qué puedes hacer con cada courier</h2>
+          <h2 className="o-h2 text-neutral-900">Qué puedes hacer con cada courier</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[560px]">
               <thead>
                 <tr className="border-b border-gray-200 text-sm uppercase tracking-wide text-gray-500">
-                  <th className="py-3 pr-4 font-black">Courier</th>
-                  <th className="py-3 pr-4 font-black">Retiro</th>
-                  <th className="py-3 pr-4 font-black">Envío</th>
-                  <th className="py-3 pr-4 font-black">Devolución</th>
-                  <th className="py-3 pr-4 font-black">Etiqueta en local</th>
-                  <th className="py-3 font-black">Horario</th>
+                  <th className="py-3 pr-4 font-semibold text-neutral-700">Courier</th>
+                  <th className="py-3 pr-4 font-semibold text-neutral-700">Retiro</th>
+                  <th className="py-3 pr-4 font-semibold text-neutral-700">Envío</th>
+                  <th className="py-3 pr-4 font-semibold text-neutral-700">Devolución</th>
+                  <th className="py-3 pr-4 font-semibold text-neutral-700">Etiqueta en local</th>
+                  <th className="py-3 font-semibold text-neutral-700">Horario</th>
                 </tr>
               </thead>
               <tbody className="text-gray-700">
@@ -174,7 +174,7 @@ export default function PuntoDeEnvioPage() {
         </section>
 
         <section className="mt-10 space-y-4">
-          <h2 className="text-2xl font-black text-gray-900">Elige tu courier</h2>
+          <h2 className="o-h2 text-neutral-900">Elige tu courier</h2>
           <ul className="grid gap-3 sm:grid-cols-2">
             {BUSINESS.services.map((s) => (
               <li key={s.slug}>
@@ -182,7 +182,7 @@ export default function PuntoDeEnvioPage() {
                   href={`/punto-de-envio/${s.slug}`}
                   className="block rounded-2xl border border-gray-200 bg-white p-5 transition-colors hover:border-emerald-300"
                 >
-                  <p className="font-black text-gray-900">{s.nombre}</p>
+                  <p className="font-semibold text-neutral-900">{s.nombre}</p>
                   <p className="mt-1 text-sm text-gray-600">{s.descripcion}</p>
                 </Link>
               </li>

@@ -71,7 +71,7 @@ export function FaqBlock({
 }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-2xl font-black text-gray-900">{titulo}</h2>
+      <h2 className="o-h2 text-neutral-900">{titulo}</h2>
       <div className="space-y-4">
         {faqs.map((faq) => (
           <div key={faq.pregunta} className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -95,7 +95,7 @@ export function QaPlano({
 }) {
   return (
     <section className="border-t border-gray-200 pt-8">
-      <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-4">
+      <h2 className="o-h3 mb-4 text-neutral-900">
         Preguntas y respuestas
       </h2>
       <div className="space-y-3 text-gray-700">
@@ -147,11 +147,11 @@ export function ServiciosCourier({ slug }: { slug: CourierSlug }) {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
-        <h3 className="font-black text-emerald-900">Qué puedes hacer acá</h3>
+        <h3 className="font-semibold text-emerald-900">Qué puedes hacer acá</h3>
         <ul className="mt-3 space-y-2 text-emerald-900">
           {service.puedeHacer.map((item) => (
             <li key={item} className="flex gap-2">
-              <span aria-hidden="true" className="font-black">✓</span>
+              <span aria-hidden="true" className="font-semibold">✓</span>
               <span>{item}</span>
             </li>
           ))}
@@ -163,11 +163,11 @@ export function ServiciosCourier({ slug }: { slug: CourierSlug }) {
 
       {service.noDisponible && service.noDisponible.length > 0 && (
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-          <h3 className="font-black text-gray-900">Qué no ofrecemos con {service.nombre}</h3>
+          <h3 className="font-semibold text-neutral-900">Qué no ofrecemos con {service.nombre}</h3>
           <ul className="mt-3 space-y-2 text-gray-600">
             {service.noDisponible.map((item) => (
               <li key={item} className="flex gap-2">
-                <span aria-hidden="true" className="font-black">✕</span>
+                <span aria-hidden="true" className="font-semibold">✕</span>
                 <span>{item}</span>
               </li>
             ))}
@@ -185,7 +185,7 @@ export function ServiciosCourier({ slug }: { slug: CourierSlug }) {
 export function ColectaBlock() {
   return (
     <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-      <p className="font-black text-amber-900">
+      <p className="font-semibold text-amber-900">
         Colecta: lunes a viernes antes de las {BUSINESS.colecta.horaLimite}
       </p>
       <p className="mt-2 text-amber-900 leading-relaxed">{BUSINESS.colecta.resumen}</p>
@@ -212,14 +212,14 @@ export function FichaTienda({ mensajeWhatsapp }: { mensajeWhatsapp: string }) {
   return (
     <section className="rounded-3xl border border-gray-200 bg-white p-6 md:p-8 grid gap-8 md:grid-cols-2">
       <div className="space-y-3">
-        <h2 className="text-xl font-black text-gray-900">Dónde estamos</h2>
+        <h2 className="o-h3 text-neutral-900">Dónde estamos</h2>
         <NapBlock />
         <p className="text-sm text-gray-500">
           Estamos en Av. José Pedro Alessandri, a pasos del límite entre Ñuñoa y Macul.
         </p>
       </div>
       <div className="space-y-3">
-        <h2 className="text-xl font-black text-gray-900">Horario de atención</h2>
+        <h2 className="o-h3 text-neutral-900">Horario de atención</h2>
         <HorariosBlock />
         <div className="pt-2">
           <WhatsappCta mensaje={mensajeWhatsapp}>Escríbenos por WhatsApp</WhatsappCta>

@@ -1,5 +1,8 @@
+"use client";
+
 import React from 'react';
-import { ShieldCheckIcon, LockClosedIcon } from '@heroicons/react/24/solid';
+import { LockClosedIcon } from '@heroicons/react/24/outline';
+import { useSiteCopy } from '@/hooks/useSiteCopy';
 
 export interface PaymentMethod {
   id: string;
@@ -17,13 +20,13 @@ export default function PaymentForm({
   selectedMethod,
   onMethodChange
 }: PaymentFormProps) {
-  return (
-    <div className="space-y-4">
-      <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
-        Método de Pago
-      </h3>
+  const { t } = useSiteCopy();
 
-      <div className="space-y-3">
+  return (
+    <fieldset>
+      <legend className="o-h3 mb-4 text-neutral-900">{t('checkout.paymentTitle')}</legend>
+
+      <div className="space-y-2.5">
         {paymentMethods.map((method) => {
           const isSelected = selectedMethod === method.id;
           const isMercadoPago = method.id === 'mercadopago';
@@ -32,10 +35,10 @@ export default function PaymentForm({
             <label
               key={method.id}
               htmlFor={method.id}
-              className={`relative flex items-center gap-5 p-5 rounded-2xl border-2 cursor-pointer transition-all duration-200 ${
+              className={`flex cursor-pointer items-center gap-3.5 rounded-xl border p-4 transition-colors ${
                 isSelected
-                  ? 'border-emerald-500 bg-emerald-50/60 shadow-lg shadow-emerald-500/10'
-                  : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-md'
+                  ? 'border-emerald-500 bg-emerald-50/50'
+                  : 'border-neutral-200 bg-white hover:border-neutral-300'
               }`}
             >
               <input
@@ -48,57 +51,40 @@ export default function PaymentForm({
                 className="sr-only"
               />
 
-              {/* Radio Visual */}
-              <div
-                className={`h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                  isSelected ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300 bg-white'
+              <span
+                aria-hidden="true"
+                className={`flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                  isSelected ? 'border-emerald-600 bg-emerald-600' : 'border-neutral-300 bg-white'
                 }`}
               >
-                {isSelected && (
-                  <div className="h-2 w-2 rounded-full bg-white" />
-                )}
-              </div>
+                {isSelected && <span className="size-1.5 rounded-full bg-white" />}
+              </span>
 
-              {/* Logo / Icono */}
               {isMercadoPago && (
-                <div className="flex items-center justify-center h-11 w-16 bg-[#009EE3] rounded-xl flex-shrink-0 shadow-sm">
-                  <span className="text-white font-black text-[10px] leading-tight text-center px-1">
-                    Mercado<br />Pago
-                  </span>
-                </div>
+                <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-lg bg-[#009EE3] text-center text-[10px] font-semibold leading-tight text-white">
+                  Mercado
+                  <br />
+                  Pago
+                </span>
               )}
 
-              {/* Texto */}
-              <div className="flex-1 min-w-0">
-                <p className={`font-black text-sm tracking-tight ${isSelected ? 'text-emerald-800' : 'text-gray-800'}`}>
-                  {method.name}
-                </p>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-neutral-900">{method.name}</span>
                 {isMercadoPago && (
-                  <p className="text-xs text-gray-500 font-medium mt-0.5 leading-relaxed">
-                    Tarjeta de débito, crédito, transferencia o billetera virtual
-                  </p>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-neutral-500">
+                    Débito, crédito, transferencia o saldo en MercadoPago
+                  </span>
                 )}
-              </div>
-
-              {/* Badge seleccionado */}
-              {isSelected && (
-                <div className="flex-shrink-0 flex items-center gap-1 bg-emerald-100 text-emerald-700 rounded-full px-3 py-1">
-                  <ShieldCheckIcon className="h-3 w-3" />
-                  <span className="text-[10px] font-black uppercase tracking-wide">Seleccionado</span>
-                </div>
-              )}
+              </span>
             </label>
           );
         })}
       </div>
 
-      {/* Aviso de seguridad */}
-      <div className="flex items-center gap-2 pt-2 pl-1">
-        <LockClosedIcon className="h-3 w-3 text-gray-400 flex-shrink-0" />
-        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-          Pago 100% seguro · Serás redirigido al gateway oficial de MercadoPago
-        </p>
-      </div>
-    </div>
+      <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-neutral-500">
+        <LockClosedIcon className="mt-0.5 size-3.5 shrink-0" />
+        {t('checkout.securityNote')}
+      </p>
+    </fieldset>
   );
 }
