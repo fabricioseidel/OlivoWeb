@@ -4,11 +4,10 @@ import React, { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ProductGrid from "@/components/ProductGrid";
 import { useProducts } from "@/contexts/ProductContext";
+import { slugify } from "@/utils/string-utils";
 import { isProductVisible } from "@/services/products";
 import { useCategories } from "@/hooks/useCategories";
 import { Search } from "lucide-react";
-
-const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/gi, "-");
 
 type SortKey = "name" | "price-asc" | "price-desc" | "offers";
 
