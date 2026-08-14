@@ -43,7 +43,7 @@ export default function NewsletterWidget({
   return (
     <div className="w-full bg-gradient-to-r from-emerald-900 to-teal-900 rounded-2xl p-6 md:p-8">
       <div className="max-w-xl mx-auto text-center">
-        <h3 className="text-xl md:text-2xl font-black text-white mb-2">
+        <h3 className="font-semibold text-neutral-900">
           {title || "🌿 Únete a la familia Olivo"}
         </h3>
         <p className="text-emerald-200/70 text-sm mb-6">
@@ -78,7 +78,7 @@ export default function NewsletterWidget({
           <p className="text-red-300 text-xs mt-2">{message}</p>
         )}
 
-        <p className="text-emerald-200/40 text-[10px] mt-3">
+        <p className="mt-3 text-xs text-emerald-200/70">
           Puedes cancelar tu suscripción en cualquier momento.
         </p>
       </div>

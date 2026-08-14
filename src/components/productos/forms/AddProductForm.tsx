@@ -180,7 +180,7 @@ export default function AddProductForm() {
           <div className="relative border-2 border-dashed border-gray-300 rounded-2xl p-8 flex flex-col items-center justify-center bg-gray-50 hover:bg-emerald-50 hover:border-emerald-500/50 transition-all group">
             <PhotoIcon className="h-12 w-12 text-gray-400 group-hover:text-emerald-500 transition-colors mb-2" />
             <p className="text-sm text-gray-400 group-hover:text-emerald-700">Haz clic para subir una imagen</p>
-            <p className="text-[10px] text-gray-400 uppercase mt-1">PNG, JPG o WebP (Max 5MB)</p>
+            <p className="mt-1 text-xs text-neutral-500">PNG, JPG o WebP · máximo 5 MB</p>
             <input 
               type="file" 
               accept="image/*" 

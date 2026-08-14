@@ -90,7 +90,7 @@ export default function BulkImageEditorPage() {
         const res = await uploadImageToCloudinaryServerAction(pending[id]);
         if (!res.ok || !res.url) throw new Error(res.error || "Falló la subida");
         updates[id] = { image: res.url };
-      } catch (err) {
+      } catch {
         const name = products.find((p) => p.id === id)?.name || id;
         failed.push(name);
       }

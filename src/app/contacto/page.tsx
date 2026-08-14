@@ -42,7 +42,7 @@ export default function ContactoPage() {
       <section className="max-w-4xl mx-auto px-4 pb-16">
         <Breadcrumbs items={BREADCRUMBS} />
 
-        <h2 className="text-2xl font-black text-gray-900">
+        <h2 className="o-h2 text-neutral-900">
           Visítanos en Ñuñoa
         </h2>
         <p className="mt-3 text-gray-700 leading-relaxed">
@@ -52,11 +52,11 @@ export default function ContactoPage() {
 
         <div className="mt-8 grid gap-8 md:grid-cols-2">
           <div className="space-y-3">
-            <h3 className="text-lg font-black text-gray-900">Dirección y contacto</h3>
+            <h3 className="font-semibold text-neutral-900">Dirección y contacto</h3>
             <NapBlock />
           </div>
           <div className="space-y-3">
-            <h3 className="text-lg font-black text-gray-900">Horario de atención</h3>
+            <h3 className="font-semibold text-neutral-900">Horario de atención</h3>
             <HorariosBlock />
           </div>
         </div>
