@@ -25,17 +25,99 @@ import {
 
 const ALL_BLOCK_TYPES = Object.keys(BLOCK_TYPE_LABELS) as PageBlockType[];
 
-// Campos editables según el tipo de bloque
-const EDITABLE_FIELDS: Record<PageBlockType, Array<'title' | 'description' | 'buttonText' | 'buttonLink' | 'itemsToShow'>> = {
-  hero: ['title', 'description', 'buttonText', 'buttonLink'],
+type EditableField =
+  | 'subtitle'
+  | 'title'
+  | 'description'
+  | 'buttonText'
+  | 'buttonLink'
+  | 'itemsToShow';
+
+// Campos editables según el tipo de bloque.
+// `subtitle` existía en PageBlock y la portada lo renderizaba, pero no estaba
+// aquí: el texto sobre el título no se podía cambiar desde el panel.
+const EDITABLE_FIELDS: Record<PageBlockType, EditableField[]> = {
+  hero: ['subtitle', 'title', 'description', 'buttonText', 'buttonLink'],
   features: [],
   products: ['title', 'itemsToShow'],
-  banner: ['title', 'description', 'buttonText', 'buttonLink'],
+  banner: ['subtitle', 'title', 'description', 'buttonText', 'buttonLink'],
   offers: ['title', 'itemsToShow'],
   categories: ['title'],
   more_products: ['title', 'itemsToShow'],
   newsletter: ['title', 'description'],
 };
+
+// Etiquetas por tipo: "Título" significa cosas distintas en el hero (es el H1
+// de la portada) que en una grilla de productos.
+const FIELD_LABELS: Partial<Record<PageBlockType, Partial<Record<EditableField, string>>>> = {
+  hero: {
+    subtitle: 'Texto sobre el título',
+    title: 'Título principal (H1)',
+    description: 'Descripción',
+  },
+  banner: {
+    subtitle: 'Texto pequeño',
+    title: 'Título del banner',
+  },
+};
+
+const fieldLabel = (type: PageBlockType, field: EditableField, fallback: string) =>
+  FIELD_LABELS[type]?.[field] ?? fallback;
+
+/**
+ * Guía de SEO para el título del hero.
+ *
+ * Ese campo es el <h1> de la portada, la señal más fuerte que recibe un
+ * buscador sobre de qué trata el sitio. Como ahora es editable desde el panel,
+ * conviene avisar en el momento de escribirlo y no descubrir el problema meses
+ * después: longitud utilizable, mención de la comuna (que es lo que decide una
+ * búsqueda local como "minimarket venezolano ñuñoa") y del rubro.
+ */
+function HeroTitleHint({ value }: { value?: string }) {
+  const text = (value || '').trim();
+  const len = text.length;
+  const lower = text.toLowerCase();
+
+  const checks = [
+    {
+      ok: len >= 20 && len <= 70,
+      label:
+        len === 0
+          ? 'Escribe un título'
+          : len < 20
+          ? `Muy corto (${len} caracteres): apunta a 20-70`
+          : len > 70
+          ? `Muy largo (${len} caracteres): apunta a 20-70`
+          : `Largo adecuado (${len} caracteres)`,
+    },
+    {
+      ok: /ñuñoa|nunoa/.test(lower),
+      label: 'Menciona la comuna (Ñuñoa)',
+      why: 'Es lo que decide las búsquedas locales del tipo "minimarket cerca de mí".',
+    },
+    {
+      ok: /venezolan|minimarket|market|abarrote|encomienda|env[íi]o/.test(lower),
+      label: 'Menciona el rubro o el servicio',
+      why: 'Ayuda al buscador a entender qué vendes, no solo cómo te llamas.',
+    },
+  ];
+
+  return (
+    <ul className="mt-2 space-y-1">
+      {checks.map((c) => (
+        <li key={c.label} className="flex items-start gap-1.5 text-xs">
+          <span aria-hidden="true" className={c.ok ? 'text-emerald-600' : 'text-amber-600'}>
+            {c.ok ? '✓' : '!'}
+          </span>
+          <span className={c.ok ? 'text-slate-500' : 'text-amber-700'}>
+            {c.label}
+            {!c.ok && c.why && <span className="block text-slate-500">{c.why}</span>}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function ConstructorPage() {
   const [settings, setSettings] = useState<StoreSettings | null>(null);
@@ -298,15 +380,31 @@ export default function ConstructorPage() {
             {editingBlockId === block.id && (
               <div className="px-6 pb-8 pt-2 border-t border-gray-100 animate-in slide-in-from-top-2 duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {fields.includes('subtitle') && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">
+                        {fieldLabel(block.type, 'subtitle', 'Subtítulo')}
+                      </label>
+                      <input
+                        type="text"
+                        defaultValue={block.subtitle}
+                        onBlur={(e) => updateBlockData(block.id, { subtitle: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  )}
                   {fields.includes('title') && (
                     <div className="space-y-2">
-                      <label className="text-xs font-black uppercase tracking-widest text-gray-400">Título de la Sección</label>
+                      <label className="text-sm font-medium text-slate-700">
+                        {fieldLabel(block.type, 'title', 'Título de la sección')}
+                      </label>
                       <input
                         type="text"
                         defaultValue={block.title}
                         onBlur={(e) => updateBlockData(block.id, { title: e.target.value })}
-                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500"
                       />
+                      {block.type === 'hero' && <HeroTitleHint value={block.title} />}
                     </div>
                   )}
                   {fields.includes('description') && (
