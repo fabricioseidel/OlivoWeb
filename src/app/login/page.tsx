@@ -158,9 +158,13 @@ function LoginForm() {
               </label>
 
               <div className="text-sm">
+                {/* Apuntaba a /recuperar-password, una ruta que no existe: el
+                    cliente que olvidaba su clave llegaba a un 404. Todavía no
+                    hay recuperación automática, así que se le deriva a
+                    contacto, que sí resuelve el problema. */}
                 <Link
-                  href="/recuperar-password"
-                  className="font-bold text-gray-400 hover:text-emerald-600 transition-colors"
+                  href="/contacto?motivo=acceso"
+                  className="o-focus rounded font-medium text-neutral-500 transition-colors hover:text-emerald-700"
                 >
                   ¿Olvidaste tu contraseña?
                 </Link>
