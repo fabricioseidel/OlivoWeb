@@ -1,4 +1,17 @@
 /**
+ * Mensajes de WhatsApp de la tienda.
+ *
+ * Quien escribe por WhatsApp normalmente ya tiene un problema concreto: un
+ * pedido que no llegó, un producto que quiere encargar, una duda del carrito.
+ * Un "Hola, tengo una consulta" obliga a preguntarlo todo de nuevo y alarga la
+ * atención. Estos mensajes llevan el contexto ya escrito para que la primera
+ * respuesta pueda resolver.
+ */
+
+/** Pesos chilenos: sin decimales y con separador de miles. */
+const clp = (n: number) => `$${Math.round(n).toLocaleString("es-CL")}`;
+
+/**
  * Normaliza un teléfono configurado por el admin al formato que exige wa.me
  * (solo dígitos, con código de país). Acepta "+56 9 1234 5678", "56912345678"
  * o "9 1234 5678" — a este último le antepone el código de Chile.
@@ -15,7 +28,7 @@ export function normalizeWhatsAppPhone(raw?: string | null): string | null {
 
 /**
  * Enlace de WhatsApp a partir del teléfono configurado en la tienda.
- * Devuelve null si el teléfono no está configurado, para que la UI pueda
+ * Devuelve "#" si el teléfono no está configurado, para que la UI pueda
  * ocultar el botón en vez de enlazar a un número inventado.
  */
 export function whatsappLink(phone: string | null | undefined, message: string): string {
@@ -24,36 +37,98 @@ export function whatsappLink(phone: string | null | undefined, message: string):
   return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
 }
 
-// Genera un enlace de WhatsApp con el resumen del carrito o producto.
-// phone debe incluir código de país (sin +) p.ej. Chile: 569XXXXXXXX
-export function buildWhatsAppOrderLink(params: {
-  phone: string; // destino
-  items: { name: string; quantity: number; price: number }[];
-  note?: string;
-  currency?: string; // símbolo (display)
-}) {
-  const { phone, items, note, currency = "$" } = params;
-  const lines: string[] = [];
-  lines.push("*Pedido OLIVOMARKET*%0A");
-  let total = 0;
-  items.forEach((it) => {
-    const lineTotal = it.price * it.quantity;
-    total += lineTotal;
-    lines.push(`- ${it.quantity} x ${it.name} = ${currency} ${lineTotal.toFixed(2)}`);
-  });
-  lines.push("%0A");
-  lines.push(`Total: ${currency} ${total.toFixed(2)}`);
-  if (note) {
-    lines.push("%0A");
-    lines.push(`Nota: ${encodeURIComponent(note)}`);
-  }
-  const message = lines.join("%0A");
-  return `https://wa.me/${phone}?text=${message}`;
+type LineItem = { name: string; quantity: number; price: number };
+
+/** Lista de productos en texto plano, una línea por ítem. */
+function itemLines(items: LineItem[]): string {
+  return items
+    .map((i) => `• ${i.quantity} × ${i.name} — ${clp(i.price * i.quantity)}`)
+    .join("\n");
 }
 
-export function buildSingleProductLink(phone: string, product: { name: string; price: number }, quantity = 1, _currency = "$") {
-  return buildWhatsAppOrderLink({
-    phone,
-    items: [{ name: product.name, price: product.price, quantity }],
-  });
+/**
+ * Consulta sobre el carrito, con el detalle incluido.
+ * Sin el detalle, atender obliga a pedirle al cliente que lo transcriba.
+ */
+export function cartInquiryMessage(items: LineItem[], total: number): string {
+  if (items.length === 0) {
+    return "Hola! Quiero hacer una consulta antes de comprar en OlivoMarket.";
+  }
+  return [
+    "Hola! Tengo una consulta sobre mi carrito en OlivoMarket:",
+    "",
+    itemLines(items),
+    "",
+    `Total: ${clp(total)}`,
+  ].join("\n");
+}
+
+/** Consulta durante el checkout, antes de pagar. */
+export function checkoutInquiryMessage(items: LineItem[], total: number): string {
+  if (items.length === 0) {
+    return "Hola! Estoy en el checkout de OlivoMarket y tengo una consulta.";
+  }
+  return [
+    "Hola! Estoy por finalizar esta compra en OlivoMarket y tengo una consulta:",
+    "",
+    itemLines(items),
+    "",
+    `Total: ${clp(total)}`,
+  ].join("\n");
+}
+
+/**
+ * Consulta sobre un pedido ya hecho. El número corto es el que el cliente ve
+ * en pantalla y en su email, así que sirve para buscarlo sin más preguntas.
+ */
+export function orderInquiryMessage(params: {
+  shortId: string;
+  total?: number;
+  status?: string;
+}): string {
+  const lines = [`Hola! Tengo una consulta sobre mi pedido #${params.shortId} de OlivoMarket.`];
+  if (typeof params.total === "number" && params.total > 0) {
+    lines.push(`Total: ${clp(params.total)}`);
+  }
+  if (params.status) {
+    lines.push(`Estado que veo: ${params.status}`);
+  }
+  return lines.join("\n");
+}
+
+/** Consulta o encargo de un producto concreto desde su ficha. */
+export function productInquiryMessage(
+  product: { name: string; price: number },
+  quantity = 1
+): string {
+  return [
+    "Hola! Quiero consultar por este producto de OlivoMarket:",
+    "",
+    `• ${quantity} × ${product.name} — ${clp(product.price * quantity)}`,
+    "",
+    "¿Está disponible?",
+  ].join("\n");
+}
+
+// ── Compatibilidad con los llamados existentes ─────────────────────────────
+
+/** Enlace con el resumen del carrito. `phone` incluye código de país. */
+export function buildWhatsAppOrderLink(params: {
+  phone: string;
+  items: LineItem[];
+  note?: string;
+}): string {
+  const total = params.items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const message = params.note
+    ? `${cartInquiryMessage(params.items, total)}\n\nNota: ${params.note}`
+    : cartInquiryMessage(params.items, total);
+  return whatsappLink(params.phone, message);
+}
+
+export function buildSingleProductLink(
+  phone: string,
+  product: { name: string; price: number },
+  quantity = 1
+): string {
+  return whatsappLink(phone, productInquiryMessage(product, quantity));
 }

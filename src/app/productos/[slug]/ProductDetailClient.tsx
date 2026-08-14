@@ -115,7 +115,11 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
     // El teléfono sale de la configuración de la tienda; el constante queda
     // solo como respaldo si el admin todavía no lo definió.
     const phone = settings?.storePhone || WHATSAPP_PHONE;
-    const link = buildSingleProductLink(phone, product, quantity);
+    const link = buildSingleProductLink(
+      phone,
+      { name: product.name, price: effectivePrice },
+      quantity
+    );
     window.open(link, '_blank');
   };
 

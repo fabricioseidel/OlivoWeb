@@ -8,7 +8,7 @@ import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import { useCart } from "@/contexts/CartContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
-import { whatsappLink } from "@/utils/whatsapp";
+import { whatsappLink, cartInquiryMessage } from "@/utils/whatsapp";
 import { useSiteCopy } from "@/hooks/useSiteCopy";
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString("es-CL")}`;
@@ -244,7 +244,7 @@ export default function CartPage() {
 
             {settings?.storePhone && (
               <a
-                href={whatsappLink(settings.storePhone, "Hola! Tengo una consulta sobre mi carrito")}
+                href={whatsappLink(settings.storePhone, cartInquiryMessage(cartItems, total))}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="o-focus mt-5 block rounded-xl border border-neutral-200 px-4 py-3 text-center text-sm font-medium text-neutral-700 transition-colors hover:border-emerald-300 hover:text-emerald-700"

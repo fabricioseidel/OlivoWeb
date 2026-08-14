@@ -25,7 +25,7 @@ import { quoteShipping } from "@/lib/shipping-policy";
 
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { validateShippingInfo, type ShippingFieldErrors } from "@/schemas/checkout.schema";
-import { whatsappLink } from "@/utils/whatsapp";
+import { whatsappLink, checkoutInquiryMessage } from "@/utils/whatsapp";
 
 const clpFormat = (n: number) => `$${Math.round(n).toLocaleString("es-CL")}`;
 
@@ -668,7 +668,7 @@ export default function CheckoutPage() {
 
             {storeSettings?.storePhone && (
               <a
-                href={whatsappLink(storeSettings.storePhone, "Hola! Tengo una consulta sobre mi pedido")}
+                href={whatsappLink(storeSettings.storePhone, checkoutInquiryMessage(cartItems, total))}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="o-focus mt-4 block rounded-xl border border-neutral-200 bg-white px-4 py-3.5 text-center text-sm font-medium text-neutral-700 transition-colors hover:border-emerald-300 hover:text-emerald-700"
