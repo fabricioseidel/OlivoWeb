@@ -263,6 +263,35 @@ const WELCOME_TEMPLATE = `<!DOCTYPE html>
 </div>
 </body></html>`;
 
+const PASSWORD_RESET_TEMPLATE = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1 style="margin:0; font-size:26px; letter-spacing:-1px;">Restablecer tu contraseña</h1>
+  </div>
+  <div class="content">
+    <p style="font-size:16px; color:#111827;">Hola {{customerName}},</p>
+    <p>Recibimos una solicitud para cambiar la contrase\u00f1a de tu cuenta en OlivoMarket. Para elegir una nueva, usa el bot\u00f3n de abajo.</p>
+
+    <div style="text-align:center; margin:30px 0;">
+      <a href="{{resetUrl}}" class="button">Crear nueva contrase\u00f1a</a>
+    </div>
+
+    <p style="font-size:13px; color:#6B7280;">El enlace vence en 1 hora y solo puede usarse una vez.</p>
+
+    <div class="divider"></div>
+
+    <p style="font-size:13px; color:#6B7280;">Si no pediste este cambio, puedes ignorar este correo: tu contrase\u00f1a actual sigue funcionando.</p>
+    <p style="font-size:12px; color:#9CA3AF; word-break:break-all;">Si el bot\u00f3n no funciona, copia esta direcci\u00f3n en tu navegador:<br>{{resetUrl}}</p>
+  </div>
+  <div class="footer">
+    <p style="font-weight:bold; color:#374151;">OlivoMarket</p>
+    <p style="font-size:11px;">\u00a9 {{year}} OlivoMarket. Todos los derechos reservados.</p>
+  </div>
+</div>
+</body></html>`;
+
 const ABANDONED_CART_TEMPLATE = `<!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
 <body>
@@ -502,6 +531,33 @@ export async function sendWelcomeEmail(data: {
     subject: dbSubject,
     html,
     templateSlug: "welcome",
+  });
+}
+
+/** Enlace de recuperación de contraseña. */
+export async function sendPasswordResetEmail(data: {
+  to: string;
+  customerName: string;
+  resetUrl: string;
+}): Promise<EmailResult> {
+  const { subject: dbSubject, html: dbHtml } = await getTemplate(
+    "password-reset",
+    "Restablece tu contraseña de OlivoMarket",
+    PASSWORD_RESET_TEMPLATE
+  );
+
+  const html = renderTemplate(dbHtml, {
+    customerName: data.customerName,
+    resetUrl: data.resetUrl,
+    year: new Date().getFullYear(),
+  });
+
+  return sendEmail({
+    to: data.to,
+    toName: data.customerName,
+    subject: dbSubject,
+    html,
+    templateSlug: "password-reset",
   });
 }
 
