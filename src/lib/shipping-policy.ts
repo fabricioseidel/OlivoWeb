@@ -71,6 +71,16 @@ export type ShippingQuote = {
   capApplied: boolean;
   /** Comuna detectada, si se pudo determinar. */
   comuna: ComunaSlug | null;
+  /**
+   * Por qué NO se aplicó el envío gratis pese a alcanzar el monto.
+   *
+   * El envío gratis exige, además del monto, que la comuna se pueda
+   * identificar y esté cubierta. Cuando el buscador de direcciones devuelve
+   * "Santiago" o "Región Metropolitana" en vez de la comuna, la regla no
+   * aplica y antes eso ocurría en silencio: el cliente alcanzaba el mínimo,
+   * veía que igual le cobraban el despacho y no había forma de saber por qué.
+   */
+  freeBlockedReason: "comuna-desconocida" | "comuna-sin-cobertura" | null;
 };
 
 /**
@@ -103,14 +113,32 @@ export function quoteShipping(params: {
     COMUNAS_CON_DESPACHO.includes(comuna);
 
   if (aplicaGratis) {
-    return { price: 0, rawPrice: base, freeApplied: true, capApplied: false, comuna };
+    return {
+      price: 0, rawPrice: base, freeApplied: true, capApplied: false,
+      comuna, freeBlockedReason: null,
+    };
   }
+
+  // Si alcanzó el monto pero no se aplicó, se registra el motivo para poder
+  // explicárselo al cliente en vez de cobrarle sin más.
+  const alcanzoElMonto = freeShippingMinimum !== null && subtotal >= freeShippingMinimum;
+  const freeBlockedReason = alcanzoElMonto
+    ? comuna === null
+      ? ("comuna-desconocida" as const)
+      : ("comuna-sin-cobertura" as const)
+    : null;
 
   // 2. Tope por comuna
   const tope = comuna ? TOPE_POR_COMUNA[comuna] : undefined;
   if (typeof tope === "number" && base > tope) {
-    return { price: tope, rawPrice: base, freeApplied: false, capApplied: true, comuna };
+    return {
+      price: tope, rawPrice: base, freeApplied: false, capApplied: true,
+      comuna, freeBlockedReason,
+    };
   }
 
-  return { price: base, rawPrice: base, freeApplied: false, capApplied: false, comuna };
+  return {
+    price: base, rawPrice: base, freeApplied: false, capApplied: false,
+    comuna, freeBlockedReason,
+  };
 }

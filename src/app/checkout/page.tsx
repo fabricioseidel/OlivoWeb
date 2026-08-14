@@ -587,6 +587,21 @@ export default function CheckoutPage() {
                         </p>
                       </div>
                     )}
+                    {/* Si alcanzó el mínimo pero igual se cobra el despacho,
+                        se explica el motivo. Antes solo aparecía el cobro. */}
+                    {selectedShippingMethod === 'dynamic' && quote?.freeBlockedReason && (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                        <p className="text-sm font-semibold text-amber-900">
+                          Tu compra alcanza el monto de envío gratis, pero no pudimos aplicarlo
+                        </p>
+                        <p className="mt-1 text-sm text-amber-800">
+                          {quote.freeBlockedReason === 'comuna-desconocida'
+                            ? 'No logramos identificar tu comuna a partir de la dirección. Elige una dirección sugerida por el buscador que incluya la comuna, o escríbenos y lo ajustamos.'
+                            : 'El envío gratis aplica en las comunas donde hacemos despacho propio. Escríbenos y vemos cómo ayudarte.'}
+                        </p>
+                      </div>
+                    )}
+
                     {selectedShippingMethod === 'dynamic' && quote?.capApplied && (
                       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                         <p className="text-sm font-semibold text-emerald-900">Tarifa preferente</p>
