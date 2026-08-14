@@ -1,10 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { TrashIcon, MinusIcon, PlusIcon, ShoppingBagIcon } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import { useCart } from "@/contexts/CartContext";
+import { useProducts } from "@/contexts/ProductContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { whatsappLink } from "@/utils/whatsapp";
 import { useSiteCopy } from "@/hooks/useSiteCopy";
@@ -22,6 +24,23 @@ export default function CartPage() {
   } = useCart();
   const { settings } = useStoreSettings();
   const { t } = useSiteCopy();
+  const { products } = useProducts();
+
+  /**
+   * Stock real por producto.
+   *
+   * El botón de sumar del carrito no tenía tope, mientras que la tarjeta del
+   * catálogo sí lo respetaba. Se podían acumular 36 unidades de un producto con
+   * 2 disponibles, y el exceso recién se detectaba al pagar: ahí el pedido se
+   * recortaba de golpe y el cliente veía desaparecer casi toda su compra.
+   */
+  const stockById = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of products) {
+      if (typeof p.stock === "number") map.set(String(p.id), p.stock);
+    }
+    return map;
+  }, [products]);
 
   // El umbral de envío gratis estaba escrito a mano ($30.000) e ignoraba lo
   // configurado en Admin → Envíos, así que la barra de progreso podía prometer
@@ -76,7 +95,10 @@ export default function CartPage() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* ── Líneas del carrito ── */}
         <div className="space-y-3 lg:col-span-2">
-          {cartItems.map((item) => (
+          {cartItems.map((item) => {
+            const stock = stockById.get(String(item.id));
+            const atStockLimit = typeof stock === "number" && item.quantity >= stock;
+            return (
             <div key={item.id} className="o-card p-4">
               <div className="flex gap-4">
                 <Link
@@ -125,8 +147,9 @@ export default function CartPage() {
                       </span>
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        disabled={atStockLimit}
                         aria-label={`Agregar una unidad de ${item.name}`}
-                        className="o-focus flex size-9 items-center justify-center rounded-r-xl text-neutral-600 transition-colors hover:bg-neutral-50"
+                        className="o-focus flex size-9 items-center justify-center rounded-r-xl text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-30"
                       >
                         <PlusIcon className="size-4" />
                       </button>
@@ -135,10 +158,17 @@ export default function CartPage() {
                       {clp(item.price * item.quantity)}
                     </p>
                   </div>
+
+                  {atStockLimit && (
+                    <p className="mt-2 text-xs text-amber-700">
+                      Es todo el stock disponible de este producto.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
 
           <Link
             href="/productos"

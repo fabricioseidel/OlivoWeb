@@ -6,12 +6,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { useGoogleAuthAvailable } from "@/hooks/useGoogleAuthAvailable";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const googleEnabled =
-    process.env.NEXT_PUBLIC_AUTH_GOOGLE === "1" ||
-    !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const googleEnabled = useGoogleAuthAvailable();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -180,6 +179,9 @@ export default function RegisterPage() {
             </Button>
           </form>
 
+          {/* El separador se muestra solo si hay algo debajo: con Google
+              desactivado quedaba un "o continúa con" seguido de nada. */}
+          {googleEnabled && (
           <div className="mt-8">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -190,7 +192,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {googleEnabled && (
+            {(
               <div className="mt-6">
                 <Button
                   type="button"
@@ -210,6 +212,7 @@ export default function RegisterPage() {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>

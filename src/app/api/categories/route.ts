@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { supabaseServer } from "@/lib/supabase-server";
+import { slugify } from "@/utils/string-utils";
 
 // GET /api/categories -> { categories: string[] }
 export async function GET() {
@@ -26,7 +27,11 @@ export async function GET() {
   if (!productsError && productsData) {
     productsData.forEach((p: any) => {
       if (p.category) {
-        const cats = String(p.category).split(/[,/|]/).map((c) => c.trim().toLowerCase()).filter(Boolean);
+        // Se compara por slug y no por texto en minúsculas: los productos
+        // guardan "Café" con tilde y la tabla de categorías dice "Cafe" sin
+        // ella, así que la comparación cruda daba 0 productos en categorías
+        // que sí tenían. slugify normaliza tildes, espacios y mayúsculas.
+        const cats = String(p.category).split(/[,/|]/).map((c) => slugify(c.trim())).filter(Boolean);
         cats.forEach(cat => {
           productCounts[cat] = (productCounts[cat] || 0) + 1;
         });
@@ -35,15 +40,13 @@ export async function GET() {
   }
 
   const mapped = (data || []).map((c: any) => {
-    const rawName = (c.name || "").toLowerCase().trim();
-    // Buscar por nombre de categoría en el mapeo de productos
-    const count = productCounts[rawName] || 0;
+    const count = productCounts[slugify(c.name || "")] || 0;
 
     return {
       id: String(c.id ?? ""),
       name: c.name ?? "",
       slug:
-        c.slug ?? c.sku ?? (c.name ? String(c.name).toLowerCase().replace(/[^a-z0-9]+/gi, "-") : undefined),
+        c.slug ?? c.sku ?? (c.name ? slugify(c.name) : undefined),
       description: c.description ?? c.desc ?? undefined,
       image: c.image_url ?? c.image ?? c.img ?? undefined,
       isActive:

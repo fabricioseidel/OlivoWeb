@@ -121,7 +121,17 @@ export default function CheckoutPage() {
     return [priced, ...list];
   }, [dynamicShipping, quote]);
 
-  const rawShippingCost = shippingMethods.find((method) => method.id === selectedShippingMethod)?.price || 0;
+  const selectedMethod = shippingMethods.find((method) => method.id === selectedShippingMethod);
+
+  /**
+   * Si el método elegido ya no está en la lista —por ejemplo, el cálculo de
+   * distancia falló y `dynamicShipping` quedó en null mientras seguía
+   * seleccionado "dynamic"— la expresión anterior (`?.price || 0`) daba 0 y el
+   * pedido pasaba con envío gratis sin que nadie lo notara. Ahora se distingue
+   * "no hay método válido" de "el envío cuesta 0".
+   */
+  const hasValidShippingMethod = Boolean(selectedMethod);
+  const rawShippingCost = selectedMethod?.price ?? 0;
 
   const shippingCost = appliedCoupon?.freeShipping ? 0 : rawShippingCost;
   
@@ -324,8 +334,19 @@ export default function CheckoutPage() {
   const handleFinalizeOrder = async () => {
     setLoading(true);
     try {
+      // Si el carrito cambió (stock o precio), no se sigue: el cliente tiene
+      // que ver el pedido corregido —y el envío recalculado sobre el nuevo
+      // subtotal— antes de pagar.
       const isCartValid = await validateCartWithServer();
       if (!isCartValid) {
+        setLoading(false);
+        return;
+      }
+
+      // Sin un método de envío válido no se puede cobrar: antes este caso
+      // pasaba como envío $0.
+      if (!hasValidShippingMethod) {
+        alert('Selecciona un método de envío para continuar.');
         setLoading(false);
         return;
       }
