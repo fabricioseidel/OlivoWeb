@@ -1,17 +1,24 @@
 "use client";
 
 import { CreditCardIcon } from "@heroicons/react/24/outline";
-import type { StoreSettings } from "@/app/api/admin/settings/route";
-import type { HandleChange } from "../lib";
-import { CheckBoxField } from "./fields";
 import MercadoPagoDiagnostics from "./MercadoPagoDiagnostics";
 
-interface PaymentSectionProps {
-  settings: StoreSettings;
-  handleChange: HandleChange;
-}
-
-export default function PaymentSection({ settings, handleChange }: PaymentSectionProps) {
+/**
+ * Estado real de los pagos.
+ *
+ * Antes esta pantalla tenía seis casillas —tarjeta de crédito, débito,
+ * transferencia, PayPal, MercadoPago, cripto— y un interruptor de "modo
+ * prueba (sin cobros reales)". Ninguno de los siete estaba conectado a nada:
+ * el checkout ofrece MercadoPago y solo MercadoPago, con una lista fija en el
+ * código, y si el cobro es real o de prueba lo decide únicamente el token que
+ * esté cargado en Vercel.
+ *
+ * Un interruptor que dice "no se procesarán cobros realmente" y no hace nada
+ * es peligroso justo antes de abrir: alguien lo activa, prueba con su tarjeta
+ * y se cobra de verdad. Por eso ahora la pantalla informa en vez de fingir que
+ * configura, y el diagnóstico de abajo dice qué token está activo.
+ */
+export default function PaymentSection() {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 space-y-6">
       <div>
@@ -19,55 +26,33 @@ export default function PaymentSection({ settings, handleChange }: PaymentSectio
           <CreditCardIcon className="h-5 w-5 text-amber-500" />
           Métodos de Pago
         </h2>
-        <p className="text-sm text-slate-500 mt-1">Configura qué formas de pago aceptas</p>
+        <p className="text-sm text-slate-500 mt-1">
+          Cómo cobra la tienda hoy
+        </p>
       </div>
 
-      <div className="space-y-3">
-        <CheckBoxField
-          label="Tarjeta de crédito"
-          checked={settings.paymentMethods?.creditCard || false}
-          onChange={(val) => handleChange(["paymentMethods", "creditCard"], val)}
-        />
-        <CheckBoxField
-          label="Tarjeta de débito"
-          checked={settings.paymentMethods?.debitCard || false}
-          onChange={(val) => handleChange(["paymentMethods", "debitCard"], val)}
-        />
-        <CheckBoxField
-          label="Transferencia bancaria"
-          checked={settings.paymentMethods?.bankTransfer || false}
-          onChange={(val) => handleChange(["paymentMethods", "bankTransfer"], val)}
-        />
-        <CheckBoxField
-          label="PayPal"
-          checked={settings.paymentMethods?.paypal || false}
-          onChange={(val) => handleChange(["paymentMethods", "paypal"], val)}
-        />
-        <CheckBoxField
-          label="Mercado Pago"
-          checked={settings.paymentMethods?.mercadoPago || false}
-          onChange={(val) => handleChange(["paymentMethods", "mercadoPago"], val)}
-        />
-        <CheckBoxField
-          label="Criptomonedas"
-          checked={settings.paymentMethods?.crypto || false}
-          onChange={(val) => handleChange(["paymentMethods", "crypto"], val)}
-        />
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
+        <p className="text-sm text-slate-700">
+          El checkout ofrece <strong>MercadoPago</strong> como única forma de
+          pago. Desde ahí el cliente puede pagar con tarjeta de crédito, débito
+          o el saldo de su cuenta: eso lo resuelve MercadoPago, no esta tienda.
+        </p>
+        <p className="text-sm text-slate-700">
+          Para aceptar transferencia bancaria u otro medio hay que agregarlo en
+          el código del checkout. No alcanza con configurarlo aquí.
+        </p>
       </div>
 
-      <div className="border-t border-slate-200 pt-6">
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <CheckBoxField
-            label="Modo prueba (sin cobros reales)"
-            checked={settings.paymentTestMode || false}
-            onChange={(val) => handleChange(["paymentTestMode"], val)}
-          />
-          <p className="text-sm text-amber-700 mt-2">
-            {settings.paymentTestMode
-              ? "✓ Los pagos serán simulados, no se procesarán realmente"
-              : "⚠️ Los pagos se procesarán realmente"}
-          </p>
-        </div>
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <p className="text-sm text-amber-900">
+          <strong>Cobros reales o de prueba</strong> lo decide la variable
+          <code className="mx-1 rounded bg-amber-100 px-1 py-0.5 text-xs">
+            MERCADOPAGO_ACCESS_TOKEN
+          </code>
+          en Vercel, no un interruptor de esta pantalla. Un token que empieza
+          con <code className="rounded bg-amber-100 px-1 py-0.5 text-xs">APP_USR-</code>{" "}
+          cobra de verdad. El diagnóstico de abajo dice cuál está activo ahora.
+        </p>
       </div>
 
       <MercadoPagoDiagnostics />

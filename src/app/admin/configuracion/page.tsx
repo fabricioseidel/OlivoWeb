@@ -157,7 +157,7 @@ export default function SettingsPage() {
 
               {/* Pagos */}
               {activeTab === "payment" && (
-                <PaymentSection settings={settings} handleChange={handleChange} />
+                <PaymentSection />
               )}
 
               {/* Emails */}
