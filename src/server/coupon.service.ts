@@ -131,39 +131,6 @@ export async function validateCoupon(
   };
 }
 
-// ── Get best auto-apply coupon ──────────────────────────────────────────
-export async function getBestAutoCoupon(
-  cartTotal: number,
-  customerEmail?: string
-): Promise<CouponValidation | null> {
-  // Obtener cupones auto_apply activos que la fecha permita
-  
-  const { data: coupons, error } = await supabaseServer
-    .from("coupons")
-    .select("*")
-    .eq("is_active", true)
-    .eq("auto_apply", true)
-    // lte / gte para validar_from y valid_until puede requerir lógica compleja en OR, 
-    // lo filtraremos en memoria para mantenerlo flexible.
-    .order("created_at", { ascending: false });
-
-  if (error || !coupons || coupons.length === 0) return null;
-
-  let bestValidation: CouponValidation | null = null;
-  let maxDiscount = 0;
-
-  for (const coupon of coupons as Coupon[]) {
-    // Validar cada cupón
-    const validation = await validateCoupon(coupon.code, cartTotal, customerEmail);
-    if (validation.valid && validation.discount > maxDiscount) {
-      maxDiscount = validation.discount;
-      bestValidation = validation;
-    }
-  }
-
-  return bestValidation;
-}
-
 // ── Record coupon usage ─────────────────────────────────────────────────
 export async function recordCouponUsage(data: {
   couponId: number;

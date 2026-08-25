@@ -58,8 +58,6 @@ export const config = {
     // App de operaciones del teléfono: mismo control de acceso que el admin
     "/operaciones/:path*",
     "/operaciones",
-    "/dashboard/:path*",
-    "/dashboard",
     // Alias público que reexporta el panel de admin de Uber Eats — sin esto
     // quedaba sin protección de sesión (ver plan de remediación P0-2).
     "/uber-eats-editor/:path*",
