@@ -17,6 +17,8 @@ import {
 import { format, getHours } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { assertOrdersEnabled } from '@/server/store-status.service';
+import { PREVIEW_HTTP_STATUS } from '@/lib/store-status';
 
 const TIMEZONE = "America/Santiago";
 
@@ -111,6 +113,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Demasiadas solicitudes. Intenta más tarde.' },
         { status: 429, headers: { 'Retry-After': String(retryAfterSeconds) } }
+      );
+    }
+
+
+    // Modo vitrina: la tienda se puede mirar pero no vende todavía. Se
+    // comprueba acá, antes de tocar stock, cupones o MercadoPago: si el
+    // bloqueo viviera solo en la interfaz, bastaría con llamar esta ruta a
+    // mano para generar un cobro por un pedido que nadie va a preparar.
+    const ventas = await assertOrdersEnabled();
+    if (!ventas.ok) {
+      return NextResponse.json(
+        { error: ventas.message, previewMode: true },
+        { status: PREVIEW_HTTP_STATUS }
       );
     }
 
