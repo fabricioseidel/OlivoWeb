@@ -28,11 +28,6 @@ export const authUtils = {
     });
   },
 
-  // Iniciar sesión con Google
-  signInWithGoogle: (callbackUrl?: string) => {
-    return signIn("google", { callbackUrl: callbackUrl || "/" });
-  },
-
   // Cerrar sesión
   signOutUser: (callbackUrl?: string) => {
     return signOut({ callbackUrl: callbackUrl || "/" });
