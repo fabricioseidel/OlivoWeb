@@ -237,3 +237,72 @@ export async function setStockLevel(
     ? callBatchRpc("apply_reception", [{ barcode, qty: delta }], opts)
     : applyStockOut([{ barcode, qty: -delta }], opts);
 }
+
+/**
+ * Igual que `setStockLevel` pero para varios productos a la vez.
+ *
+ * Una importación masiva puede traer cientos de productos. Uno por uno serían
+ * dos viajes a la base por producto y la petición se cae por tiempo antes de
+ * terminar. Acá se leen todos los stocks de una vez y se agrupan las
+ * diferencias en dos llamadas: una de entrada y otra de salida.
+ */
+export async function setStockLevels(
+  targets: Array<{ barcode: string; target: number }>,
+  options: StockMutationOptions = {}
+): Promise<{ ok: true; count: number } | { ok: false; error: string; count: number }> {
+  const wanted = targets.filter(
+    (t) => t.barcode && Number.isFinite(t.target) && t.target >= 0
+  );
+  if (wanted.length === 0) return { ok: true, count: 0 };
+
+  const { data: rows, error } = await supabaseServer
+    .from("products")
+    .select("barcode, stock")
+    .in("barcode", wanted.map((t) => t.barcode));
+
+  if (error) return { ok: false, error: error.message, count: 0 };
+
+  const current = new Map(
+    (rows ?? []).map((r) => [String(r.barcode), Number(r.stock ?? 0)])
+  );
+
+  const entradas: StockItem[] = [];
+  const salidas: StockItem[] = [];
+  const faltantes: string[] = [];
+
+  for (const { barcode, target } of wanted) {
+    if (!current.has(barcode)) {
+      faltantes.push(barcode);
+      continue;
+    }
+    const delta = Math.round(target) - current.get(barcode)!;
+    if (delta > 0) entradas.push({ barcode, qty: delta });
+    else if (delta < 0) salidas.push({ barcode, qty: -delta });
+  }
+
+  const opts: StockMutationOptions = {
+    ...options,
+    reason: options.reason ?? STOCK_REASON.MANUAL_ADJUSTMENT,
+  };
+
+  let count = 0;
+  const errores: string[] = [];
+
+  if (entradas.length > 0) {
+    const r = await callBatchRpc("apply_reception", entradas, opts);
+    if (r.ok) count += r.count;
+    else errores.push(r.error);
+  }
+  if (salidas.length > 0) {
+    const r = await applyStockOut(salidas, opts);
+    if (r.ok) count += r.count;
+    else errores.push(r.error);
+  }
+  if (faltantes.length > 0) {
+    errores.push(`sin producto: ${faltantes.join(", ")}`);
+  }
+
+  return errores.length > 0
+    ? { ok: false, error: errores.join(" | "), count }
+    : { ok: true, count };
+}

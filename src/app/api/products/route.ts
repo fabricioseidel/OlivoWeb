@@ -3,7 +3,7 @@ import { fetchAllProducts, isProductVisible } from "@/services/products";
 import { supabaseServer } from "@/lib/supabase-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { requireApiAdminOrSeller } from "@/lib/api-auth";
-import { STOCK_REASON, setStockLevel } from "@/server/inventory.service";
+import { STOCK_REASON, setStockLevels } from "@/server/inventory.service";
 
 async function readJsonBody(req: Request) {
   const text = await req.text();
@@ -130,17 +130,19 @@ export async function POST(req: Request) {
     // Using supabaseServer to bypass RLS policies that might block client-side inserts
     await upsertProductsWithColumnFallback(payloads);
 
-    const stockErrors: string[] = [];
-    for (const [barcode, target] of stockTargets) {
-      const result = await setStockLevel(barcode, target, { reason: STOCK_REASON.MANUAL_ADJUSTMENT });
-      if (!result.ok) stockErrors.push(`${barcode}: ${result.error}`);
+    const stockResult = await setStockLevels(
+      [...stockTargets].map(([barcode, target]) => ({ barcode, target })),
+      { reason: STOCK_REASON.MANUAL_ADJUSTMENT }
+    );
+
+    if (!stockResult.ok) {
+      console.error('/api/products POST: ajuste de stock falló', stockResult.error);
     }
 
-    if (stockErrors.length > 0) {
-      console.error('/api/products POST: ajuste de stock falló', stockErrors);
-    }
-
-    return successResponse({ success: true, stockErrors });
+    return successResponse({
+      success: true,
+      ...(stockResult.ok ? {} : { stockError: stockResult.error }),
+    });
   } catch (e: any) {
     if (e?.statusCode && typeof e.statusCode === "number") {
       return errorResponse(e, e.statusCode);

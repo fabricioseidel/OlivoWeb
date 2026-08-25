@@ -18,7 +18,8 @@ const state: {
   productExists: boolean;
   rpcError: any;
   rpcData: any;
-} = { rpcCalls: [], productStock: 0, productExists: true, rpcError: null, rpcData: 1 };
+  rows: Array<{ barcode: string; stock: number }>;
+} = { rpcCalls: [], productStock: 0, productExists: true, rpcError: null, rpcData: 1, rows: [] };
 
 vi.mock('@/lib/supabase-server', () => ({
   supabaseServer: {
@@ -30,6 +31,7 @@ vi.mock('@/lib/supabase-server', () => ({
       const api: any = {
         select: () => api,
         eq: () => api,
+        in: async () => ({ data: state.rows, error: null }),
         maybeSingle: async () => ({
           data: state.productExists ? { stock: state.productStock } : null,
           error: null,
@@ -46,6 +48,7 @@ import {
   reverseReception,
   reserveStockForWebSale,
   setStockLevel,
+  setStockLevels,
   STOCK_REASON,
 } from '@/server/inventory.service';
 
@@ -55,6 +58,7 @@ beforeEach(() => {
   state.productExists = true;
   state.rpcError = null;
   state.rpcData = 1;
+  state.rows = [];
 });
 
 const lastCall = () => state.rpcCalls[state.rpcCalls.length - 1];
@@ -166,6 +170,63 @@ describe('ajuste manual de stock', () => {
     const res = await setStockLevel('999', 5);
 
     expect(res.ok).toBe(false);
+    expect(state.rpcCalls).toHaveLength(0);
+  });
+});
+
+describe('ajuste masivo de stock', () => {
+  it('agrupa todo en dos llamadas, no una por producto', async () => {
+    state.rows = [
+      { barcode: 'sube', stock: 2 },
+      { barcode: 'baja', stock: 9 },
+      { barcode: 'igual', stock: 5 },
+    ];
+
+    const res = await setStockLevels([
+      { barcode: 'sube', target: 6 },
+      { barcode: 'baja', target: 4 },
+      { barcode: 'igual', target: 5 },
+    ]);
+
+    expect(res.ok).toBe(true);
+    expect(state.rpcCalls).toHaveLength(2);
+
+    const entrada = state.rpcCalls.find((c) => c.name === 'apply_reception')!;
+    const salida = state.rpcCalls.find((c) => c.name === 'apply_reception_reverse')!;
+
+    // Diferencias, no totales, y el que no cambia no viaja.
+    expect(entrada.args.p_items).toEqual([{ barcode: 'sube', qty: 4, name: null }]);
+    expect(salida.args.p_items).toEqual([{ barcode: 'baja', qty: 5, name: null }]);
+  });
+
+  it('no llama a la base cuando ningún stock cambia', async () => {
+    state.rows = [{ barcode: 'a', stock: 3 }];
+    const res = await setStockLevels([{ barcode: 'a', target: 3 }]);
+
+    expect(res).toEqual({ ok: true, count: 0 });
+    expect(state.rpcCalls).toHaveLength(0);
+  });
+
+  it('ajusta los que existen y reporta los que no', async () => {
+    state.rows = [{ barcode: 'existe', stock: 1 }];
+    const res = await setStockLevels([
+      { barcode: 'existe', target: 4 },
+      { barcode: 'fantasma', target: 10 },
+    ]);
+
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toContain('fantasma');
+    // El que sí existe se ajustó igual.
+    expect(lastCall().args.p_items).toEqual([{ barcode: 'existe', qty: 3, name: null }]);
+  });
+
+  it('ignora objetivos inválidos sin tocar la base', async () => {
+    const res = await setStockLevels([
+      { barcode: 'a', target: -5 },
+      { barcode: '', target: 3 },
+    ]);
+
+    expect(res).toEqual({ ok: true, count: 0 });
     expect(state.rpcCalls).toHaveLength(0);
   });
 });
