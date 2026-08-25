@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireApiAdmin } from "@/lib/api-auth";
 import { supabaseServer } from "@/lib/supabase-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
@@ -45,10 +44,8 @@ async function ensureUploadsBucket() {
 // POST: Subir imagen para producto Uber Eats
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return errorResponse(new Error("Unauthorized"), 401);
-    }
+    const auth = await requireApiAdmin();
+    if (!auth.ok) return auth.response;
 
     const contentType = request.headers.get('content-type') || '';
     

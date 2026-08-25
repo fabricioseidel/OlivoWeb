@@ -12,6 +12,7 @@ import MultiImageUpload from "@/components/ui/MultiImageUpload";
 import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
+import { useLaserScanner } from "@/components/admin/scanner/useLaserScanner";
 import { useCategories } from "@/hooks/useCategories";
 
 export default function NewProductPage() {
@@ -95,39 +96,14 @@ export default function NewProductPage() {
     fetchSuppliers();
   }, []);
 
-  // --- Escáner Bluetooth / Lasers USB ---
-  useEffect(() => {
-    let barcodeBuffer = "";
-    let timeoutId: NodeJS.Timeout;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignorar si el usuario está escribiendo explícitamente en un input o textarea
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
-        return;
-      }
-
-      if (e.key === 'Enter') {
-        if (barcodeBuffer.length > 3) { // Código de barras mínimo
-          setFormData(prev => ({ ...prev, barcode: barcodeBuffer }));
-          showToast(`Código escaneado: ${barcodeBuffer}`, "success");
-        }
-        barcodeBuffer = "";
-      } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        barcodeBuffer += e.key;
-        clearTimeout(timeoutId);
-        // Escáneres de pistola teclean rápido (10-30ms)
-        timeoutId = setTimeout(() => {
-          barcodeBuffer = "";
-        }, 100); 
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      clearTimeout(timeoutId);
-    };
-  }, [showToast]);
+  // Pistola láser / lector Bluetooth: hook compartido con el POS y la
+  // recepción, en vez de una heurística de teclado propia por pantalla.
+  useLaserScanner({
+    onDetected: (code) => {
+      setFormData((prev) => ({ ...prev, barcode: code }));
+      showToast(`Código escaneado: ${code}`, "success");
+    },
+  });
 
   // Estado para errores de validación
   const [errors, setErrors] = useState<Record<string, string>>({});

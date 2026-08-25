@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { supabaseServer } from "@/lib/supabase-server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireApiAdmin } from "@/lib/api-auth";
 import { mapSettingsRow, FALLBACK_SETTINGS } from "@/lib/settings-shared";
 import { RADIO_DESPACHO_KM_DEFAULT } from "@/lib/shipping-policy";
 
@@ -43,16 +42,8 @@ export async function GET() {
 // PATCH: Actualizar configuraciones (solo admin)
 export async function PATCH(req: Request) {
   try {
-    // Verificar que el usuario es admin
-    const session: any = await getServerSession(authOptions as any);
-    const role = session?.role || session?.user?.role || "";
-
-    if (!session || !String(role).toUpperCase().includes("ADMIN")) {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
-    }
+    const auth = await requireApiAdmin();
+    if (!auth.ok) return auth.response;
 
     const body = await req.json();
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   ArrowLeftIcon,
   CheckCircleIcon,
@@ -11,6 +11,7 @@ import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useBranch } from "@/contexts/BranchContext";
 import { createReceptionAction } from "@/actions/reception";
+import { useLaserScanner } from "@/components/admin/scanner/useLaserScanner";
 import { ProductUI } from "@/types";
 
 export default function RecepcionPanel() {
@@ -28,48 +29,9 @@ export default function RecepcionPanel() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    let barcodeBuffer = "";
-    let lastKeyTime = Date.now();
-    let timeoutId: NodeJS.Timeout;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        (e.target as HTMLElement)?.tagName === "INPUT" ||
-        (e.target as HTMLElement)?.tagName === "TEXTAREA"
-      ) {
-        return;
-      }
-
-      const currentTime = Date.now();
-      if (currentTime - lastKeyTime > 50) {
-        barcodeBuffer = "";
-      }
-      lastKeyTime = currentTime;
-
-      if (e.key === "Enter") {
-        if (barcodeBuffer.length > 2) {
-          e.preventDefault();
-          handleScannedBarcode(barcodeBuffer);
-        }
-        barcodeBuffer = "";
-      } else if (e.key.length === 1) {
-        barcodeBuffer += e.key;
-      }
-
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        barcodeBuffer = "";
-      }, 200);
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      clearTimeout(timeoutId);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products]);
+  // Pistola láser: el mismo hook que usa el escáner del POS, en vez de una
+  // tercera copia de la heurística de teclado.
+  useLaserScanner({ onDetected: (code) => handleScannedBarcode(code) });
 
   const handleScannedBarcode = (code: string) => {
     const p = products.find(

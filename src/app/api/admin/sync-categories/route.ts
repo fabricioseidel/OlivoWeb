@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireApiAdmin } from "@/lib/api-auth";
 import { supabaseServer } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   // Solo admin
-  const session: any = await getServerSession(authOptions as any);
-  const role = (session as any)?.role || (session?.user as any)?.role || '';
-  if (!session || !String(role).toUpperCase().includes('ADMIN')) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-  }
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
   try {
     const { categories } = await request.json();
 
