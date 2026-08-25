@@ -3,6 +3,7 @@ import { fetchAllProducts, isProductVisible } from "@/services/products";
 import { supabaseServer } from "@/lib/supabase-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { requireApiAdminOrSeller } from "@/lib/api-auth";
+import { STOCK_REASON, setStockLevel } from "@/server/inventory.service";
 
 async function readJsonBody(req: Request) {
   const text = await req.text();
@@ -111,10 +112,35 @@ export async function POST(req: Request) {
       }
     }
 
-    // Using supabaseServer to bypass RLS policies that might block client-side inserts
-    await upsertProductsWithColumnFallback(items);
+    // `products.stock` es un valor derivado de `branch_stock`: no puede viajar
+    // en el upsert. Antes sí lo hacía, y como el navegador manda el producto
+    // completo, guardar cualquier campo reescribía el stock con el valor que
+    // el cliente tenía cacheado — pisando recepciones y ventas recién hechas.
+    // Acá se separa: el producto se guarda sin stock y la cantidad, si viene,
+    // se aplica después como ajuste de inventario.
+    const stockTargets = new Map<string, number>();
+    const payloads = items.map((item: any) => {
+      const { stock, ...rest } = item ?? {};
+      if (stock !== undefined && stock !== null && Number.isFinite(Number(stock))) {
+        stockTargets.set(String(rest.barcode), Number(stock));
+      }
+      return rest;
+    });
 
-    return successResponse({ success: true });
+    // Using supabaseServer to bypass RLS policies that might block client-side inserts
+    await upsertProductsWithColumnFallback(payloads);
+
+    const stockErrors: string[] = [];
+    for (const [barcode, target] of stockTargets) {
+      const result = await setStockLevel(barcode, target, { reason: STOCK_REASON.MANUAL_ADJUSTMENT });
+      if (!result.ok) stockErrors.push(`${barcode}: ${result.error}`);
+    }
+
+    if (stockErrors.length > 0) {
+      console.error('/api/products POST: ajuste de stock falló', stockErrors);
+    }
+
+    return successResponse({ success: true, stockErrors });
   } catch (e: any) {
     if (e?.statusCode && typeof e.statusCode === "number") {
       return errorResponse(e, e.statusCode);

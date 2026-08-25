@@ -167,16 +167,22 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     // Combinar datos actuales con los nuevos cambios para evitar pérdida de campos
     const merged: Product = { ...existing, ...updateData };
 
+    // El stock viaja SOLO si esta edición lo tocó. `merged.stock` es el valor
+    // que el navegador tenía cacheado: mandarlo siempre hacía que guardar
+    // cualquier campo pisara la recepción o la venta recién registrada.
+    const stockEdit =
+      updateData.stock === undefined ? {} : { stock: Number(updateData.stock) };
+
     // Update product data in Supabase (includes optional image_url/gallery)
     await saveProduct({
       barcode,
+      ...stockEdit,
       name: merged.name,
       category: Array.isArray(merged.categories)
         ? merged.categories.join(', ')
         : (merged as any).category ?? '',
       purchase_price: Number(merged.purchasePrice ?? 0),
       sale_price: Number(merged.price ?? 0),
-      stock: Number(merged.stock ?? 0),
       image_url: merged.image,
       gallery: merged.gallery,
       featured: merged.featured,
@@ -201,15 +207,17 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       if (!existing) return null;
 
       const merged = { ...existing, ...updates[id] };
+      const stockEdit =
+        updates[id].stock === undefined ? {} : { stock: Number(updates[id].stock) };
       return {
         barcode,
+        ...stockEdit,
         name: merged.name,
         category: Array.isArray(merged.categories)
           ? merged.categories.join(', ')
           : (merged as any).category ?? '',
         purchase_price: Number(merged.purchasePrice ?? 0),
         sale_price: Number(merged.price ?? 0),
-        stock: Number(merged.stock ?? 0),
         image_url: merged.image,
         gallery: merged.gallery,
         featured: merged.featured,
@@ -250,7 +258,6 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         purchase_price: 0,
         sale_price: Number(product.price),
         expiry_date: null,
-        stock: Number(product.stock),
         image_url: (product as any).image ?? null,
         gallery: (product as any).gallery ?? null,
         featured: value,
@@ -280,7 +287,6 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         purchase_price: 0,
         sale_price: Number(product.price),
         expiry_date: null,
-        stock: Number(product.stock),
         image_url: (product as any).image ?? null,
         gallery: (product as any).gallery ?? null,
         featured: product.featured, // Preserve featured state

@@ -9,11 +9,14 @@ import {
 } from "@heroicons/react/24/outline";
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
+import { useBranch } from "@/contexts/BranchContext";
+import { createReceptionAction } from "@/actions/reception";
 import { ProductUI } from "@/types";
 
 export default function RecepcionPanel() {
-  const { products } = useProducts();
+  const { products, refresh } = useProducts();
   const { showToast } = useToast();
+  const { currentBranch } = useBranch();
 
   const [scannedCode, setScannedCode] = useState("");
   const [activeProduct, setActiveProduct] = useState<ProductUI | null>(null);
@@ -89,7 +92,7 @@ export default function RecepcionPanel() {
 
   const saveReception = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeProduct) return;
+    if (!activeProduct || isSaving) return;
     const qty = parseInt(receiveQty, 10);
     if (isNaN(qty) || qty <= 0) {
       showToast("La cantidad debe ser mayor a 0", "warning");
@@ -98,18 +101,27 @@ export default function RecepcionPanel() {
 
     try {
       setIsSaving(true);
-      const newStock = (activeProduct.stock || 0) + qty;
 
-      const res = await fetch(`/api/admin/products`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: activeProduct.id,
-          updates: { stock: newStock },
-        }),
+      // La recepción va por la misma vía que el resto del inventario: el
+      // servidor SUMA las unidades sobre el stock real. Antes se calculaba
+      // aquí `stock actual + qty` y se mandaba el total absoluto a una ruta
+      // que ni siquiera existía; cuando existía, dos recepciones seguidas del
+      // mismo producto partían las dos del stock cacheado y la primera se
+      // perdía.
+      const result = await createReceptionAction({
+        items: [
+          {
+            barcode: activeProduct.barcode || activeProduct.id,
+            qty,
+            name: activeProduct.name,
+          },
+        ],
+        branchId: currentBranch?.id ?? null,
+        reference: null,
+        notes: "RECEPTION",
       });
 
-      if (!res.ok) throw new Error("Error en el servidor");
+      if (!result.ok) throw new Error(result.error);
 
       setHistory((prev) => [
         {
@@ -127,8 +139,14 @@ export default function RecepcionPanel() {
       setActiveProduct(null);
       setReceiveQty("1");
       searchInputRef.current?.blur();
-    } catch {
-      showToast("Error al procesar la recepción", "error");
+      // El stock cambió en el servidor: sin esto el panel seguiría mostrando
+      // (y ofreciendo) el valor viejo.
+      await refresh();
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : "Error al procesar la recepción",
+        "error"
+      );
     } finally {
       setIsSaving(false);
     }
