@@ -29,16 +29,12 @@ import {
   type SupplierOrder,
   type ReplenishmentResponse,
 } from "@/components/admin/reabastecimiento";
+import { formatCLP } from "@/utils/currency";
 
 type TabId = "pedidos" | "sugerencias" | "stock" | "recepcion";
 const TAB_IDS: TabId[] = ["pedidos", "sugerencias", "stock", "recepcion"];
 
-const CLP = (n: number) =>
-  n.toLocaleString("es-CL", {
-    style: "currency",
-    currency: "CLP",
-    maximumFractionDigits: 0,
-  });
+const CLP = formatCLP;
 
 export default function ReabastecimientoPage() {
   const { showToast } = useToast();
