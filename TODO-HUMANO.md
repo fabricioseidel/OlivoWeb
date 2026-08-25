@@ -80,11 +80,39 @@ Al resolver cada punto, edita el archivo indicado y borra el comentario
 - **Estado:** mencionado como plan, **no** aparece en el sitio. No se publica un
   servicio que todavía no existe: marcarlo en schema o prometerlo en una landing sin
   tenerlo operativo daña la confianza y contradice las guías de Google.
+- **Hay código escrito y sin mergear** en el [PR #56](https://github.com/fabricioseidel/OlivoWeb/pull/56):
+  cliente de la API, regla de subsidio con tests, recotización al confirmar, webhook
+  firmado y la opción en el checkout. Nadie lo revisó (solo comentaron los bots).
+- **Para retomarlo hay que hacer, en este orden:**
+  1. **Rebasarlo sobre `main`.** Su base es del 31 de julio y choca en tres archivos:
+     `api/checkout/create-order/route.ts`, `checkout/page.tsx` y
+     `checkout/components/ShippingForm.tsx`. Los tres se reescribieron en #63 y #64
+     (envío gratis por distancia, motivo cuando no aplica, método de envío inválido),
+     así que los conflictos son sobre lógica de cobro y hay que resolverlos a mano.
+  2. **Probar contra la API real** con las credenciales de prueba. Es lo único que
+     confirma el manejo de montos en CLP, que la propia descripción del PR deja
+     pendiente.
+  3. **Cargar las cinco variables en Vercel** y registrar el webhook **con `www`**:
+     el dominio raíz responde 307 y los webhooks no siguen redirecciones.
+- **Ya resuelto:** las columnas `express_*` de `orders` existían en la base pero no
+  tenían archivo de migración. Se agregó
+  `supabase/migrations/20260825000000_document_express_delivery_columns.sql`, que es
+  idempotente: no cambia nada sobre la base actual y deja el mismo esquema en una
+  base nueva.
 - **Cuando esté operativo:** avísame y lo agrego como servicio con su propia sección en
   las landings de comuna y en el schema (`GroceryStore.makesOffer`), además de ajustar
   los plazos de entrega, que pasarían de "día siguiente 08:00–14:00" a minutos.
 
 ## Decisiones tomadas que conviene revisar
+
+- **El acceso es solo con correo y contraseña.** Se eliminó el inicio de sesión con
+  Google (proveedor de NextAuth, botones, variables y la elevación automática a ADMIN
+  por `GOOGLE_ADMIN_EMAILS`). Lo que sigue nombrando a Google es de posicionamiento y
+  se conserva a propósito: `Googlebot` en `robots.ts`, el JSON-LD y el CID de la ficha
+  del negocio. Quitar eso no "saca a Google" del sitio, impide que el minimarket
+  aparezca en las búsquedas. Queda una decisión abierta: el iframe de Google Maps en
+  las landings de comuna (`MapEmbed` en `components/seo/LocalBlocks.tsx`) sí es visible
+  y sí carga contenido de Google; se puede quitar en una línea si lo prefieres sin mapa.
 
 - **`/centro-logistico` ahora redirige (301) a `/punto-de-envio`.** Ambas cubrían el
   mismo tema y competían por las mismas búsquedas (canibalización). `/punto-de-envio`
