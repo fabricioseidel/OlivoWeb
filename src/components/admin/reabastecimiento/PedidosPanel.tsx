@@ -19,12 +19,15 @@ export interface SupplierOrder {
   deliveredDate?: string;
   status:
     | "borrador"
+    | "en_revision"
     | "pendiente"
+    | "enviado"
     | "confirmado"
-    | "enviado_por_whatsapp"
     | "gestionado"
     | "recibido"
     | "cancelado";
+  /** Por dónde salió el pedido. Va aparte del estado a propósito. */
+  channel?: "whatsapp" | "online" | "presencial" | "telefono" | null;
   paymentStatus: "pendiente" | "parcial" | "pagado";
   total: number;
   itemCount: number;
@@ -41,8 +44,9 @@ const STATUS_FILTER_OPTIONS = [
   { value: "todos", label: "Todos" },
   { value: "borrador", label: "Borrador" },
   { value: "pendiente", label: "Pendiente" },
+  { value: "en_revision", label: "En revisión" },
   { value: "confirmado", label: "Confirmado" },
-  { value: "enviado_por_whatsapp", label: "WhatsApp" },
+  { value: "enviado", label: "Enviado" },
   { value: "gestionado", label: "Gestionado" },
   { value: "recibido", label: "Recibido" },
   { value: "cancelado", label: "Cancelado" },

@@ -91,6 +91,7 @@ export async function GET(
       expected_date: order.expected_date,
       delivered_date: order.delivered_date,
       status: order.status,
+      channel: order.channel ?? null,
       payment_status: order.payment_status,
       total: parseFloat(order.total),
       paid_amount: parseFloat(order.paid_amount),
@@ -209,16 +210,45 @@ export async function PATCH(
       try {
         const { data: orderItems } = await supabaseServer
           .from('supplier_order_items')
-          .select('quantity, products(barcode)')
+          .select('id, quantity, qty_received, products(barcode)')
           .eq('order_id', id);
 
+        // El stock se mueve con lo que REALMENTE llegó. Antes se movía con
+        // `quantity` —la cantidad pedida—, así que un "pedí 24, llegaron 18"
+        // metía 24 al inventario y el sistema quedaba mintiendo por seis
+        // unidades. Como `products.stock` se recalcula desde `branch_stock`,
+        // ese error llegaba hasta la venta web.
+        //
+        // Cuando nadie anotó la recepción línea por línea, marcar el pedido
+        // como recibido sigue significando "llegó todo como se pidió", que es
+        // el caso habitual; para revertir, en cambio, lo que hay que sacar es
+        // exactamente lo que entró.
         const items = (orderItems || [])
           .map((it: any) => {
             const prod = Array.isArray(it.products) ? it.products[0] : it.products;
             const barcode = prod?.barcode;
-            return barcode ? { barcode, qty: Number(it.quantity) || 0 } : null;
+            if (!barcode) return null;
+            const cantidad = it.qty_received ?? it.quantity;
+            return { id: it.id as string, barcode, qty: Number(cantidad) || 0 };
           })
-          .filter((it): it is { barcode: string; qty: number } => it !== null);
+          .filter((it): it is { id: string; barcode: string; qty: number } => it !== null)
+          .filter((it) => it.qty > 0);
+
+        // Dejar anotado lo recibido cierra el hueco: sin esto, revertir después
+        // no sabría cuánto había entrado.
+        if (isReception) {
+          const sinAnotar = (orderItems || []).filter((it: any) => it.qty_received === null);
+          if (sinAnotar.length > 0) {
+            await Promise.all(
+              sinAnotar.map((it: any) =>
+                supabaseServer
+                  .from('supplier_order_items')
+                  .update({ qty_received: it.quantity, received_at: new Date().toISOString() })
+                  .eq('id', it.id)
+              )
+            );
+          }
+        }
 
         if (items.length > 0) {
           const reason = isReception
@@ -289,6 +319,7 @@ export async function PATCH(
       expected_date: data.expected_date,
       delivered_date: data.delivered_date,
       status: data.status,
+      channel: data.channel ?? null,
       payment_status: data.payment_status,
       total: parseFloat(data.total),
       paid_amount: parseFloat(data.paid_amount),

@@ -6,6 +6,7 @@ import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { use } from "react";
 import { StatusBadge } from "@/components/admin/shell";
+import { CHANNEL_LABEL, type SupplierOrderChannel } from "@/lib/admin/statusMap";
 
 interface SupplierOrder {
   id: string;
@@ -17,6 +18,8 @@ interface SupplierOrder {
   expected_date: string;
   delivered_date: string | null;
   status: string;
+  /** Por dónde salió el pedido. Independiente del estado. */
+  channel?: SupplierOrderChannel | null;
   payment_status: string;
   total: number;
   paid_amount: number;
@@ -221,9 +224,31 @@ export default function SupplierOrderDetailPage({
     const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
 
-    // Cambiar estado a "enviado_por_whatsapp" si está en "pendiente" o "confirmado"
-    if (order.status === 'pendiente' || order.status === 'confirmado') {
-      await updateStatus('enviado_por_whatsapp');
+    // El estado dice dónde va el pedido y el canal cómo salió: son dos datos
+    // distintos. Marcarlos juntos es lo que hacía el viejo
+    // 'enviado_por_whatsapp', que obligaba a inventar un estado por canal.
+    await marcarEnviadoPor('whatsapp');
+  };
+
+  const marcarEnviadoPor = async (canal: 'whatsapp' | 'online' | 'presencial' | 'telefono') => {
+    if (!order) return;
+    // Un pedido ya recibido o cancelado no vuelve atrás: el servidor lo rechaza
+    // y volver a marcarlo borraría el canal por el que realmente se compró.
+    if (['recibido', 'cancelado'].includes(order.status)) return;
+
+    try {
+      const res = await fetch(`/api/admin/supplier-orders/${orderId}/ciclo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'enviar', canal }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'No se pudo marcar como enviado');
+      }
+      await fetchOrder();
+    } catch (e: any) {
+      alert(e.message || 'Error marcando el pedido como enviado');
     }
   };
 
@@ -358,16 +383,16 @@ export default function SupplierOrderDetailPage({
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white ring-1 ring-gray-200 hover:ring-emerald-300 hover:text-emerald-700 text-gray-700 text-sm font-bold transition active:scale-[0.98] min-h-[44px]"
             >
               <ChatBubbleLeftRightIcon className="h-4 w-4" />
-              {order.status === "enviado_por_whatsapp"
+              {order.channel === "whatsapp"
                 ? "Reabrir WhatsApp"
                 : "Enviar por WhatsApp"}
             </button>
           </div>
 
-          {order.status === "enviado_por_whatsapp" && (
+          {order.status === "enviado" && (
             <p className="mt-3 text-xs text-purple-700 bg-purple-50 ring-1 ring-purple-200 rounded-lg px-3 py-2">
-              Pedido enviado por WhatsApp. Marcalo como gestionado cuando el
-              proveedor confirme.
+              Pedido enviado{order.channel ? ` por ${CHANNEL_LABEL[order.channel]}` : ""}.
+              Marcalo como gestionado cuando el proveedor confirme.
             </p>
           )}
         </div>

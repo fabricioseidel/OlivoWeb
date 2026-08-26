@@ -48,6 +48,7 @@ export async function GET() {
       expectedDate: order.expected_date,
       deliveredDate: order.delivered_date,
       status: order.status,
+      channel: order.channel ?? null,
       paymentStatus: order.payment_status,
       total: parseFloat(order.total || '0'),
       paidAmount: parseFloat(order.paid_amount || '0'),
@@ -106,7 +107,12 @@ export async function POST(request: Request) {
         notes: body.notes || null,
         total: 0, // Se calculará automáticamente con los triggers
         created_by: user?.id,
-        status: body.sent_by_whatsapp ? 'enviado_por_whatsapp' : 'pendiente'
+        // El canal va en su propia columna: 'enviado' dice dónde está el
+        // pedido, 'whatsapp' cómo salió. Antes ambas cosas vivían dentro del
+        // mismo estado.
+        status: body.sent_by_whatsapp ? 'enviado' : 'pendiente',
+        channel: body.sent_by_whatsapp ? 'whatsapp' : null,
+        sent_at: body.sent_by_whatsapp ? new Date().toISOString() : null
       })
       .select()
       .single();

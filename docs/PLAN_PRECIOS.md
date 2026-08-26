@@ -1,6 +1,7 @@
 # Plan de precios, costos y reposición
 
-> Estado: **Fases 1 y 2 implementadas**; Fases 3–5 pendientes. Revisión hecha sobre
+> Estado: **Fases 1 y 2 completas; Fase 3 en curso** (esquema, servicio y
+> arreglo de la recepción hechos; falta el panel de revisión). Fases 4–5 pendientes. Revisión hecha sobre
 > `main` en el commit `286d2ff`. Versión con tablas y ejemplos numéricos:
 > https://claude.ai/code/artifact/41a48acf-3fd9-4cf8-8ab0-ddf545393ed9
 
@@ -72,21 +73,41 @@ responde qué deja cada producto al precio que ya tiene puesto.
 Funciona porque el motor traduce, pero una consulta nueva que las una sin
 advertirlo falla o devuelve vacío sin avisar.
 
-### 🟡 Un CHECK impide registrar recepción parcial
+### ✅ Un CHECK impide registrar recepción parcial — CORREGIDO, y era peor
 
-`CONSTRAINT valid_subtotal CHECK (subtotal = quantity * unit_cost)` en
-`supplier_order_items`. Con "pedí 24, llegaron 18, me cobraron más" la base
-rechaza la fila.
+`CONSTRAINT valid_subtotal CHECK (subtotal = quantity * unit_cost)`.
 
-### 🟡 El estado del pedido mezcla el punto del flujo con el canal
+Al probarlo contra PostgreSQL real, el hallazgo original resultó **impreciso**:
+"pedí 24, llegaron 18, me cobraron más" sí pasaba el CHECK, siempre que se
+actualizaran las tres columnas a la vez. Lo que el CHECK rechazaba de verdad era
+cualquier importe que no fuera la multiplicación exacta — un descuento por
+volumen, un redondeo del proveedor, una factura que no cuadra.
 
-Existe `enviado_por_whatsapp`. Eso obliga a inventar un estado por canal. Son dos
-columnas distintas: `status` (dónde va) y `channel` (cómo se compró).
+Pero al mirarlo apareció algo mucho peor, que el plan no había visto:
+**sobrescribir `quantity` con lo recibido destruye lo que se había pedido**, y
+con eso la única forma de saber que el proveedor entregó de menos. Y sobre todo:
 
-### 🟡 No hay dónde anotar qué tenía el proveedor
+> **Al marcar un pedido como recibido, el stock entraba con la cantidad PEDIDA.**
 
-El pedido salta de "enviado" a "recibido". Falta el paso de confirmación de
-disponibilidad por línea.
+Pedir 24 y recibir 18 metía 24 unidades al inventario. Como `products.stock` se
+recalcula desde `branch_stock`, ese error llegaba hasta la venta web. Es el
+mismo tipo de daño silencioso que el choque de inventario que se arregló antes.
+
+Ahora son tres columnas separadas: `quantity` (pedido), `qty_confirmed` (lo que
+dijo el proveedor) y `qty_received` (lo que llegó). El stock se mueve con la
+tercera, y revertir usa también la tercera — revertir con lo pedido descontaría
+unidades que nunca entraron.
+
+### ✅ El estado del pedido mezcla el punto del flujo con el canal — CORREGIDO
+
+`enviado_por_whatsapp` respondía dos preguntas a la vez. Ahora `status` dice
+dónde va el pedido y `channel` cómo se compró. Las filas existentes se migraron,
+y el estado viejo se retiró del CHECK: dejarlo aceptado invita a seguir usándolo.
+
+### ✅ No hay dónde anotar qué tenía el proveedor — CORREGIDO
+
+`availability` y `qty_confirmed` por línea. Saber antes de que llegue el camión
+que el proveedor no tiene todo permite pedirle el resto a otro.
 
 ---
 
@@ -155,11 +176,16 @@ una es desplegable sola y deja el sistema utilizable.
    ordena. Y los márgenes por categoría se editan ahí mismo, mostrando al lado
    cuánto deja hoy cada categoría — fijar la regla a ciegas es exactamente cómo
    se llegó al 35% que nunca se contrastó.
-3. **Ciclo de compra con canales** — la más grande y la de más riesgo (elimina el
-   CHECK y migra los pedidos existentes). Panel de revisión previo al envío,
-   cuatro salidas por canal (WhatsApp / online / presencial / teléfono),
-   confirmación de disponibilidad por línea, detección de variación de costo al
-   recibir.
+3. 🔄 **Ciclo de compra con canales** — en curso. Hechos: la migración
+   (`20260826000200_purchase_cycle`), `src/server/purchase-cycle.service.ts` con
+   25 tests, el arreglo de la recepción y la separación estado/canal en toda la
+   UI. **Falta el panel de revisión previo al envío** con las cuatro salidas.
+
+   El circuito de precio ya queda cerrado: al recibir con un costo distinto, el
+   costo de la factura vuelve a `product_suppliers` con `cost_source='recepcion'`,
+   el trigger de la Fase 1 lo deja en el historial, y la pantalla de la Fase 2
+   marca ese producto como «el costo cambió». Costo se mueve → se confirma al
+   recibir → el precio de venta vuelve a revisión.
 4. **Regla de venta web** — `require_reviewed_price`, apagado por defecto, con
    salvaguarda que muestra el impacto antes de encenderlo.
 5. **Aprendizaje** — seis reglas estadísticas sobre el propio historial (no
