@@ -4,6 +4,13 @@ on:
   push:
     branches: [ main ]
   pull_request:
+  # Permite lanzar CI a mano desde la pestaña Actions.
+  #
+  # Hace falta porque un pull request abierto por una app —no por un push— no
+  # dispara el evento `pull_request`, así que la rama se queda sin ninguna
+  # ejecución y no hay forma de pedirla sin recurrir a un commit vacío o a
+  # cerrar y reabrir el PR. Con esto se elige la rama y se ejecuta.
+  workflow_dispatch:
 
 jobs:
   build-test:
