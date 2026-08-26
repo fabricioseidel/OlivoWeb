@@ -27,6 +27,21 @@ No lo desactives hasta cerrar los puntos 🔴 de abajo.
 
 ---
 
+## 🧭 El panel te dice en qué vas
+
+Antes de leer la lista: en el admin hay una pantalla que **comprueba sola** casi
+todo lo de abajo — **Resumen → Estado de apertura**.
+
+Verifica de verdad si las migraciones se aplicaron, si el modo vitrina está
+activo, qué variables faltan en Vercel, cuántos productos no se ven y por qué,
+y si el stock del catálogo cuadra con el de la sucursal. Este archivo explica
+*qué* hay que hacer; el panel dice *qué falta ahora mismo*, que cambia cada día.
+
+Lo único que no puede comprobar es la prueba de compra real (punto G): pagar,
+recibir el correo y ver el pedido marcado como pagado.
+
+---
+
 ## 🔴 Bloquea la apertura — sin esto no se puede cobrar
 
 ### A. Aplicar las migraciones pendientes a la base
@@ -70,6 +85,10 @@ raíz responde 307 y los webhooks no siguen redirecciones. Es exactamente lo que
 hizo que los eventos de Resend no llegaran nunca.
 
 ### D. Reconciliar el stock antes de vender
+
+> El panel de **Estado de apertura** te lista exactamente qué productos están
+> descuadrados y cuáles no tienen stock de sucursal, así que no hace falta
+> consultar la base a mano.
 
 El catálogo y el carrito leen el stock de la sucursal, que es de donde se
 descuenta. Hasta ahora había cuatro caminos que escribían el stock con
@@ -115,6 +134,9 @@ puede prometer una cosa mientras el sistema cobra otra.
    qué exige a la fecha en que abras.
 
 ### F. Revisar que los productos se vean
+
+> El panel de **Estado de apertura** te dice cuántos productos no aparecen y
+> los agrupa por lo que les falta: foto, precio, categoría o nombre.
 
 Un producto **no aparece en la tienda** si le falta cualquiera de estas cuatro
 cosas: nombre, categoría, precio mayor a 0, o **foto propia**. La foto es la

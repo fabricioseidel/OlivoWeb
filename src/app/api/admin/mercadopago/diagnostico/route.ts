@@ -1,16 +1,9 @@
 import { NextResponse } from 'next/server';
 import { requireApiAdmin } from '@/lib/api-auth';
 import { supabaseServer } from '@/lib/supabase-server';
+import type { Check } from '@/lib/admin/checks';
 
 export const dynamic = 'force-dynamic';
-
-type Check = {
-  id: string;
-  label: string;
-  status: 'ok' | 'warn' | 'error';
-  detail: string;
-  hint?: string;
-};
 
 /**
  * Diagnóstico de la integración con MercadoPago.

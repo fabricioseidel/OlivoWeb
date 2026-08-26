@@ -28,6 +28,7 @@ import {
   BoltIcon,
   Squares2X2Icon,
   RocketLaunchIcon,
+  ClipboardDocumentCheckIcon,
   QrCodeIcon,
   ClockIcon,
   GlobeAltIcon,
@@ -52,6 +53,7 @@ const menuGroupsOlivoTeam: MenuGroup[] = [
     label: "Resumen",
     items: [
       { name: "Dashboard", href: "/admin", icon: ChartBarIcon },
+      { name: "Estado de apertura", href: "/admin/apertura", icon: ClipboardDocumentCheckIcon },
     ],
   },
   {
