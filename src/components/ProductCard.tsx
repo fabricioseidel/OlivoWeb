@@ -10,14 +10,9 @@ import { useToast } from "@/contexts/ToastContext";
 import { getCategoryStyle } from '@/utils/categoryStyles';
 
 import { ProductUI } from '@/types';
+import { formatCLP } from "@/utils/currency";
 
-const formatter = new Intl.NumberFormat('es-CL', {
-  style: 'currency',
-  currency: 'CLP',
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
-const formatCurrency = (value: number) => formatter.format(value);
+const formatCurrency = formatCLP;
 
 type Props = { product: ProductUI };
 

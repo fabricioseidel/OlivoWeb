@@ -115,6 +115,13 @@ export type StoreSettings = {
   maintenanceMode?: boolean;
   maintenanceMessage?: string;
 
+  /**
+   * Modo vitrina: la tienda se ve completa pero no acepta pedidos ni pagos.
+   * Distinto de `maintenanceMode`, que baja el sitio entero.
+   */
+  previewMode?: boolean;
+  previewMessage?: string;
+
   heroTitle?: string;
   heroDescription?: string;
 
@@ -166,6 +173,9 @@ export const FALLBACK_SETTINGS: StoreSettings = {
   heroTitle: "Sabor que te conecta con casa",
   heroDescription:
     "Llevamos lo mejor de Venezuela directo a tu puerta en Chile. Calidad garantizada, frescura y el sabor que ya conoces.",
+  // Sin fila de settings la tienda queda en vitrina: se puede mirar, no comprar.
+  // Es el estado seguro — abrir se decide en el panel, no por desplegar.
+  previewMode: true,
 };
 
 // Mapear la fila snake_case de la DB a StoreSettings camelCase
@@ -236,6 +246,8 @@ export function mapSettingsRow(data: Record<string, any>): StoreSettings {
     faqUrl: data.faq_url,
     maintenanceMode: data.maintenance_mode,
     maintenanceMessage: data.maintenance_message,
+    previewMode: data.preview_mode !== false,
+    previewMessage: data.preview_message,
     heroTitle: data.hero_title,
     heroDescription: data.hero_description,
     updatedAt: data.updated_at,

@@ -145,7 +145,7 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
         }
 
         // Clean up address: remove redundant city, state, country, zip if present in the address string
-        // This fixes the issue where Google Autocomplete returns the full string and it looks duplicated
+        // Evita que la calle quede duplicada cuando el buscador devuelve la línea completa
         if (finalAddress && typeof finalAddress === 'string') {
           const termsToRemove = [
             shippingAddressNormalized.country,

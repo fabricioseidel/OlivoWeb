@@ -12,6 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/contexts/ToastContext";
+import { formatCLP } from "@/utils/currency";
 
 type Suggestion = {
   barcode: string;
@@ -70,12 +71,7 @@ type DraftResult = {
   };
 };
 
-const CLP = (n: number) =>
-  n.toLocaleString("es-CL", {
-    style: "currency",
-    currency: "CLP",
-    maximumFractionDigits: 0,
-  });
+const CLP = formatCLP;
 
 type Props = {
   onAfterDraftsCreated?: () => void;

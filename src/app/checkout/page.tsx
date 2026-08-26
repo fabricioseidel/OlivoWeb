@@ -24,6 +24,7 @@ import { calculateDistance, calculateShippingCost } from "@/utils/shipping-calcu
 import { quoteShipping } from "@/lib/shipping-policy";
 
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { PREVIEW_DEFAULT_MESSAGE } from "@/lib/store-status";
 import { validateShippingInfo, type ShippingFieldErrors } from "@/schemas/checkout.schema";
 import { whatsappLink, checkoutInquiryMessage } from "@/utils/whatsapp";
 
@@ -44,6 +45,13 @@ export default function CheckoutPage() {
   const { data: session, status } = useSession();
   const { cartItems, validateCartWithServer } = useCart();
   const { settings: storeSettings } = useStoreSettings();
+
+  // Modo vitrina: la tienda se ve pero no vende. El servidor rechaza el
+  // pedido igual; esto es para no dejar que alguien llene el carrito, escriba
+  // su dirección y recién ahí se entere.
+  const enVitrina = storeSettings?.previewMode === true;
+  const mensajeVitrina =
+    storeSettings?.previewMessage?.trim() || PREVIEW_DEFAULT_MESSAGE;
   
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
@@ -339,6 +347,13 @@ export default function CheckoutPage() {
   };
 
   const handleFinalizeOrder = async () => {
+    // El botón ya está deshabilitado en vitrina, pero un submit por teclado o
+    // un doble evento no deberían llegar a llamar la ruta de cobro.
+    if (enVitrina) {
+      alert(mensajeVitrina);
+      return;
+    }
+
     setLoading(true);
     try {
       // Si el carrito cambió (stock o precio), no se sigue: el cliente tiene
@@ -388,6 +403,12 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // La tienda pasó a vitrina mientras el cliente completaba el checkout.
+        if (data.previewMode) {
+          alert(data.error || PREVIEW_DEFAULT_MESSAGE);
+          setLoading(false);
+          return;
+        }
         // MP falló pero la orden fue creada en la DB
         if (data.orderId) {
           alert(`❌ Error en el pago:\n\n${data.error}\n\nTu pedido #${data.orderId} fue registrado pero NO está pagado. Contáctanos por WhatsApp.`);
@@ -677,16 +698,27 @@ export default function CheckoutPage() {
                     fullWidth
                     onClick={handleFinalizeOrder}
                     loading={loading}
+                    disabled={enVitrina}
                     className="h-13 text-base"
                   >
-                    {loading ? "Procesando…" : `Pagar ${clpFormat(total)}`}
+                    {loading
+                      ? "Procesando…"
+                      : enVitrina
+                        ? "Todavía no aceptamos pedidos"
+                        : `Pagar ${clpFormat(total)}`}
                   </Button>
                 )}
 
-                <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-neutral-500">
-                  <ShieldCheckIcon className="size-4 shrink-0" />
-                  Compra protegida
-                </p>
+                {enVitrina ? (
+                  <p className="mt-3 text-center text-xs leading-relaxed text-amber-800">
+                    {mensajeVitrina}
+                  </p>
+                ) : (
+                  <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-neutral-500">
+                    <ShieldCheckIcon className="size-4 shrink-0" />
+                    Compra protegida
+                  </p>
+                )}
               </div>
             </div>
 

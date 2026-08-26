@@ -7,7 +7,7 @@
 > - ✅ **P2.3 páginas monolíticas COMPLETO**: uber-eats 2.606→777, edicion-masiva 1.461→601, proveedores 1.388→625, configuracion 1.164→190 (cada una con components/ + lib.ts, extracción mecánica verificada con build). Pendiente: reducción de "use client" / Server Components.
 > - ✅ **P3.1–P3.3 núcleo**: tokens de tema funcionales (Apariencia del admin ahora aplica), dark mode resuelto (next-themes eliminado), errores visibles, skeleton de producto, aria-labels/aria-invalid, metadata + OG + sitemap dinámico + **JSON-LD de producto**. Pendiente: migración completa de colores hardcodeados, más loading.tsx.
 > - ✅ **P4.1 + P4.2 núcleo**: suite **37/37** en verde (12 tests nuevos), validación Zod del checkout, TODOs funcionales resueltos, logger en server/contexts, sesión NextAuth tipada en api-auth (sin any). Pendiente: decisión integración real Uber Eats, i18n, reducción de `any` en páginas, más cobertura E2E.
-> - ⚠️ **Acción requerida en Vercel**: configurar `MERCADOPAGO_WEBHOOK_SECRET`, `GOOGLE_ADMIN_EMAILS` y `CRON_SECRET` (ver `.env.example`). Aplicar las migraciones RLS/audit con `supabase db push`.
+> - ⚠️ **Acción requerida en Vercel**: configurar `MERCADOPAGO_WEBHOOK_SECRET` y `CRON_SECRET` (ver `.env.example`). Aplicar las migraciones RLS/audit con `supabase db push`.
 
 > Basado en una auditoría exhaustiva del proyecto (junio 2026): seguridad, rendimiento,
 > diseño/UX, funcionalidad e higiene de código. Estado verificado: TypeScript compila sin
@@ -51,7 +51,7 @@ Prerrequisito de todo lo demás: deja el repo limpio para que los cambios siguie
 | 1 | Webhook MercadoPago **sin verificación de firma**: cualquiera puede marcar pedidos como pagados | `src/app/api/payments/webhook/route.ts` | Verificar firma HMAC-SHA256 con el secret de MP; rechazar requests sin firma válida |
 | 2 | `/api/sales` GET **sin autenticación**: expone todas las ventas y pagos | `src/app/api/sales/route.ts` | Añadir `requireApiAdminOrSeller()` |
 | 3 | `/api/sales/[id]` GET/PATCH sin auth: permite **modificar ventas** | `src/app/api/sales/[id]/route.ts` | Añadir auth a ambos métodos |
-| 4 | Email admin **hardcodeado** como fallback de OAuth (elevación a ADMIN) | `src/config/auth.config.ts:16` | Eliminar fallback; exigir `GOOGLE_ADMIN_EMAILS` por env |
+| 4 | ✅ Resuelto | `src/config/auth.config.ts` | Se eliminó el login con OAuth por completo: el acceso es solo con correo y contraseña, así que ya no hay elevación automática de rol |
 | 5 | Bootstrap de admin reutilizable y sin rate limit | `src/app/api/admin/bootstrap/route.ts` | Deshabilitar tras crear el primer admin; comparación constant-time |
 
 ### P1.2 Altos — este mes

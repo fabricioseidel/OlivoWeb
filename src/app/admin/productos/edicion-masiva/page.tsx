@@ -346,13 +346,21 @@ export default function BulkEditProductsPage() {
           const original = localProducts.find((p) => p.id === id);
           if (original && Object.keys(rest).length > 0) {
             const merged = { ...original, ...rest };
+            // El stock solo viaja si esta edición lo tocó. `merged.stock` es
+            // el valor cacheado en el navegador: mandarlo siempre forzaba un
+            // ajuste de inventario a una cifra vieja cada vez que se
+            // renombraba un código de barras.
+            const stockEdit =
+              (rest as { stock?: number }).stock === undefined
+                ? {}
+                : { stock: Number((rest as { stock?: number }).stock) };
             renamedPayloads.push({
               barcode: newBarcode,
+              ...stockEdit,
               name: merged.name,
               category: Array.isArray(merged.categories) ? merged.categories.join(", ") : "",
               purchase_price: Number((original as any).purchasePrice ?? 0),
               sale_price: Number(merged.price ?? 0),
-              stock: Number(merged.stock ?? 0),
               image_url: (original as any).image,
               gallery: (original as any).gallery,
               featured: (original as any).featured,

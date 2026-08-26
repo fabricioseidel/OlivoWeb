@@ -1,15 +1,138 @@
-# TODO-HUMANO — datos que faltan para cerrar el SEO local
+# TODO-HUMANO — lo que falta para abrir
 
-Este archivo consolida **todos** los `// TODO-HUMANO` que quedan en el código. Son
-datos reales que no se pueden inventar: mientras falten, el sitio funciona y el
-schema es válido, pero se pierden señales de posicionamiento local.
+Este archivo consolida lo que **solo tú puedes hacer**: datos reales que no se
+pueden inventar, cuentas que hay que crear y decisiones de negocio. Mientras
+falten, el sitio funciona, pero no se puede abrir con seguridad.
 
 Al resolver cada punto, edita el archivo indicado y borra el comentario
 `TODO-HUMANO` correspondiente.
 
 ---
 
-## 🔴 Pendiente — bloquea señales de SEO local
+## 🚦 Estado actual: la tienda está en MODO VITRINA
+
+El sitio se puede publicar ya. Los clientes ven el catálogo completo, las
+fichas, las landings de comuna y el punto de envíos, y Google puede indexarlo
+todo — pero **nadie puede pagar ni dejar un pedido**: las rutas de cobro
+responden 503 con un aviso.
+
+El bloqueo es del servidor, no un botón escondido, así que tampoco se puede
+saltar llamando la API a mano.
+
+**Para abrir:** panel → Configuración → Políticas → desactivar *"Modo vitrina"*.
+Surte efecto en segundos, sin desplegar. Ahí mismo puedes editar el aviso que
+se muestra mientras tanto.
+
+No lo desactives hasta cerrar los puntos 🔴 de abajo.
+
+---
+
+## 🔴 Bloquea la apertura — sin esto no se puede cobrar
+
+### A. Aplicar las migraciones pendientes a la base
+
+```
+supabase db push
+```
+
+Sin esto la columna `preview_mode` no existe, y la tienda queda **en vitrina
+de todos modos** (el código cierra ante la duda), así que el sitio no vendería
+aunque desactives el interruptor. Las migraciones nuevas son:
+
+- `20260825000000_document_express_delivery_columns.sql` — registra columnas que
+  ya existían en la base sin archivo. No cambia nada, solo alinea el historial.
+- `20260825010000_add_store_preview_mode.sql` — agrega el modo vitrina.
+
+### B. Confirmar qué token de MercadoPago está cargado
+
+Panel → Configuración → Métodos de Pago. El diagnóstico dice cuál está activo.
+
+Un token que empieza con `APP_USR-` **cobra de verdad**. Cualquier otro es de
+prueba y los pedidos que entren no te van a pagar nada. Decide con cuál abres.
+
+> Ojo: antes esta pantalla tenía un interruptor de *"modo prueba (sin cobros
+> reales)"* que **no estaba conectado a nada**. Si alguna vez lo activaste
+> creyendo que estabas probando en seguro, los cobros fueron reales igual. Ya
+> se quitó y la pantalla ahora dice la verdad.
+
+### C. Cargar las variables que faltan en Vercel
+
+| Variable | Qué pasa sin ella |
+|---|---|
+| `MERCADOPAGO_ACCESS_TOKEN` | El checkout falla al crear el pago. No se puede vender. |
+| `MERCADOPAGO_WEBHOOK_SECRET` | El webhook rechaza todas las notificaciones: **los pedidos pagados nunca se marcan como pagados**. |
+| `CRON_SECRET` | Los turnos de caja no se cierran solos. |
+| `RESEND_API_KEY` | No sale ningún correo: ni confirmación de pedido ni recuperación de contraseña. |
+| `NEXT_PUBLIC_SITE_URL` | MercadoPago vuelve a un dominio equivocado tras pagar. |
+
+La URL del webhook de MercadoPago debe registrarse **con `www`**: el dominio
+raíz responde 307 y los webhooks no siguen redirecciones. Es exactamente lo que
+hizo que los eventos de Resend no llegaran nunca.
+
+### D. Reconciliar el stock antes de vender
+
+El catálogo y el carrito leen el stock de la sucursal, que es de donde se
+descuenta. Hasta ahora había cuatro caminos que escribían el stock con
+criterios distintos y se pisaban entre sí; ya quedó uno solo, pero **los
+números que dejaron los caminos viejos siguen ahí**.
+
+Antes de abrir conviene hacer un conteo y dejarlos correctos, o vas a vender lo
+que no tienes. Después de la primera recepción y la primera venta, mira la
+tabla `inventory_movements`: cada movimiento debe aparecer con su motivo
+(`RECEPTION`, `POS_SALE`, `WEB_SALE`, `MANUAL_ADJUSTMENT`).
+
+### E. Publicar los términos y la política de privacidad
+
+Hoy **no existen esas páginas**. El pie de página solo muestra los enlaces si
+cargas una URL en Configuración → Política.
+
+En Chile, vender a consumidores sin términos ni política de datos te deja
+expuesto (Ley 19.496 del consumidor y Ley 19.628 de datos personales), y
+MercadoPago los pide para cuentas de comercio. Necesitas al menos:
+
+- Términos y condiciones (incluye plazos de entrega y cobertura de despacho)
+- Política de privacidad
+- Política de cambios y devoluciones — el derecho a retracto de 10 días aplica
+  a la compra a distancia
+
+Cuando los tengas, pega las URLs en Configuración → Política y aparecen solos
+en el pie.
+
+### F. Revisar que los productos se vean
+
+Un producto **no aparece en la tienda** si le falta cualquiera de estas cuatro
+cosas: nombre, categoría, precio mayor a 0, o **foto propia**. La foto es la
+que más suele faltar.
+
+Panel → Productos → Edición masiva permite ver de una pasada cuáles están
+incompletos y arreglarlos ahí mismo.
+
+---
+
+## 🟡 Antes de la primera campaña, no antes de abrir
+
+### G. Prueba de compra real, de punta a punta
+
+Con la tienda recién abierta, hazte un pedido de verdad con tu propia tarjeta,
+por el monto más bajo posible, y comprueba la cadena completa:
+
+1. El pedido aparece en el panel.
+2. Llega el correo de confirmación.
+3. El estado pasa a pagado solo (eso confirma que el webhook está bien).
+4. El stock del producto bajó.
+5. El cobro aparece en tu cuenta de MercadoPago.
+
+Es la única prueba que no se puede simular desde el código: yo no tengo acceso
+ni a tu base ni a tu cuenta de MercadoPago.
+
+### H. Cuenta de correo verificada en Resend
+
+El dominio del remitente tiene que estar verificado o los correos caen en spam
+—o no salen. Revisa `RESEND_FROM_EMAIL`.
+
+---
+
+## 🟢 No bloquea abrir — mejora el posicionamiento local
 
 ### 1. CID de Google Business Profile
 - **Archivo:** `src/lib/seo/business.ts` (`BUSINESS.googleCid`)
@@ -22,7 +145,7 @@ Al resolver cada punto, edita el archivo indicado y borra el comentario
 
 ---
 
-## 🟡 Pendiente — mejora conversión y contenido
+## 🟢 No bloquea abrir — mejora conversión y contenido
 
 ### 2. Foto real de la fachada
 - **Archivo:** `src/lib/seo/business.ts` (`BUSINESS.facadePhoto`)
@@ -80,11 +203,47 @@ Al resolver cada punto, edita el archivo indicado y borra el comentario
 - **Estado:** mencionado como plan, **no** aparece en el sitio. No se publica un
   servicio que todavía no existe: marcarlo en schema o prometerlo en una landing sin
   tenerlo operativo daña la confianza y contradice las guías de Google.
+- **Hay código escrito y sin mergear** en el [PR #56](https://github.com/fabricioseidel/OlivoWeb/pull/56):
+  cliente de la API, regla de subsidio con tests, recotización al confirmar, webhook
+  firmado y la opción en el checkout. Nadie lo revisó (solo comentaron los bots).
+- **Para retomarlo hay que hacer, en este orden:**
+  1. **Rebasarlo sobre `main`.** Su base es del 31 de julio y choca en tres archivos:
+     `api/checkout/create-order/route.ts`, `checkout/page.tsx` y
+     `checkout/components/ShippingForm.tsx`. Los tres se reescribieron en #63 y #64
+     (envío gratis por distancia, motivo cuando no aplica, método de envío inválido),
+     así que los conflictos son sobre lógica de cobro y hay que resolverlos a mano.
+  2. **Probar contra la API real** con las credenciales de prueba. Es lo único que
+     confirma el manejo de montos en CLP, que la propia descripción del PR deja
+     pendiente.
+  3. **Cargar las cinco variables en Vercel** y registrar el webhook **con `www`**:
+     el dominio raíz responde 307 y los webhooks no siguen redirecciones.
+- **Ya resuelto:** las columnas `express_*` de `orders` existían en la base pero no
+  tenían archivo de migración. Se agregó
+  `supabase/migrations/20260825000000_document_express_delivery_columns.sql`, que es
+  idempotente: no cambia nada sobre la base actual y deja el mismo esquema en una
+  base nueva.
 - **Cuando esté operativo:** avísame y lo agrego como servicio con su propia sección en
   las landings de comuna y en el schema (`GroceryStore.makesOffer`), además de ajustar
   los plazos de entrega, que pasarían de "día siguiente 08:00–14:00" a minutos.
 
 ## Decisiones tomadas que conviene revisar
+
+- **Los interruptores del panel que no hacen nada.** Se encontraron tres que se
+  guardaban pero nunca se aplicaban: *modo prueba de pagos* (se quitó, mentía
+  sobre cobros reales), las *seis casillas de métodos de pago* (el checkout
+  ofrece MercadoPago y solo MercadoPago, con una lista fija en el código) y
+  *modo mantenimiento*, que sigue ahí pero ahora avisa en el propio panel que
+  no está conectado. Si quieres bajar el sitio entero, hoy hay que hacerlo
+  desde Vercel; para cerrar solo las ventas está el modo vitrina.
+
+- **El acceso es solo con correo y contraseña.** Se eliminó el inicio de sesión con
+  Google (proveedor de NextAuth, botones, variables y la elevación automática a ADMIN
+  por `GOOGLE_ADMIN_EMAILS`). Lo que sigue nombrando a Google es de posicionamiento y
+  se conserva a propósito: `Googlebot` en `robots.ts`, el JSON-LD y el CID de la ficha
+  del negocio. Quitar eso no "saca a Google" del sitio, impide que el minimarket
+  aparezca en las búsquedas. Queda una decisión abierta: el iframe de Google Maps en
+  las landings de comuna (`MapEmbed` en `components/seo/LocalBlocks.tsx`) sí es visible
+  y sí carga contenido de Google; se puede quitar en una línea si lo prefieres sin mapa.
 
 - **`/centro-logistico` ahora redirige (301) a `/punto-de-envio`.** Ambas cubrían el
   mismo tema y competían por las mismas búsquedas (canibalización). `/punto-de-envio`

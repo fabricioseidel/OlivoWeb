@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { requireApiAdminOrSeller } from '@/lib/api-auth';
+import { applyReception, reverseReception } from '@/server/inventory.service';
 
 export async function GET(
   request: Request,
@@ -145,15 +146,25 @@ export async function PATCH(
       updates.delivered_date = new Date().toISOString().split('T')[0];
     }
 
-    const { data, error } = await supabaseServer
-      .from('supplier_orders')
-      .update(updates)
-      .eq('id', id)
+    // El cambio de estado se hace condicionado al estado que acabamos de leer.
+    // Sin esto, dos peticiones simultáneas (un doble clic en "Marcar como
+    // Recibido") leían ambas el estado anterior y aplicaban la recepción dos
+    // veces: el stock entraba duplicado.
+    const isStatusChange = Boolean(body.status) && body.status !== previousStatus;
+
+    let query = supabaseServer.from('supplier_orders').update(updates).eq('id', id);
+    if (isStatusChange) {
+      query = previousStatus
+        ? query.eq('status', previousStatus)
+        : query.is('status', null);
+    }
+
+    const { data: updated, error } = await query
       .select(`
         *,
         suppliers (name, whatsapp, phone)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error updating order:', error);
@@ -163,6 +174,27 @@ export async function PATCH(
       );
     }
 
+    // Sin fila: otra petición ganó la carrera y ya hizo esta transición.
+    // Se devuelve el pedido tal como quedó, sin volver a mover stock.
+    const didTransition = Boolean(updated);
+    let data = updated;
+
+    if (!data) {
+      const { data: current } = await supabaseServer
+        .from('supplier_orders')
+        .select(`
+          *,
+          suppliers (name, whatsapp, phone)
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (!current) {
+        return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+      }
+      data = current;
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // STOCK: recepción / cancelación vía RPC apply_reception(_reverse).
     // Las RPCs actualizan branch_stock como fuente de verdad, recalculan
@@ -170,8 +202,8 @@ export async function PATCH(
     // de modo que el POS (que lee branch_stock) ve el mismo stock que
     // la web.
     // ═══════════════════════════════════════════════════════════════
-    const isReception = body.status === 'recibido' && previousStatus !== 'recibido';
-    const isReversal  = body.status === 'cancelado' && previousStatus === 'recibido';
+    const isReception = didTransition && body.status === 'recibido' && previousStatus !== 'recibido';
+    const isReversal  = didTransition && body.status === 'cancelado' && previousStatus === 'recibido';
 
     if (isReception || isReversal) {
       try {
@@ -180,31 +212,25 @@ export async function PATCH(
           .select('quantity, products(barcode)')
           .eq('order_id', id);
 
-        const payload = (orderItems || [])
+        const items = (orderItems || [])
           .map((it: any) => {
             const prod = Array.isArray(it.products) ? it.products[0] : it.products;
             const barcode = prod?.barcode;
             return barcode ? { barcode, qty: Number(it.quantity) || 0 } : null;
           })
-          .filter(Boolean);
+          .filter((it): it is { barcode: string; qty: number } => it !== null);
 
-        if (payload.length > 0) {
-          const rpcName = isReception ? 'apply_reception' : 'apply_reception_reverse';
-          const reason  = isReception
+        if (items.length > 0) {
+          const reason = isReception
             ? `Recepción pedido proveedor #${id.slice(0, 8)}`
             : `Cancelación pedido proveedor #${id.slice(0, 8)}`;
 
-          const { error: rpcErr } = await supabaseServer.rpc(rpcName, {
-            p_items:     payload,
-            p_branch_id: null,
-            p_reference: id,
-            p_notes:     reason,
-          });
+          const result = isReception
+            ? await applyReception(items, { reference: id, reason })
+            : await reverseReception(items, { reference: id, reason });
 
-          if (rpcErr) {
-            console.error(`Error en ${rpcName}:`, rpcErr);
-          } else {
-            console.log(`✅ ${isReception ? 'Recepción' : 'Reversión'} aplicada: pedido ${id.slice(0, 8)}, ${payload.length} ítems`);
+          if (!result.ok) {
+            console.error(`Error moviendo stock del pedido ${id.slice(0, 8)}:`, result.error);
           }
         }
       } catch (invError) {

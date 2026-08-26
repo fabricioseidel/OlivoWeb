@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { supabaseServer } from "@/lib/supabase-server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireApiAdmin } from "@/lib/api-auth";
+import { invalidateStoreStatusCache } from "@/server/store-status.service";
 import { mapSettingsRow, FALLBACK_SETTINGS } from "@/lib/settings-shared";
 import { RADIO_DESPACHO_KM_DEFAULT } from "@/lib/shipping-policy";
 
@@ -43,16 +43,8 @@ export async function GET() {
 // PATCH: Actualizar configuraciones (solo admin)
 export async function PATCH(req: Request) {
   try {
-    // Verificar que el usuario es admin
-    const session: any = await getServerSession(authOptions as any);
-    const role = session?.role || session?.user?.role || "";
-
-    if (!session || !String(role).toUpperCase().includes("ADMIN")) {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
-    }
+    const auth = await requireApiAdmin();
+    if (!auth.ok) return auth.response;
 
     const body = await req.json();
 
@@ -122,6 +114,11 @@ export async function PATCH(req: Request) {
       faq_url: body.faqUrl ?? null,
       maintenance_mode: body.maintenanceMode ?? false,
       maintenance_message: body.maintenanceMessage ?? null,
+      // Ante un body sin el campo se mantiene la vitrina: abrir la tienda
+      // tiene que ser un acto explícito, nunca el efecto de un guardado
+      // parcial desde otra pestaña de configuración.
+      preview_mode: body.previewMode ?? true,
+      preview_message: body.previewMessage ?? null,
       hero_title: body.heroTitle ?? null,
       hero_description: body.heroDescription ?? null,
       updated_at: new Date().toISOString(),
@@ -149,6 +146,10 @@ export async function PATCH(req: Request) {
         { status: 500 }
       );
     }
+
+    // El estado comercial se cachea unos segundos en el servidor. Sin esto,
+    // abrir la tienda tardaría en surtir efecto justo cuando más se mira.
+    invalidateStoreStatusCache();
 
     return NextResponse.json({ ok: true, message: "Configuración actualizada" });
   } catch (error: any) {

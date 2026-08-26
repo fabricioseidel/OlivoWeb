@@ -4,6 +4,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/config/auth.config';
 import { createPaymentPreference } from '@/server/payments.service';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { assertOrdersEnabled } from '@/server/store-status.service';
+import { PREVIEW_HTTP_STATUS } from '@/lib/store-status';
 
 /**
  * Regenera el link de pago de MercadoPago para una orden que quedó pendiente.
@@ -33,6 +35,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json(
         { error: 'Demasiados intentos. Espera un momento antes de reintentar.' },
         { status: 429, headers: { 'Retry-After': String(retryAfterSeconds) } }
+      );
+    }
+
+
+    // Modo vitrina: la tienda se puede mirar pero no vende todavía. Se
+    // comprueba acá, antes de tocar stock, cupones o MercadoPago: si el
+    // bloqueo viviera solo en la interfaz, bastaría con llamar esta ruta a
+    // mano para generar un cobro por un pedido que nadie va a preparar.
+    const ventas = await assertOrdersEnabled();
+    if (!ventas.ok) {
+      return NextResponse.json(
+        { error: ventas.message, previewMode: true },
+        { status: PREVIEW_HTTP_STATUS }
       );
     }
 

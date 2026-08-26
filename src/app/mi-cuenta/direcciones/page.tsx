@@ -43,45 +43,12 @@ const formularioVacio: Direccion = {
   predeterminada: false,
 };
 
-function normalizeGoogleAddress(raw: unknown, displayName: string): Direccion | null {
-  if (!raw) return null;
-  const name = displayName?.trim() || "Principal";
-  let source = raw;
-  if (Array.isArray(raw)) source = raw[0];
-
-  const tryGet = (obj: Record<string, unknown>, keys: string[]) => {
-    for (const key of keys) {
-      if (obj && typeof obj[key] === "string" && obj[key]) return obj[key] as string;
-    }
-    return "";
-  };
-
-  if (typeof source === "string") {
-    return { id: "google-address", nombre: name, calle: source, numero: "", interior: "", colonia: "", ciudad: "", estado: "", codigoPostal: "", telefono: "", predeterminada: true };
-  }
-  if (typeof source !== "object") return null;
-
-  const src = source as Record<string, unknown>;
-  return {
-    id: "google-address",
-    nombre: name || "Principal",
-    calle: tryGet(src, ["streetAddress", "street_address", "street", "line1", "addressLine1", "formattedValue"]),
-    numero: tryGet(src, ["streetNumber", "street_number", "number"]),
-    interior: tryGet(src, ["unit", "apartment", "suite", "addressLine2", "line2"]),
-    colonia: tryGet(src, ["locality", "city", "town"]),
-    ciudad: tryGet(src, ["locality", "city", "town"]),
-    estado: tryGet(src, ["region", "state", "administrative_area_level_1", "province"]),
-    codigoPostal: tryGet(src, ["postalCode", "postal_code", "zip"]),
-    telefono: "",
-    predeterminada: true,
-  };
-}
 
 const inputClass = "w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 transition-all";
 const labelClass = "mb-1.5 block text-sm font-medium text-neutral-700";
 
 export default function DireccionesPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [direcciones, setDirecciones] = useState<Direccion[]>([]);
@@ -114,21 +81,17 @@ export default function DireccionesPage() {
         : [];
       let effective: Direccion[] = Array.isArray(saved) ? saved : [];
 
-      const googleAddress = (session?.user as Record<string, unknown>)?.address;
-      const googleDerived = normalizeGoogleAddress(googleAddress, session?.user?.name || session?.user?.email || "");
-      if (!effective.length && googleDerived) {
-        effective = [googleDerived];
-        saveToStorage(effective);
-      } else if (typeof window !== "undefined" && effective.length && effective[0]?.id?.startsWith("addr-")) {
+      // Las direcciones se guardan solo cuando el cliente las escribe. Antes
+      // se derivaba una del perfil de Google al entrar, así que aparecía una
+      // dirección que nadie había ingresado.
+      if (typeof window !== "undefined" && effective.length && effective[0]?.id?.startsWith("addr-")) {
         localStorage.removeItem("addresses");
-        effective = googleDerived ? [googleDerived] : [];
-        if (googleDerived) saveToStorage(effective);
+        effective = [];
       }
 
       setDirecciones(effective);
       setIsLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
