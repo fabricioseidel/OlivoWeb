@@ -1,6 +1,6 @@
 # Plan de precios, costos y reposición
 
-> Estado: **Fases 1, 2 y 3 completas**. Fases 4–5 pendientes. Revisión hecha sobre
+> Estado: **Fases 1 a 4 completas**. Falta la Fase 5 (aprendizaje). Revisión hecha sobre
 > `main` en el commit `286d2ff`. Versión con tablas y ejemplos numéricos:
 > https://claude.ai/code/artifact/41a48acf-3fd9-4cf8-8ab0-ddf545393ed9
 
@@ -195,8 +195,23 @@ una es desplegable sola y deja el sistema utilizable.
    el trigger de la Fase 1 lo deja en el historial, y la pantalla de la Fase 2
    marca ese producto como «el costo cambió». Costo se mueve → se confirma al
    recibir → el precio de venta vuelve a revisión.
-4. **Regla de venta web** — `require_reviewed_price`, apagado por defecto, con
-   salvaguarda que muestra el impacto antes de encenderlo.
+4. ✅ **Regla de venta web** — hecha. `require_reviewed_price` nace apagada,
+   `src/server/sellable.service.ts` con 16 tests, y el interruptor va **en la
+   misma tarjeta** que el recuento de lo que quedaría fuera: separarlos lo
+   dejaría a un clic de distancia de su consecuencia.
+
+   Dos decisiones:
+
+   - **El bloqueo va en el servidor**, al crear el pedido. Esconder el producto
+     del catálogo no impide que alguien llame la ruta con su código.
+   - **Ante un fallo de la base NO bloquea** — al revés que el modo vitrina, que
+     ante la duda cierra. La diferencia es deliberada: vitrina protege de cobrar
+     por un pedido que nadie va a preparar; esta regla sólo protege el margen, y
+     tirar abajo todas las ventas porque no se pudo leer un interruptor hace más
+     daño que dejar pasar unas cuantas sin revisar.
+
+   El panel y el checkout deciden con **la misma función**, así que el panel no
+   puede decir "quedan 3 fuera" mientras el checkout rechaza otros.
 5. **Aprendizaje** — seis reglas estadísticas sobre el propio historial (no
    modelos), cada una con umbral mínimo de datos y explicando en qué se basa.
 

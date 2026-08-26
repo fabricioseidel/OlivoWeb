@@ -15,6 +15,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { formatCLP } from "@/utils/currency";
 import { formatearMargen } from "@/lib/pricing";
 import MargenesCategoria from "./MargenesCategoria";
+import ReglaVentaWeb from "./ReglaVentaWeb";
 import type { FilaPrecio, FotoPrecios, MotivoPrecio } from "@/server/pricing.service";
 
 const CLP = formatCLP;
@@ -416,6 +417,8 @@ export default function PreciosPanel() {
       </div>
 
       {foto && <Resumen foto={foto} />}
+
+      <ReglaVentaWeb onCambio={cargar} />
 
       {foto && (
         <MargenesCategoria
