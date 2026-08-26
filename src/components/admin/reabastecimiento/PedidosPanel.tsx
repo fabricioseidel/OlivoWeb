@@ -154,7 +154,7 @@ export default function PedidosPanel({
                       ${order.total.toLocaleString()}
                     </div>
                     <div className="text-[10px] text-gray-400">
-                      {order.itemCount} prod.
+                      {order.itemCount} prod. · IVA incl.
                     </div>
                   </div>
                 </div>

@@ -26,11 +26,17 @@ type Suggestion = {
   days_of_cover: number | null;
   supplier_id: string | null;
   supplier_name: string | null;
+  /** Costo unitario SIN IVA, tal como se guarda en product_suppliers. */
   unit_cost: number | null;
+  tax_rate: number | null;
+  /** Costo unitario CON IVA: lo que se paga por unidad. */
+  unit_cost_gross: number | null;
   pack_size: number | null;
   default_reorder_qty: number | null;
   suggested_qty: number;
+  /** Subtotal CON IVA. Es la cifra que hay que comparar contra la factura. */
   estimated_cost: number;
+  estimated_cost_net: number | null;
 };
 
 type SupplierBucket = {
@@ -247,7 +253,7 @@ export default function SugerenciasPanel({ onAfterDraftsCreated }: Props) {
             color="blue"
           />
           <SummaryCard
-            label="Costo estimado total"
+            label="Costo estimado total (con IVA)"
             value={CLP(data.estimated_total)}
             color="amber"
           />
@@ -421,8 +427,8 @@ function SupplierBucketCard({ bucket }: { bucket: SupplierBucket }) {
               <th className="text-right px-2 py-2">Cobertura</th>
               <th className="text-right px-2 py-2">Pack</th>
               <th className="text-right px-2 py-2">Sugerido</th>
-              <th className="text-right px-2 py-2">Costo unit</th>
-              <th className="text-right px-4 py-2">Subtotal</th>
+              <th className="text-right px-2 py-2">Costo unit<br /><span className="normal-case tracking-normal text-[10px] text-gray-400">con IVA</span></th>
+              <th className="text-right px-4 py-2">Subtotal<br /><span className="normal-case tracking-normal text-[10px] text-gray-400">con IVA</span></th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -468,7 +474,7 @@ function SupplierBucketCard({ bucket }: { bucket: SupplierBucket }) {
                     {it.suggested_qty}
                   </td>
                   <td className="text-right px-2 py-2 text-gray-700">
-                    {it.unit_cost ? CLP(Number(it.unit_cost)) : "—"}
+                    {it.unit_cost_gross != null ? CLP(Number(it.unit_cost_gross)) : "—"}
                   </td>
                   <td className="text-right px-4 py-2 font-bold text-gray-900">
                     {CLP(Number(it.estimated_cost))}
