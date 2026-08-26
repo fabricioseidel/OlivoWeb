@@ -256,6 +256,30 @@ El dominio del remitente tiene que estar verificado o los correos caen en spam
 
 ---
 
+## 📐 Trabajo planificado, aún sin implementar
+
+### Precios, costos y reposición
+
+Plan completo en [`docs/PLAN_PRECIOS.md`](docs/PLAN_PRECIOS.md).
+
+**Lo que necesito de ti para arrancar:**
+
+1. **Los márgenes reales por categoría.** El 35% actual sirve de punto de
+   partida, pero las bebidas y los abarrotes no se comportan igual. Sin esto, la
+   pantalla de precios va a marcar como problema cosas que no lo son.
+2. **El umbral de caducidad**: cuánto tiene que subir un costo para que el precio
+   de venta vuelva a revisión. Propongo 5%.
+3. **Confirmar que los costos guardados son sin IVA.** Lo deduje leyendo el
+   código, no está documentado. Si alguno se cargó con IVA incluido, ese producto
+   queda 19% mal.
+
+> ⚠️ Un hallazgo de esa revisión que ya te está costando dinero: el total que
+> muestra el motor de reposición antes de comprar está **19% por debajo** de lo
+> que vas a pagar, porque suma costos sin IVA. En un pedido de $400.000 son
+> $76.000 de diferencia. Lo corrige la Fase 1.
+
+---
+
 ## 🔵 Planificado a futuro (no publicado)
 
 ### Uber Direct
