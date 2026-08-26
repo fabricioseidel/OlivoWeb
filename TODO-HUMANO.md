@@ -27,6 +27,21 @@ No lo desactives hasta cerrar los puntos 🔴 de abajo.
 
 ---
 
+## 🧭 El panel te dice en qué vas
+
+Antes de leer la lista: en el admin hay una pantalla que **comprueba sola** casi
+todo lo de abajo — **Resumen → Estado de apertura**.
+
+Verifica de verdad si las migraciones se aplicaron, si el modo vitrina está
+activo, qué variables faltan en Vercel, cuántos productos no se ven y por qué,
+y si el stock del catálogo cuadra con el de la sucursal. Este archivo explica
+*qué* hay que hacer; el panel dice *qué falta ahora mismo*, que cambia cada día.
+
+Lo único que no puede comprobar es la prueba de compra real (punto G): pagar,
+recibir el correo y ver el pedido marcado como pagado.
+
+---
+
 ## 🔴 Bloquea la apertura — sin esto no se puede cobrar
 
 ### A. Aplicar las migraciones pendientes a la base
@@ -35,13 +50,34 @@ No lo desactives hasta cerrar los puntos 🔴 de abajo.
 supabase db push
 ```
 
-Sin esto la columna `preview_mode` no existe, y la tienda queda **en vitrina
-de todos modos** (el código cierra ante la duda), así que el sitio no vendería
-aunque desactives el interruptor. Las migraciones nuevas son:
+Esto lo tienes que correr tú: yo no tengo credenciales de Supabase ni salida
+de red hacia allá desde donde trabajo. Lo que sí hice fue **probar las dos
+migraciones contra un PostgreSQL 16 real** antes de que las corras, partiendo
+de una base que ya tenía la tabla `settings` con datos, como la tuya:
+
+- Aplican limpias, sin errores.
+- Son idempotentes: se aplicaron tres veces seguidas y a partir de la segunda
+  solo avisan "ya existe, se omite". Si dudas de si ya las corriste, correrlas
+  de nuevo no rompe nada.
+- **Tus datos quedan intactos**: la fila de configuración conserva todo y solo
+  gana las columnas nuevas.
+- `preview_mode` queda en `true` en la fila que ya existía, que es lo seguro:
+  aplicar la migración **no abre la tienda**, la deja en vitrina hasta que tú
+  la abras desde el panel.
+- El índice único de `express_delivery_id` hace lo que promete: rechaza un
+  segundo envío con el mismo id —que es lo que impide pedir dos repartidores
+  cuando el webhook de pago reintenta— y a la vez permite tantas órdenes sin
+  envío inmediato como quieras.
+
+Las migraciones nuevas son:
 
 - `20260825000000_document_express_delivery_columns.sql` — registra columnas que
   ya existían en la base sin archivo. No cambia nada, solo alinea el historial.
 - `20260825010000_add_store_preview_mode.sql` — agrega el modo vitrina.
+
+Sin la segunda, la columna `preview_mode` no existe y la tienda **queda en
+vitrina de todos modos** (el código cierra ante la duda), así que el sitio no
+vendería aunque desactives el interruptor.
 
 ### B. Confirmar qué token de MercadoPago está cargado
 
@@ -70,6 +106,10 @@ raíz responde 307 y los webhooks no siguen redirecciones. Es exactamente lo que
 hizo que los eventos de Resend no llegaran nunca.
 
 ### D. Reconciliar el stock antes de vender
+
+> El panel de **Estado de apertura** te lista exactamente qué productos están
+> descuadrados y cuáles no tienen stock de sucursal, así que no hace falta
+> consultar la base a mano.
 
 El catálogo y el carrito leen el stock de la sucursal, que es de donde se
 descuenta. Hasta ahora había cuatro caminos que escribían el stock con
@@ -115,6 +155,9 @@ puede prometer una cosa mientras el sistema cobra otra.
    qué exige a la fecha en que abras.
 
 ### F. Revisar que los productos se vean
+
+> El panel de **Estado de apertura** te dice cuántos productos no aparecen y
+> los agrupa por lo que les falta: foto, precio, categoría o nombre.
 
 Un producto **no aparece en la tienda** si le falta cualquiera de estas cuatro
 cosas: nombre, categoría, precio mayor a 0, o **foto propia**. La foto es la

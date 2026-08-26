@@ -1,42 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import {
-  ArrowPathIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  XCircleIcon,
-  BeakerIcon,
-} from "@heroicons/react/24/outline";
-
-type Check = {
-  id: string;
-  label: string;
-  status: "ok" | "warn" | "error";
-  detail: string;
-  hint?: string;
-};
-
-const TONE = {
-  ok: {
-    icon: CheckCircleIcon,
-    text: "text-emerald-700",
-    bg: "bg-emerald-50",
-    border: "border-emerald-200",
-  },
-  warn: {
-    icon: ExclamationTriangleIcon,
-    text: "text-amber-700",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-  },
-  error: {
-    icon: XCircleIcon,
-    text: "text-red-700",
-    bg: "bg-red-50",
-    border: "border-red-200",
-  },
-} as const;
+import { ArrowPathIcon, BeakerIcon } from "@heroicons/react/24/outline";
+import { CheckList } from "@/components/admin/CheckList";
+import type { Check } from "@/lib/admin/checks";
 
 /**
  * Panel que verifica la integración con MercadoPago contra la API real.
@@ -92,29 +59,9 @@ export default function MercadoPagoDiagnostics() {
       )}
 
       {checks && (
-        <ul className="mt-4 space-y-2">
-          {checks.map((c) => {
-            const tone = TONE[c.status];
-            const Icon = tone.icon;
-            return (
-              <li
-                key={c.id}
-                className={`rounded-lg border ${tone.border} ${tone.bg} px-4 py-3`}
-              >
-                <div className="flex items-start gap-3">
-                  <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${tone.text}`} />
-                  <div className="min-w-0">
-                    <p className={`text-sm font-semibold ${tone.text}`}>{c.label}</p>
-                    <p className="mt-0.5 break-words text-sm text-slate-600">{c.detail}</p>
-                    {c.hint && (
-                      <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{c.hint}</p>
-                    )}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="mt-4">
+          <CheckList checks={checks} />
+        </div>
       )}
     </div>
   );
