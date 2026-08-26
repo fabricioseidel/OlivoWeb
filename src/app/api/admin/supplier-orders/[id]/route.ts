@@ -3,6 +3,55 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { requireApiAdminOrSeller } from '@/lib/api-auth';
 import { applyReception, reverseReception } from '@/server/inventory.service';
 
+/** Columnas de una línea de pedido que la API expone. */
+const COLUMNAS_ITEM = `
+  id,
+  product_id,
+  supplier_sku,
+  quantity,
+  unit_cost,
+  tax_rate,
+  subtotal,
+  notes,
+  qty_confirmed,
+  availability,
+  qty_received,
+  unit_cost_received,
+  products (name, barcode)
+`;
+
+/**
+ * Da forma a una línea de pedido para la API.
+ *
+ * El GET y el PATCH devolvían la misma línea con dos mapeos distintos escritos
+ * a mano, así que agregar un campo obligaba a acordarse de los dos — y al
+ * añadir los campos del ciclo de compra, efectivamente se olvidó uno.
+ */
+function formatearItem(item: any) {
+  const producto = Array.isArray(item.products) ? item.products[0] : item.products;
+  const numero = (valor: unknown) =>
+    valor === null || valor === undefined ? null : Number(valor);
+
+  return {
+    id: item.id,
+    product_id: item.product_id,
+    product_name: producto?.name || 'Producto desconocido',
+    product_sku: producto?.barcode || item.supplier_sku,
+    supplier_sku: item.supplier_sku,
+    quantity: item.quantity,
+    unit_cost: Number(item.unit_cost) || 0,
+    tax_rate: numero(item.tax_rate) ?? 19,
+    subtotal: Number(item.subtotal) || 0,
+    notes: item.notes ?? null,
+    // Ciclo de compra: qué confirmó el proveedor y qué llegó de verdad.
+    qty_confirmed: numero(item.qty_confirmed),
+    availability: item.availability ?? 'pendiente',
+    qty_received: numero(item.qty_received),
+    unit_cost_received: numero(item.unit_cost_received),
+  };
+}
+
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -32,16 +81,7 @@ export async function GET(
     // Obtener los items del pedido con información del producto
     const { data: items, error: itemsError } = await supabaseServer
       .from('supplier_order_items')
-      .select(`
-        id,
-        product_id,
-        supplier_sku,
-        quantity,
-        unit_cost,
-        subtotal,
-        notes,
-        products (name, barcode)
-      `)
+      .select(COLUMNAS_ITEM)
       .eq('order_id', id)
       .order('id');
 
@@ -53,21 +93,7 @@ export async function GET(
       );
     }
 
-    // Formatear respuesta
-    const formattedItems = (items || []).map((item: any) => {
-      const product = Array.isArray(item.products) ? item.products[0] : item.products;
-      return {
-        id: item.id,
-        product_id: item.product_id,
-        product_name: product?.name || 'Producto desconocido',
-        product_sku: product?.barcode || item.supplier_sku,
-        supplier_sku: item.supplier_sku,
-        quantity: item.quantity,
-        unit_cost: parseFloat(item.unit_cost),
-        subtotal: parseFloat(item.subtotal),
-        notes: item.notes,
-      };
-    });
+    const formattedItems = (items || []).map(formatearItem);
 
     const supplierName = Array.isArray(order.suppliers)
       ? order.suppliers[0]?.name
@@ -272,30 +298,10 @@ export async function PATCH(
     // ── Fetch updated items for response ──
     const { data: items } = await supabaseServer
       .from('supplier_order_items')
-      .select(`
-        id,
-        product_id,
-        supplier_sku,
-        quantity,
-        unit_cost,
-        subtotal,
-        products (name, barcode)
-      `)
+      .select(COLUMNAS_ITEM)
       .eq('order_id', id);
 
-    const formattedItems = (items || []).map((item: any) => {
-      const product = Array.isArray(item.products) ? item.products[0] : item.products;
-      return {
-        id: item.id,
-        product_id: item.product_id,
-        product_name: product?.name || 'Producto desconocido',
-        product_sku: product?.barcode || item.supplier_sku,
-        supplier_sku: item.supplier_sku,
-        quantity: item.quantity,
-        unit_cost: parseFloat(item.unit_cost),
-        subtotal: parseFloat(item.subtotal),
-      };
-    });
+    const formattedItems = (items || []).map(formatearItem);
 
     const supplierName = Array.isArray(data.suppliers)
       ? data.suppliers[0]?.name

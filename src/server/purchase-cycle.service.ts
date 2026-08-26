@@ -1,6 +1,11 @@
 import { supabaseServer } from "@/lib/supabase-server";
 import { applyReception, reverseReception } from "@/server/inventory.service";
-import { TASA_IVA, aBruto, variacionCosto, UMBRAL_REVISION_COSTO } from "@/lib/pricing";
+import { TASA_IVA, variacionCosto, UMBRAL_REVISION_COSTO } from "@/lib/pricing";
+import { esCanal, type Canal } from "@/lib/purchase-channels";
+
+// Se reexportan para que quien ya importaba del servicio no tenga que cambiar.
+export { CANALES, ETIQUETA_CANAL, type Canal } from "@/lib/purchase-channels";
+export { generarMensajeCompra } from "@/lib/purchase-message";
 
 /**
  * El ciclo de compra: revisar, mandar, confirmar, recibir.
@@ -16,16 +21,6 @@ import { TASA_IVA, aBruto, variacionCosto, UMBRAL_REVISION_COSTO } from "@/lib/p
  * realmente llegó y devolverle al catálogo de precios el costo que vino en la
  * factura.
  */
-
-export const CANALES = ["whatsapp", "online", "presencial", "telefono"] as const;
-export type Canal = (typeof CANALES)[number];
-
-export const ETIQUETA_CANAL: Record<Canal, string> = {
-  whatsapp: "WhatsApp",
-  online: "Compra online",
-  presencial: "En persona",
-  telefono: "Teléfono",
-};
 
 export type Disponibilidad = "pendiente" | "disponible" | "parcial" | "sin_stock";
 
@@ -76,7 +71,7 @@ export async function marcarEnviado(
   canal: Canal,
   userId?: string | null
 ): Promise<Resultado> {
-  if (!CANALES.includes(canal)) {
+  if (!esCanal(canal)) {
     return { ok: false, error: `Canal desconocido: ${canal}` };
   }
 
@@ -344,77 +339,4 @@ export async function revertirRecepcion(orderId: string): Promise<Resultado> {
   }
 
   return { ok: true };
-}
-
-type LineaMensaje = {
-  nombre: string;
-  sku: string | null;
-  cantidad: number;
-  costoNeto: number | null;
-  tasa: number;
-};
-
-/**
- * El texto del pedido, adaptado a por dónde va a salir.
- *
- * WhatsApp y teléfono los lee el proveedor: llevan precios, porque es la
- * referencia contra la que confirma. La guía para comprar en persona la lee
- * quien va al local, así que lleva casillas para marcar y espacio para anotar
- * el precio real — que es el dato que después detecta la variación de costo.
- */
-export function generarMensajeCompra(
-  canal: Canal,
-  pedido: { id: string; proveedor: string; fechaEsperada?: string | null; notas?: string | null },
-  lineas: LineaMensaje[]
-): string {
-  const referencia = `#${pedido.id.slice(0, 8)}`;
-  const clp = (n: number) => `$${Math.round(n).toLocaleString("es-CL")}`;
-
-  if (canal === "presencial") {
-    const filas = lineas
-      .map(
-        (l, i) =>
-          `[ ] ${i + 1}. ${l.nombre}${l.sku ? ` (${l.sku})` : ""}\n` +
-          `      Pedir: ${l.cantidad}   Llegó: ____   Precio pagado: ________`
-      )
-      .join("\n");
-
-    return (
-      `GUÍA DE COMPRA ${referencia}\n` +
-      `Proveedor: ${pedido.proveedor}\n` +
-      `Fecha: ${new Date().toLocaleDateString("es-CL")}\n\n` +
-      `${filas}\n\n` +
-      `Anotá lo que realmente traigas y el precio de la boleta: con eso el\n` +
-      `sistema detecta si el proveedor cambió el costo.` +
-      (pedido.notas ? `\n\nNotas: ${pedido.notas}` : "")
-    );
-  }
-
-  const filas = lineas
-    .map((l) => {
-      const bruto = l.costoNeto === null ? null : aBruto(l.costoNeto, l.tasa);
-      const precio = bruto === null ? "precio a confirmar" : `${clp(bruto)} c/u con IVA`;
-      return `• ${l.nombre}${l.sku ? ` (${l.sku})` : ""} — ${l.cantidad} un. · ${precio}`;
-    })
-    .join("\n");
-
-  const totalBruto = lineas.reduce((s, l) => {
-    const bruto = l.costoNeto === null ? 0 : (aBruto(l.costoNeto, l.tasa) ?? 0);
-    return s + bruto * l.cantidad;
-  }, 0);
-
-  const encabezado =
-    canal === "online"
-      ? `Pedido ${referencia} — ${pedido.proveedor}`
-      : `Hola! Va el pedido ${referencia}`;
-
-  return (
-    `${encabezado}\n\n${filas}\n\n` +
-    `Total estimado: ${clp(totalBruto)} (IVA incluido)\n` +
-    (pedido.fechaEsperada
-      ? `Fecha esperada: ${new Date(pedido.fechaEsperada).toLocaleDateString("es-CL")}\n`
-      : "") +
-    `\n¿Tenés todo disponible? Si falta algo, avisame qué cantidad podés mandar.` +
-    (pedido.notas ? `\n\n${pedido.notas}` : "")
-  );
 }

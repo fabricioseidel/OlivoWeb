@@ -323,3 +323,45 @@ describe('mensaje de compra', () => {
     expect(texto).not.toContain('$NaN');
   });
 });
+
+describe('mensaje: cantidades ajustadas en la revisión', () => {
+  const pedido = { id: PEDIDO, proveedor: 'Distribuidora Central', notas: null };
+
+  it('una línea en cero no se pide: mandarla sólo confunde al proveedor', async () => {
+    const texto = generarMensajeCompra('whatsapp', pedido, [
+      { nombre: 'Harina PAN', sku: '1', cantidad: 0, costoNeto: 1500, tasa: 19 },
+      { nombre: 'Malta', sku: '2', cantidad: 6, costoNeto: 1000, tasa: 19 },
+    ]);
+
+    expect(texto).not.toContain('Harina PAN');
+    expect(texto).toContain('Malta');
+  });
+
+  it('el total sigue a las cantidades ajustadas', async () => {
+    const texto = generarMensajeCompra('whatsapp', pedido, [
+      { nombre: 'Harina PAN', sku: '1', cantidad: 2, costoNeto: 1000, tasa: 19 },
+    ]);
+
+    // 2 × 1.190 = 2.380
+    expect(texto).toContain('$2.380');
+  });
+
+  it('un producto exento no lleva IVA en el mensaje', async () => {
+    const texto = generarMensajeCompra('whatsapp', pedido, [
+      { nombre: 'Exento', sku: '1', cantidad: 1, costoNeto: 1000, tasa: 0 },
+    ]);
+
+    expect(texto).toContain('$1.000');
+  });
+
+  it('una fecha esperada inválida no ensucia el mensaje', async () => {
+    const texto = generarMensajeCompra(
+      'whatsapp',
+      { ...pedido, fechaEsperada: 'no-es-una-fecha' },
+      [{ nombre: 'Harina PAN', sku: '1', cantidad: 1, costoNeto: 1000, tasa: 19 }]
+    );
+
+    expect(texto).not.toContain('Invalid Date');
+    expect(texto).not.toContain('Fecha esperada');
+  });
+});

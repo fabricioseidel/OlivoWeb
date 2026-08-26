@@ -1,7 +1,6 @@
 # Plan de precios, costos y reposición
 
-> Estado: **Fases 1 y 2 completas; Fase 3 en curso** (esquema, servicio y
-> arreglo de la recepción hechos; falta el panel de revisión). Fases 4–5 pendientes. Revisión hecha sobre
+> Estado: **Fases 1, 2 y 3 completas**. Fases 4–5 pendientes. Revisión hecha sobre
 > `main` en el commit `286d2ff`. Versión con tablas y ejemplos numéricos:
 > https://claude.ai/code/artifact/41a48acf-3fd9-4cf8-8ab0-ddf545393ed9
 
@@ -176,10 +175,20 @@ una es desplegable sola y deja el sistema utilizable.
    ordena. Y los márgenes por categoría se editan ahí mismo, mostrando al lado
    cuánto deja hoy cada categoría — fijar la regla a ciegas es exactamente cómo
    se llegó al 35% que nunca se contrastó.
-3. 🔄 **Ciclo de compra con canales** — en curso. Hechos: la migración
+3. ✅ **Ciclo de compra con canales** — hecha. La migración
    (`20260826000200_purchase_cycle`), `src/server/purchase-cycle.service.ts` con
-   25 tests, el arreglo de la recepción y la separación estado/canal en toda la
-   UI. **Falta el panel de revisión previo al envío** con las cuatro salidas.
+   29 tests, el arreglo de la recepción, la separación estado/canal en toda la
+   UI, y `RevisionPanel` con las cuatro salidas.
+
+   Los cuatro canales no son cuatro botones que hacen lo mismo: cambian el
+   texto. Al proveedor le llega el pedido con precios —la referencia contra la
+   que confirma— y quien va al local se lleva una guía con casillas y espacio
+   para anotar el precio pagado, que es el dato que después detecta la
+   variación de costo.
+
+   La vista previa usa **la misma función** que arma el texto al mandarlo
+   (`src/lib/purchase-message.ts`), no una copia: duplicarla habría repetido el
+   error que la Fase 1 vino a corregir.
 
    El circuito de precio ya queda cerrado: al recibir con un costo distinto, el
    costo de la factura vuelve a `product_suppliers` con `cost_source='recepcion'`,

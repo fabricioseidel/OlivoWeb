@@ -5,3 +5,4 @@ export type { ReplenishmentResponse, ReplenishmentProduct } from "./StockBajoPan
 export { default as SugerenciasPanel } from "./SugerenciasPanel";
 export { default as RecepcionPanel } from "./RecepcionPanel";
 export { default as PreciosPanel } from "./PreciosPanel";
+export { default as RevisionPanel } from "./RevisionPanel";
