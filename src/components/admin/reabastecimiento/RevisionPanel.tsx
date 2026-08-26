@@ -339,6 +339,21 @@ export default function RevisionPanel({
         </p>
       </div>
 
+      {/* `window.print()` imprime la página entera, así que la guía salía con la
+          navegación del admin alrededor y partida en varias hojas. Esta hoja de
+          estilo deja en el papel sólo el texto del pedido. */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          #guia-de-compra, #guia-de-compra * { visibility: visible !important; }
+          #guia-de-compra {
+            position: absolute; left: 0; top: 0; width: 100%;
+            max-height: none; overflow: visible;
+            font-size: 12pt; color: #000;
+          }
+        }
+      `}</style>
+
       <div className="rounded-2xl bg-white ring-1 ring-gray-200">
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
           <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
@@ -353,7 +368,10 @@ export default function RevisionPanel({
             Copiar
           </button>
         </div>
-        <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words px-4 py-3 font-mono text-xs leading-relaxed text-gray-700">
+        <pre
+          id="guia-de-compra"
+          className="max-h-72 overflow-auto whitespace-pre-wrap break-words px-4 py-3 font-mono text-xs leading-relaxed text-gray-700"
+        >
           {texto}
         </pre>
       </div>

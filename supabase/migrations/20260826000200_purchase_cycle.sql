@@ -232,10 +232,18 @@ BEGIN
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION public.marcar_pedido_enviado(uuid, text, uuid) FROM PUBLIC;
+-- Los roles de Supabase no existen en un PostgreSQL local, así que la
+-- revocación va guardada: sin esto la migración aborta antes de terminar.
+--
+-- Se revoca de `anon` y `authenticated`, NO de PUBLIC, siguiendo lo que ya hace
+-- 20260814033833: `service_role` puede estar apoyándose en el permiso de
+-- PUBLIC, y quitárselo dejaría al servidor sin poder llamar su propia función.
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
     REVOKE EXECUTE ON FUNCTION public.marcar_pedido_enviado(uuid, text, uuid) FROM anon;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    REVOKE EXECUTE ON FUNCTION public.marcar_pedido_enviado(uuid, text, uuid) FROM authenticated;
   END IF;
 END $$;

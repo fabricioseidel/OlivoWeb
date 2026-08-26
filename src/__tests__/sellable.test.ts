@@ -28,7 +28,15 @@ vi.mock('@/lib/supabase-server', () => ({
         eq: () => api,
         in: () => api,
         not: () => api,
-        range: async () => ({ data: estado.productos, error: null }),
+        // El mock respeta los límites de `range`: si devolviera siempre todo,
+        // un servicio sin paginar pasaría el test igual y no probaría nada.
+        range: async (desde: number, hasta: number) => ({
+          data: (tabla === 'product_suppliers' ? estado.costos : estado.productos).slice(
+            desde,
+            hasta + 1
+          ),
+          error: null,
+        }),
         maybeSingle: async () => estado.settings,
         then: (resolve: any) =>
           resolve(
@@ -199,5 +207,21 @@ describe('lo que ve el cliente', () => {
     expect(texto).toContain('2 más');
     expect(texto).not.toContain('Cuatro');
     expect(texto).not.toContain('Cinco');
+  });
+});
+
+describe('catálogos grandes', () => {
+  it('no da por "sin costo" lo que quedó fuera de la primera página', async () => {
+    // Supabase corta en 1.000 filas por consulta. Sin paginar, el producto
+    // 1.001 se leería como sin costo y —con la regla encendida— quedaría fuera
+    // de la venta teniéndolo. Es el peor tipo de fallo: silencioso, y sólo se
+    // nota cuando un cliente no puede comprar algo que sí está.
+    estado.productos = Array.from({ length: 1200 }, (_, i) => producto({ barcode: String(i) }));
+    estado.costos = Array.from({ length: 1200 }, (_, i) => ({ product_id: String(i) }));
+
+    const impacto = await impactoDeLaRegla();
+
+    expect(impacto.total).toBeGreaterThan(1000);
+    expect(impacto.sinCosto).toBe(0);
   });
 });

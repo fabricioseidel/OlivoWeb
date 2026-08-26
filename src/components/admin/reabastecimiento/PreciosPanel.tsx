@@ -323,13 +323,20 @@ export default function PreciosPanel() {
 
   // Arrancar en el filtro que tenga algo que mostrar evita abrir la pantalla en
   // una lista vacía cuando no hay productos vendiéndose a pérdida.
+  //
+  // Sólo en la PRIMERA carga: cada vez que se aplica un precio la foto se
+  // recalcula, y sin esta guarda el filtro saltaba solo. Alguien revisando la
+  // lista de "sin revisar" aplicaba un precio y la pantalla lo mandaba a otro
+  // filtro, perdiendo dónde iba.
+  const [filtroElegido, setFiltroElegido] = useState(false);
   useEffect(() => {
-    if (!foto) return;
+    if (!foto || filtroElegido) return;
     if (foto.resumen.bajoCosto > 0) setFiltro("bajo-costo");
     else if (foto.resumen.bajoMargen > 0) setFiltro("bajo-margen");
     else if (foto.resumen.costoCambio > 0) setFiltro("costo-cambio");
     else setFiltro("todos");
-  }, [foto]);
+    setFiltroElegido(true);
+  }, [foto, filtroElegido]);
 
   const filtradas = useMemo(() => {
     if (!foto) return [];
@@ -436,7 +443,10 @@ export default function PreciosPanel() {
             <button
               key={f.id}
               type="button"
-              onClick={() => setFiltro(f.id)}
+              onClick={() => {
+                setFiltro(f.id);
+                setFiltroElegido(true);
+              }}
               title={f.explica}
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
                 activo

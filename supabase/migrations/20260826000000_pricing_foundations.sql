@@ -148,13 +148,19 @@ BEGIN
 END;
 $$;
 
--- `anon` sólo existe en Supabase; en un Postgres local la revocación directa
--- abortaría la migración entera antes de crear el trigger.
-REVOKE EXECUTE ON FUNCTION public.record_supplier_cost_change() FROM PUBLIC;
+-- Los roles de Supabase no existen en un PostgreSQL local, así que la
+-- revocación va guardada: sin esto la migración aborta antes de terminar.
+--
+-- Se revoca de `anon` y `authenticated`, NO de PUBLIC, siguiendo lo que ya hace
+-- 20260814033833: `service_role` puede estar apoyándose en el permiso de
+-- PUBLIC, y quitárselo dejaría al servidor sin poder llamar su propia función.
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
     REVOKE EXECUTE ON FUNCTION public.record_supplier_cost_change() FROM anon;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    REVOKE EXECUTE ON FUNCTION public.record_supplier_cost_change() FROM authenticated;
   END IF;
 END $$;
 

@@ -117,24 +117,44 @@ export function evaluarVendibles(
   return fuera;
 }
 
-/** Códigos de barra que tienen algún proveedor con costo cargado. */
+/**
+ * Códigos de barra que tienen algún proveedor con costo cargado.
+ *
+ * Va paginado: Supabase corta en 1.000 filas por consulta, y sin paginar los
+ * productos que quedaran fuera de esa primera página se leerían como "sin
+ * costo". Con la regla encendida eso los sacaría de la venta teniendo costo
+ * cargado — un fallo silencioso que sólo se nota cuando un cliente no puede
+ * comprar algo que sí está.
+ */
 async function conCosto(barcodes?: string[]): Promise<Set<string>> {
-  let consulta = supabaseServer
-    .from("product_suppliers")
-    .select("product_id")
-    .not("unit_cost", "is", null);
+  const TAMANO = 1000;
+  const encontrados = new Set<string>();
 
-  if (barcodes && barcodes.length > 0) {
-    consulta = consulta.in("product_id", barcodes);
+  for (let desde = 0; ; desde += TAMANO) {
+    let consulta = supabaseServer
+      .from("product_suppliers")
+      .select("product_id")
+      .not("unit_cost", "is", null);
+
+    if (barcodes && barcodes.length > 0) {
+      consulta = consulta.in("product_id", barcodes);
+    }
+
+    const { data, error } = await consulta.range(desde, desde + TAMANO - 1);
+
+    if (error) {
+      logger.error("[sellable] no se pudieron leer los costos:", error);
+      // Devolver lo leído hasta acá marcaría como "sin costo" todo lo que
+      // faltaba. Un conjunto vacío al menos falla de forma reconocible.
+      return new Set();
+    }
+
+    const lote = data ?? [];
+    for (const fila of lote) encontrados.add(String((fila as any).product_id));
+    if (lote.length < TAMANO) break;
   }
 
-  const { data, error } = await consulta;
-  if (error) {
-    logger.error("[sellable] no se pudieron leer los costos:", error);
-    return new Set();
-  }
-
-  return new Set((data ?? []).map((r: any) => String(r.product_id)));
+  return encontrados;
 }
 
 /**
