@@ -81,22 +81,38 @@ que no tienes. Después de la primera recepción y la primera venta, mira la
 tabla `inventory_movements`: cada movimiento debe aparecer con su motivo
 (`RECEPTION`, `POS_SALE`, `WEB_SALE`, `MANUAL_ADJUSTMENT`).
 
-### E. Publicar los términos y la política de privacidad
+### E. Revisar los documentos legales y entregar el RUT
 
-Hoy **no existen esas páginas**. El pie de página solo muestra los enlaces si
-cargas una URL en Configuración → Política.
+Las tres páginas **ya están escritas y publicadas**, enlazadas desde el pie y
+desde el checkout:
 
-En Chile, vender a consumidores sin términos ni política de datos te deja
-expuesto (Ley 19.496 del consumidor y Ley 19.628 de datos personales), y
-MercadoPago los pide para cuentas de comercio. Necesitas al menos:
+- `/legal/terminos` — condiciones de venta
+- `/legal/privacidad` — qué datos se recogen y con quién se comparten
+- `/legal/devoluciones` — cambios, devoluciones y derecho a retracto
 
-- Términos y condiciones (incluye plazos de entrega y cobertura de despacho)
-- Política de privacidad
-- Política de cambios y devoluciones — el derecho a retracto de 10 días aplica
-  a la compra a distancia
+Los datos operativos (horarios, comunas, ventana de entrega, tope de despacho)
+salen de las mismas constantes que usa el checkout, así que el documento no
+puede prometer una cosa mientras el sistema cobra otra.
 
-Cuando los tengas, pega las URLs en Configuración → Política y aparecen solos
-en el pie.
+**Lo que falta de tu parte:**
+
+1. **El RUT de Inversiones El Olivo SpA.** Va en `BUSINESS.rut`
+   (`src/lib/seo/business.ts`). Mientras sea `null` la línea simplemente no se
+   muestra — no se inventa —, pero los términos de un comercio chileno deben
+   identificar al proveedor, así que es lo único que falta para que estén
+   completos.
+
+2. **Léelos y confirma que describen tu operación.** Escribí lo que hace el
+   sistema hoy, pero hay decisiones de negocio que son tuyas y conviene que
+   revises: el plazo de 48 horas para avisar de un producto en mal estado, que
+   el despacho de ida no se reembolsa si el cliente se retracta, y qué queda
+   fuera del derecho a retracto por ser perecible.
+
+3. **Si el volumen lo justifica, que los mire un abogado.** Son un punto de
+   partida sólido y honesto, no una asesoría legal. Lo más sensible es el
+   tratamiento de datos personales: Chile está en transición hacia la Ley
+   21.719, que crea una agencia de protección de datos, y conviene confirmar
+   qué exige a la fecha en que abras.
 
 ### F. Revisar que los productos se vean
 
@@ -227,6 +243,12 @@ El dominio del remitente tiene que estar verificado o los correos caen en spam
   los plazos de entrega, que pasarían de "día siguiente 08:00–14:00" a minutos.
 
 ## Decisiones tomadas que conviene revisar
+
+- **El sitio no tenía pie de página.** El componente `Footer` existía, tenía su
+  test pasando y varios comentarios del código lo daban por vivo, pero no lo
+  renderizaba nadie: ninguna página lo mostraba. Con eso faltaba en todo el
+  sitio el NAP —nombre, dirección y teléfono— que el trabajo de SEO local da
+  por publicado y que Google compara con la ficha del negocio. Ya está montado.
 
 - **Los interruptores del panel que no hacen nada.** Se encontraron tres que se
   guardaban pero nunca se aplicaban: *modo prueba de pagos* (se quitó, mentía

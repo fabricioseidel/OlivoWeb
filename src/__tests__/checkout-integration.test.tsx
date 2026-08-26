@@ -33,10 +33,31 @@ vi.mock('../contexts/CartContext', async () => {
   };
 });
 
+// La tienda parte en modo vitrina ante la duda, así que para probar el flujo
+// normal de compra hay que declararla abierta. El caso contrario —vitrina— se
+// prueba aparte, más abajo.
+const storeSettings = { previewMode: false as boolean | undefined };
+
+vi.mock('../hooks/useStoreSettings', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/useStoreSettings')>(
+    '../hooks/useStoreSettings'
+  );
+  return {
+    ...actual,
+    useStoreSettings: () => ({
+      settings: { ...actual.DEFAULT_SETTINGS, ...storeSettings },
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    }),
+  };
+});
+
 describe('CheckoutPage Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    storeSettings.previewMode = false;
   });
 
   it('renders checkout form and summary', () => {
@@ -99,5 +120,32 @@ describe('CheckoutPage Integration', () => {
     });
     expect(screen.getAllByText(/MercadoPago/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /^Pagar \$/i })).toBeInTheDocument();
+  });
+
+  it('en modo vitrina no deja pagar y explica por qué', async () => {
+    storeSettings.previewMode = true;
+
+    render(
+      <SessionProvider session={null}>
+        <CheckoutPage />
+      </SessionProvider>
+    );
+
+    fireEvent.change(screen.getByLabelText(/Nombre completo/i), { target: { value: 'Ana Pérez' } });
+    fireEvent.change(screen.getByLabelText(/Correo electrónico/i), { target: { value: 'ana@ejemplo.cl' } });
+    fireEvent.change(screen.getByLabelText(/Teléfono/i), { target: { value: '987654321' } });
+    fireEvent.change(screen.getByLabelText(/^Dirección$/i), { target: { value: 'Calle Falsa 123' } });
+    fireEvent.change(screen.getByLabelText(/Ciudad/i), { target: { value: 'Santiago' } });
+
+    fireEvent.click(screen.getAllByRole('button', { name: /Continuar al pago/i })[0]);
+
+    const boton = await screen.findByRole('button', { name: /Todavía no aceptamos pedidos/i });
+    expect(boton).toBeDisabled();
+
+    // No basta con deshabilitar: el cliente tiene que entender qué pasa.
+    expect(screen.getByText(/no aceptamos pedidos por la web/i)).toBeInTheDocument();
+
+    // Y en ningún caso debe quedar visible un botón de pagar.
+    expect(screen.queryByRole('button', { name: /^Pagar \$/i })).toBeNull();
   });
 });

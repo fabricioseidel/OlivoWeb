@@ -33,6 +33,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/ofertas`, priority: 0.8, changeFrequency: 'daily', lastModified: now },
     { url: `${base}/contacto`, priority: 0.6, changeFrequency: 'monthly', lastModified: now },
     { url: `${base}/bienvenidos`, priority: 0.5, changeFrequency: 'monthly', lastModified: now },
+
+    // Documentos legales: prioridad baja porque no compiten por búsquedas,
+    // pero se declaran igual — un comercio que los esconde da mala señal.
+    { url: `${base}/legal/terminos`, priority: 0.3, changeFrequency: 'yearly', lastModified: now },
+    { url: `${base}/legal/privacidad`, priority: 0.3, changeFrequency: 'yearly', lastModified: now },
+    { url: `${base}/legal/devoluciones`, priority: 0.3, changeFrequency: 'yearly', lastModified: now },
   ];
 
   // Categorías: cada una es una página propia con su metadata, así que vale

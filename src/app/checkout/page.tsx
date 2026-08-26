@@ -714,10 +714,23 @@ export default function CheckoutPage() {
                     {mensajeVitrina}
                   </p>
                 ) : (
-                  <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-neutral-500">
-                    <ShieldCheckIcon className="size-4 shrink-0" />
-                    Compra protegida
-                  </p>
+                  <>
+                    <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-neutral-500">
+                      <ShieldCheckIcon className="size-4 shrink-0" />
+                      Compra protegida
+                    </p>
+                    <p className="mt-2 text-center text-[11px] leading-relaxed text-neutral-500">
+                      Al pagar aceptas los{" "}
+                      <Link href="/legal/terminos" className="underline underline-offset-2 hover:text-neutral-700">
+                        términos y condiciones
+                      </Link>{" "}
+                      y la{" "}
+                      <Link href="/legal/privacidad" className="underline underline-offset-2 hover:text-neutral-700">
+                        política de privacidad
+                      </Link>
+                      .
+                    </p>
+                  </>
                 )}
               </div>
             </div>
