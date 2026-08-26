@@ -25,14 +25,15 @@ import {
   PedidosPanel,
   StockBajoPanel,
   SugerenciasPanel,
+  PreciosPanel,
   RecepcionPanel,
   type SupplierOrder,
   type ReplenishmentResponse,
 } from "@/components/admin/reabastecimiento";
 import { formatCLP } from "@/utils/currency";
 
-type TabId = "pedidos" | "sugerencias" | "stock" | "recepcion";
-const TAB_IDS: TabId[] = ["pedidos", "sugerencias", "stock", "recepcion"];
+type TabId = "pedidos" | "sugerencias" | "precios" | "stock" | "recepcion";
+const TAB_IDS: TabId[] = ["pedidos", "sugerencias", "precios", "stock", "recepcion"];
 
 const CLP = formatCLP;
 
@@ -129,6 +130,10 @@ export default function ReabastecimientoPage() {
       label: "Sugerencias",
     },
     {
+      key: "precios",
+      label: "Precios",
+    },
+    {
       key: "stock",
       label: "Stock Bajo",
       count: lowData?.lowStockCount || undefined,
@@ -203,6 +208,7 @@ export default function ReabastecimientoPage() {
           }}
         />
       )}
+      {activeTab === "precios" && <PreciosPanel />}
       {activeTab === "stock" && (
         <StockBajoPanel
           data={lowData}

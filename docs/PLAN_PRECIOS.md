@@ -1,6 +1,6 @@
 # Plan de precios, costos y reposición
 
-> Estado: **Fase 1 implementada**; Fases 2–5 pendientes. Revisión hecha sobre
+> Estado: **Fases 1 y 2 implementadas**; Fases 3–5 pendientes. Revisión hecha sobre
 > `main` en el commit `286d2ff`. Versión con tablas y ejemplos numéricos:
 > https://claude.ai/code/artifact/41a48acf-3fd9-4cf8-8ab0-ddf545393ed9
 
@@ -134,10 +134,27 @@ una es desplegable sola y deja el sistema utilizable.
    el bruto es una columna GENERADA (`unit_cost_gross`), así que la base impide
    escribirla y no puede desincronizarse. Dos costos editables para el mismo
    producto es justo el problema que había que evitar.
-2. **Pantalla Precios** — pestaña nueva en `/admin/reabastecimiento`. Tabla por
-   producto × proveedor con margen real, sugerido y Δ costo. Cinco filtros: bajo
-   margen, costo cambió, sin revisar, sin costo, vendiendo bajo el costo. Es la
-   fase que más trabajo manual ahorra.
+2. ✅ **Pantalla Precios** — hecha. Pestaña «Precios» en
+   `/admin/reabastecimiento`, con `src/server/pricing.service.ts` (36 tests) y
+   dos rutas de API. Los cinco filtros están, con el contador de cada uno.
+
+   Tres decisiones que se tomaron al construirla:
+
+   - **El cálculo vive en el servidor**, no en el navegador. Traerse el catálogo
+     entero al cliente obliga a mandarle costos de proveedor a quien sólo
+     necesita el resultado, y deja la lógica donde no se puede reutilizar desde
+     una API ni desde un cron.
+   - **El proveedor que manda es el de prioridad más baja *que tenga costo*.**
+     Un proveedor marcado como principal pero sin precio cargado no puede
+     decidir a cuánto se vende.
+   - **«Está bien así»** marca revisado sin cambiar el precio. Sin eso, un
+     producto que se vende bajo margen a propósito —para atraer gente— quedaría
+     marcado como pendiente para siempre y el filtro dejaría de mirarse.
+
+   El precio propuesto es editable antes de aplicarlo: la fórmula sugiere, no
+   ordena. Y los márgenes por categoría se editan ahí mismo, mostrando al lado
+   cuánto deja hoy cada categoría — fijar la regla a ciegas es exactamente cómo
+   se llegó al 35% que nunca se contrastó.
 3. **Ciclo de compra con canales** — la más grande y la de más riesgo (elimina el
    CHECK y migra los pedidos existentes). Panel de revisión previo al envío,
    cuatro salidas por canal (WhatsApp / online / presencial / teléfono),
@@ -150,11 +167,11 @@ una es desplegable sola y deja el sistema utilizable.
 
 ---
 
-## Pendiente de definir antes de la Fase 2
+## Pendiente de definir
 
-1. **Márgenes reales por categoría.** Sin esto la Fase 2 marca como problema
-   cosas que no lo son. La tabla `category_margins` ya existe con la fila
-   `__default__ = 0.35`; falta decidir el resto y cargarlas.
+1. **Márgenes reales por categoría.** Se editan desde la propia pantalla de
+   Precios, que muestra al lado el margen que cada categoría deja hoy. Ya no
+   hace falta decidirlos de antemano: se ajustan mirando la evidencia.
 2. **Umbral de caducidad de la revisión.** Implementado en
    `UMBRAL_REVISION_COSTO = 0.05` (5%), tal como se propuso. Cambiarlo es una
    línea si al usarlo resulta ruidoso.
