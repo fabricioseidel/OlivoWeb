@@ -50,13 +50,34 @@ recibir el correo y ver el pedido marcado como pagado.
 supabase db push
 ```
 
-Sin esto la columna `preview_mode` no existe, y la tienda queda **en vitrina
-de todos modos** (el código cierra ante la duda), así que el sitio no vendería
-aunque desactives el interruptor. Las migraciones nuevas son:
+Esto lo tienes que correr tú: yo no tengo credenciales de Supabase ni salida
+de red hacia allá desde donde trabajo. Lo que sí hice fue **probar las dos
+migraciones contra un PostgreSQL 16 real** antes de que las corras, partiendo
+de una base que ya tenía la tabla `settings` con datos, como la tuya:
+
+- Aplican limpias, sin errores.
+- Son idempotentes: se aplicaron tres veces seguidas y a partir de la segunda
+  solo avisan "ya existe, se omite". Si dudas de si ya las corriste, correrlas
+  de nuevo no rompe nada.
+- **Tus datos quedan intactos**: la fila de configuración conserva todo y solo
+  gana las columnas nuevas.
+- `preview_mode` queda en `true` en la fila que ya existía, que es lo seguro:
+  aplicar la migración **no abre la tienda**, la deja en vitrina hasta que tú
+  la abras desde el panel.
+- El índice único de `express_delivery_id` hace lo que promete: rechaza un
+  segundo envío con el mismo id —que es lo que impide pedir dos repartidores
+  cuando el webhook de pago reintenta— y a la vez permite tantas órdenes sin
+  envío inmediato como quieras.
+
+Las migraciones nuevas son:
 
 - `20260825000000_document_express_delivery_columns.sql` — registra columnas que
   ya existían en la base sin archivo. No cambia nada, solo alinea el historial.
 - `20260825010000_add_store_preview_mode.sql` — agrega el modo vitrina.
+
+Sin la segunda, la columna `preview_mode` no existe y la tienda **queda en
+vitrina de todos modos** (el código cierra ante la duda), así que el sitio no
+vendería aunque desactives el interruptor.
 
 ### B. Confirmar qué token de MercadoPago está cargado
 
