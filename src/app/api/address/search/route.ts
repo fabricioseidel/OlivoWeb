@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { BUSINESS } from "@/lib/seo/business";
 
 // Simple in-memory cache to reduce load on Nominatim
 // Key: query string, Value: { timestamp: number, data: any }
@@ -48,9 +49,13 @@ export async function GET(request: NextRequest) {
     url.searchParams.set("countrycodes", country);
     url.searchParams.set("accept-language", "es");
 
-    // Nominatim requires a User-Agent identifying the application
+    // La política de uso de Nominatim exige un User-Agent que identifique a la
+    // aplicación con un contacto real y alcanzable. Antes decía
+    // "TecnoOlivoWeb (contact@tecno-olivo.cl)", un marcador de posición de otro
+    // dominio: si el servicio necesitaba avisar de un abuso, escribía a una
+    // dirección que nadie lee, y lo que sigue a eso es un bloqueo.
     const headers = {
-      "User-Agent": "TecnoOlivoWeb/1.0 (contact@tecno-olivo.cl)", // Replace with actual contact info if available
+      "User-Agent": `OlivoMarket/1.0 (${BUSINESS.url}; ${BUSINESS.email})`,
       "Accept": "application/json",
     };
 

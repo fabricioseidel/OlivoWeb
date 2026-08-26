@@ -49,6 +49,14 @@ export const BUSINESS = {
   name: "Olivo Market",
   legalName: "Inversiones El Olivo SpA",
 
+  /**
+   * RUT de la sociedad, para identificar al proveedor en los documentos
+   * legales. Se omite del texto mientras sea null — no se inventa.
+   * // TODO-HUMANO: entregar el RUT de Inversiones El Olivo SpA. Los términos
+   * y condiciones de un comercio chileno deben identificar al proveedor.
+   */
+  rut: null as string | null,
+
   /** Frase de entidad — debe aparecer idéntica en todo el sitio. */
   entityPhrase:
     "Olivo Market — minimarket venezolano y punto de paquetería en Ñuñoa, Santiago.",

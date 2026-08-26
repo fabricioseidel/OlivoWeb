@@ -42,7 +42,7 @@ async function _fetchOnce(): Promise<StoreSettings> {
   return _pending;
 }
 
-const DEFAULT_SETTINGS: StoreSettings = {
+export const DEFAULT_SETTINGS: StoreSettings = {
   storeName: "OLIVOMARKET",
   storeEmail: "contacto@olivomarket.cl",
   storePhone: WHATSAPP_PHONE,
@@ -74,9 +74,14 @@ const DEFAULT_SETTINGS: StoreSettings = {
     mercadoPago: false,
     crypto: false,
   },
-  paymentTestMode: true,
   emailFromName: "OLIVOMARKET",
   emailFromAddress: "noreply@olivomarket.cl",
+  // Igual que en el servidor: si no se pudo leer la configuración, la tienda
+  // se muestra en vitrina. El servidor rechaza el pedido de todos modos, así
+  // que dejar el botón de pagar habilitado solo conseguiría que el cliente
+  // llenara el carrito, escribiera su dirección y recién ahí se topara con un
+  // error.
+  previewMode: true,
 };
 
 type UseStoreSettingsReturn = {
@@ -162,21 +167,6 @@ export function useShippingSettings() {
 
   return {
     shipping: settings.shipping || DEFAULT_SETTINGS.shipping,
-    loading,
-    error,
-    refresh,
-  };
-}
-
-/**
- * Hook para obtener solo la configuración de pagos
- */
-export function usePaymentSettings() {
-  const { settings, loading, error, refresh } = useStoreSettings();
-
-  return {
-    paymentMethods: settings.paymentMethods || DEFAULT_SETTINGS.paymentMethods,
-    paymentTestMode: settings.paymentTestMode ?? DEFAULT_SETTINGS.paymentTestMode,
     loading,
     error,
     refresh,

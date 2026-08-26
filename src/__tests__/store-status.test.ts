@@ -106,3 +106,13 @@ describe('toStoreStatus', () => {
     expect(toStoreStatus({ previewMessage: '' }).previewMessage).toBe(PREVIEW_DEFAULT_MESSAGE);
   });
 });
+
+describe('valor por defecto del cliente', () => {
+  it('el hook de la tienda parte en vitrina, igual que el servidor', async () => {
+    // Si /api/settings falla, el navegador se queda con estos valores. Sin
+    // previewMode:true el botón de pagar quedaba habilitado y el cliente
+    // llenaba el carrito para toparse con un 503 recién al pagar.
+    const { DEFAULT_SETTINGS } = await import('@/hooks/useStoreSettings');
+    expect(DEFAULT_SETTINGS.previewMode).toBe(true);
+  });
+});

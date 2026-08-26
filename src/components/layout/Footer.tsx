@@ -117,7 +117,24 @@ const Footer = () => {
               <li><Link href="/tienda-nunoa" className={linkClass}>Tienda en Ñuñoa</Link></li>
               <li><Link href="/contacto" className={linkClass}>Contacto</Link></li>
               {settings.faqUrl && <li><a href={settings.faqUrl} className={linkClass}>Preguntas frecuentes</a></li>}
-              {settings.termsUrl && <li><a href={settings.termsUrl} className={linkClass}>Términos legales</a></li>}
+              {/* Los documentos legales viven en el sitio. Los campos de
+                  configuración siguen mandando si se cargó una URL propia:
+                  antes, sin esa URL, el pie simplemente no mostraba nada. */}
+              <li>
+                {settings.termsUrl
+                  ? <a href={settings.termsUrl} className={linkClass}>Términos y condiciones</a>
+                  : <Link href="/legal/terminos" className={linkClass}>Términos y condiciones</Link>}
+              </li>
+              <li>
+                {settings.privacyUrl
+                  ? <a href={settings.privacyUrl} className={linkClass}>Política de privacidad</a>
+                  : <Link href="/legal/privacidad" className={linkClass}>Política de privacidad</Link>}
+              </li>
+              <li>
+                {settings.returnPolicyUrl
+                  ? <a href={settings.returnPolicyUrl} className={linkClass}>Cambios y devoluciones</a>
+                  : <Link href="/legal/devoluciones" className={linkClass}>Cambios y devoluciones</Link>}
+              </li>
             </ul>
           </nav>
 
