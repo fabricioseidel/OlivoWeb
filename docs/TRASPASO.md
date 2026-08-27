@@ -446,12 +446,40 @@ y precio).
 Los 12 productos activos sin fila en Principal ya estaban en cero, así que la
 resincronización no los tocó; nueve son los que se crearon ese mismo día.
 
-**Lo que queda de este tema:** `products.stock` vuelve a moverse solo si algo
-lo escribe por fuera de `inventory.service.ts`. La migración de julio nombra
-al culpable — los flujos de edición e importación de productos actualizan
-`products.stock` y nunca `branch_stock`. Mientras eso siga así, los dos
-números van a volver a separarse; la resincronización de hoy es un parche, no
-la cura.
+**La cura, no el parche (mismo día, después).** La resincronización de arriba
+dejaba el dato bien pero no impedía que volviera a torcerse. Se arreglaron las
+dos causas de raíz:
+
+*En la base* — `20260828000000_products_stock_derivado_por_trigger.sql`. La
+fórmula del stock derivado estaba **copiada en siete funciones**
+(`apply_reception`, `apply_reception_reverse`, las dos sobrecargas de
+`apply_sale`, `apply_transfer`, `decrement_stock_atomic`,
+`increment_product_stock`), y ninguna filtraba por sucursal activa. Reescribir
+las siete deja la misma fórmula duplicada siete veces, que es exactamente cómo
+se rompió; en su lugar la derivación pasó a vivir en un solo lugar
+(`stock_derivado(text)`) con dos triggers que la aplican:
+`products_stock_derivado` reemplaza cualquier valor escrito a mano por el
+derivado, y `branch_stock_sync_products` propaga los movimientos. Las siete
+funciones quedaron intactas: su `UPDATE` ahora es redundante, no incorrecto.
+
+*En el código* — `setStockLevel` y `setStockLevels` calculaban el delta contra
+`products.stock` (el total de todas las sucursales) y lo aplicaban a **una**
+sucursal. Con 42 en Principal, 42 en otra y un total de 84, pedir "dejá 50"
+restaba 34 y Principal terminaba en 8. Ahora miden contra el stock de la
+sucursal donde van a aplicar el ajuste. Es un error que da resultados
+plausibles —el total queda cerca, el detalle queda inventado— y por eso podía
+pasar mucho tiempo sin que nadie lo notara.
+
+Probado contra un Postgres 16 real antes de aplicar (doctrina #6), con diez
+casos: la sucursal inactiva deja de contar, el valor escrito a mano se
+reemplaza, mover `branch_stock` propaga, reactivar una sucursal la vuelve a
+sumar, los decimales de los productos por peso se preservan, y la migración es
+idempotente. Verificado después en producción: escribir `stock = 9999` en un
+producto sin existencias lo deja en 0, y los 730 activos siguen alineados.
+
+Quedan **10 tests nuevos** en `inventory-service.test.ts`, con el mock
+separando `products` de `branch_stock` — uno que devolviera lo mismo para las
+dos dejaría pasar justo este error.
 
 #### Cinco códigos de barras que no son códigos de barras
 
@@ -492,11 +520,19 @@ productos con stock que no se pueden vender por la web ni se ven en la tienda.
 Reglas que este código sostiene a propósito. Romperlas reintroduce errores que
 ya costaron trabajo encontrar.
 
-1. **`branch_stock` es la fuente de verdad; `products.stock` es DERIVADO.**
-   Nadie escribe esa columna directamente: todo movimiento pasa por
-   `src/server/inventory.service.ts`, que es la puerta única. Escribirla a mano
-   no mueve el stock de la sucursal y el valor se pierde en el siguiente
-   recálculo.
+1. **`branch_stock` es la fuente de verdad; `products.stock` es DERIVADO** — la
+   suma de las sucursales **activas**. Todo movimiento pasa por
+   `src/server/inventory.service.ts`, que es la puerta única: es la que además
+   deja el rastro en `inventory_movements`.
+
+   **Desde el 2026-08-27 lo hace cumplir la base, no la disciplina.** Un
+   trigger recalcula `products.stock` en cada escritura y otro lo propaga
+   cuando se mueve `branch_stock`
+   (`20260828000000_products_stock_derivado_por_trigger.sql`). Escribir esa
+   columna a mano ya no rompe nada: el valor se reemplaza por el derivado.
+   Se hizo así porque la convención sola falló dos veces — la fórmula estaba
+   copiada en siete funciones y bastó que ninguna filtrara por sucursal activa
+   para que el catálogo mostrara el doble del stock real.
 
 2. **`product_suppliers.unit_cost` manda sobre `products.purchase_price`.** El
    segundo es derivado desde #72. El costo se carga en `product_suppliers`, que

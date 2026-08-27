@@ -12,14 +12,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * en vez de pisarse.
  */
 
+const SUCURSAL_POR_DEFECTO = 'branch-principal';
+
 const state: {
   rpcCalls: Array<{ name: string; args: any }>;
-  productStock: number | null;
+  /** Stock en la sucursal, por código. Es lo que manda para calcular el ajuste. */
+  branchStock: Map<string, number>;
   productExists: boolean;
   rpcError: any;
   rpcData: any;
   rows: Array<{ barcode: string; stock: number }>;
-} = { rpcCalls: [], productStock: 0, productExists: true, rpcError: null, rpcData: 1, rows: [] };
+  /** `null` simula que no hay sucursal por defecto activa. */
+  defaultBranchId: string | null;
+} = {
+  rpcCalls: [],
+  branchStock: new Map(),
+  productExists: true,
+  rpcError: null,
+  rpcData: 1,
+  rows: [],
+  defaultBranchId: SUCURSAL_POR_DEFECTO,
+};
 
 vi.mock('@/lib/supabase-server', () => ({
   supabaseServer: {
@@ -27,15 +40,36 @@ vi.mock('@/lib/supabase-server', () => ({
       state.rpcCalls.push({ name, args });
       return { data: state.rpcError ? null : state.rpcData, error: state.rpcError };
     },
-    from: () => {
+    // El mock distingue por tabla a propósito: el ajuste lee el stock de
+    // `branch_stock` y la existencia del producto de `products`. Un mock que
+    // devolviera lo mismo para las dos dejaría pasar justamente el error que
+    // estos tests vigilan.
+    from: (tabla: string) => {
       const api: any = {
         select: () => api,
         eq: () => api,
-        in: async () => ({ data: state.rows, error: null }),
-        maybeSingle: async () => ({
-          data: state.productExists ? { stock: state.productStock } : null,
-          error: null,
-        }),
+        in: async () => {
+          if (tabla === 'branch_stock') {
+            return {
+              data: [...state.branchStock].map(([product_barcode, stock]) => ({
+                product_barcode,
+                stock,
+              })),
+              error: null,
+            };
+          }
+          // products: sólo se consulta qué códigos existen.
+          return { data: state.rows.map((r) => ({ barcode: r.barcode })), error: null };
+        },
+        maybeSingle: async () => {
+          if (tabla === 'branches') {
+            return {
+              data: state.defaultBranchId ? { id: state.defaultBranchId } : null,
+              error: null,
+            };
+          }
+          return { data: state.productExists ? { barcode: '123' } : null, error: null };
+        },
       };
       return api;
     },
@@ -54,11 +88,12 @@ import {
 
 beforeEach(() => {
   state.rpcCalls = [];
-  state.productStock = 0;
+  state.branchStock = new Map();
   state.productExists = true;
   state.rpcError = null;
   state.rpcData = 1;
   state.rows = [];
+  state.defaultBranchId = SUCURSAL_POR_DEFECTO;
 });
 
 const lastCall = () => state.rpcCalls[state.rpcCalls.length - 1];
@@ -125,7 +160,7 @@ describe('movimientos de stock', () => {
 
 describe('ajuste manual de stock', () => {
   it('sube la diferencia, no el total, cuando el objetivo es mayor', async () => {
-    state.productStock = 8;
+    state.branchStock.set('123', 8);
     const res = await setStockLevel('123', 10);
 
     expect(res.ok).toBe(true);
@@ -135,7 +170,7 @@ describe('ajuste manual de stock', () => {
   });
 
   it('baja la diferencia cuando el objetivo es menor', async () => {
-    state.productStock = 8;
+    state.branchStock.set('123', 8);
     await setStockLevel('123', 3);
 
     expect(lastCall().name).toBe('apply_reception_reverse');
@@ -143,7 +178,7 @@ describe('ajuste manual de stock', () => {
   });
 
   it('no toca la base si el stock ya es el pedido', async () => {
-    state.productStock = 7;
+    state.branchStock.set('123', 7);
     const res = await setStockLevel('123', 7);
 
     expect(res).toEqual({ ok: true, count: 0 });
@@ -151,7 +186,7 @@ describe('ajuste manual de stock', () => {
   });
 
   it('parte de cero cuando el producto todavía no tiene stock', async () => {
-    state.productStock = null;
+    // Sin fila en `branch_stock`: no está faltante, está en cero.
     await setStockLevel('123', 4);
 
     expect(lastCall().name).toBe('apply_reception');
@@ -176,11 +211,8 @@ describe('ajuste manual de stock', () => {
 
 describe('ajuste masivo de stock', () => {
   it('agrupa todo en dos llamadas, no una por producto', async () => {
-    state.rows = [
-      { barcode: 'sube', stock: 2 },
-      { barcode: 'baja', stock: 9 },
-      { barcode: 'igual', stock: 5 },
-    ];
+    state.rows = [{ barcode: 'sube', stock: 0 }, { barcode: 'baja', stock: 0 }, { barcode: 'igual', stock: 0 }];
+    state.branchStock = new Map([['sube', 2], ['baja', 9], ['igual', 5]]);
 
     const res = await setStockLevels([
       { barcode: 'sube', target: 6 },
@@ -200,7 +232,8 @@ describe('ajuste masivo de stock', () => {
   });
 
   it('no llama a la base cuando ningún stock cambia', async () => {
-    state.rows = [{ barcode: 'a', stock: 3 }];
+    state.rows = [{ barcode: 'a', stock: 0 }];
+    state.branchStock = new Map([['a', 3]]);
     const res = await setStockLevels([{ barcode: 'a', target: 3 }]);
 
     expect(res).toEqual({ ok: true, count: 0 });
@@ -208,7 +241,8 @@ describe('ajuste masivo de stock', () => {
   });
 
   it('ajusta los que existen y reporta los que no', async () => {
-    state.rows = [{ barcode: 'existe', stock: 1 }];
+    state.rows = [{ barcode: 'existe', stock: 0 }];
+    state.branchStock = new Map([['existe', 1]]);
     const res = await setStockLevels([
       { barcode: 'existe', target: 4 },
       { barcode: 'fantasma', target: 10 },
@@ -227,6 +261,84 @@ describe('ajuste masivo de stock', () => {
     ]);
 
     expect(res).toEqual({ ok: true, count: 0 });
+    expect(state.rpcCalls).toHaveLength(0);
+  });
+});
+
+describe('el ajuste se mide contra la sucursal, no contra el total', () => {
+  /**
+   * Es el error que dejó el inventario mal en agosto de 2026.
+   *
+   * `products.stock` es la suma de las sucursales. Usarlo como base del delta
+   * y aplicar ese delta a UNA sola sucursal da un ajuste equivocado apenas hay
+   * más de una con existencias, y el resultado es plausible: el total queda
+   * cerca y el detalle por sucursal queda inventado, así que nadie lo nota
+   * hasta que el checkout falla por falta de stock.
+   */
+  it('con 42 en la sucursal y 84 en el total, pedir 50 sube 8 y no baja 34', async () => {
+    state.branchStock.set('123', 42); // lo que hay en la sucursal
+    // El total del producto sería 84 (otra sucursal con otras 42). Si el
+    // cálculo mirara ahí, esto saldría como una BAJA de 34.
+    await setStockLevel('123', 50);
+
+    expect(lastCall().name).toBe('apply_reception');
+    expect(lastCall().args.p_items).toEqual([{ barcode: '123', qty: 8, name: null }]);
+  });
+
+  it('aplica el movimiento en la misma sucursal que midió', async () => {
+    state.branchStock.set('123', 5);
+    await setStockLevel('123', 9);
+
+    expect(lastCall().args.p_branch_id).toBe(SUCURSAL_POR_DEFECTO);
+  });
+
+  it('respeta la sucursal indicada en vez de la de por defecto', async () => {
+    state.branchStock.set('123', 5);
+    await setStockLevel('123', 9, { branchId: 'otra-sucursal' });
+
+    expect(lastCall().args.p_branch_id).toBe('otra-sucursal');
+  });
+
+  it('el ajuste masivo también mide contra la sucursal', async () => {
+    state.rows = [{ barcode: 'a', stock: 0 }];
+    state.branchStock = new Map([['a', 42]]);
+
+    await setStockLevels([{ barcode: 'a', target: 50 }]);
+
+    expect(lastCall().name).toBe('apply_reception');
+    expect(lastCall().args.p_items).toEqual([{ barcode: 'a', qty: 8, name: null }]);
+    expect(lastCall().args.p_branch_id).toBe(SUCURSAL_POR_DEFECTO);
+  });
+
+  it('un producto que existe pero nunca tuvo movimiento cuenta cero, no falta', async () => {
+    // Sin fila en `branch_stock` pero presente en `products`: hay que cargarle
+    // las 10 unidades, no reportarlo como inexistente.
+    state.rows = [{ barcode: 'nuevo', stock: 0 }];
+
+    const res = await setStockLevels([{ barcode: 'nuevo', target: 10 }]);
+
+    expect(res.ok).toBe(true);
+    expect(lastCall().args.p_items).toEqual([{ barcode: 'nuevo', qty: 10, name: null }]);
+  });
+
+  it('sin sucursal por defecto activa no adivina: falla y no mueve nada', async () => {
+    state.defaultBranchId = null;
+    state.branchStock.set('123', 5);
+
+    const res = await setStockLevel('123', 9);
+
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/sucursal/i);
+    expect(state.rpcCalls).toHaveLength(0);
+  });
+
+  it('lo mismo en el masivo: sin sucursal, ni una llamada', async () => {
+    state.defaultBranchId = null;
+    state.rows = [{ barcode: 'a', stock: 0 }];
+
+    const res = await setStockLevels([{ barcode: 'a', target: 5 }]);
+
+    expect(res.ok).toBe(false);
     expect(state.rpcCalls).toHaveLength(0);
   });
 });
