@@ -210,7 +210,7 @@ export default function NuevoPedidoProveedorPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-emerald-500" />
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-brand-500" />
       </div>
     );
   }
@@ -256,7 +256,7 @@ export default function NuevoPedidoProveedorPage() {
               type="date"
               value={expectedDate}
               onChange={(e) => setExpectedDate(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-500"
               min={new Date().toISOString().split("T")[0]}
             />
           </div>
@@ -268,7 +268,7 @@ export default function NuevoPedidoProveedorPage() {
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-500"
               placeholder="Ej: Pedir factura"
             />
           </div>
@@ -280,7 +280,7 @@ export default function NuevoPedidoProveedorPage() {
           placeholder="Buscar producto..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+          className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-500"
         />
       </div>
 
@@ -303,7 +303,7 @@ export default function NuevoPedidoProveedorPage() {
                 key={product.id}
                 className={`rounded-xl border p-3 transition-all ${
                   isSelected
-                    ? "bg-emerald-50 border-emerald-300 shadow-sm"
+                    ? "bg-brand-50 border-brand-300 shadow-sm"
                     : isZero
                     ? "bg-red-50/50 border-red-200"
                     : isLow
@@ -318,7 +318,7 @@ export default function NuevoPedidoProveedorPage() {
                     onClick={() => toggleProduct(product)}
                     className={`shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-all ${
                       isSelected
-                        ? "bg-emerald-600 text-white"
+                        ? "bg-brand-600 text-white"
                         : "bg-gray-200 text-gray-400 hover:bg-gray-300"
                     }`}
                   >
@@ -344,7 +344,7 @@ export default function NuevoPedidoProveedorPage() {
 
                 {/* Row 2: Quantity controls (if selected) */}
                 {isSelected && item && (
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-emerald-200">
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-brand-200">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => updateQty(product.id, item.quantity - 1)}
@@ -356,7 +356,7 @@ export default function NuevoPedidoProveedorPage() {
                         type="number"
                         value={item.quantity}
                         onChange={(e) => updateQty(product.id, parseInt(e.target.value) || 1)}
-                        className="w-16 text-center py-1 border rounded-lg text-sm font-bold focus:ring-2 focus:ring-emerald-500"
+                        className="w-16 text-center py-1 border rounded-lg text-sm font-bold focus:ring-2 focus:ring-brand-500"
                         min={1}
                       />
                       <button
@@ -367,7 +367,7 @@ export default function NuevoPedidoProveedorPage() {
                       </button>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-black text-emerald-700">
+                      <div className="text-sm font-black text-brand-700">
                         ${item.subtotal.toLocaleString()}
                       </div>
                     </div>
@@ -390,7 +390,7 @@ export default function NuevoPedidoProveedorPage() {
                   type="checkbox" 
                   checked={sendEmail} 
                   onChange={(e) => setSendEmail(e.target.checked)}
-                  className="rounded text-emerald-600 focus:ring-emerald-500" 
+                  className="rounded text-brand-600 focus:ring-brand-500" 
                 />
                 <EnvelopeIcon className="h-4 w-4" />
                 También enviar formato PDF/Mensaje formal al correo de este proveedor ({supplier.email})
@@ -427,7 +427,7 @@ export default function NuevoPedidoProveedorPage() {
                   <button
                     onClick={() => handleSubmit(false)}
                     disabled={saving}
-                    className="flex-1 sm:flex-none py-3 px-6 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition font-bold text-sm disabled:opacity-50"
+                    className="flex-1 sm:flex-none py-3 px-6 bg-brand-600 text-white rounded-xl hover:bg-brand-700 active:scale-95 transition font-bold text-sm disabled:opacity-50"
                   >
                     {saving ? "Guardando..." : "Guardar Pedido"}
                   </button>

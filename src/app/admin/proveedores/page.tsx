@@ -564,7 +564,7 @@ export default function SuppliersAdminPage() {
                     value={assignmentSearch}
                     onChange={(e) => setAssignmentSearch(e.target.value)}
                     placeholder={`Buscar en ${assignments.length} productos asignados…`}
-                    className="w-full bg-gray-50 border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-gray-50 border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               )}

@@ -43,7 +43,7 @@ const MENU_CARDS = [
     description: "Crea tarjetas físicas con QRs de regalo",
     icon: QrCodeIcon,
     href: "/admin/marketing/cupones-qr",
-    color: "bg-emerald-600",
+    color: "bg-brand-600",
     isNew: true,
   },
   {
@@ -142,7 +142,7 @@ export default function MarketingDashboard() {
           kicker="Marketing"
           title="Central de Marketing"
           subtitle="Gestioná emails, cupones, puntos y campañas desde un solo lugar"
-          icon={<MegaphoneIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<MegaphoneIcon className="w-6 h-6 text-brand-300" />}
         />
       }
     >
@@ -158,7 +158,7 @@ export default function MarketingDashboard() {
           <StatsCard
             label="Cupones activos"
             value={stats.activeCoupons.toLocaleString()}
-            tone="emerald"
+            tone="brand"
             icon={<TicketIcon className="w-4 h-4" />}
           />
           <StatsCard
@@ -181,7 +181,7 @@ export default function MarketingDashboard() {
           <Link
             key={card.href}
             href={card.href}
-            className="group bg-white rounded-2xl ring-1 ring-gray-200 hover:ring-emerald-300 p-5 sm:p-6 hover:shadow-lg transition-all min-h-[120px]"
+            className="group bg-white rounded-2xl ring-1 ring-gray-200 hover:ring-brand-300 p-5 sm:p-6 hover:shadow-lg transition-all min-h-[120px]"
           >
             <div className="flex items-start justify-between mb-3">
               <div
@@ -191,14 +191,14 @@ export default function MarketingDashboard() {
               </div>
               <div className="flex items-center gap-2">
                 {card.isNew && (
-                  <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                  <span className="text-[9px] font-black uppercase tracking-widest bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full">
                     Nuevo
                   </span>
                 )}
-                <ArrowRightIcon className="h-5 w-5 text-gray-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
+                <ArrowRightIcon className="h-5 w-5 text-gray-300 group-hover:text-brand-500 group-hover:translate-x-1 transition-all" />
               </div>
             </div>
-            <h3 className="text-base sm:text-lg font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 group-hover:text-brand-700 transition-colors">
               {card.title}
             </h3>
             <p className="text-sm text-gray-500 mt-1">{card.description}</p>
@@ -216,7 +216,7 @@ export default function MarketingDashboard() {
             </h2>
             <Link
               href="/admin/marketing/historial"
-              className="text-sm text-emerald-700 font-bold hover:text-emerald-800"
+              className="text-sm text-brand-700 font-bold hover:text-brand-800"
             >
               Ver todos →
             </Link>
@@ -239,7 +239,7 @@ export default function MarketingDashboard() {
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                       email.status === "sent"
-                        ? "bg-emerald-100 text-emerald-700"
+                        ? "bg-brand-100 text-brand-700"
                         : email.status === "failed"
                         ? "bg-rose-100 text-rose-700"
                         : "bg-gray-100 text-gray-500"

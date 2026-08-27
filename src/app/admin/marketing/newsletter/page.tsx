@@ -112,7 +112,7 @@ export default function NewsletterPage() {
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ring-1 ${
             s.is_active
-              ? "bg-emerald-100 text-emerald-700 ring-emerald-200"
+              ? "bg-brand-100 text-brand-700 ring-brand-200"
               : "bg-rose-100 text-rose-700 ring-rose-200"
           }`}
         >
@@ -160,7 +160,7 @@ export default function NewsletterPage() {
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ring-1 ${
             s.is_active
-              ? "bg-emerald-100 text-emerald-700 ring-emerald-200"
+              ? "bg-brand-100 text-brand-700 ring-brand-200"
               : "bg-rose-100 text-rose-700 ring-rose-200"
           }`}
         >
@@ -191,12 +191,12 @@ export default function NewsletterPage() {
           kicker="Marketing"
           title="Newsletter"
           subtitle="Lista de suscriptores capturada desde la tienda online"
-          icon={<NewspaperIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<NewspaperIcon className="w-6 h-6 text-brand-300" />}
           right={
             <button
               onClick={loadSubscribers}
               disabled={loading}
-              className="p-2 bg-white/10 ring-1 ring-white/15 rounded-xl text-emerald-100 hover:bg-white/15 transition-colors min-h-[36px]"
+              className="p-2 bg-white/10 ring-1 ring-white/15 rounded-xl text-brand-100 hover:bg-white/15 transition-colors min-h-[36px]"
               title="Actualizar"
             >
               <ArrowPathIcon
@@ -217,7 +217,7 @@ export default function NewsletterPage() {
         <StatsCard
           label="Activos"
           value={stats.active.toLocaleString()}
-          tone="emerald"
+          tone="brand"
           icon={<CheckBadgeIcon className="w-4 h-4" />}
         />
         <StatsCard
@@ -241,7 +241,7 @@ export default function NewsletterPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por email, nombre o fuente…"
-              className="w-full bg-gray-50 border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-gray-50 border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
             />
           </div>
         </div>
@@ -249,7 +249,7 @@ export default function NewsletterPage() {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500" />
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-500" />
         </div>
       ) : (
         <ResponsiveTable<Subscriber>

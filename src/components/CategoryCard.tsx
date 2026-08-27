@@ -27,7 +27,7 @@ export default function CategoryCard({ category, href, onClick }: Props) {
     const style = getCategoryStyle(category.name, category.image || undefined);
     const Icon = style.icon;
 
-    const className = `o-focus group relative flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border ${style.bg} ${style.border} p-6 text-center transition-colors hover:border-emerald-400`;
+    const className = `o-focus group relative flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border ${style.bg} ${style.border} p-6 text-center transition-colors hover:border-brand-400`;
 
     const content = (
         <>
@@ -35,7 +35,7 @@ export default function CategoryCard({ category, href, onClick }: Props) {
                 <Icon className={`size-8 ${style.color}`} />
             </span>
 
-            <span className="mb-1 block text-base font-semibold tracking-tight text-neutral-900 transition-colors group-hover:text-emerald-700">
+            <span className="mb-1 block text-base font-semibold tracking-tight text-neutral-900 transition-colors group-hover:text-brand-700">
                 {category.name}
             </span>
 
@@ -45,7 +45,7 @@ export default function CategoryCard({ category, href, onClick }: Props) {
                 </span>
             )}
 
-            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-emerald-700">
+            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand-700">
                 Ver catálogo
                 <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </span>

@@ -105,9 +105,9 @@ export default function OrderSummary({
           <dt className="text-sm text-neutral-600">Envío</dt>
           <dd className="tabular text-sm font-medium">
             {appliedCoupon?.freeShipping ? (
-              <span className="text-emerald-700">Gratis con cupón</span>
+              <span className="text-brand-700">Gratis con cupón</span>
             ) : shippingCost === 0 ? (
-              <span className="text-emerald-700">Gratis</span>
+              <span className="text-brand-700">Gratis</span>
             ) : (
               <span className="text-neutral-900">{clp(shippingCost)}</span>
             )}
@@ -116,7 +116,7 @@ export default function OrderSummary({
 
         {appliedCoupon && (
           <div className="flex items-baseline justify-between gap-3">
-            <dt className="flex min-w-0 items-center gap-1.5 text-sm text-emerald-700">
+            <dt className="flex min-w-0 items-center gap-1.5 text-sm text-brand-700">
               <TicketIcon className="size-4 shrink-0" />
               <span className="truncate">Cupón {appliedCoupon.code}</span>
               <button
@@ -128,7 +128,7 @@ export default function OrderSummary({
               </button>
             </dt>
             {appliedCoupon.discount > 0 && (
-              <dd className="tabular text-sm font-medium text-emerald-700">
+              <dd className="tabular text-sm font-medium text-brand-700">
                 −{clp(appliedCoupon.discount)}
               </dd>
             )}
@@ -137,8 +137,8 @@ export default function OrderSummary({
 
         {redeemedPoints > 0 && (
           <div className="flex items-baseline justify-between gap-3">
-            <dt className="text-sm text-emerald-700">Puntos canjeados</dt>
-            <dd className="tabular text-sm font-medium text-emerald-700">−{clp(pointsDiscount)}</dd>
+            <dt className="text-sm text-brand-700">Puntos canjeados</dt>
+            <dd className="tabular text-sm font-medium text-brand-700">−{clp(pointsDiscount)}</dd>
           </div>
         )}
       </dl>
@@ -160,7 +160,7 @@ export default function OrderSummary({
             </div>
             <button
               onClick={() => onRedeemPoints(redeemedPoints > 0 ? 0 : loyaltyPoints)}
-              className="o-focus shrink-0 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 transition-colors hover:border-emerald-400 hover:text-emerald-700"
+              className="o-focus shrink-0 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 transition-colors hover:border-brand-400 hover:text-brand-700"
             >
               {redeemedPoints > 0 ? "Quitar" : "Usar"}
             </button>
@@ -183,7 +183,7 @@ export default function OrderSummary({
               className={`h-11 min-w-0 flex-1 rounded-xl border px-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 ${
                 feedback?.type === 'error'
                   ? 'border-red-300 focus:border-red-500'
-                  : 'border-neutral-200 focus:border-emerald-500'
+                  : 'border-neutral-200 focus:border-brand-500'
               }`}
             />
             <button
@@ -197,7 +197,7 @@ export default function OrderSummary({
           {feedback && (
             <p
               className={`mt-2 flex items-center gap-1.5 text-xs ${
-                feedback.type === 'success' ? 'text-emerald-700' : 'text-red-600'
+                feedback.type === 'success' ? 'text-brand-700' : 'text-red-600'
               }`}
             >
               {feedback.type === 'success'

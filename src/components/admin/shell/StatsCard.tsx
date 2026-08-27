@@ -4,7 +4,7 @@ import React, { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowUpRightIcon } from "@heroicons/react/24/outline";
 
-type Tone = "default" | "emerald" | "amber" | "rose" | "sky" | "indigo";
+type Tone = "default" | "brand" | "amber" | "rose" | "sky" | "indigo";
 
 type DeltaTone = "positive" | "negative" | "neutral";
 
@@ -21,7 +21,7 @@ type Props = {
 
 const toneAccent: Record<Tone, string> = {
   default: "text-gray-700 bg-gray-100",
-  emerald: "text-emerald-700 bg-emerald-100",
+  brand: "text-brand-700 bg-brand-100",
   amber: "text-amber-700 bg-amber-100",
   rose: "text-rose-700 bg-rose-100",
   sky: "text-sky-700 bg-sky-100",
@@ -29,7 +29,7 @@ const toneAccent: Record<Tone, string> = {
 };
 
 const deltaTone: Record<DeltaTone, string> = {
-  positive: "text-emerald-700 bg-emerald-50",
+  positive: "text-brand-700 bg-brand-50",
   negative: "text-rose-700 bg-rose-50",
   neutral: "text-gray-700 bg-gray-100",
 };
@@ -46,7 +46,7 @@ export default function StatsCard({
 }: Props) {
   const body = (
     <div
-      className={`relative h-full min-w-0 rounded-2xl bg-white ring-1 ring-gray-200 hover:ring-emerald-300 transition-all p-3 sm:p-5 overflow-hidden ${className}`}
+      className={`relative h-full min-w-0 rounded-2xl bg-white ring-1 ring-gray-200 hover:ring-brand-300 transition-all p-3 sm:p-5 overflow-hidden ${className}`}
     >
       <div className="flex items-start justify-between gap-2 min-w-0">
         <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-gray-500 min-w-0 break-words">
@@ -80,7 +80,7 @@ export default function StatsCard({
         </p>
       )}
       {href && (
-        <ArrowUpRightIcon className="absolute top-3 right-3 w-4 h-4 text-gray-300 group-hover:text-emerald-500 transition-colors" />
+        <ArrowUpRightIcon className="absolute top-3 right-3 w-4 h-4 text-gray-300 group-hover:text-brand-500 transition-colors" />
       )}
     </div>
   );

@@ -31,7 +31,7 @@ export default function CheckoutSteps({ currentStep }: CheckoutStepsProps) {
                   aria-hidden="true"
                   className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
                     active
-                      ? 'bg-emerald-600 text-white'
+                      ? 'bg-brand-600 text-white'
                       : 'border border-neutral-300 bg-white text-neutral-400'
                   }`}
                 >
@@ -48,7 +48,7 @@ export default function CheckoutSteps({ currentStep }: CheckoutStepsProps) {
                 <li aria-hidden="true" className="mx-3 h-px flex-1">
                   <div
                     className={`h-full w-full ${
-                      currentStep > step.n ? 'bg-emerald-600' : 'bg-neutral-200'
+                      currentStep > step.n ? 'bg-brand-600' : 'bg-neutral-200'
                     }`}
                   />
                 </li>

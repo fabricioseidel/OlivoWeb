@@ -293,7 +293,7 @@ export default function RevisionPanel({
                       [it.id]: Math.max(0, Number(e.target.value) || 0),
                     }))
                   }
-                  className="w-20 rounded-lg border border-gray-300 px-2 py-1 text-right text-sm font-semibold text-gray-900 focus:border-emerald-500 focus:ring-emerald-500"
+                  className="w-20 rounded-lg border border-gray-300 px-2 py-1 text-right text-sm font-semibold text-gray-900 focus:border-brand-500 focus:ring-brand-500"
                 />
                 <div className="w-24 text-right text-sm font-semibold text-gray-700">
                   {bruto !== null ? CLP(bruto * cantidad) : "—"}
@@ -387,7 +387,7 @@ export default function RevisionPanel({
             type="button"
             onClick={salir}
             disabled={enviando}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
           >
             {canal === "whatsapp" && <ChatBubbleLeftRightIcon className="h-4 w-4" />}
             {canal === "presencial" && <PrinterIcon className="h-4 w-4" />}

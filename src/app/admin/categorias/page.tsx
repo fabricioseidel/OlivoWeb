@@ -296,7 +296,7 @@ export default function CategoriesPage() {
       cell: (cat) => (
         <div>
           <p className="font-black text-gray-900">{cat.name}</p>
-          <p className="text-xs text-emerald-700 font-mono mt-0.5">
+          <p className="text-xs text-brand-700 font-mono mt-0.5">
             /{cat.slug}
           </p>
         </div>
@@ -319,7 +319,7 @@ export default function CategoriesPage() {
           onClick={() => toggleCategoryStatus(cat.id)}
           className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all min-h-[36px] ${
             cat.isActive
-              ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+              ? "bg-brand-100 text-brand-700 hover:bg-brand-200"
               : "bg-rose-100 text-rose-700 hover:bg-rose-200"
           }`}
         >
@@ -335,7 +335,7 @@ export default function CategoriesPage() {
         <div className="flex justify-end gap-2">
           <button
             onClick={() => handleEditCategory(cat)}
-            className="p-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
+            className="p-2 text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-lg transition-all min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
             title="Editar"
           >
             <PencilIcon className="size-4" />
@@ -373,7 +373,7 @@ export default function CategoriesPage() {
         <CategoryIcon cat={cat} />
         <div className="flex-1 min-w-0">
           <p className="font-black text-gray-900 truncate">{cat.name}</p>
-          <p className="text-xs text-emerald-700 font-mono">/{cat.slug}</p>
+          <p className="text-xs text-brand-700 font-mono">/{cat.slug}</p>
           {cat.description && (
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">
               {cat.description}
@@ -390,7 +390,7 @@ export default function CategoriesPage() {
           onClick={() => toggleCategoryStatus(cat.id)}
           className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider min-h-[36px] ${
             cat.isActive
-              ? "bg-emerald-100 text-emerald-700"
+              ? "bg-brand-100 text-brand-700"
               : "bg-rose-100 text-rose-700"
           }`}
         >
@@ -400,7 +400,7 @@ export default function CategoriesPage() {
         <div className="flex gap-2">
           <button
             onClick={() => handleEditCategory(cat)}
-            className="p-2 text-emerald-700 bg-emerald-50 rounded-lg min-h-[36px] min-w-[36px]"
+            className="p-2 text-brand-700 bg-brand-50 rounded-lg min-h-[36px] min-w-[36px]"
             title="Editar"
           >
             <PencilIcon className="size-4" />
@@ -434,7 +434,7 @@ export default function CategoriesPage() {
           kicker="Organización"
           title="Categorías"
           subtitle="Gestión visual de secciones de la tienda"
-          icon={<TagIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<TagIcon className="w-6 h-6 text-brand-300" />}
           right={
             <div className="flex items-center gap-2">
               <button
@@ -445,7 +445,7 @@ export default function CategoriesPage() {
               </button>
               <button
                 onClick={handleCreateCategory}
-                className="px-4 py-2 bg-emerald-500 rounded-xl text-emerald-950 text-xs font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 inline-flex items-center gap-2 min-h-[36px]"
+                className="px-4 py-2 bg-brand-500 rounded-xl text-brand-950 text-xs font-black uppercase tracking-widest hover:bg-brand-400 transition-all shadow-lg shadow-brand-500/20 inline-flex items-center gap-2 min-h-[36px]"
               >
                 <PlusIcon className="size-4" />
                 Nueva
@@ -465,7 +465,7 @@ export default function CategoriesPage() {
         <StatsCard
           label="Activas"
           value={stats.active.toLocaleString()}
-          tone="emerald"
+          tone="brand"
           icon={<CheckBadgeIcon className="w-4 h-4" />}
         />
         <StatsCard
@@ -484,10 +484,10 @@ export default function CategoriesPage() {
       <div className="bg-white p-4 rounded-2xl ring-1 ring-gray-200 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
           <div className="md:col-span-3 relative">
-            <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-600" />
+            <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-600" />
             <input
               type="text"
-              className="block w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500"
+              className="block w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-brand-500"
               placeholder="Buscar por nombre o descripción..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -497,7 +497,7 @@ export default function CategoriesPage() {
             <span className="flex items-center gap-3">
               <input
                 type="checkbox"
-                className="size-5 rounded-lg text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                className="size-5 rounded-lg text-brand-600 focus:ring-brand-500 border-gray-300"
                 checked={showInactiveCategories}
                 onChange={(e) => setShowInactiveCategories(e.target.checked)}
               />
@@ -522,7 +522,7 @@ export default function CategoriesPage() {
             cta={
               <button
                 onClick={handleCreateCategory}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 min-h-[44px]"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700 min-h-[44px]"
               >
                 <PlusIcon className="size-4" />
                 Nueva categoría
@@ -580,7 +580,7 @@ export default function CategoriesPage() {
                     value={formData.name}
                     onChange={handleChange}
                     placeholder="Ej: Snacks"
-                    className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-sm"
+                    className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-sm"
                     required
                   />
                   {formErrors.name && (
@@ -615,7 +615,7 @@ export default function CategoriesPage() {
                         setFormData((prev) => ({ ...prev, image: "" }))
                       }
                       title="Auto-detectar icono"
-                      className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-100 hover:bg-emerald-100 transition-all"
+                      className="flex items-center gap-1.5 px-2 py-0.5 bg-brand-50 text-brand-700 rounded-md border border-brand-100 hover:bg-brand-100 transition-all"
                     >
                       <Sparkles className="size-3" />
                       <span className="text-[9px] font-black uppercase tracking-tighter">
@@ -640,14 +640,14 @@ export default function CategoriesPage() {
                         }
                         className={`relative size-10 rounded-lg flex items-center justify-center transition-all ${
                           isSelected
-                            ? "bg-emerald-600 text-white shadow-md scale-105 z-10"
-                            : "bg-white text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 border border-gray-100"
+                            ? "bg-brand-600 text-white shadow-md scale-105 z-10"
+                            : "bg-white text-gray-400 hover:text-brand-600 hover:bg-brand-50 border border-gray-100"
                         }`}
                         title={name}
                       >
                         <Icon size={20} strokeWidth={2.5} />
                         {isAuto && !isSelected && (
-                          <div className="absolute -top-1 -right-1 size-2.5 bg-emerald-400 rounded-full border-2 border-white" />
+                          <div className="absolute -top-1 -right-1 size-2.5 bg-brand-400 rounded-full border-2 border-white" />
                         )}
                       </button>
                     );
@@ -655,7 +655,7 @@ export default function CategoriesPage() {
                 </div>
               </div>
 
-              <div className="py-6 px-4 bg-emerald-50/30 rounded-3xl border border-emerald-100/50 flex flex-col items-center justify-center gap-3">
+              <div className="py-6 px-4 bg-brand-50/30 rounded-3xl border border-brand-100/50 flex flex-col items-center justify-center gap-3">
                 {(() => {
                   const style = getCategoryStyle(formData.name, formData.image);
                   const Icon = style.icon;
@@ -668,10 +668,10 @@ export default function CategoriesPage() {
                   );
                 })()}
                 <div className="text-center">
-                  <p className="text-emerald-950 font-black text-sm uppercase tracking-widest">
+                  <p className="text-brand-950 font-black text-sm uppercase tracking-widest">
                     Vista previa
                   </p>
-                  <p className="text-emerald-700/60 text-[9px] font-black uppercase tracking-tighter mt-0.5">
+                  <p className="text-brand-700/60 text-[9px] font-black uppercase tracking-tighter mt-0.5">
                     {formData.name || "Sin nombre"}
                   </p>
                 </div>
@@ -687,7 +687,7 @@ export default function CategoriesPage() {
                   onChange={handleChange}
                   rows={2}
                   placeholder="Información adicional (opcional)..."
-                  className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 font-medium text-xs resize-none"
+                  className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-medium text-xs resize-none"
                 />
               </div>
 
@@ -696,7 +696,7 @@ export default function CategoriesPage() {
                   <div
                     className={`size-2 rounded-full ${
                       formData.isActive
-                        ? "bg-emerald-500 animate-pulse"
+                        ? "bg-brand-500 animate-pulse"
                         : "bg-gray-300"
                     }`}
                   />
@@ -712,7 +712,7 @@ export default function CategoriesPage() {
                     onChange={handleCheckboxChange}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500" />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500" />
                 </label>
               </div>
 
@@ -727,7 +727,7 @@ export default function CategoriesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-black shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all disabled:opacity-50 text-sm min-h-[44px]"
+                  className="flex-1 py-3 bg-brand-600 text-white rounded-xl font-black shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all disabled:opacity-50 text-sm min-h-[44px]"
                 >
                   {saving
                     ? "Guardando..."

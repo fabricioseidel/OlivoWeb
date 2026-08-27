@@ -91,7 +91,7 @@ export default function FiltersToolbar({
           <input
             type="text"
             placeholder="Nombre, SKU o Barcode..."
-            className="w-full pl-12 pr-6 h-12 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-emerald-500 font-medium text-gray-900 shadow-inner"
+            className="w-full pl-12 pr-6 h-12 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-brand-500 font-medium text-gray-900 shadow-inner"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -127,7 +127,7 @@ export default function FiltersToolbar({
             title="Productos listos para mostrar: imagen, precio, stock, SKU y categoría"
             className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 h-12 rounded-2xl font-bold transition-all border-2 ${
               filterReady === "ready"
-                ? "bg-emerald-100 text-emerald-700 border-emerald-200 shadow-lg shadow-emerald-200/20"
+                ? "bg-brand-100 text-brand-700 border-brand-200 shadow-lg shadow-brand-200/20"
                 : "bg-gray-50 text-gray-400 border-transparent hover:bg-gray-100"
             }`}
           >
@@ -152,7 +152,7 @@ export default function FiltersToolbar({
             title="Filtrar por categoría"
             className={`flex-1 md:flex-none h-12 px-3 rounded-2xl font-bold text-sm border-2 transition-all focus:outline-none cursor-pointer ${
               categoryFilter
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                ? "bg-brand-50 text-brand-700 border-brand-200"
                 : "bg-gray-50 text-gray-400 border-transparent hover:bg-gray-100"
             }`}
           >
@@ -168,7 +168,7 @@ export default function FiltersToolbar({
               onClick={() => changeViewMode("table")}
               title="Vista tabla"
               className={`px-4 h-12 transition-colors flex items-center justify-center ${
-                viewMode === "table" ? "bg-emerald-100 text-emerald-700" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
+                viewMode === "table" ? "bg-brand-100 text-brand-700" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
               }`}
             >
               <TableCellsIcon className="w-5 h-5" />
@@ -177,7 +177,7 @@ export default function FiltersToolbar({
               onClick={() => changeViewMode("cards")}
               title="Vista barajitas (selección múltiple)"
               className={`px-4 h-12 transition-colors flex items-center justify-center ${
-                viewMode === "cards" ? "bg-emerald-100 text-emerald-700" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
+                viewMode === "cards" ? "bg-brand-100 text-brand-700" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
               }`}
             >
               <Squares2X2Icon className="w-5 h-5" />

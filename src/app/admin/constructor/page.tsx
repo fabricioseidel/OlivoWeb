@@ -71,7 +71,7 @@ const fieldLabel = (type: PageBlockType, field: EditableField, fallback: string)
  * buscador sobre de qué trata el sitio. Como ahora es editable desde el panel,
  * conviene avisar en el momento de escribirlo y no descubrir el problema meses
  * después: longitud utilizable, mención de la comuna (que es lo que decide una
- * búsqueda local como "minimarket venezolano ñuñoa") y del rubro.
+ * búsqueda local como "minimarket en ñuñoa") y del rubro.
  */
 function HeroTitleHint({ value }: { value?: string }) {
   const text = (value || '').trim();
@@ -96,7 +96,11 @@ function HeroTitleHint({ value }: { value?: string }) {
       why: 'Es lo que decide las búsquedas locales del tipo "minimarket cerca de mí".',
     },
     {
-      ok: /venezolan|minimarket|market|abarrote|encomienda|env[íi]o/.test(lower),
+      // Se aceptan las palabras del rubro real, no sólo una: el título puede
+      // encabezar por almacén, por despacho o por encomiendas según la época.
+      ok: /minimarket|market|almac[ée]n|abarrote|supermercado|encomienda|env[íi]o|despacho|domicilio|venezolan/.test(
+        lower
+      ),
       label: 'Menciona el rubro o el servicio',
       why: 'Ayuda al buscador a entender qué vendes, no solo cómo te llamas.',
     },
@@ -106,7 +110,7 @@ function HeroTitleHint({ value }: { value?: string }) {
     <ul className="mt-2 space-y-1">
       {checks.map((c) => (
         <li key={c.label} className="flex items-start gap-1.5 text-xs">
-          <span aria-hidden="true" className={c.ok ? 'text-emerald-600' : 'text-amber-600'}>
+          <span aria-hidden="true" className={c.ok ? 'text-brand-600' : 'text-amber-600'}>
             {c.ok ? '✓' : '!'}
           </span>
           <span className={c.ok ? 'text-slate-500' : 'text-amber-700'}>
@@ -254,7 +258,7 @@ export default function ConstructorPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
     </div>
   );
 
@@ -263,7 +267,7 @@ export default function ConstructorPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-            <SparklesIcon className="w-8 h-8 text-emerald-500" />
+            <SparklesIcon className="w-8 h-8 text-brand-500" />
             Constructor Visual
           </h1>
           <p className="text-gray-500 font-medium mt-1">Configura el orden y contenido de tu página de inicio.</p>
@@ -320,20 +324,20 @@ export default function ConstructorPage() {
                   <button
                     disabled={index === 0 || saving}
                     onClick={() => moveBlock(index, 'up')}
-                    className="p-1 text-gray-400 hover:text-emerald-600 disabled:opacity-20"
+                    className="p-1 text-gray-400 hover:text-brand-600 disabled:opacity-20"
                   >
                     <ChevronUpIcon className="w-5 h-5" />
                   </button>
                   <button
                     disabled={index === blocks.length - 1 || saving}
                     onClick={() => moveBlock(index, 'down')}
-                    className="p-1 text-gray-400 hover:text-emerald-600 disabled:opacity-20"
+                    className="p-1 text-gray-400 hover:text-brand-600 disabled:opacity-20"
                   >
                     <ChevronDownIcon className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${block.enabled ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${block.enabled ? 'bg-brand-50 text-brand-600' : 'bg-gray-100 text-gray-400'}`}>
                    <span className="text-[10px] font-black uppercase tracking-tighter text-center leading-none">
                      {block.type.substring(0, 4)}
                    </span>
@@ -351,7 +355,7 @@ export default function ConstructorPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => toggleBlock(index)}
-                  className={`p-2 rounded-xl border transition-colors ${block.enabled ? 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100' : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-gray-100'}`}
+                  className={`p-2 rounded-xl border transition-colors ${block.enabled ? 'bg-brand-50 border-brand-100 text-brand-600 hover:bg-brand-100' : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-gray-100'}`}
                   title={block.enabled ? "Ocultar en la portada" : "Mostrar en la portada"}
                 >
                   {block.enabled ? <EyeIcon className="w-5 h-5" /> : <EyeSlashIcon className="w-5 h-5" />}
@@ -389,7 +393,7 @@ export default function ConstructorPage() {
                         type="text"
                         defaultValue={block.subtitle}
                         onBlur={(e) => updateBlockData(block.id, { subtitle: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-brand-500"
                       />
                     </div>
                   )}
@@ -402,7 +406,7 @@ export default function ConstructorPage() {
                         type="text"
                         defaultValue={block.title}
                         onBlur={(e) => updateBlockData(block.id, { title: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-brand-500"
                       />
                       {block.type === 'hero' && <HeroTitleHint value={block.title} />}
                     </div>
@@ -414,7 +418,7 @@ export default function ConstructorPage() {
                         type="text"
                         defaultValue={block.description}
                         onBlur={(e) => updateBlockData(block.id, { description: e.target.value })}
-                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
+                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-brand-500/20"
                       />
                     </div>
                   )}
@@ -427,7 +431,7 @@ export default function ConstructorPage() {
                         max={30}
                         defaultValue={block.itemsToShow || 10}
                         onBlur={(e) => updateBlockData(block.id, { itemsToShow: Math.max(1, parseInt(e.target.value) || 10) })}
-                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
+                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-brand-500/20"
                       />
                     </div>
                   )}
@@ -438,7 +442,7 @@ export default function ConstructorPage() {
                         type="text"
                         defaultValue={block.buttonText}
                         onBlur={(e) => updateBlockData(block.id, { buttonText: e.target.value })}
-                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
+                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-brand-500/20"
                       />
                     </div>
                   )}
@@ -450,7 +454,7 @@ export default function ConstructorPage() {
                         placeholder="/productos"
                         defaultValue={block.buttonLink}
                         onBlur={(e) => updateBlockData(block.id, { buttonLink: e.target.value })}
-                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
+                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-brand-500/20"
                       />
                     </div>
                   )}
@@ -467,18 +471,18 @@ export default function ConstructorPage() {
 
         {saving && (
           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
-            <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent animate-spin rounded-full" />
+            <div className="w-4 h-4 border-2 border-brand-500 border-t-transparent animate-spin rounded-full" />
             <span className="text-xs font-black uppercase tracking-widest">Sincronizando...</span>
           </div>
         )}
       </div>
 
       {/* Agregar bloque */}
-      <div className="bg-emerald-50 rounded-[2.5rem] p-8 border border-emerald-100">
+      <div className="bg-brand-50 rounded-[2.5rem] p-8 border border-brand-100">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
-            <h3 className="text-xl font-black text-emerald-900 tracking-tight">¿Necesitas una sección más?</h3>
-            <p className="text-emerald-700 font-medium">
+            <h3 className="text-xl font-black text-brand-900 tracking-tight">¿Necesitas una sección más?</h3>
+            <p className="text-brand-700 font-medium">
               {missingTypes.length > 0
                 ? "Agrega los bloques que faltan en tu portada."
                 : "Ya tienes todos los tipos de bloque disponibles en tu portada."}
@@ -487,7 +491,7 @@ export default function ConstructorPage() {
           {missingTypes.length > 0 && (
             <Button
               variant="outline"
-              className="border-emerald-200 text-emerald-700"
+              className="border-brand-200 text-brand-700"
               onClick={() => setShowTypePicker(!showTypePicker)}
             >
               {showTypePicker ? <XMarkIcon className="w-5 h-5 mr-2" /> : <PlusIcon className="w-5 h-5 mr-2" />}
@@ -503,10 +507,10 @@ export default function ConstructorPage() {
                 key={type}
                 onClick={() => addBlock(type)}
                 disabled={saving}
-                className="text-left bg-white rounded-2xl border border-emerald-100 p-4 hover:border-emerald-300 hover:shadow-md transition-all"
+                className="text-left bg-white rounded-2xl border border-brand-100 p-4 hover:border-brand-300 hover:shadow-md transition-all"
               >
-                <p className="font-black text-emerald-900 text-sm">{BLOCK_TYPE_LABELS[type]}</p>
-                <p className="text-xs text-emerald-700/70 font-medium mt-1">{BLOCK_TYPE_DESCRIPTIONS[type]}</p>
+                <p className="font-black text-brand-900 text-sm">{BLOCK_TYPE_LABELS[type]}</p>
+                <p className="text-xs text-brand-700/70 font-medium mt-1">{BLOCK_TYPE_DESCRIPTIONS[type]}</p>
               </button>
             ))}
           </div>

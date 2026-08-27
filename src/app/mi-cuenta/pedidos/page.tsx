@@ -37,7 +37,7 @@ const FILTROS = ["Todos", "Pendiente", "En proceso", "Enviado", "Entregado", "Ca
 const getEstadoStyle = (estado: string) => {
   switch (estado) {
     case "Entregado":
-      return "bg-emerald-100 text-emerald-800";
+      return "bg-brand-100 text-brand-800";
     case "En proceso":
       return "bg-amber-100 text-amber-800";
     case "Enviado":
@@ -130,7 +130,7 @@ export default function PedidosPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="size-10 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+        <div className="size-10 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
       </div>
     );
   }
@@ -139,7 +139,7 @@ export default function PedidosPage() {
     <div className="o-container o-section max-w-5xl">
       <Link
         href="/mi-cuenta"
-        className="o-focus group mb-6 inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-emerald-700"
+        className="o-focus group mb-6 inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-brand-700"
       >
         <ArrowLeftIcon className="size-4 transition-transform group-hover:-translate-x-0.5" />
         Volver a mi cuenta
@@ -178,7 +178,7 @@ export default function PedidosPage() {
             placeholder="Buscar por número de pedido o fecha…"
             value={busqueda}
             onChange={(e) => { setBusqueda(e.target.value); setPaginaActual(1); }}
-            className="h-11 w-full rounded-xl border border-neutral-200 pl-11 pr-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-emerald-500"
+            className="h-11 w-full rounded-xl border border-neutral-200 pl-11 pr-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-brand-500"
           />
         </div>
 
@@ -190,7 +190,7 @@ export default function PedidosPage() {
               onClick={() => { setFiltroEstado(f); setPaginaActual(1); }}
               className={`o-focus rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 filtroEstado === f
-                  ? "bg-emerald-600 text-white"
+                  ? "bg-brand-600 text-white"
                   : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
               }`}
             >
@@ -217,7 +217,7 @@ export default function PedidosPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {pedidosPaginados.map((pedido) => (
-                  <tr key={pedido.id} className="hover:bg-emerald-50/30 transition-colors group">
+                  <tr key={pedido.id} className="hover:bg-brand-50/30 transition-colors group">
                     <td className="px-8 py-5">
                       <span className="rounded-md bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-700">
                         #{pedido.id.substring(0, 8).toUpperCase()}
@@ -236,14 +236,14 @@ export default function PedidosPage() {
                           <button
                             onClick={() => handlePagar(pedido.id)}
                             disabled={payingId === pedido.id}
-                            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                            className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
                           >
                             {payingId === pedido.id ? "Generando…" : "Pagar ahora"}
                           </button>
                         )}
                         <Link
                           href={`/mi-cuenta/pedidos/${pedido.id}`}
-                          className="text-xs font-semibold text-neutral-500 hover:text-emerald-700"
+                          className="text-xs font-semibold text-neutral-500 hover:text-brand-700"
                         >
                           Ver detalles
                         </Link>
@@ -285,7 +285,7 @@ export default function PedidosPage() {
                     <button
                       onClick={() => handlePagar(pedido.id)}
                       disabled={payingId === pedido.id}
-                      className="h-10 flex-1 rounded-xl bg-emerald-600 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-60"
+                      className="h-10 flex-1 rounded-xl bg-brand-600 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-60"
                     >
                       {payingId === pedido.id ? "Generando…" : "Pagar ahora"}
                     </button>
@@ -307,7 +307,7 @@ export default function PedidosPage() {
               <button
                 onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
                 disabled={paginaActual === 1}
-                className="p-2.5 bg-white rounded-2xl border border-gray-100 shadow-sm disabled:opacity-30 hover:border-emerald-200 transition-all"
+                className="p-2.5 bg-white rounded-2xl border border-gray-100 shadow-sm disabled:opacity-30 hover:border-brand-200 transition-all"
               >
                 <ChevronLeftIcon className="w-5 h-5" />
               </button>
@@ -317,7 +317,7 @@ export default function PedidosPage() {
               <button
                 onClick={() => setPaginaActual((p) => Math.min(totalPaginas, p + 1))}
                 disabled={paginaActual === totalPaginas}
-                className="p-2.5 bg-white rounded-2xl border border-gray-100 shadow-sm disabled:opacity-30 hover:border-emerald-200 transition-all"
+                className="p-2.5 bg-white rounded-2xl border border-gray-100 shadow-sm disabled:opacity-30 hover:border-brand-200 transition-all"
               >
                 <ChevronRightIcon className="w-5 h-5" />
               </button>
@@ -348,7 +348,7 @@ export default function PedidosPage() {
             )}
             <Link
               href="/productos"
-              className="o-focus inline-flex h-11 items-center rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+              className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
             >
               Ir a la tienda
             </Link>

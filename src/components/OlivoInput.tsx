@@ -39,7 +39,7 @@ const OlivoInput = forwardRef<HTMLInputElement, OlivoInputProps>(
               ${icon ? 'pl-10' : ''}
               ${error
                                 ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                                : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-500'
+                                : 'border-gray-200 focus:border-brand-500 focus:ring-brand-500'
                             }
               disabled:bg-gray-50 disabled:cursor-not-allowed
               ${className}

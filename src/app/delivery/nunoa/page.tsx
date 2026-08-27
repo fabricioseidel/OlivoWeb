@@ -7,9 +7,9 @@ import DespachoInfo from "@/components/seo/DespachoInfo";
 import { Breadcrumbs, QaPlano, WhatsappCta } from "@/components/seo/LocalBlocks";
 
 export const metadata: Metadata = {
-  title: "Delivery en Ñuñoa | Productos Venezolanos a Domicilio",
+  title: "Minimarket a domicilio en Ñuñoa | Delivery el mismo día",
   description:
-    "Despacho de productos venezolanos a domicilio en Ñuñoa desde Av. José Pedro Alessandri 2010. Harina PAN, quesos y abarrotes con entrega el mismo día en la comuna. Pide por la web o por WhatsApp.",
+    "Minimarket con despacho a domicilio en Ñuñoa desde Av. José Pedro Alessandri 2010: abarrotes, bebidas, lácteos, panadería, helados y aseo. Entrega el mismo día y también productos venezolanos. Pide por la web o por WhatsApp.",
   alternates: { canonical: "/delivery/nunoa" },
   openGraph: {
     locale: "es_CL",
@@ -52,14 +52,16 @@ export default function DeliveryNunoaPage() {
         <Breadcrumbs items={BREADCRUMBS} />
 
         <h1 className="o-display text-neutral-900">
-          Delivery de productos venezolanos en Ñuñoa
+          Minimarket a domicilio en Ñuñoa
         </h1>
 
         <p className="mt-4 text-lg text-gray-700 leading-relaxed">
           Ñuñoa es nuestra comuna: la tienda está en Av. José Pedro Alessandri 2010, Local A, así que
           los pedidos dentro de la comuna son los que salen más rápido de todo nuestro radio de
-          reparto. Si vives en Ñuñoa, puedes pedir harina PAN, quesos, pan de jamón y abarrotes
-          venezolanos y recibirlos a domicilio sin moverte de casa.
+          reparto. Si vives en Ñuñoa, puedes pedir la compra completa —abarrotes, bebidas, lácteos,
+          pan, helados, snacks y productos de aseo— y recibirla en casa sin moverte. También
+          tenemos productos venezolanos que no se consiguen en el supermercado: harina PAN,
+          quesos, pan de jamón y salsas.
         </p>
 
         <p className="mt-4 text-gray-700 leading-relaxed">
@@ -99,7 +101,7 @@ export default function DeliveryNunoaPage() {
           <div className="flex flex-wrap gap-3 pt-2">
             <Link
               href="/productos"
-              className="inline-flex items-center rounded-xl bg-emerald-600 px-6 h-12 font-bold text-white transition-colors hover:bg-emerald-500"
+              className="inline-flex items-center rounded-xl bg-brand-600 px-6 h-12 font-bold text-white transition-colors hover:bg-brand-500"
             >
               Ver catálogo
             </Link>
@@ -111,19 +113,19 @@ export default function DeliveryNunoaPage() {
 
         <p className="mt-8 text-gray-700">
           ¿Vives en otra comuna? Revisa el despacho a{" "}
-          <Link href="/delivery/macul" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/delivery/macul" className="font-bold text-brand-700 hover:underline">
             Macul
           </Link>
           ,{" "}
-          <Link href="/delivery/penalolen" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/delivery/penalolen" className="font-bold text-brand-700 hover:underline">
             Peñalolén
           </Link>{" "}
           o{" "}
-          <Link href="/delivery/san-joaquin" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/delivery/san-joaquin" className="font-bold text-brand-700 hover:underline">
             San Joaquín
           </Link>
           . También puedes visitarnos en la{" "}
-          <Link href="/tienda-nunoa" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/tienda-nunoa" className="font-bold text-brand-700 hover:underline">
             tienda de Ñuñoa
           </Link>
           .

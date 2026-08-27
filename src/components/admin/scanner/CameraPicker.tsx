@@ -32,9 +32,9 @@ export default function CameraPicker({ cameras, currentCameraId, onPick }: Camer
             onClick={() => onPick(cam.deviceId)}
             className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
               active
-                ? "bg-emerald-500 text-black border-emerald-400"
+                ? "bg-brand-500 text-black border-brand-400"
                 : isMacro
-                ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/20"
+                ? "bg-brand-500/10 text-brand-300 border-brand-500/40 hover:bg-brand-500/20"
                 : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white"
             }`}
           >

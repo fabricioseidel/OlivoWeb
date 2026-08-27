@@ -168,7 +168,7 @@ export default function CajaPage() {
 
   if (loading) {
     return (
-      <div className="p-10 animate-pulse text-emerald-600 font-bold uppercase tracking-widest text-center">
+      <div className="p-10 animate-pulse text-brand-600 font-bold uppercase tracking-widest text-center">
         Cargando datos de caja...
       </div>
     );
@@ -184,13 +184,13 @@ export default function CajaPage() {
             kicker="Operación diaria"
             title="Caja"
             subtitle="Abrí un nuevo turno para empezar a operar"
-            icon={<BanknotesIcon className="w-6 h-6 text-emerald-300" />}
+            icon={<BanknotesIcon className="w-6 h-6 text-brand-300" />}
           />
         }
       >
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl ring-1 ring-gray-100">
-          <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-5 mx-auto">
-            <PlusCircleIcon className="h-7 w-7 text-emerald-600" />
+          <div className="w-14 h-14 bg-brand-500/10 rounded-2xl flex items-center justify-center mb-5 mx-auto">
+            <PlusCircleIcon className="h-7 w-7 text-brand-600" />
           </div>
           <h2 className="text-xl font-black text-gray-900 text-center mb-1">
             Abrir nueva caja
@@ -205,7 +205,7 @@ export default function CajaPage() {
               </label>
               <input
                 type="number"
-                className="w-full bg-gray-50 ring-2 ring-gray-100 rounded-2xl p-4 text-xl font-black text-gray-900 focus:ring-emerald-500 outline-none"
+                className="w-full bg-gray-50 ring-2 ring-gray-100 rounded-2xl p-4 text-xl font-black text-gray-900 focus:ring-brand-500 outline-none"
                 value={startingCash}
                 onChange={(e) => setStartingCash(Number(e.target.value))}
               />
@@ -217,8 +217,8 @@ export default function CajaPage() {
                   onClick={() => setStartingCash(v)}
                   className={`text-xs font-bold py-2 rounded-xl ring-1 transition-all min-h-[44px] ${
                     startingCash === v
-                      ? "bg-emerald-500 text-white ring-emerald-500"
-                      : "bg-gray-50 text-gray-500 ring-gray-200 hover:ring-emerald-300"
+                      ? "bg-brand-500 text-white ring-brand-500"
+                      : "bg-gray-50 text-gray-500 ring-gray-200 hover:ring-brand-300"
                   }`}
                 >
                   ${v / 1000}k
@@ -244,12 +244,12 @@ export default function CajaPage() {
           subtitle={`Apertura: ${new Date(
             shift.started_at
           ).toLocaleTimeString()} · Inicio: ${CLP(Number(shift.starting_cash))}`}
-          icon={<BanknotesIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<BanknotesIcon className="w-6 h-6 text-brand-300" />}
           right={
             <div className="flex items-center gap-2">
               <button
                 onClick={refreshAll}
-                className="p-2 bg-white/10 ring-1 ring-white/15 rounded-xl hover:bg-white/15 text-emerald-100 transition-colors min-h-[36px]"
+                className="p-2 bg-white/10 ring-1 ring-white/15 rounded-xl hover:bg-white/15 text-brand-100 transition-colors min-h-[36px]"
                 title="Actualizar"
               >
                 <ArrowPathIcon className="h-4 w-4" />
@@ -264,7 +264,7 @@ export default function CajaPage() {
         <StatsCard
           label="Ventas efectivo"
           value={CLP(totalCashSales)}
-          tone="emerald"
+          tone="brand"
           icon={<BanknotesIcon className="w-4 h-4" />}
         />
         <StatsCard
@@ -290,7 +290,7 @@ export default function CajaPage() {
         <div className="flex-1 space-y-4">
           <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm">
             <h3 className="text-xs font-black uppercase text-gray-400 tracking-widest mb-4 flex items-center gap-2">
-              <PlusCircleIcon className="h-4 w-4 text-emerald-600" /> Ingresos /
+              <PlusCircleIcon className="h-4 w-4 text-brand-600" /> Ingresos /
               Egresos
             </h3>
             <div className="space-y-3">
@@ -298,7 +298,7 @@ export default function CajaPage() {
                 type="number"
                 placeholder="Monto $"
                 aria-label="Monto del movimiento en pesos"
-                className="w-full bg-gray-50 ring-2 ring-gray-100 rounded-xl p-3 font-black outline-none focus:ring-emerald-500"
+                className="w-full bg-gray-50 ring-2 ring-gray-100 rounded-xl p-3 font-black outline-none focus:ring-brand-500"
                 value={movementAmount || ""}
                 onChange={(e) => setMovementAmount(Number(e.target.value))}
               />
@@ -306,7 +306,7 @@ export default function CajaPage() {
                 type="text"
                 placeholder="Motivo"
                 aria-label="Motivo del movimiento"
-                className="w-full bg-gray-50 ring-2 ring-gray-100 rounded-xl p-3 font-bold text-sm outline-none focus:ring-emerald-500"
+                className="w-full bg-gray-50 ring-2 ring-gray-100 rounded-xl p-3 font-bold text-sm outline-none focus:ring-brand-500"
                 value={movementReason}
                 onChange={(e) => setMovementReason(e.target.value)}
               />
@@ -314,14 +314,14 @@ export default function CajaPage() {
                 type="text"
                 placeholder="N° Comprobante / Referencia (opcional)"
                 aria-label="Número de comprobante o referencia (opcional)"
-                className="w-full bg-gray-50 ring-2 ring-gray-100 rounded-xl p-3 font-medium text-sm outline-none focus:ring-emerald-500"
+                className="w-full bg-gray-50 ring-2 ring-gray-100 rounded-xl p-3 font-medium text-sm outline-none focus:ring-brand-500"
                 value={movementReference}
                 onChange={(e) => setMovementReference(e.target.value)}
               />
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleMovement("IN")}
-                  className="bg-emerald-50 text-emerald-700 font-black py-3 rounded-xl hover:bg-emerald-500 hover:text-white transition-all ring-1 ring-emerald-100 flex items-center justify-center gap-2 text-xs uppercase tracking-widest min-h-[44px]"
+                  className="bg-brand-50 text-brand-700 font-black py-3 rounded-xl hover:bg-brand-500 hover:text-white transition-all ring-1 ring-brand-100 flex items-center justify-center gap-2 text-xs uppercase tracking-widest min-h-[44px]"
                 >
                   <ArrowTrendingUpIcon className="h-4 w-4" /> Ingreso
                 </button>
@@ -344,7 +344,7 @@ export default function CajaPage() {
             </p>
             <input
               type="number"
-              className="w-full bg-gray-900 ring-2 ring-gray-800 rounded-xl p-4 text-xl font-black text-emerald-400 outline-none mb-3"
+              className="w-full bg-gray-900 ring-2 ring-gray-800 rounded-xl p-4 text-xl font-black text-brand-400 outline-none mb-3"
               value={actualCash || ""}
               onChange={(e) => setActualCash(Number(e.target.value))}
               placeholder="0"
@@ -353,7 +353,7 @@ export default function CajaPage() {
               <div
                 className={`p-3 rounded-xl mb-3 text-center ${
                   actualCash >= expectedCash
-                    ? "bg-emerald-50 ring-1 ring-emerald-200"
+                    ? "bg-brand-50 ring-1 ring-brand-200"
                     : "bg-rose-50 ring-1 ring-rose-200"
                 }`}
               >
@@ -363,7 +363,7 @@ export default function CajaPage() {
                 <span
                   className={`text-lg font-black ${
                     actualCash >= expectedCash
-                      ? "text-emerald-700"
+                      ? "text-brand-700"
                       : "text-rose-700"
                   }`}
                 >
@@ -385,7 +385,7 @@ export default function CajaPage() {
         <div className="w-full lg:w-[380px] space-y-4">
           <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm">
             <h3 className="text-xs font-black uppercase text-gray-900 tracking-widest mb-3 flex items-center gap-2">
-              <BanknotesIcon className="h-4 w-4 text-emerald-600" /> Ventas del
+              <BanknotesIcon className="h-4 w-4 text-brand-600" /> Ventas del
               turno ({shiftSales.length})
             </h3>
             {shiftSales.length === 0 ? (
@@ -409,7 +409,7 @@ export default function CajaPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm font-black text-emerald-700">
+                      <span className="text-sm font-black text-brand-700">
                         {CLP(Number(sale.total))}
                       </span>
                       <p className="text-[10px] text-gray-400 capitalize">
@@ -437,7 +437,7 @@ export default function CajaPage() {
                   <div
                     key={mov.id}
                     className={`flex justify-between items-center p-3 rounded-xl ${
-                      mov.type === "IN" ? "bg-emerald-50" : "bg-rose-50"
+                      mov.type === "IN" ? "bg-brand-50" : "bg-rose-50"
                     }`}
                   >
                     <div>
@@ -452,7 +452,7 @@ export default function CajaPage() {
                     <span
                       className={`text-sm font-black ${
                         mov.type === "IN"
-                          ? "text-emerald-700"
+                          ? "text-brand-700"
                           : "text-rose-700"
                       }`}
                     >

@@ -66,7 +66,7 @@ function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
             {c.href && !isLast ? (
               <Link
                 href={c.href}
-                className="hover:text-emerald-700 transition-colors font-medium"
+                className="hover:text-brand-700 transition-colors font-medium"
               >
                 {c.label}
               </Link>

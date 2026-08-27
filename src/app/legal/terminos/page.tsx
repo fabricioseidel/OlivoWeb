@@ -132,7 +132,7 @@ export default function TerminosPage() {
           la{" "}
           <Link
             href="/legal/devoluciones"
-            className="text-emerald-700 underline underline-offset-4"
+            className="text-brand-700 underline underline-offset-4"
           >
             política de cambios y devoluciones
           </Link>
@@ -145,7 +145,7 @@ export default function TerminosPage() {
           Los datos que nos entregas para comprar se tratan según la{" "}
           <Link
             href="/legal/privacidad"
-            className="text-emerald-700 underline underline-offset-4"
+            className="text-brand-700 underline underline-offset-4"
           >
             política de privacidad
           </Link>
@@ -177,7 +177,7 @@ export default function TerminosPage() {
           Si algo sale mal, escríbenos primero a{" "}
           <a
             href={`mailto:${BUSINESS.email}`}
-            className="text-emerald-700 underline underline-offset-4"
+            className="text-brand-700 underline underline-offset-4"
           >
             {BUSINESS.email}
           </a>{" "}

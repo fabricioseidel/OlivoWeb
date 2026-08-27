@@ -35,7 +35,7 @@ export default function OfertasClient() {
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-white p-4">
-        <div className="size-10 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+        <div className="size-10 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
         <span className="text-sm text-neutral-500">Cargando ofertas…</span>
       </div>
     );
@@ -54,7 +54,7 @@ export default function OfertasClient() {
           </p>
           <Link
             href="/productos"
-            className="o-focus inline-flex h-12 items-center rounded-xl bg-emerald-600 px-7 font-semibold text-white transition-colors hover:bg-emerald-700"
+            className="o-focus inline-flex h-12 items-center rounded-xl bg-brand-600 px-7 font-semibold text-white transition-colors hover:bg-brand-700"
           >
             Ir al catálogo
           </Link>
@@ -81,7 +81,7 @@ export default function OfertasClient() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Buscar en ofertas…"
-                className="h-11 w-full rounded-xl border border-neutral-200 bg-white pl-10 pr-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-emerald-500"
+                className="h-11 w-full rounded-xl border border-neutral-200 bg-white pl-10 pr-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-brand-500"
               />
             </div>
             <div className="relative sm:w-56">
@@ -92,7 +92,7 @@ export default function OfertasClient() {
                 id="categoria-ofertas"
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-neutral-200 bg-white pl-4 pr-10 text-sm text-neutral-900 outline-none transition-colors focus:border-emerald-500"
+                className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-neutral-200 bg-white pl-4 pr-10 text-sm text-neutral-900 outline-none transition-colors focus:border-brand-500"
               >
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -136,7 +136,7 @@ export default function OfertasClient() {
               )}
               <Link
                 href="/productos"
-                className="o-focus inline-flex h-11 items-center rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+                className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
               >
                 Ver catálogo completo
               </Link>

@@ -7,9 +7,9 @@ import DespachoInfo from "@/components/seo/DespachoInfo";
 import { Breadcrumbs, QaPlano, WhatsappCta } from "@/components/seo/LocalBlocks";
 
 export const metadata: Metadata = {
-  title: "Delivery en San Joaquín | Productos Venezolanos",
+  title: "Minimarket a domicilio en San Joaquín | Delivery desde Ñuñoa",
   description:
-    "Despacho de productos venezolanos a San Joaquín desde Ñuñoa, Av. José Pedro Alessandri 2010. Reparto directo por el eje Alessandri con harina PAN, quesos y abarrotes. Pide online o por WhatsApp.",
+    "Despacho de minimarket a San Joaquín desde Ñuñoa, Av. José Pedro Alessandri 2010. Reparto directo por el eje Alessandri con abarrotes, bebidas, lácteos, panadería y productos venezolanos. Pide online o por WhatsApp.",
   alternates: { canonical: "/delivery/san-joaquin" },
   openGraph: {
     locale: "es_CL",
@@ -52,7 +52,7 @@ export default function DeliverySanJoaquinPage() {
         <Breadcrumbs items={BREADCRUMBS} />
 
         <h1 className="o-display text-neutral-900">
-          Delivery de productos venezolanos en San Joaquín
+          Minimarket a domicilio en San Joaquín
         </h1>
 
         <p className="mt-4 text-lg text-gray-700 leading-relaxed">
@@ -97,7 +97,7 @@ export default function DeliverySanJoaquinPage() {
           <div className="flex flex-wrap gap-3 pt-2">
             <Link
               href="/productos"
-              className="inline-flex items-center rounded-xl bg-emerald-600 px-6 h-12 font-bold text-white transition-colors hover:bg-emerald-500"
+              className="inline-flex items-center rounded-xl bg-brand-600 px-6 h-12 font-bold text-white transition-colors hover:bg-brand-500"
             >
               Ver catálogo
             </Link>
@@ -109,15 +109,15 @@ export default function DeliverySanJoaquinPage() {
 
         <p className="mt-8 text-gray-700">
           Mira también el despacho a{" "}
-          <Link href="/delivery/nunoa" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/delivery/nunoa" className="font-bold text-brand-700 hover:underline">
             Ñuñoa
           </Link>
           ,{" "}
-          <Link href="/delivery/macul" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/delivery/macul" className="font-bold text-brand-700 hover:underline">
             Macul
           </Link>{" "}
           y{" "}
-          <Link href="/delivery/penalolen" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/delivery/penalolen" className="font-bold text-brand-700 hover:underline">
             Peñalolén
           </Link>
           .

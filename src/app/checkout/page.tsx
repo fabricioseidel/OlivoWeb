@@ -453,7 +453,7 @@ export default function CheckoutPage() {
       <div className="o-container py-8 md:py-12">
         <Link
           href="/carrito"
-          className="o-focus group mb-4 inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-emerald-700"
+          className="o-focus group mb-4 inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-brand-700"
         >
           <ArrowLeftIcon className="size-4 transition-transform group-hover:-translate-x-0.5" />
           Volver al carrito
@@ -498,7 +498,7 @@ export default function CheckoutPage() {
                         onChange={handleShippingInfoChange}
                         placeholder="Ej: Juan Pérez"
                         autoComplete="name"
-                        className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-emerald-500"
+                        className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-brand-500"
                       />
                     </div>
                     <div>
@@ -514,7 +514,7 @@ export default function CheckoutPage() {
                         onChange={handleShippingInfoChange}
                         placeholder="tu@email.com"
                         autoComplete="email"
-                        className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-emerald-500"
+                        className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-brand-500"
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -530,7 +530,7 @@ export default function CheckoutPage() {
                         onChange={handleShippingInfoChange}
                         placeholder="+56 9 1234 5678"
                         autoComplete="tel"
-                        className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-emerald-500"
+                        className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-brand-500"
                       />
                     </div>
                   </div>
@@ -577,7 +577,7 @@ export default function CheckoutPage() {
               <>
                 <button
                   onClick={prevStep}
-                  className="o-focus inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-emerald-700"
+                  className="o-focus inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-brand-700"
                 >
                   <ArrowLeftIcon className="size-4" />
                   Volver a los datos de entrega
@@ -608,9 +608,9 @@ export default function CheckoutPage() {
                         ve un precio distinto al calculado por distancia y no
                         entiende por qué. */}
                     {selectedShippingMethod === 'dynamic' && quote?.freeApplied && (
-                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                        <p className="text-sm font-semibold text-emerald-900">Tu envío es gratis</p>
-                        <p className="mt-1 text-sm text-emerald-800">
+                      <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+                        <p className="text-sm font-semibold text-brand-900">Tu envío es gratis</p>
+                        <p className="mt-1 text-sm text-brand-800">
                           Tu compra supera el mínimo y tu dirección está dentro de nuestra zona de reparto.
                         </p>
                       </div>
@@ -633,9 +633,9 @@ export default function CheckoutPage() {
                     )}
 
                     {selectedShippingMethod === 'dynamic' && quote?.capApplied && (
-                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                        <p className="text-sm font-semibold text-emerald-900">Tarifa preferente</p>
-                        <p className="tabular mt-1 text-sm text-emerald-800">
+                      <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+                        <p className="text-sm font-semibold text-brand-900">Tarifa preferente</p>
+                        <p className="tabular mt-1 text-sm text-brand-800">
                           Por tu comuna el envío tiene un tope de ${quote.price.toLocaleString('es-CL')}
                           {' '}en vez de ${quote.rawPrice.toLocaleString('es-CL')}.
                         </p>
@@ -740,7 +740,7 @@ export default function CheckoutPage() {
                 href={whatsappLink(storeSettings.storePhone, checkoutInquiryMessage(cartItems, total))}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="o-focus mt-4 block rounded-xl border border-neutral-200 bg-white px-4 py-3.5 text-center text-sm font-medium text-neutral-700 transition-colors hover:border-emerald-300 hover:text-emerald-700"
+                className="o-focus mt-4 block rounded-xl border border-neutral-200 bg-white px-4 py-3.5 text-center text-sm font-medium text-neutral-700 transition-colors hover:border-brand-300 hover:text-brand-700"
               >
                 ¿Dudas con tu pedido? Escríbenos por WhatsApp
               </a>

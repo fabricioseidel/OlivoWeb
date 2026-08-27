@@ -97,7 +97,7 @@ function Resumen({ foto }: { foto: FotoPrecios }) {
     {
       label: "Margen promedio",
       valor: formatearMargen(resumen.margenPromedio),
-      tono: "text-emerald-600",
+      tono: "text-brand-600",
     },
   ];
 
@@ -123,7 +123,7 @@ function Variacion({ fila }: { fila: FilaPrecio }) {
   return (
     <span
       className={`inline-flex items-center gap-1 text-xs font-semibold ${
-        subio ? "text-red-600" : "text-emerald-600"
+        subio ? "text-red-600" : "text-brand-600"
       }`}
       title={
         fila.costoAnterior !== null
@@ -176,7 +176,7 @@ function Fila({
               </span>
             ))}
             {fila.hayProveedorMasBarato && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-200">
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-800 ring-1 ring-brand-200">
                 <TagIcon className="h-3 w-3" />
                 Hay más barato
               </span>
@@ -216,7 +216,7 @@ function Fila({
                     ? "text-red-600"
                     : fila.margenActual < fila.margenObjetivo
                       ? "text-amber-600"
-                      : "text-emerald-600"
+                      : "text-brand-600"
               }`}
             >
               {formatearMargen(fila.margenActual)}
@@ -246,13 +246,13 @@ function Fila({
               min={1}
               value={editado !== "" ? editado : String(fila.sugerido)}
               onChange={(e) => setEditado(e.target.value)}
-              className="ml-2 w-28 rounded-lg border border-gray-300 px-2 py-1 text-sm font-semibold text-gray-900 focus:border-emerald-500 focus:ring-emerald-500"
+              className="ml-2 w-28 rounded-lg border border-gray-300 px-2 py-1 text-sm font-semibold text-gray-900 focus:border-brand-500 focus:ring-brand-500"
             />
           </label>
           {fila.diferencia !== null && fila.diferencia !== 0 && editado === "" && (
             <span
               className={`text-xs font-semibold ${
-                fila.diferencia > 0 ? "text-emerald-600" : "text-gray-500"
+                fila.diferencia > 0 ? "text-brand-600" : "text-gray-500"
               }`}
             >
               {fila.diferencia > 0 ? "+" : ""}
@@ -273,7 +273,7 @@ function Fila({
               type="button"
               onClick={() => propuesto !== null && onAplicar(fila.barcode, propuesto)}
               disabled={ocupado || !puedeAplicar}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-emerald-700 disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-brand-700 disabled:opacity-40"
             >
               <CheckIcon className="h-4 w-4" />
               Aplicar
@@ -415,7 +415,7 @@ export default function PreciosPanel() {
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar producto, código o categoría…"
-          className="min-w-0 flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
+          className="min-w-0 flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-brand-500"
         />
         <Button onClick={cargar} disabled={cargando} className="shrink-0">
           <ArrowPathIcon className={`mr-2 h-5 w-5 ${cargando ? "animate-spin" : ""}`} />
@@ -470,12 +470,12 @@ export default function PreciosPanel() {
       )}
 
       {foto && filtradas.length === 0 && (
-        <div className="rounded-2xl bg-emerald-50 p-8 text-center ring-1 ring-emerald-200">
-          <div className="text-sm font-bold text-emerald-900">
+        <div className="rounded-2xl bg-brand-50 p-8 text-center ring-1 ring-brand-200">
+          <div className="text-sm font-bold text-brand-900">
             {busqueda ? "Ningún producto coincide con la búsqueda" : "Nada que revisar acá"}
           </div>
           {!busqueda && filtro !== "todos" && (
-            <div className="mt-1 text-xs text-emerald-800/80">
+            <div className="mt-1 text-xs text-brand-800/80">
               Ningún producto cae en este filtro.
             </div>
           )}

@@ -19,7 +19,7 @@ export default function SupplierHero({ loading, onRefresh }: SupplierHeroProps) 
       kicker="Compras"
       title="Proveedores"
       subtitle="Gestioná proveedores y asigná productos para automatizar pedidos"
-      icon={<TruckIcon className="w-6 h-6 text-emerald-300" />}
+      icon={<TruckIcon className="w-6 h-6 text-brand-300" />}
       right={
         <div className="flex items-center gap-2">
           <Link href="/admin/proveedores/asignar">
@@ -31,7 +31,7 @@ export default function SupplierHero({ loading, onRefresh }: SupplierHeroProps) 
           <button
             onClick={onRefresh}
             disabled={loading}
-            className="p-2 bg-white/10 ring-1 ring-white/15 rounded-xl text-emerald-100 hover:bg-white/15 transition-colors min-h-[36px]"
+            className="p-2 bg-white/10 ring-1 ring-white/15 rounded-xl text-brand-100 hover:bg-white/15 transition-colors min-h-[36px]"
             title="Actualizar"
           >
             <ArrowPathIcon

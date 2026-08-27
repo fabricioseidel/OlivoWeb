@@ -34,7 +34,7 @@ export default function BranchSelector({ collapsed = false }: BranchSelectorProp
         }`}
       >
         <span className="flex items-center gap-2 min-w-0">
-          <BuildingStorefrontIcon className="h-4 w-4 text-emerald-400 shrink-0" />
+          <BuildingStorefrontIcon className="h-4 w-4 text-brand-400 shrink-0" />
           {!collapsed && (
             <span className="text-[10px] font-black uppercase tracking-widest text-white truncate">
               {currentBranch?.name ?? "—"}
@@ -49,7 +49,7 @@ export default function BranchSelector({ collapsed = false }: BranchSelectorProp
       </button>
 
       {open && (
-        <div className="absolute left-3 right-3 top-full mt-1 z-50 bg-emerald-950 border border-white/10 rounded-xl shadow-xl overflow-hidden">
+        <div className="absolute left-3 right-3 top-full mt-1 z-50 bg-brand-950 border border-white/10 rounded-xl shadow-xl overflow-hidden">
           {branches.map((branch) => (
             <button
               key={branch.id}
@@ -61,7 +61,7 @@ export default function BranchSelector({ collapsed = false }: BranchSelectorProp
                 {branch.name}
               </span>
               {branch.id === currentBranch?.id && (
-                <CheckIcon className="h-4 w-4 text-emerald-400 shrink-0" />
+                <CheckIcon className="h-4 w-4 text-brand-400 shrink-0" />
               )}
             </button>
           ))}

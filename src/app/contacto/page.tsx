@@ -47,7 +47,7 @@ export default function ContactoPage() {
         </h2>
         <p className="mt-3 text-gray-700 leading-relaxed">
           Nuestro local está en Av. José Pedro Alessandri 2010, en Ñuñoa, y atiende como minimarket
-          venezolano y punto de envíos. Puedes venir sin cita previa dentro del horario de atención.
+          y punto de envíos. Puedes venir sin cita previa dentro del horario de atención.
         </p>
 
         <div className="mt-8 grid gap-8 md:grid-cols-2">

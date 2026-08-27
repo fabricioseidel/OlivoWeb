@@ -196,7 +196,7 @@ export default function POSPage() {
               ref={searchInputRef}
               type="text"
               placeholder="Buscar producto..."
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl py-3 pl-10 pr-10 text-white focus:border-emerald-500 outline-none text-sm"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl py-3 pl-10 pr-10 text-white focus:border-brand-500 outline-none text-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
@@ -204,14 +204,14 @@ export default function POSPage() {
             {searchQuery && (
               <button onClick={() => { setSearchQuery(""); searchInputRef.current?.focus(); }} className="absolute right-10 top-1/2 -translate-y-1/2 text-slate-400"><XMarkIcon className="h-4 w-4" /></button>
             )}
-            <button onClick={() => setShowScanner(true)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-emerald-500 rounded-lg" title="Escanear">
+            <button onClick={() => setShowScanner(true)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-brand-500 rounded-lg" title="Escanear">
               <CameraIcon className="h-5 w-5" />
             </button>
           </div>
           {/* Mobile cart toggle */}
-          <button onClick={() => setShowCart(true)} className="lg:hidden relative bg-emerald-600 p-3 rounded-xl shadow-lg shadow-emerald-600/20">
+          <button onClick={() => setShowCart(true)} className="lg:hidden relative bg-brand-600 p-3 rounded-xl shadow-lg shadow-brand-600/20">
             <ShoppingBagIcon className="h-5 w-5" />
-            {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-white text-emerald-600 text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-emerald-600">{cart.length}</span>}
+            {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-white text-brand-600 text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-brand-600">{cart.length}</span>}
           </button>
         </div>
 
@@ -238,14 +238,14 @@ export default function POSPage() {
                 showToast(`+ ${p.name}`, "success", 1500); 
               }}
               className={`group bg-slate-900 rounded-xl p-2 border transition-all active:scale-95 text-left flex flex-col h-full ${
-                p.stock <= 0 ? 'opacity-50 grayscale border-slate-800 cursor-not-allowed' : 'border-slate-800 hover:border-emerald-500'
+                p.stock <= 0 ? 'opacity-50 grayscale border-slate-800 cursor-not-allowed' : 'border-slate-800 hover:border-brand-500'
               }`}>
               <div className="relative aspect-square rounded-lg overflow-hidden mb-2 bg-slate-800">
                 <Image src={p.image} alt={p.name} fill className="object-cover" sizes="20vw" />
                 {p.stock <= 0 && <div className="absolute inset-0 bg-black/60 flex items-center justify-center"><span className="text-[9px] font-bold text-red-400 uppercase">Sin Stock</span></div>}
               </div>
               <h3 className="text-[11px] font-bold truncate">{p.name}</h3>
-              <p className="text-emerald-400 font-black text-sm">$ {(p.offerPrice || p.price).toLocaleString()}</p>
+              <p className="text-brand-400 font-black text-sm">$ {(p.offerPrice || p.price).toLocaleString()}</p>
               <p className="text-[9px] text-slate-500 font-bold">{p.stock} disp.</p>
             </button>
           ))}
@@ -253,7 +253,7 @@ export default function POSPage() {
           {visibleCount < products.length && (
             <div className="col-span-full py-4 text-center">
               <button onClick={() => setVisibleCount(prev => prev + PRODUCTS_PER_PAGE)}
-                className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-4 py-2 rounded-xl">
+                className="text-[10px] font-bold uppercase tracking-widest text-brand-500 bg-brand-500/10 px-4 py-2 rounded-xl">
                 Cargar más ({products.length - visibleCount} restantes)
               </button>
             </div>
@@ -265,7 +265,7 @@ export default function POSPage() {
               {searchQuery.trim() && (
                 <button
                   onClick={() => setQuickCreateBarcode(searchQuery.trim())}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-[10px] font-black uppercase tracking-widest"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-500/10 border border-brand-500/30 rounded-xl text-brand-400 text-[10px] font-black uppercase tracking-widest"
                 >
                   <PlusCircleIcon className="h-4 w-4" /> Crear &quot;{searchQuery.trim()}&quot;
                 </button>
@@ -280,7 +280,7 @@ export default function POSPage() {
         {/* Mobile back button */}
         <div className="p-4 border-b border-slate-800 flex justify-between items-center">
           <button onClick={() => setShowCart(false)} className="lg:hidden text-slate-400 text-sm font-bold">← Productos</button>
-          <h2 className="text-sm font-black uppercase tracking-widest text-emerald-500">Carrito</h2>
+          <h2 className="text-sm font-black uppercase tracking-widest text-brand-500">Carrito</h2>
           <button onClick={clearCart} className="text-slate-500 hover:text-red-400" title="Vaciar carrito"><TrashIcon className="h-5 w-5" /></button>
         </div>
 
@@ -296,7 +296,7 @@ export default function POSPage() {
               <div className="flex justify-between items-start mb-2">
                 <div className="flex-1 min-w-0 pr-2">
                   <h4 className="text-xs font-bold truncate">{item.name}</h4>
-                  <span className="text-[10px] text-emerald-400 font-bold">$ {(item.offerPrice || item.price).toLocaleString()} c/u</span>
+                  <span className="text-[10px] text-brand-400 font-bold">$ {(item.offerPrice || item.price).toLocaleString()} c/u</span>
                 </div>
                 <button onClick={() => removeFromCart(item.id)} className="text-slate-500 hover:text-red-400"><XMarkIcon className="h-4 w-4" /></button>
               </div>
@@ -304,7 +304,7 @@ export default function POSPage() {
                 <div className="flex items-center gap-1 bg-slate-900 rounded-lg p-1 border border-slate-700">
                   <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1.5 text-slate-400 active:scale-90"><MinusIcon className="h-3 w-3" /></button>
                   <span className="w-8 text-center text-xs font-black">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1.5 text-emerald-500 active:scale-90"><PlusIcon className="h-3 w-3" /></button>
+                  <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1.5 text-brand-500 active:scale-90"><PlusIcon className="h-3 w-3" /></button>
                 </div>
                 <span className="text-sm font-black">$ {((item.offerPrice || item.price) * item.quantity).toLocaleString()}</span>
               </div>
@@ -322,13 +322,13 @@ export default function POSPage() {
             </div>
             
             {appliedCoupon && (
-              <div className="flex justify-between items-center bg-emerald-900/20 p-2 rounded-lg border border-emerald-500/20">
+              <div className="flex justify-between items-center bg-brand-900/20 p-2 rounded-lg border border-brand-500/20">
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-emerald-500 uppercase font-black tracking-widest">Cupón Aplicado</span>
+                  <span className="text-[10px] text-brand-500 uppercase font-black tracking-widest">Cupón Aplicado</span>
                   <span className="text-xs font-bold text-white">{appliedCoupon}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-black text-emerald-400">- $ {discount.toLocaleString()}</span>
+                  <span className="text-sm font-black text-brand-400">- $ {discount.toLocaleString()}</span>
                   <button onClick={() => { setAppliedCoupon(null); applyDiscount(0); }} className="text-slate-500 hover:text-red-400">
                     <XMarkIcon className="h-4 w-4" />
                   </button>
@@ -338,7 +338,7 @@ export default function POSPage() {
 
             <div className="flex justify-between items-end mt-2">
               <div>
-                <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">Total a Pagar</span>
+                <span className="text-[10px] font-black uppercase text-brand-500 tracking-widest">Total a Pagar</span>
                 <p className="text-3xl font-black text-white">$ {finalTotal.toLocaleString()}</p>
               </div>
               <span className="text-slate-500 font-bold text-xs">{cart.length} items</span>
@@ -351,7 +351,7 @@ export default function POSPage() {
             <input
               type="email"
               placeholder="Email del cliente (opcional)"
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-sm text-white placeholder-slate-600 outline-none focus:border-emerald-500 transition-colors"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-sm text-white placeholder-slate-600 outline-none focus:border-brand-500 transition-colors"
               value={customerEmail}
               onChange={(e) => setCustomerEmail(e.target.value)}
             />
@@ -370,7 +370,7 @@ export default function POSPage() {
               { id: 'transfer', icon: ArrowPathIcon, label: 'Transf.' }
             ].map((m) => (
               <button key={m.id} onClick={() => { setPaymentMethod(m.id as any); if (m.id !== 'cash') setCashReceived(0); }}
-                className={`flex flex-col items-center p-2.5 rounded-xl border transition-all ${paymentMethod === m.id ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
+                className={`flex flex-col items-center p-2.5 rounded-xl border transition-all ${paymentMethod === m.id ? 'bg-brand-600 border-brand-400 text-white' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
                 <m.icon className="h-5 w-5 mb-0.5" />
                 <span className="text-[9px] font-black uppercase">{m.label}</span>
               </button>
@@ -383,7 +383,7 @@ export default function POSPage() {
               <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">
                 Comprobante de transferencia (opcional)
               </label>
-              <label className="flex items-center gap-2 cursor-pointer bg-slate-900 border border-dashed border-slate-800 hover:border-emerald-500 rounded-xl p-3 transition-all">
+              <label className="flex items-center gap-2 cursor-pointer bg-slate-900 border border-dashed border-slate-800 hover:border-brand-500 rounded-xl p-3 transition-all">
                 <CameraIcon className="h-4 w-4 text-slate-400 shrink-0" />
                 <span className="text-xs text-slate-400 truncate flex-1">
                   {transferReceipt ? transferReceipt.name : 'Subir imagen del comprobante...'}
@@ -417,20 +417,20 @@ export default function POSPage() {
             <div className="space-y-2">
               <div>
                 <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Efectivo recibido</label>
-                <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-lg font-black text-white outline-none focus:border-emerald-500"
+                <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-lg font-black text-white outline-none focus:border-brand-500"
                   value={cashReceived || ""} onChange={(e) => setCashReceived(Number(e.target.value))} placeholder="0" />
               </div>
               {cashReceived > 0 && (
-                <div className={`flex justify-between items-center p-3 rounded-xl ${change >= 0 && cashReceived >= total ? 'bg-emerald-900/30 border border-emerald-800' : 'bg-red-900/30 border border-red-800'}`}>
+                <div className={`flex justify-between items-center p-3 rounded-xl ${change >= 0 && cashReceived >= total ? 'bg-brand-900/30 border border-brand-800' : 'bg-red-900/30 border border-red-800'}`}>
                   <span className="text-xs font-bold uppercase text-slate-400">Vuelto</span>
-                  <span className={`text-xl font-black ${change >= 0 && cashReceived >= total ? 'text-emerald-400' : 'text-red-400'}`}>$ {change.toLocaleString()}</span>
+                  <span className={`text-xl font-black ${change >= 0 && cashReceived >= total ? 'text-brand-400' : 'text-red-400'}`}>$ {change.toLocaleString()}</span>
                 </div>
               )}
               {/* Quick cash buttons */}
               <div className="grid grid-cols-4 gap-1">
                 {[1000, 2000, 5000, 10000].map(v => (
                   <button key={v} onClick={() => setCashReceived(v)}
-                    className={`text-[10px] font-bold py-2 rounded-lg transition-colors ${cashReceived === v ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
+                    className={`text-[10px] font-bold py-2 rounded-lg transition-colors ${cashReceived === v ? 'bg-brand-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
                     ${(v/1000)}k
                   </button>
                 ))}
@@ -501,7 +501,7 @@ export default function POSPage() {
       )}
 
       {isScanning && (
-        <div className="fixed bottom-4 right-4 bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-xl border border-emerald-500/30 animate-pulse z-50">
+        <div className="fixed bottom-4 right-4 bg-brand-500/20 text-brand-400 px-4 py-2 rounded-xl border border-brand-500/30 animate-pulse z-50">
           <span className="text-xs font-bold uppercase tracking-widest">Escaneando...</span>
         </div>
       )}

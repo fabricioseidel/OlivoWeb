@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { supabaseServer } from '@/lib/supabase-server';
 import { auditLog } from '@/server/audit.service';
+import { restoreOrderStock } from '@/server/inventory.service';
 import crypto from 'crypto';
 
 /**
@@ -117,37 +118,16 @@ export async function POST(request: NextRequest) {
       } else if (orderId && (status === 'rejected' || status === 'cancelled' || status === 'refunded' || status === 'in_mediation')) {
         console.log(`[MP Webhook] 🔄 Restaurando stock para orden ${orderId} debido a estado: ${status}`);
 
-        // 1. Obtener items de la orden con barcode (la RPC nueva usa barcode + branch)
-        const { data: items, error: itemsErr } = await supabaseServer
-          .from('order_items')
-          .select('product_id, quantity, products(barcode)')
-          .eq('order_id', orderId);
+        // 1. Devolver al inventario lo que la orden tenía reservado.
+        //    La traducción de `order_items.product_id` (que guarda `products.id`)
+        //    al código de barras que usan las RPC vive en el servicio de
+        //    inventario; acá sólo se informa el resultado.
+        const devolucion = await restoreOrderStock(orderId, {
+          reason: `MP_${status.toUpperCase()}`,
+        });
 
-        if (!itemsErr && items) {
-          // 2. Devolver stock a cada producto en la sucursal por defecto
-          //    (las RPCs hacen el fallback a la sucursal default en SQL)
-          for (const item of items as any[]) {
-            const product = Array.isArray(item.products) ? item.products[0] : item.products;
-            const barcode = product?.barcode;
-            if (!barcode) {
-              console.warn(`[MP Webhook] Producto ${item.product_id} sin barcode, skip rollback`);
-              continue;
-            }
-            try {
-              await supabaseServer.rpc('increment_product_stock', {
-                p_barcode: barcode,
-                p_quantity: item.quantity,
-                p_branch_id: null,
-                p_reference: String(orderId),
-                p_reason: `MP_${status.toUpperCase()}`
-              });
-            } catch (err) {
-              console.error(`[MP Webhook] Error incrementando stock para barcode ${barcode}:`, err);
-            }
-          }
-        }
-
-        // 3. Marcar orden como cancelada/fallida
+        // 2. Marcar orden como cancelada/fallida. Se hace pase lo que pase con
+        //    el stock: el pago se rechazó y la orden no puede quedar viva.
         await supabaseServer
           .from('orders')
           .update({ 
@@ -156,14 +136,42 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString()
           })
           .eq('id', orderId);
-          
-        console.log(`[MP Webhook] ❌ Orden ${orderId} actualizada a ${status} y stock restaurado.`);
+
+        // 3. Informar lo que pasó de verdad. Este log decía siempre "stock
+        //    restaurado", incluso cuando no se había devuelto nada — que era
+        //    exactamente el caso, porque el paso 1 fallaba en silencio.
+        const quedoPendiente =
+          !devolucion.ok || devolucion.fallidos > 0 || devolucion.sinResolver.length > 0;
+
+        if (quedoPendiente) {
+          console.error(
+            `[MP Webhook] ⚠️ Orden ${orderId} actualizada a ${status}, pero el stock NO se devolvió por completo:`,
+            devolucion.ok
+              ? { devueltos: devolucion.devueltos, fallidos: devolucion.fallidos, sinResolver: devolucion.sinResolver }
+              : { error: devolucion.error }
+          );
+        } else {
+          console.log(
+            `[MP Webhook] ❌ Orden ${orderId} actualizada a ${status}; se devolvieron ${devolucion.devueltos} ítems al stock.`
+          );
+        }
+
         await auditLog({
           action: 'ORDER_PAYMENT_FAILED',
           entity: 'orders',
           entityId: orderId,
           actor: 'mp-webhook',
-          details: { paymentId: String(paymentId), mpStatus: status },
+          details: {
+            paymentId: String(paymentId),
+            mpStatus: status,
+            stock: devolucion.ok
+              ? {
+                  devueltos: devolucion.devueltos,
+                  fallidos: devolucion.fallidos,
+                  sinResolver: devolucion.sinResolver,
+                }
+              : { error: devolucion.error },
+          },
         });
       }
     }

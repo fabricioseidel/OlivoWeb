@@ -57,12 +57,93 @@ export const BUSINESS = {
    */
   rut: null as string | null,
 
-  /** Frase de entidad — debe aparecer idéntica en todo el sitio. */
+  /**
+   * Frase de entidad — debe aparecer idéntica en todo el sitio.
+   *
+   * Decía "minimarket venezolano". El catálogo real son ~725 productos activos
+   * en 21 categorías, de los cuales los etiquetados como venezolanos son 13:
+   * el 1,7%. Esa frase escondía el 98% de lo que se vende y dejaba fuera de
+   * las búsquedas a quien busca "helados en Ñuñoa" o "punto Chilexpress
+   * Ñuñoa" — mientras quien llegaba buscando leche veía una tienda de
+   * especialidades y se iba.
+   *
+   * Lo venezolano sigue siendo un diferenciador y tiene su propia sección,
+   * pero no encabeza: encabeza lo que la tienda es.
+   */
   entityPhrase:
-    "Olivo Market — minimarket venezolano y punto de paquetería en Ñuñoa, Santiago.",
+    "Olivo Market — minimarket y punto de paquetería en Ñuñoa, Santiago.",
 
   description:
-    "Minimarket de productos venezolanos y punto de paquetería en Ñuñoa. Venta online y tienda física, más retiro y envío de encomiendas de MercadoLibre, Chilexpress, Bluexpress y Correos de Chile.",
+    "Minimarket en Ñuñoa con más de 700 productos: abarrotes, bebidas, lácteos, panadería, helados, cecinas, snacks, dulces y aseo. También punto de retiro y envío de encomiendas de MercadoLibre, Chilexpress, Bluexpress y Correos de Chile. Compra online con despacho a domicilio o retira en tienda.",
+
+  /**
+   * Tamaño del catálogo, para el texto público.
+   *
+   * Es un PISO deliberadamente conservador, no la cifra exacta: al 27-ago-2026
+   * había 725 productos activos y 21 categorías. Se redondea hacia abajo para
+   * que el texto no quede desmentido si se dan de baja productos. Si el
+   * catálogo creciera mucho, conviene subirlo — decir "más de 700" con 1.500
+   * productos es venderse por debajo.
+   */
+  catalogo: {
+    productosDesde: 700,
+    categoriasDesde: 20,
+  },
+
+  /**
+   * Las categorías fuertes, en orden de peso real en el catálogo.
+   *
+   * Se usan en los textos de las landings y en el schema. Salen del catálogo,
+   * no de una lista inventada: enumerar categorías que no se tienen genera
+   * visitas que se van sin comprar.
+   */
+  categoriasDestacadas: [
+    "Bebidas",
+    "Abarrotes",
+    "Chocolates y dulces",
+    "Aseo del hogar",
+    "Lácteos",
+    "Galletas",
+    "Snacks",
+    "Aguas",
+    "Bebidas energéticas",
+    "Panadería",
+    "Jugos",
+    "Helados",
+    "Cecinas y quesos",
+    "Salsas y conservas",
+    "Café",
+  ] as string[],
+
+  /**
+   * Lo que distingue a Olivo Market de otro minimarket del barrio.
+   *
+   * Sirve para los textos de las landings: contra un almacén de esquina o una
+   * cadena, lo que decide no es tener abarrotes —eso lo tienen todos— sino
+   * estas cuatro cosas juntas en un mismo local.
+   */
+  diferenciadores: [
+    {
+      titulo: "Cuatro couriers en un mismo local",
+      detalle:
+        "Retiro y envío de MercadoLibre, Chilexpress, Bluexpress y Correos de Chile sin ir a cuatro sitios distintos.",
+    },
+    {
+      titulo: "Despacho propio a domicilio",
+      detalle:
+        "Reparto en Ñuñoa y comunas vecinas el mismo día si el pedido entra temprano.",
+    },
+    {
+      titulo: "Abierto todos los días",
+      detalle:
+        "De lunes a viernes desde las 07:45 y hasta las 20:30; sábados y domingos de 10:00 a 18:00.",
+    },
+    {
+      titulo: "Productos venezolanos que no están en el supermercado",
+      detalle:
+        "Harina de maíz, salsas, dulces y marcas que no se consiguen en las cadenas.",
+    },
+  ] as { titulo: string; detalle: string }[],
 
   url: "https://www.olivomarket.cl",
 

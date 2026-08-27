@@ -34,7 +34,7 @@ const STATUS_LABELS: Record<string, { label: string; classes: string }> = {
   draft: { label: "Borrador", classes: "bg-gray-100 text-gray-600 ring-gray-200" },
   scheduled: { label: "Programada", classes: "bg-sky-100 text-sky-700 ring-sky-200" },
   sending: { label: "Enviando", classes: "bg-amber-100 text-amber-700 ring-amber-200" },
-  sent: { label: "Enviada", classes: "bg-emerald-100 text-emerald-700 ring-emerald-200" },
+  sent: { label: "Enviada", classes: "bg-brand-100 text-brand-700 ring-brand-200" },
   cancelled: { label: "Cancelada", classes: "bg-rose-100 text-rose-700 ring-rose-200" },
 };
 
@@ -140,11 +140,11 @@ export default function CampanasPage() {
           kicker="Marketing"
           title="Campañas de Email"
           subtitle="Creá y enviá emails masivos a tus suscriptores"
-          icon={<PaperAirplaneIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<PaperAirplaneIcon className="w-6 h-6 text-brand-300" />}
           right={
             <button
               onClick={() => setShowForm(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 rounded-xl text-emerald-950 text-xs font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 min-h-[36px]"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-500 rounded-xl text-brand-950 text-xs font-black uppercase tracking-widest hover:bg-brand-400 transition-all shadow-lg shadow-brand-500/20 min-h-[36px]"
             >
               <PlusIcon className="h-4 w-4" />
               Nueva campaña
@@ -168,7 +168,7 @@ export default function CampanasPage() {
         <StatsCard
           label="Enviadas"
           value={stats.sent.toLocaleString()}
-          tone="emerald"
+          tone="brand"
         />
         <StatsCard
           label="Aperturas totales"
@@ -203,7 +203,7 @@ export default function CampanasPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, name: e.target.value }))
                   }
-                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                   placeholder="Promo Marzo 2026"
                 />
               </div>
@@ -217,7 +217,7 @@ export default function CampanasPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, subject: e.target.value }))
                   }
-                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                   placeholder="🎉 ¡Ofertas increíbles solo para ti!"
                 />
               </div>
@@ -230,7 +230,7 @@ export default function CampanasPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, audience: e.target.value }))
                   }
-                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="all">Todos los suscriptores</option>
                   <option value="customers">Solo clientes existentes</option>
@@ -246,7 +246,7 @@ export default function CampanasPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, htmlContent: e.target.value }))
                   }
-                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-mono h-32 focus:ring-2 focus:ring-emerald-500 resize-none"
+                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-mono h-32 focus:ring-2 focus:ring-brand-500 resize-none"
                   placeholder="<h1>¡Hola {{customerName}}!</h1><p>...</p>"
                 />
               </div>
@@ -269,7 +269,7 @@ export default function CampanasPage() {
       {/* Campaigns list */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500" />
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-500" />
         </div>
       ) : campaigns.length === 0 ? (
         <div className="bg-white rounded-2xl ring-1 ring-gray-200">
@@ -292,7 +292,7 @@ export default function CampanasPage() {
             return (
               <div
                 key={c.id}
-                className="bg-white rounded-2xl ring-1 ring-gray-200 p-4 sm:p-5 hover:ring-emerald-300 hover:shadow-md transition-all"
+                className="bg-white rounded-2xl ring-1 ring-gray-200 p-4 sm:p-5 hover:ring-brand-300 hover:shadow-md transition-all"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                   <div className="flex-1 min-w-0">

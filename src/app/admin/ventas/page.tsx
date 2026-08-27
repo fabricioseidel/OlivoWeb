@@ -80,7 +80,7 @@ const METHOD_LABEL: Record<Method, string> = {
 const methodChipClass = (m: Method) => {
   switch (m) {
     case "CASH":
-      return "bg-emerald-500/10 text-emerald-600 border-emerald-500/30";
+      return "bg-brand-500/10 text-brand-600 border-brand-500/30";
     case "DEBIT":
       return "bg-blue-500/10 text-blue-600 border-blue-500/30";
     case "CREDIT":
@@ -341,11 +341,11 @@ export default function VentasPage() {
           kicker="Ventas"
           title="Historial de Ventas"
           subtitle="Transacciones con desglose de pagos y comprobantes"
-          icon={<ReceiptPercentIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<ReceiptPercentIcon className="w-6 h-6 text-brand-300" />}
           right={
             <button
               onClick={exportCSV}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-emerald-100 text-xs font-bold uppercase tracking-widest transition-colors min-h-[44px]"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-brand-100 text-xs font-bold uppercase tracking-widest transition-colors min-h-[44px]"
             >
               <ArrowDownTrayIcon className="h-4 w-4" />
               Exportar CSV
@@ -364,7 +364,7 @@ export default function VentasPage() {
         <StatsCard
           label="Ingreso"
           value={fmt(stats.revenue)}
-          tone="emerald"
+          tone="brand"
           icon={<BanknotesIcon className="w-4 h-4" />}
         />
         <StatsCard
@@ -388,7 +388,7 @@ export default function VentasPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar #id, vendedor, sucursal, método…"
-            className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+            className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm text-gray-900 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
           />
         </div>
 
@@ -458,7 +458,7 @@ export default function VentasPage() {
               onClick={() => applyPreset(p)}
               className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors min-h-[36px] ${
                 preset === p
-                  ? "bg-emerald-600 text-white"
+                  ? "bg-brand-600 text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -476,13 +476,13 @@ export default function VentasPage() {
               type="checkbox"
               checked={includeVoided}
               onChange={(e) => setIncludeVoided(e.target.checked)}
-              className="accent-emerald-500"
+              className="accent-brand-500"
             />
             Incluir anuladas
           </label>
           <button
             onClick={loadSales}
-            className="px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 rounded-xl min-h-[36px]"
+            className="px-3 py-2 bg-brand-500/10 border border-brand-500/30 text-brand-700 rounded-xl min-h-[36px]"
           >
             <ArrowPathIcon
               className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
@@ -593,7 +593,7 @@ export default function VentasPage() {
                         className={`text-base font-black ${
                           sale.voided
                             ? "line-through text-gray-400"
-                            : "text-emerald-600"
+                            : "text-brand-600"
                         }`}
                       >
                         {fmt(sale.total)}
@@ -746,7 +746,7 @@ function SaleDetailModal({
                         </span>
                       )}
                     </span>
-                    <span className="text-sm font-black text-emerald-600">
+                    <span className="text-sm font-black text-brand-600">
                       {fmt(p.amount)}
                     </span>
                   </div>
@@ -765,7 +765,7 @@ function SaleDetailModal({
                 <span className="text-sm text-gray-700 capitalize">
                   {sale.payment_method}
                 </span>
-                <span className="text-lg font-black text-emerald-600">
+                <span className="text-lg font-black text-brand-600">
                   {fmt(sale.total)}
                 </span>
               </div>
@@ -841,7 +841,7 @@ function SaleDetailModal({
                     key={it.id}
                     className="px-3 py-2 flex items-center gap-3"
                   >
-                    <span className="text-xs font-black text-emerald-600 w-10 shrink-0">
+                    <span className="text-xs font-black text-brand-600 w-10 shrink-0">
                       ×{it.quantity}
                     </span>
                     <div className="flex-1 min-w-0">

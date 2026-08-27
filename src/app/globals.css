@@ -5,6 +5,27 @@
    runtime con los colores de Admin → Apariencia. Los derivados (hover/soft)
    se calculan con color-mix para seguir al color base configurado. */
 @theme {
+  /* Escala de marca. Los valores por defecto son emerald exacto; cuando el
+     panel define otro color primario, `SettingsInjector` recalcula los once
+     pasos con `escalaDeMarca()` y los sobreescribe en runtime.
+
+     Se declaran acá para que Tailwind v4 genere las utilidades `bg-brand-600`,
+     `text-brand-100`, `ring-brand-500`, etc. */
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+  --color-brand-950: #022c22;
+
+  /* Texto legible sobre el primario. Lo recalcula SettingsInjector. */
+  --color-brand-contraste: #ffffff;
+
   --color-primary: #059669; /* emerald-600 */
   --color-primary-hover: color-mix(in srgb, var(--color-primary), black 14%);
   --color-primary-soft: color-mix(in srgb, var(--color-primary), white 92%);
@@ -13,8 +34,10 @@
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
-  --color-footer-bg: #1f2937;
-  --color-footer-text: #f3f4f6;
+  /* El pie sigue al color de marca por defecto. Si en el panel se define un
+     color propio de pie, SettingsInjector sobreescribe estas dos y manda ese. */
+  --color-footer-bg: var(--color-brand-950);
+  --color-footer-text: #ffffff;
 }
 
 /* Restricciones específicas para SVG e iconos */
@@ -407,4 +430,27 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+
+/* ───── Pie de página ─────
+   Antes el pie tenía los colores fijos en las clases, así que los dos
+   selectores del panel («color de fondo» y «color de texto» del pie) no hacían
+   absolutamente nada. Ahora lee las variables, que por defecto siguen al color
+   de marca y sólo se separan si alguien las define a propósito.
+
+   El texto atenuado usa opacidad sobre el color de texto en vez de un tono
+   fijo: con un tono fijo, poner un pie claro dejaba el texto secundario
+   ilegible. */
+.o-footer {
+  background-color: var(--color-footer-bg);
+  color: var(--color-footer-text);
+}
+.o-footer-muted {
+  color: var(--color-footer-text);
+  opacity: 0.8;
+}
+.o-footer-faint {
+  color: var(--color-footer-text);
+  opacity: 0.65;
 }

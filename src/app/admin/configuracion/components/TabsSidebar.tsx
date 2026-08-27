@@ -17,7 +17,7 @@ export default function TabsSidebar({ activeTab, setActiveTab }: TabsSidebarProp
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex-shrink-0 lg:w-full flex items-center gap-2.5 px-4 py-2.5 lg:py-3 rounded-xl lg:rounded-lg font-bold text-xs lg:text-sm transition-all snap-start ${activeTab === tab.id
-              ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 ring-2 ring-emerald-500 ring-offset-2 lg:ring-0"
+              ? "bg-brand-600 text-white shadow-lg shadow-brand-600/20 ring-2 ring-brand-500 ring-offset-2 lg:ring-0"
               : "text-slate-600 hover:bg-slate-50"
               }`}
           >

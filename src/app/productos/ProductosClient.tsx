@@ -88,19 +88,19 @@ function ProductsContent() {
   const chipClass = (active: boolean) =>
     `shrink-0 px-4 h-9 rounded-full text-xs font-bold transition-all border ${
       active
-        ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-        : "bg-white text-gray-500 border-gray-200 hover:border-emerald-300 hover:text-emerald-600"
+        ? "bg-brand-600 text-white border-brand-600 shadow-sm"
+        : "bg-white text-gray-500 border-gray-200 hover:border-brand-300 hover:text-brand-600"
     }`;
 
   return (
     <div className="bg-white min-h-screen">
-      <section className="bg-emerald-950 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
+      <section className="bg-brand-950 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-brand-500/20 rounded-full blur-[100px] pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 py-7 md:py-9 relative z-10">
           <h1 className="o-display text-neutral-900">
             {activeCategoryName || "Nuestro Catálogo"}
           </h1>
-          <p className="text-emerald-100/60 text-sm font-medium">
+          <p className="text-brand-100/60 text-sm font-medium">
             {loading ? "Cargando productos..." : `${filteredProducts.length} productos disponibles`}
           </p>
         </div>
@@ -116,14 +116,14 @@ function ProductsContent() {
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder="Buscar por nombre o categoría..."
-                className="w-full h-11 pl-11 pr-4 rounded-2xl bg-gray-50 border border-gray-200 text-sm text-gray-800 focus:outline-none focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+                className="w-full h-11 pl-11 pr-4 rounded-2xl bg-gray-50 border border-gray-200 text-sm text-gray-800 focus:outline-none focus:bg-white focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
               />
             </div>
             <select
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as SortKey)}
               title="Ordenar productos"
-              className="h-11 px-3 rounded-2xl bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-600 focus:outline-none focus:border-emerald-400 cursor-pointer"
+              className="h-11 px-3 rounded-2xl bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-600 focus:outline-none focus:border-brand-400 cursor-pointer"
             >
               <option value="name">Nombre A-Z</option>
               <option value="price-asc">Precio: menor a mayor</option>
@@ -175,7 +175,7 @@ export default function ProductosClient() {
   return (
     <Suspense fallback={
       <div className="bg-white min-h-screen">
-        <div className="bg-emerald-950 h-28" />
+        <div className="bg-brand-950 h-28" />
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (

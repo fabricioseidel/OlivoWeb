@@ -87,7 +87,7 @@ export default function RestablecerClient() {
         <div className="o-card p-6 sm:p-8">
           {tokenState === "checking" && (
             <div className="py-8 text-center">
-              <div className="mx-auto mb-4 size-10 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+              <div className="mx-auto mb-4 size-10 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
               <p className="text-sm text-neutral-500">Validando el enlace…</p>
             </div>
           )}
@@ -107,8 +107,8 @@ export default function RestablecerClient() {
 
           {tokenState === "valid" && done && (
             <div className="text-center">
-              <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-emerald-50">
-                <CheckCircleIcon className="size-7 text-emerald-600" />
+              <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-brand-50">
+                <CheckCircleIcon className="size-7 text-brand-600" />
               </div>
               <h1 className="o-h2 mb-2 text-neutral-900">Contraseña actualizada</h1>
               <p className="o-body mb-7 text-neutral-600">
@@ -142,7 +142,7 @@ export default function RestablecerClient() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors focus:border-emerald-500"
+                    className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors focus:border-brand-500"
                   />
                 </div>
 
@@ -157,7 +157,7 @@ export default function RestablecerClient() {
                     required
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors focus:border-emerald-500"
+                    className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors focus:border-brand-500"
                   />
                 </div>
 

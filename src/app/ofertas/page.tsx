@@ -8,14 +8,14 @@ export const metadata: Metadata = {
   metadataBase: new URL(BUSINESS.url),
   title: "Ofertas y descuentos | Olivo Market Ñuñoa",
   description:
-    "Productos venezolanos con precio rebajado en Olivo Market Ñuñoa. Aprovecha los descuentos vigentes y recibe tu pedido en Ñuñoa, Macul, Peñalolén o San Joaquín.",
+    "Productos del minimarket con precio rebajado en Olivo Market Ñuñoa: abarrotes, bebidas, snacks y más. Aprovecha los descuentos vigentes y recibe tu pedido en Ñuñoa, Macul, Peñalolén o San Joaquín.",
   alternates: { canonical: "/ofertas" },
   openGraph: {
     locale: "es_CL",
     siteName: BUSINESS.name,
     type: "website",
     title: "Ofertas y descuentos | Olivo Market Ñuñoa",
-    description: "Productos venezolanos con precio rebajado y despacho en Ñuñoa.",
+    description: "Productos del minimarket con precio rebajado y despacho en Ñuñoa.",
     url: "/ofertas",
   },
 };
