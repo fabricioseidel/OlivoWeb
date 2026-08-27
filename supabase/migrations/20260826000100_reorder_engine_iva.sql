@@ -380,3 +380,17 @@ $$;
 
 COMMENT ON FUNCTION public.create_draft_supplier_orders(int, int, int, uuid) IS
   'Crea borradores de pedido agrupados por proveedor. total_amount y orders[].total incluyen IVA.';
+
+-- CORREGIDO: las tres funciones de este archivo quedaron sin `search_path`
+-- fijo, a diferencia de las funciones nuevas de la Fase 1 (que sí lo llevan
+-- desde su CREATE). Fijarlo no cambia ningún comportamiento — mismo cuerpo,
+-- misma función — sólo cierra el hueco de que una función pueda resolver un
+-- nombre no calificado contra un esquema inesperado.
+ALTER FUNCTION public.get_reorder_suggestions(int, int, int)
+  SET search_path = public, pg_temp;
+
+ALTER FUNCTION public.create_draft_supplier_orders(int, int, int, uuid)
+  SET search_path = public, pg_temp;
+
+ALTER FUNCTION public.recalculate_supplier_order_total()
+  SET search_path = public, pg_temp;

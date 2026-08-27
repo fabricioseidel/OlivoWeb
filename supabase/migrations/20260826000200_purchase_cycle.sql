@@ -232,18 +232,23 @@ BEGIN
 END;
 $$;
 
--- Los roles de Supabase no existen en un PostgreSQL local, así que la
--- revocación va guardada: sin esto la migración aborta antes de terminar.
---
--- Se revoca de `anon` y `authenticated`, NO de PUBLIC, siguiendo lo que ya hace
--- 20260814033833: `service_role` puede estar apoyándose en el permiso de
--- PUBLIC, y quitárselo dejaría al servidor sin poder llamar su propia función.
+-- CORREGIDO: ver la nota igual de larga en 20260826000000_pricing_foundations.sql
+-- sobre record_supplier_cost_change — el mismo error, el mismo arreglo.
+-- Revocar de `anon`/`authenticated` directamente no quita lo que esos roles
+-- heredan de PUBLIC; hay que revocar de PUBLIC y conceder explícito a
+-- service_role.
 DO $$
+DECLARE
+  v_fn regprocedure := 'public.marcar_pedido_enviado(uuid, text, uuid)'::regprocedure;
 BEGIN
+  EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', v_fn);
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
-    REVOKE EXECUTE ON FUNCTION public.marcar_pedido_enviado(uuid, text, uuid) FROM anon;
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM anon', v_fn);
   END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
-    REVOKE EXECUTE ON FUNCTION public.marcar_pedido_enviado(uuid, text, uuid) FROM authenticated;
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM authenticated', v_fn);
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', v_fn);
   END IF;
 END $$;

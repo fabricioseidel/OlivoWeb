@@ -114,6 +114,28 @@ CREATE INDEX IF NOT EXISTS idx_supplier_cost_history_producto
 CREATE INDEX IF NOT EXISTS idx_supplier_cost_history_proveedor
   ON public.supplier_cost_history(supplier_id, recorded_at DESC);
 
+-- CORREGIDO: esta tabla se creó sin RLS, a diferencia de todas las demás del
+-- proyecto (una revisión de seguridad contra la base real de producción lo
+-- encontró). Mismo patrón que product_suppliers y supplier_orders: RLS activa
+-- + una política que da acceso total a `authenticated`.
+ALTER TABLE public.supplier_cost_history ENABLE ROW LEVEL SECURITY;
+
+-- `authenticated` es un rol de Supabase: en un PostgreSQL local no existe, y
+-- un CREATE POLICY ... TO authenticated contra un rol inexistente aborta la
+-- migración entera de inmediato — se guarda igual que las revocaciones.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated')
+     AND NOT EXISTS (
+       SELECT 1 FROM pg_policies
+       WHERE schemaname = 'public' AND tablename = 'supplier_cost_history'
+         AND policyname = 'Usuarios autenticados pueden gestionar el historial de costos'
+     ) THEN
+    EXECUTE 'CREATE POLICY "Usuarios autenticados pueden gestionar el historial de costos" '
+      || 'ON public.supplier_cost_history FOR ALL TO authenticated USING (true) WITH CHECK (true)';
+  END IF;
+END $$;
+
 -- El trigger: cualquier escritura de costo queda registrada, venga de donde venga.
 CREATE OR REPLACE FUNCTION public.record_supplier_cost_change()
 RETURNS trigger
@@ -148,19 +170,30 @@ BEGIN
 END;
 $$;
 
--- Los roles de Supabase no existen en un PostgreSQL local, así que la
--- revocación va guardada: sin esto la migración aborta antes de terminar.
+-- CORREGIDO: la primera versión de esto revocaba de `anon` y `authenticated`
+-- directamente, copiando el patrón de 20260814033833 sin notar que esa
+-- migración NO SURTÍA EFECTO — es la razón por la que existe 20260814033902 a
+-- continuación. En PostgreSQL una función nace con EXECUTE concedido a
+-- PUBLIC, y anon/authenticated lo heredan de ahí: revocar el permiso nombrado
+-- no quita el heredado. Hay que revocar de PUBLIC y conceder explícito a
+-- service_role, que es quien la usa desde el servidor.
 --
--- Se revoca de `anon` y `authenticated`, NO de PUBLIC, siguiendo lo que ya hace
--- 20260814033833: `service_role` puede estar apoyándose en el permiso de
--- PUBLIC, y quitárselo dejaría al servidor sin poder llamar su propia función.
+-- Se hace con `format(...regprocedure)` y no hardcodeando la firma para poder
+-- guardar la revocación de roles que no existen en un PostgreSQL local (`anon`
+-- no está ahí) sin que la migración aborte.
 DO $$
+DECLARE
+  v_fn regprocedure := 'public.record_supplier_cost_change()'::regprocedure;
 BEGIN
+  EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', v_fn);
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
-    REVOKE EXECUTE ON FUNCTION public.record_supplier_cost_change() FROM anon;
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM anon', v_fn);
   END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
-    REVOKE EXECUTE ON FUNCTION public.record_supplier_cost_change() FROM authenticated;
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM authenticated', v_fn);
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', v_fn);
   END IF;
 END $$;
 
@@ -217,6 +250,23 @@ CREATE TRIGGER set_category_margins_updated_at
 BEFORE UPDATE ON public.category_margins
 FOR EACH ROW
 EXECUTE FUNCTION public.set_updated_at();
+
+-- CORREGIDO: misma omisión que supplier_cost_history, mismo arreglo, misma
+-- guarda de rol para no abortar en un PostgreSQL local.
+ALTER TABLE public.category_margins ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated')
+     AND NOT EXISTS (
+       SELECT 1 FROM pg_policies
+       WHERE schemaname = 'public' AND tablename = 'category_margins'
+         AND policyname = 'Usuarios autenticados pueden gestionar margenes por categoria'
+     ) THEN
+    EXECUTE 'CREATE POLICY "Usuarios autenticados pueden gestionar margenes por categoria" '
+      || 'ON public.category_margins FOR ALL TO authenticated USING (true) WITH CHECK (true)';
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------
 -- 4) Revisión del precio de venta
