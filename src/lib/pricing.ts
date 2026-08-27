@@ -277,3 +277,34 @@ export function derivarCostoProveedor(
     sugerido: redondeado === null ? "" : String(redondeado),
   };
 }
+
+/**
+ * De dónde salió el costo unitario que muestra una pantalla.
+ *
+ * `/api/admin/suppliers/[id]/products` devuelve un solo campo de costo, pero
+ * ese campo tiene dos orígenes posibles: el costo que ESE proveedor tiene
+ * cargado, o —cuando no tiene— el de la ficha del producto, que es heredado y
+ * puede venir de otro proveedor o de nadie. La API distingue los dos casos en
+ * `cost_source`.
+ */
+export type OrigenCosto = "supplier" | "product";
+
+/**
+ * ¿El costo que se está mostrando NO es el de este proveedor?
+ *
+ * Cotizar un pedido con el costo de otro proveedor como si fuera el de éste
+ * produce un pedido que la factura no va a respetar — y, peor, un documento de
+ * control que ya no controla nada, porque la diferencia parece un error del
+ * proveedor en vez de un dato propio equivocado.
+ *
+ * Cuando el origen no viene informado se responde `false` a propósito: sin
+ * saberlo no se puede afirmar que el costo esté heredado, y marcar de más
+ * enseña a ignorar la marca.
+ */
+export function esCostoHeredado(dato: {
+  cost_source?: OrigenCosto | string | null;
+  purchase_price?: number | null;
+}): boolean {
+  if (dato?.cost_source !== "product") return false;
+  return Number(dato?.purchase_price) > 0;
+}

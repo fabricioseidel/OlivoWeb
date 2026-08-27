@@ -249,6 +249,7 @@ export async function registrarRecepcion(
     }
 
     const delta = variacionCosto(costoPedido, costoFinal);
+
     if (delta !== null && delta !== 0 && producto?.barcode) {
       variaciones.push({
         itemId: linea.itemId,
@@ -259,10 +260,19 @@ export async function registrarRecepcion(
         variacion: delta,
         relevante: Math.abs(delta) >= UMBRAL_REVISION_COSTO,
       });
+    }
 
-      // El costo confirmado por la factura manda sobre el que estaba cargado.
-      // Escribirlo dispara el trigger del historial y hace que la pantalla de
-      // precios pida revisar el precio de venta de este producto.
+    // El costo confirmado por la factura manda sobre el que estaba cargado.
+    // Escribirlo dispara el trigger del historial y hace que la pantalla de
+    // precios pida revisar el precio de venta de este producto.
+    //
+    // Esto se hace TAMBIÉN cuando la factura confirma el mismo costo (delta
+    // 0). Antes estaba dentro del `if` de la variación, así que un costo
+    // recién verificado contra una factura seguía figurando como actualizado
+    // meses atrás: la confirmación es información, y no anotarla ensucia la
+    // señal de "revisar precio" de la Fase 2. El trigger del historial sólo
+    // registra cambios reales, así que confirmar no ensucia el historial.
+    if (delta !== null && producto?.barcode) {
       await supabaseServer
         .from("product_suppliers")
         .update({
