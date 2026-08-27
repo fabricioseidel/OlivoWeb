@@ -172,13 +172,17 @@ export async function reserveStockForWebSale(
 
 /**
  * Devuelve stock reservado (pago rechazado, orden que no se completó).
+ *
+ * Devuelve si el movimiento se aplicó. Ignorar el resultado sigue siendo
+ * válido, pero quien necesite informar "se devolvió el stock" tiene con qué
+ * saber si es cierto.
  */
 export async function releaseStock(
   barcode: string,
   qty: number,
   { branchId, reference, reason }: StockMutationOptions = {}
-): Promise<void> {
-  if (!barcode || !(qty > 0)) return;
+): Promise<boolean> {
+  if (!barcode || !(qty > 0)) return false;
 
   const { error } = await supabaseServer.rpc("increment_product_stock", {
     p_barcode: barcode,
@@ -190,7 +194,129 @@ export async function releaseStock(
 
   if (error) {
     logger.error("[inventory] increment_product_stock falló:", error);
+    return false;
   }
+
+  return true;
+}
+
+export type RestoreResult =
+  | { ok: true; devueltos: number; fallidos: number; sinResolver: string[] }
+  | { ok: false; error: string };
+
+/**
+ * Devuelve al inventario todo lo reservado por una orden web.
+ *
+ * Existe porque las claves NO son las mismas a los dos lados de la orden. El
+ * checkout busca el producto por código de barras y reserva el stock con ese
+ * código —correcto—, pero después guarda `order_items.product_id` con
+ * `products.id`, que es la clave numérica. Devolver el stock exige, entonces,
+ * traducir de vuelta.
+ *
+ * El intento anterior lo resolvía pidiéndole a PostgREST un embed
+ * `order_items → products(barcode)`. Ese embed no puede existir: PostgREST
+ * arma sus relaciones desde las claves foráneas, y `order_items` sólo tiene
+ * una, hacia `orders` (verificado en `pg_constraint`: las cinco FK que apuntan
+ * a `products` vienen de otras tablas). La consulta devolvía error, el código
+ * lo descartaba con un `if (!error && data)` y la devolución de stock se
+ * saltaba entera — en silencio, mientras el log seguía diciendo "stock
+ * restaurado". El resultado era mercadería reservada por un pago rechazado que
+ * no volvía nunca al inventario.
+ *
+ * Por eso acá no hay embed: se lee `order_items` sin adornos y la traducción
+ * se hace explícita. Y por eso devuelve un resultado en vez de tragarse los
+ * errores: una orden que no pudo devolver su stock deja el inventario
+ * descuadrado, y eso hay que poder decirlo.
+ */
+export async function restoreOrderStock(
+  orderId: string,
+  { branchId, reason }: StockMutationOptions = {}
+): Promise<RestoreResult> {
+  if (!orderId) return { ok: false, error: "Falta el id de la orden" };
+
+  const { data: lineas, error: errLineas } = await supabaseServer
+    .from("order_items")
+    .select("product_id, quantity")
+    .eq("order_id", orderId);
+
+  if (errLineas) {
+    logger.error("[inventory] no se pudieron leer los items de la orden:", errLineas);
+    return { ok: false, error: errLineas.message };
+  }
+
+  const items = (lineas ?? []) as Array<{ product_id: unknown; quantity: unknown }>;
+  if (items.length === 0) return { ok: true, devueltos: 0, fallidos: 0, sinResolver: [] };
+
+  const claves = [...new Set(items.map((i) => String(i.product_id ?? "")).filter(Boolean))];
+
+  // Traducción de `products.id` a código de barras. Se consulta por id, que es
+  // lo que el checkout guarda hoy.
+  const barcodePorClave = new Map<string, string>();
+  const numericas = claves.filter((c) => /^\d+$/.test(c));
+
+  if (numericas.length > 0) {
+    const { data, error } = await supabaseServer
+      .from("products")
+      .select("id, barcode")
+      .in("id", numericas);
+
+    if (error) {
+      logger.error("[inventory] no se pudo traducir product_id a barcode:", error);
+      return { ok: false, error: error.message };
+    }
+    for (const p of (data ?? []) as Array<{ id: unknown; barcode: unknown }>) {
+      if (p?.id !== null && p?.id !== undefined && p?.barcode) {
+        barcodePorClave.set(String(p.id), String(p.barcode));
+      }
+    }
+  }
+
+  // Lo que no calzó por id se prueba como código de barras: órdenes viejas
+  // pueden haberse guardado con la otra clave, y perder ese stock en silencio
+  // es justamente el error que esta función viene a cerrar.
+  const pendientes = claves.filter((c) => !barcodePorClave.has(c));
+  if (pendientes.length > 0) {
+    const { data, error } = await supabaseServer
+      .from("products")
+      .select("barcode")
+      .in("barcode", pendientes);
+
+    if (error) {
+      logger.error("[inventory] no se pudo verificar barcodes de la orden:", error);
+      return { ok: false, error: error.message };
+    }
+    for (const p of (data ?? []) as Array<{ barcode: unknown }>) {
+      if (p?.barcode) barcodePorClave.set(String(p.barcode), String(p.barcode));
+    }
+  }
+
+  let devueltos = 0;
+  let fallidos = 0;
+  const sinResolver: string[] = [];
+
+  for (const item of items) {
+    const clave = String(item.product_id ?? "");
+    const cantidad = Number(item.quantity) || 0;
+    const barcode = barcodePorClave.get(clave);
+
+    if (!barcode) {
+      sinResolver.push(clave);
+      logger.error(
+        `[inventory] la orden ${orderId} referencia el producto ${clave}, que no existe: su stock no se devolvió`
+      );
+      continue;
+    }
+
+    const ok = await releaseStock(barcode, cantidad, {
+      branchId,
+      reference: String(orderId),
+      reason: reason ?? STOCK_REASON.WEB_SALE_ROLLBACK,
+    });
+    if (ok) devueltos += 1;
+    else fallidos += 1;
+  }
+
+  return { ok: true, devueltos, fallidos, sinResolver };
 }
 
 /**
