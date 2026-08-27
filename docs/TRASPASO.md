@@ -246,6 +246,8 @@ de que el dueño lo defina:
 | `900000000109` | Helado Savory Sandía 53 Gr | $463 | 19% | 16 | $850 |
 | `900000000110` | Helado Danky Pistacho Chocolate 125 Ml | $1.450 | 19% | 18 | $2.660 |
 | `900000000111` | Helado Mega Chocolate Naranja 90 Ml | $1.582 | 19% | 16 | $2.900 |
+| `900000000112` | Pan de Queso Dulce Pan | $2.184,87 | 19% | — | $4.000 |
+| `900000000113` | Torta de Pan Dulce Pan | $1.344,54 | 19% | — | $2.470 |
 
 Quedan **activos con precio 0 a propósito**, y es seguro: la tienda no los
 muestra (`isProductVisible` descarta precio ≤ 0) y el checkout los rechaza
@@ -264,15 +266,16 @@ vacío: queda indistinguible de un dato real.
 - *Dulce Pan* factura "Queso" (Q-941475, $2.184,87) y "Torta de Pan"
   (`752590810566644`, $1.344,54). **Ninguno de los dos existe en el
   catálogo.** Hay que crearlos antes de poder ligarlos.
-- *Dulce Pan* factura además "Queso" (Q-941475) y "Torta de Pan", que tampoco
-  existen en el catálogo y quedaron sin crear: a diferencia de los de arriba,
-  el dueño todavía no confirmó qué son.
+- Los dos panes **`Pan Andino el oasis` y `Pan francés 6 unidades el oasis`**
+  quedaron ligados a El Oasis **sin costo**: la nota que entregó el proveedor
+  no lista ninguno de los dos. Es lo único de estas cinco facturas que sigue
+  pendiente de un dato.
 
-Los helados de Nestlé y los ítems de El Oasis sí se resolvieron, preguntando
-en vez de adivinando — están en la tabla de arriba. El dato que lo destrabó:
-"Negras" son catalinas (o cucas), vienen de a 5, y El Oasis es otra marca que
-hace la misma línea de panes venezolanos y andinos que Dulce Pan. Eso explica
-por qué los nombres se parecían tanto sin ser los mismos productos.
+Todo lo demás se resolvió preguntando en vez de adivinando. El dato que lo
+destrabó: "Negras" son catalinas (o cucas), vienen de a 5; "Queso" de Dulce
+Pan es un pan de queso; y El Oasis es otra marca que hace la misma línea de
+panes venezolanos y andinos que Dulce Pan — por eso los nombres se parecían
+tanto sin ser los mismos productos.
 
 **Ojo con el IVA de El Oasis.** La nota no es documento tributario: sin
 factura no hay crédito fiscal, así que sus costos van con `tax_rate = 0` y
@@ -289,6 +292,89 @@ dónde guardarlo, así que no se puede casar una factura con su proveedor de
 forma automática. Se nota en que el proveedor está como "Jean Tequeños" y la
 factura dice "Tequeñitos Chile SPA": el costo idéntico ($3.530) dice que son
 el mismo, pero el sistema no lo puede confirmar.
+
+---
+
+### Auditoría de duplicados y datos alterados (2026-08-27)
+
+Pedida por el dueño después de encontrar el par de "Pan de Mantequilla". Se
+buscó con `pg_trgm` sobre el nombre normalizado (minúsculas, sin acentos).
+
+**Lo que está sano.** Vale decirlo porque acota dónde buscar: **0** productos
+con stock negativo, precio negativo o costo negativo; **0** sin nombre o sin
+categoría; **0** filas de `product_suppliers` apuntando a un producto que no
+existe; y **0** productos con `purchase_price` desalineado de su proveedor
+preferido — el trigger de #72 está haciendo su trabajo.
+
+#### Duplicados: unos 20 pares, cuatro urgentes
+
+Los urgentes son aquellos donde **las dos fichas están activas y la que tiene
+el stock es la que no tiene precio**:
+
+| Producto | Ficha con stock (sin precio) | Ficha con precio (sin stock) |
+|---|---|---|
+| Coca-Cola Zero 250 ml | `7801610000335` — stock 4, $0 | `640002090335` — stock 0, $500 |
+| Pepsi Zero 600 ml | `7801620009342` — stock 4, $0 | `2848620009342` — stock 0, $1.200 |
+| Papelón con limón 500 ml | `798190235813` "Pepelon" — stock 4, $0 | `736372665485` — stock 0, $1.500 |
+| Gatorade frutos tropicales | `7801620011840` — stock 2, $0 | `7700740011740` — stock 0, $1.100 |
+
+**Cómo se generan, que es lo que importa.** En los cuatro casos la ficha *con
+stock* tiene el **código de barras real del fabricante** (`7801610000335` es
+el EAN de Coca-Cola) y la ficha *con precio* tiene un **código inventado**
+(`640002090335`, `2848620009342`). La lectura es que alguien escaneó el
+producto real, el sistema no lo encontró —porque estaba cargado con un código
+a mano— y creó una ficha nueva sin precio. El stock se fue a la ficha nueva y
+el precio quedó en la vieja.
+
+Eso explica **5 de los 63** productos con precio 0. No es la causa de todos,
+pero es la única que tiene un arreglo sistemático: al unificar, el producto
+recupera precio y stock a la vez. `798190235813` está además cargado como
+"**Pepelon** con limón" — un error de tipeo que impide encontrarlo buscando
+"papelón".
+
+Hay ~16 pares más con una de las dos fichas ya inactiva (Alfajor Bon o Bon,
+Halls negro, Malta polar, Mantequilla Soprole 250g, Pan de Mantequilla Dulce
+Pan, Yogurt Oikos Frutilla, Queso Parmesano Colun, Chocolate Jet, Jugo Watts
+Naranja, Pepsi Original 3 Lt, Pepsi Zero 1.5, Galleta Soda Costa, Atún
+Desmenuzado Esmeralda, Agua Saborizada Pera, Coca-Cola Zero 3L, Coca-Cola
+Lata Original). Esos son menos urgentes: la inactiva no se vende. **Powerade
+Naranja 850 Ml tiene tres fichas** (`7802820651003`, `7802820678062`,
+`7802820678161`), dos inactivas.
+
+No se unificó ninguno: fusionar fichas mueve stock e historial de ventas, y
+decidir cuál sobrevive es del dueño. La lista está acá para trabajarla.
+
+#### El stock descuadra entre `products` y `branch_stock`
+
+**719 de 722** productos activos tienen `products.stock` distinto de la suma
+de sus sucursales. En total: `products` suma **7.155** unidades y
+`branch_stock` suma **13.507**.
+
+Casi toda la diferencia tiene un nombre: **"Sucursal 2" carga 5.965 unidades
+de stock y no registró jamás una venta** (0 en `sales`, contra 18 de
+Principal; sus 56 movimientos de inventario son de la resincronización del
+30/07). Su `branch_stock` no se toca desde el 10/08. Todo indica que es una
+sucursal que nunca llegó a operar y que quedó con una copia del inventario
+de aquella migración.
+
+Esto **contradice la doctrina #1** (`branch_stock` es la fuente de verdad,
+`products.stock` es derivado): si se recalculara `products.stock` desde
+`branch_stock` hoy, el catálogo entero duplicaría su inventario contra
+existencias que no están en ninguna góndola. La tienda web lee
+`products.stock` (vía `fetchAllProducts`), así que hoy muestra el número
+menos malo de los dos, pero por accidente, no por diseño.
+
+**No se tocó nada.** Antes de resincronizar hay que decidir qué pasa con
+Sucursal 2 — si se desactiva, si se vacía su stock, o si va a operar de
+verdad. Resincronizar sin resolver eso escribe cifras falsas en el
+inventario.
+
+#### Cinco códigos de barras que no son códigos de barras
+
+`INT-MT6BEV1H`, `INT-MT6BFTQZ`, `INT-MT6BGZ4R`, `INT-MT6BHMWD` (los cuatro de
+Don Julio, todos con precio 0 y stock) y `PONYMALTA`. No rompen nada hoy
+—`barcode` es `text`— pero no se pueden escanear, así que en el POS hay que
+buscarlos a mano.
 
 ---
 
