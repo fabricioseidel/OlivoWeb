@@ -12,6 +12,7 @@ import NewsletterWidget from "@/components/NewsletterWidget";
 import { useCategories } from "@/hooks/useCategories";
 import { DEFAULT_BLOCKS, type PageBlock } from "@/lib/page-blocks";
 import { BUSINESS } from "@/lib/seo/business";
+import { useSiteCopy } from "@/hooks/useSiteCopy";
 import {
   ChevronRight,
   Truck,
@@ -159,6 +160,7 @@ function HeroBlock({
   categoriesLoading: boolean;
 }) {
   const router = useRouter();
+  const { t } = useSiteCopy();
   const [heroQuery, setHeroQuery] = useState("");
 
   const submitHeroSearch = (e: React.FormEvent) => {
@@ -242,7 +244,7 @@ function HeroBlock({
                 Es el contenido que respalda el schema y las búsquedas locales. */}
             <div className="mt-6 pt-5 border-t border-white/10 space-y-3">
               <p className="text-sm font-semibold text-brand-300">
-                También somos punto de envíos en Ñuñoa
+                {t("home.shipping.title")}
               </p>
               <ul className="flex flex-wrap gap-2">
                 {BUSINESS.services.map((s) => (

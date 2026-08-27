@@ -115,7 +115,10 @@ const menuGroupsLaboratorioFabri: MenuGroup[] = [
     label: "Sistema",
     items: [
       { name: "Usuarios", href: "/admin/usuarios", icon: UsersIcon },
-      { name: "Constructor Visual", href: "/admin/constructor", icon: SparklesIcon },
+      // "Constructor Visual" en el grupo Sistema era imposible de encontrar:
+      // quien quiere corregir el título de la portada no busca entre Usuarios y
+      // Configuración. Se llama por lo que hace y vive donde se lo busca.
+      { name: "Textos de la portada", href: "/admin/constructor", icon: SparklesIcon },
       { name: "Configuración", href: "/admin/configuracion", icon: Cog6ToothIcon },
     ],
   },

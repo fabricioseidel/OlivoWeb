@@ -295,6 +295,55 @@ el mismo, pero el sistema no lo puede confirmar.
 
 ---
 
+### El navbar desbordaba la página entre 640 y 1280 px (2026-08-27)
+
+Encontrado levantando la app y midiéndola con Playwright en once anchos, no
+leyendo código. **En todas las páginas**, a cualquier ancho entre 640 y ~1280
+px, `document.scrollWidth` superaba a `clientWidth`: la web entera se podía
+arrastrar en horizontal.
+
+| Ancho | Desbordamiento |
+|---:|---:|
+| 640 px | +312 px |
+| 768 px (iPad) | +184 px |
+| 850 px | +102 px |
+| 1024 px | +160 px |
+
+La causa: la barra de escritorio aparecía en `sm:` (640 px) pero su contenido
+—logo, **seis** enlaces, buscador, carrito, Entrar y Registrarse— no entra
+hasta ~1280. El menú hamburguesa, en cambio, se ocultaba a partir de 640. O
+sea que entre 640 y 1280 se mostraba una barra que no cabía y no había
+alternativa compacta.
+
+Arreglo: la barra de escritorio y el menú móvil cambian de mano en `lg:`
+(1024 px) en vez de `sm:`, el buscador —que solo suma 208 px— entra en `xl:`,
+y los contenedores llevan `min-w-0` para que un enlace nuevo se recorte en
+lugar de empujar la página. Verificado después: **0 desbordamientos en 11
+anchos × 6 páginas** (360, 375, 414, 640, 700, 768, 850, 1024, 1180, 1280,
+1440).
+
+### Los textos de la portada no se encontraban (2026-08-27)
+
+El dueño mandó una captura del móvil marcando el encabezado: *"no veo lugar
+para editar nada de esto"*. Resultó ser tres cosas distintas:
+
+1. **El subtítulo, el título y la descripción sí se editaban** — están en el
+   bloque `hero` del constructor. El problema era encontrarlo: se llamaba
+   *"Constructor Visual"* y vivía en el grupo **Sistema**, entre Usuarios y
+   Configuración. Nadie que quiera corregir el título de la portada busca ahí.
+   Pasó a llamarse **"Textos de la portada"**.
+2. **"También somos punto de envíos en Ñuñoa" no se editaba**: estaba escrito
+   a mano en `HomeClient.tsx`. Se registró como `home.shipping.title` en
+   `site-copy.ts`, con un grupo "Portada" en Configuración → Textos del sitio.
+3. **La dirección, el horario, el teléfono y los nombres de los couriers no se
+   editan, y debe seguir así.** Salen de `src/lib/seo/business.ts`, que es la
+   fuente única del NAP y alimenta el schema.org. Su comentario de cabecera lo
+   dice con todas las letras: cualquier divergencia entre el NAP del sitio,
+   Google Business Profile y los directorios degrada el posicionamiento local.
+   Hacerlos editables desde el panel sería exactamente la forma de que
+   diverjan. Queda explicado en la descripción del grupo, para que la próxima
+   vez que alguien busque ese campo encuentre el motivo en vez del hueco.
+
 ### `search_path` en las 23 funciones que faltaban (2026-08-27)
 
 `20260828000300_search_path_en_funciones_restantes.sql`. El linter de Supabase
