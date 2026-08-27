@@ -295,6 +295,33 @@ el mismo, pero el sistema no lo puede confirmar.
 
 ---
 
+### `search_path` en las 23 funciones que faltaban (2026-08-27)
+
+`20260828000300_search_path_en_funciones_restantes.sql`. El linter de Supabase
+reportaba 23 funciones con `search_path` mutable — la deuda que
+`20260827013538` había empezado a pagar con tres. **Siete son SECURITY
+DEFINER**, o sea que corren con los privilegios del dueño de la función:
+`apply_sale_v2`, `decrement_product_stock`, `decrement_stock_atomic`,
+`get_seller_name_from_user`, `increment_product_stock`,
+`list_sales_missing_items` y **`login_user`**, que es la que valida
+contraseñas.
+
+**El detalle que había que ver antes de aplicar.** `login_user` llama a
+`crypt(...)` sin calificar, y `crypt` no vive en `public` sino en
+`extensions` (es de pgcrypto). Fijarle `search_path = public, pg_temp` —lo que
+lleva el resto— la habría dejado sin poder resolver `crypt`: **nadie podría
+iniciar sesión**. Se comprobó replicando el caso en Postgres 16, y el enfoque
+ingenuo falla con `ERROR: function crypt(text, text) does not exist`. Por eso
+esa función lleva `extensions` en su path; `extensions` es un esquema del
+propio Supabase, no uno donde un tercero pueda crear objetos, así que
+incluirlo no debilita la protección.
+
+Verificado después en producción: **0 funciones sin `search_path`**, las 14
+SECURITY DEFINER protegidas, y `login_user` responde "Credenciales inválidas"
+—resuelve `crypt()` y rechaza bien— en vez de dar error.
+
+---
+
 ### Cierre de los pendientes menores (2026-08-27, misma sesión)
 
 **El aviso al cargar un costo.** La pantalla de Precios sabía listar lo que se
@@ -735,10 +762,26 @@ Ordenado por lo que cuesta plata.
    puesto donde va un id, frena el borrado de un producto con ventas y deja
    borrar uno sin ellas.
 
-3. **Menor:** `products.purchase_price` ya no debería editarse a mano en ningún
-   lado. El editor de producto no la toca (usa la sección "Proveedores y
-   Costos"), pero el editor masivo la arrastra al renombrar un código de
-   barras. Con el trigger de #72 se recalcula igual, así que no es urgente.
+3. ~~**Menor:** `products.purchase_price` ya no debería editarse a mano.~~
+   **Hecho el 2026-08-27** (`20260828000400_purchase_price_derivado_por_trigger.sql`).
+
+   Al revisarlo resultó **no ser tan menor como decía esta nota**. La versión
+   anterior afirmaba que "con el trigger de #72 se recalcula igual, así que no
+   es urgente" — y eso es inexacto. El trigger de #72 está sobre
+   **`product_suppliers`**: se dispara cuando cambia un costo, no cuando
+   alguien escribe `products.purchase_price` directamente. El editor masivo lo
+   escribe en cada guardado, así que el valor viejo quedaba hasta la próxima
+   vez que se tocara el costo de ese proveedor, y mientras tanto el margen de
+   ese producto se calculaba contra una cifra desactualizada. Es el mismo error
+   que tenía `products.stock`, en la columna de al lado.
+
+   El arreglo es simétrico —un trigger en `products` que deriva la columna—
+   **pero con la excepción de #72 respetada**: sólo pisa el valor cuando hay un
+   proveedor preferido con costo. Los **8 productos** cuyo costo es una cifra
+   cargada a mano, sin proveedor, la conservan; para ellos ese número es el
+   único dato de costo que existe. Probado contra Postgres 16 con seis casos,
+   incluidos "asignarle proveedor a uno que no tenía pasa a derivar" y "un
+   INSERT sin proveedor conserva su costo".
 
 4. **Menor:** el tipo de `settings` declara `paypal` y `crypto` como medios de
    pago; el checkout sólo implementa MercadoPago. `PaymentSection` ya lo
