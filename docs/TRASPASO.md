@@ -203,6 +203,31 @@ distinguirlo y no lo leía nadie. Ahora se marca en la pantalla de pedido manual
 
 ---
 
+### El checkout cobraba $0 por 64 productos (arreglado el 2026-08-27)
+
+Apareció midiendo el catálogo para el punto 1, no buscándolo. **64 productos
+activos tienen `sale_price = 0`**, casi todos con stock.
+
+La ruta de checkout validaba que el producto existiera, que estuviera activo y
+que la cantidad fuera razonable — pero nunca que el precio fuera mayor que
+cero. Después armaba el subtotal con `sale_price * cantidad`. Cada uno de esos
+64 entraba en un pedido a $0.
+
+La vitrina ya los escondía (`isProductVisible` descarta precio ≤ 0) y por eso
+no se veía. Pero es exactamente lo que el comentario del propio checkout ya
+advertía sobre la regla de venta web: **esconder un producto del catálogo no
+impide que alguien llame la ruta con su código.**
+
+Ahora vive en `sinPrecioCobrable()` (`src/server/sellable.service.ts`), al lado
+de la regla de venta pero **independiente de ella**: `require_reviewed_price`
+protege el margen y por eso se puede apagar; esto protege de cobrar cero y no
+se apaga. Con la regla apagada —el estado real hoy— igual frena. 10 tests.
+
+Queda pendiente, para el dueño: **ponerles precio o desactivarlos**. Hoy son 64
+productos con stock que no se pueden vender por la web ni se ven en la tienda.
+
+---
+
 ## Doctrinas del proyecto (no romper)
 
 Reglas que este código sostiene a propósito. Romperlas reintroduce errores que
@@ -293,6 +318,46 @@ Ordenado por lo que cuesta plata.
    todo el catálogo, porque `price_reviewed_at` arranca en `NULL` para todos.
    El orden es: mirar en la pantalla de Precios cuántos quedarían fuera,
    depurar esa lista, y recién entonces encenderla.
+
+   **Medido el 2026-08-27 (paso "mirar" ya hecho).** Encenderla hoy dejaría
+   fuera **725 de 725** productos activos: vendibles, cero. El desglose importa
+   más que el total, porque separa dos trabajos muy distintos:
+
+   | Situación | Productos | Qué hace falta |
+   |---|---:|---|
+   | Sin ningún proveedor asignado | **459** | Cargar proveedor y costo. Necesita las facturas. |
+   | Con proveedor pero sin costo | 2 | Cargar el costo. |
+   | Con costo y precio sano, sólo sin revisar | **247** | Mirar y confirmar. Es un clic por producto. |
+   | Con costo pero el precio hay que decidirlo | 17 | Ver abajo. |
+
+   O sea: el cuello de botella no es revisar precios, es que **el 63% del
+   catálogo no tiene proveedor cargado**. Y de lo que sí tiene costo, el margen
+   promedio es **27,5%** — 162 productos con margen sano (≥35%), 85 medio.
+
+   Ese paso no lo puede hacer una sesión: cargar 459 costos requiere las
+   facturas reales de los proveedores. Inventarlos sería exactamente lo que la
+   migración evitó al no rellenar `price_reviewed_at` con una fecha falsa.
+
+   **Los 17 con costo y precio a decidir, que es lo accionable ya.** Cinco
+   tienen el costo cargado en la unidad en que se **compra** y el precio en la
+   unidad en que se **vende**, así que el margen que muestran es ficticio:
+
+   - Queso Cheddar Loreley 75 Gr — precio $1.000, costo $8.200
+   - Marraqueta unidad y Hallulla unidad — precio $300, costo $1.690 (es el
+     costo del **kilo** de pan, no de la unidad)
+   - Pila AAA 2 unidades — precio $1.000, costo $4.900
+   - Pomarola Sachet — precio $800, costo $1.860; el nombre del producto ya
+     dice "(pack 24 un.)", o sea que alguien notó la discrepancia y la anotó
+     en el nombre porque no hay campo donde ponerla
+
+   Los otros: tres leches Surlat a margen exactamente 0% (precio $1.500 =
+   costo $1.500), y el resto entre 2,8% y 11,7%. Esos sí son decisiones de
+   precio reales, no errores de unidad.
+
+   **Corolario de modelo, no de datos:** no existe forma de declarar que se
+   compra por caja/kilo y se vende por unidad. Mientras no la haya, el margen
+   de esos productos va a estar mal calculado y el motor de reposición va a
+   pedir cantidades mal. Anotarlo en el nombre es el síntoma.
 
 2. **Normalizar `order_items.product_id` y ponerle clave foránea.** Es el
    arreglo de fondo de la trampa de las tres llaves: que la base rechace lo que
