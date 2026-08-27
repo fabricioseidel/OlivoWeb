@@ -4,8 +4,13 @@
 > auditar nada. La sesión anterior se quedó sin el conector de Supabase y no
 > había forma de reactivarlo desde adentro; por eso el trabajo sigue en otra.
 
-**Si sos la sesión nueva: leé "Lo que hay que hacer ahora" primero. Es lo único
-pendiente.**
+> **Actualización, 2026-08-27 (misma fecha, sesión posterior): la tarea de
+> "Lo que hay que hacer ahora" quedó cerrada.** Las cinco migraciones ya
+> estaban aplicadas (la sesión hija había llegado más lejos de lo que su
+> propio estado indicaba). Se verificó todo y no hubo que aplicar nada nuevo.
+> El detalle está al final de esta sección. **La sección de abajo se deja tal
+> cual la escribió la sesión anterior, como registro** — la actualización es
+> la que manda.
 
 ---
 
@@ -87,6 +92,41 @@ SELECT tgname FROM pg_trigger
 ```
 
 Y `get_advisors` con `security` y con `performance`.
+
+### Resultado de la verificación (sesión posterior, mismo 2026-08-27)
+
+`list_migrations` mostró que **las cinco ya estaban aplicadas**, más tres
+migraciones de seguridad que la sesión hija alcanzó a aplicar directo contra
+el remoto pero no llegó a commitear como archivo:
+
+- `20260827013350_rls_supplier_cost_history_and_category_margins` — activaba
+  RLS en las dos tablas de la Fase 1 que habían quedado sin política.
+- `20260827013454_revoke_public_execute_on_pricing_functions` — corregía el
+  mismo error de la doctrina #7 (revocar de `anon`/`authenticated` sin
+  revocar de `PUBLIC` no quita el permiso heredado) en dos funciones nuevas.
+- `20260827013538_fix_search_path_on_reorder_functions` — fijaba
+  `search_path` en tres funciones del motor de reposición.
+
+Esos tres archivos se reconstruyeron a partir del contenido real aplicado
+(vía `supabase_migrations.schema_migrations`) y se agregaron al repo en esta
+sesión para que quede sincronizado con lo que ya corre en producción.
+
+Verificaciones, todas en verde:
+
+- (a) `divergentes_despues` → **0**.
+- (b) el trigger `product_suppliers_sync_purchase_price` → **existe**.
+- `get_advisors security` → sin hallazgos nuevos atribuibles a estas
+  migraciones. Lo que aparece es deuda previa ya conocida (funciones viejas
+  sin `search_path`, Postgres con parches pendientes, `password_reset_tokens`
+  con RLS sin política) — nada de `product_suppliers`, `supplier_orders`,
+  `supplier_cost_history` ni `category_margins` salvo lo ya corregido por las
+  tres migraciones de arriba.
+- `get_advisors performance` → sólo `INFO` de índices sin uso todavía en
+  tablas nuevas (`supplier_orders`, `supplier_cost_history`), esperable sin
+  tráfico real aún. Nada bloqueante.
+
+**No quedó nada pendiente de esta tarea.** El siguiente trabajo es el punto 1
+de "Lo que queda por hacer" más abajo.
 
 ### Después de eso
 
