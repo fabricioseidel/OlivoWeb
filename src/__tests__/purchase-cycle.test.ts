@@ -224,12 +224,26 @@ describe('recibir', () => {
     expect(r.ok && r.variaciones[0].relevante).toBe(false);
   });
 
-  it('sin cambio de costo no toca al proveedor', async () => {
+  it('la factura que confirma el mismo costo también se anota', async () => {
+    // Antes esta escritura vivía dentro del `if` de la variación, así que un
+    // costo recién verificado contra una factura seguía figurando como
+    // actualizado meses atrás. Confirmar es información: sin anotarla, la
+    // señal de "revisar precio" de la Fase 2 apunta a productos cuyo costo
+    // acaba de verificarse.
+    //
+    // Escribir el mismo valor no ensucia el historial: el trigger de la Fase 1
+    // sale temprano cuando `unit_cost` y `tax_rate` no cambian (comprobado
+    // contra Postgres: confirmar deja el historial en 0 filas, un cambio real
+    // lo deja en 1).
     const r = await registrarRecepcion(PEDIDO, [
       { itemId: 'item-1', cantidadRecibida: 24, costoFactura: 1500 },
     ]);
 
-    expect(escrituraDe('product_suppliers', 'unit_cost')).toBeUndefined();
+    const escritura = escrituraDe('product_suppliers', 'unit_cost')!;
+    expect(escritura.valores).toMatchObject({ unit_cost: 1500, cost_source: 'recepcion' });
+    expect(escritura.valores.cost_updated_at).toBeTruthy();
+
+    // Pero no hay variación que informar: el costo no cambió.
     expect(r.ok && r.variaciones).toHaveLength(0);
   });
 

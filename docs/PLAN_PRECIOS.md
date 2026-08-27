@@ -1,7 +1,8 @@
 # Plan de precios, costos y reposición
 
-> Estado: **Fases 1 a 4 completas**. Falta la Fase 5 (aprendizaje). Revisión hecha sobre
-> `main` en el commit `286d2ff`. Versión con tablas y ejemplos numéricos:
+> Estado: **Fases 1 a 5 completas.** Revisión hecha sobre `main` en el commit
+> `286d2ff`; las fases se mergearon en `#68`, `#70` y los arreglos posteriores
+> en `#71`. Versión con tablas y ejemplos numéricos:
 > https://claude.ai/code/artifact/41a48acf-3fd9-4cf8-8ab0-ddf545393ed9
 
 Este documento existe para que retomar el trabajo no exija volver a auditar el
@@ -40,14 +41,31 @@ Efecto al desplegar: los pedidos marcados `pagado` con el neto pasan a
 `parcial`. No es una regresión; es lo que realmente ocurrió apareciendo por
 primera vez.
 
-### 🔴 Dos precios de compra distintos para el mismo producto
+### ✅ Dos precios de compra distintos para el mismo producto — CORREGIDO
 
 - `products.purchase_price` — global, un solo valor
 - `product_suppliers.unit_cost` — por proveedor
 
-Nada los sincroniza. `pedidos-proveedor/nuevo/page.tsx:86` usa el global; el
-motor de reposición usa el del proveedor. Si un producto se compra a dos
-proveedores a precios distintos, el costo "global" no significa nada.
+Nada los sincronizaba, y no era un desfase fijo sino un trinquete: desde la
+Fase 3 la recepción reescribe `unit_cost` con lo que dice la factura y nunca
+toca el global, así que cuanto mejor se usaba el sistema, más se separaban.
+
+Manda `unit_cost`: es el que tiene historial, el que versiona el trigger de la
+Fase 1 y el que confirma la recepción. `purchase_price` pasó a ser una columna
+DERIVADA del proveedor preferido —el de menor `priority` con costo, el mismo
+criterio de `elegirPreferido()`—, mantenida por un trigger. "Costo global"
+además es un concepto que no cierra: con dos proveedores a precios distintos
+no existe un número global correcto.
+
+Se conserva el valor propio en los productos que no tienen ningún proveedor con
+costo: para varios del catálogo esa cifra cargada a mano es el único dato que
+existe, y derivarla a NULL sería borrarlo.
+
+Corolario que apareció al arreglarlo: la API de productos por proveedor ya
+prefería `unit_cost`, pero cuando el proveedor no lo tiene cargado sustituye
+por el global **en silencio**. Calculaba `cost_source` para distinguirlo y
+nadie lo leía. Ahora la pantalla de pedido manual marca esas líneas y avisa
+antes de mandar el pedido.
 
 ### ✅ No existe historial de precios — CORREGIDO (costo)
 
@@ -70,7 +88,17 @@ responde qué deja cada producto al precio que ya tiene puesto.
 - `supplier_order_items.product_id` → `bigint` → `products.id`
 
 Funciona porque el motor traduce, pero una consulta nueva que las una sin
-advertirlo falla o devuelve vacío sin avisar.
+advertirlo falla o devuelve vacío sin avisar. **Ya pasó dos veces**: el motor
+de aprendizaje (Fase 5) sumaba las ventas web bajo una clave que ningún
+producto tenía, y el webhook de pago pedía un embed
+`order_items → products(barcode)` que PostgREST no puede resolver porque no
+existe esa clave foránea — la devolución de stock se saltaba entera, en
+silencio. Los dos están corregidos; la fragilidad de fondo, no.
+
+Hay una tercera llave suelta: `order_items.product_id` es `text`, guarda
+`products.id` y **no tiene clave foránea a nada**. El arreglo de fondo es una
+migración que normalice la llave y agregue la restricción, para que la base
+rechace lo que hoy acepta sin avisar.
 
 ### ✅ Un CHECK impide registrar recepción parcial — CORREGIDO, y era peor
 
@@ -225,12 +253,13 @@ una es desplegable sola y deja el sistema utilizable.
 2. **Umbral de caducidad de la revisión.** Implementado en
    `UMBRAL_REVISION_COSTO = 0.05` (5%), tal como se propuso. Cambiarlo es una
    línea si al usarlo resulta ruidoso.
-3. **Confirmar que `unit_cost` es neto en toda la base.** Se confirmó en el
-   código —`unitCost: ps.priceWithoutVat`, y `proveedores/page.tsx` trata
-   `purchase_price` como neto— pero **no se pudo comprobar contra los datos
-   reales**, porque Supabase no es alcanzable desde acá. Si algún costo se
-   cargó con IVA incluido, ese producto queda 19% mal. Se detecta comparando
-   `unit_cost` de un producto contra la boleta del proveedor.
+3. **Confirmar que `unit_cost` es neto en toda la base.** ✅ Resuelto. Además
+   del código —`unitCost: ps.priceWithoutVat`— se comprobó contra los datos
+   reales por su huella estadística: de los 308 costos cargados, sólo el
+   **6,5%** son cifras redondas tal como están, contra un **89,0%** al
+   multiplicarlos por 1,19. Esa concentración es la firma de la propia fórmula
+   del sistema aplicada sobre precios de lista redondos, y no ocurriría si los
+   costos ya vinieran con IVA. Quedó cerrado sin necesidad de una factura.
 
 ---
 

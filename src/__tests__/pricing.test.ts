@@ -13,6 +13,7 @@ import {
   diagnosticarPrecio,
   formatearMargen,
   derivarCostoProveedor,
+  esCostoHeredado,
 } from '@/lib/pricing';
 
 /**
@@ -253,5 +254,29 @@ describe('derivarCostoProveedor', () => {
   it('un producto exento no lleva IVA en ninguno de los dos campos', () => {
     const r = derivarCostoProveedor('sinIva', '1000', { tasa: 0 })!;
     expect(r.conIva).toBe('1000.00');
+  });
+});
+
+describe('de dónde viene el costo que se muestra', () => {
+  it('marca el costo heredado de la ficha del producto', () => {
+    expect(esCostoHeredado({ cost_source: 'product', purchase_price: 1200 })).toBe(true);
+  });
+
+  it('no marca el costo propio del proveedor', () => {
+    expect(esCostoHeredado({ cost_source: 'supplier', purchase_price: 1450 })).toBe(false);
+  });
+
+  it('no marca nada cuando el origen no viene informado', () => {
+    // Sin saberlo no se puede afirmar que esté heredado, y marcar de más
+    // enseña a ignorar la marca.
+    expect(esCostoHeredado({ purchase_price: 1200 })).toBe(false);
+    expect(esCostoHeredado({ cost_source: null, purchase_price: 1200 })).toBe(false);
+  });
+
+  it('no marca un costo heredado que además es cero', () => {
+    // Ya se muestra como "—": avisar de un número que no se está mostrando
+    // sólo agrega ruido.
+    expect(esCostoHeredado({ cost_source: 'product', purchase_price: 0 })).toBe(false);
+    expect(esCostoHeredado({ cost_source: 'product', purchase_price: null })).toBe(false);
   });
 });

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeftIcon, PaperAirplaneIcon, CheckIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useToast } from "@/contexts/ToastContext";
+import { esCostoHeredado } from "@/lib/pricing";
 
 interface Supplier {
   id: string;
@@ -20,7 +21,16 @@ interface Product {
   name: string;
   barcode: string;
   stock: number;
+  /**
+   * Costo unitario NETO. Lo resuelve /api/admin/suppliers/[id]/products: es el
+   * de ESTE proveedor cuando lo tiene cargado, y si no, el de `products`
+   * —heredado, de otro proveedor o de nadie—. `cost_source` dice cuál de los
+   * dos es, y hay que mirarlo: cotizar con el de otro proveedor como si fuera
+   * el de éste es cómo se arma un pedido con precios que la factura no va a
+   * respetar.
+   */
   purchase_price: number;
+  cost_source?: 'supplier' | 'product';
   min_stock?: number | null;
   optimum_stock?: number | null;
   reorder_threshold?: number | null;
@@ -135,6 +145,18 @@ export default function NuevoPedidoProveedorPage() {
       setSelectedItems(next);
     }
   };
+
+  // Líneas del pedido cotizadas con un costo que NO es de este proveedor.
+  // Se cuentan sobre lo seleccionado, no sobre el catálogo: lo que importa es
+  // con qué se va a mandar el pedido.
+  const conCostoHeredado = useMemo(
+    () =>
+      Array.from(selectedItems.keys()).filter((id) => {
+        const p = products.find((x) => x.id === id);
+        return p ? esCostoHeredado(p) : false;
+      }).length,
+    [selectedItems, products]
+  );
 
   const total = useMemo(
     () => Array.from(selectedItems.values()).reduce((s, i) => s + i.subtotal, 0),
@@ -336,8 +358,18 @@ export default function NuevoPedidoProveedorPage() {
                     }`}>
                       Stock: {product.stock}
                     </div>
-                    <div className="text-[10px] text-gray-400">
+                    <div
+                      className={`text-[10px] ${
+                        esCostoHeredado(product) ? "text-amber-600 font-semibold" : "text-gray-400"
+                      }`}
+                      title={
+                        esCostoHeredado(product)
+                          ? "Este proveedor no tiene costo cargado. El precio que se muestra viene de la ficha del producto, así que puede no ser lo que factura."
+                          : undefined
+                      }
+                    >
                       ${product.purchase_price > 0 ? product.purchase_price.toFixed(0) : "—"}/u
+                      {esCostoHeredado(product) && " ⚠"}
                     </div>
                   </div>
                 </div>
@@ -383,6 +415,19 @@ export default function NuevoPedidoProveedorPage() {
       {selectedItems.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] p-4 z-20 pb-4">
           <div className="max-w-2xl mx-auto flex flex-col gap-3">
+            {conCostoHeredado > 0 && (
+              <div className="flex items-start gap-2 text-[11px] font-semibold text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                <span aria-hidden>⚠</span>
+                <span>
+                  {conCostoHeredado === 1
+                    ? "1 producto se está cotizando con un costo que no es de este proveedor"
+                    : `${conCostoHeredado} productos se están cotizando con un costo que no es de este proveedor`}
+                  . Sale de la ficha del producto porque este proveedor no tiene
+                  costo cargado, así que la factura puede no coincidir.
+                </span>
+              </div>
+            )}
+
             {/* Opciones de Envío Extra */}
             {supplier?.email && (
               <label className="flex items-center gap-2 text-[11px] font-bold text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100 cursor-pointer hover:bg-gray-100 transition">
