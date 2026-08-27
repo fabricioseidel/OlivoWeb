@@ -341,8 +341,45 @@ Lata Original). Esos son menos urgentes: la inactiva no se vende. **Powerade
 Naranja 850 Ml tiene tres fichas** (`7802820651003`, `7802820678062`,
 `7802820678161`), dos inactivas.
 
-No se unificó ninguno: fusionar fichas mueve stock e historial de ventas, y
-decidir cuál sobrevive es del dueño. La lista está acá para trabajarla.
+**Los cuatro se unificaron el 27/08/2026.** Antes de tocar nada se verificó
+que ninguna de las ocho fichas tuviera ventas POS, pedidos web, lotes ni
+ítems de pedido a proveedor — estaban todas en cero, así que no había
+historial de ventas en juego.
+
+*Cuál sobrevive:* la ficha **cuyo código se escaneó en el inventario del
+23/08**, que es el impreso en el envase. En tres de los cuatro casos ese
+código es un GS1 Chile válido (`780161…`, `780162…`) y el descartado es
+inventado o de rango interno (`2848…` es un prefijo de uso in-store). Si
+sobreviviera el código a mano, el próximo inventario volvería a crear el
+duplicado — que es exactamente cómo se generaron.
+
+| Sobrevive | Se descartó | Precio | Stock Principal |
+|---|---|---:|---:|
+| `7801610000335` Coca-Cola Zero 250 ml | `640002090335` | $500 | 5 (2+3) |
+| `7801620011840` Gatorade frutos tropicales | `7700740011740` | $1.100 | 3 (1+2) |
+| `798190235813` Papelón con Limón 500 ml | `736372665485` | $1.500 | 14 (2+12) |
+| `7801620009342` Pepsi Zero 600 ml | `2848620009342` | $1.200 | 25 (2+23) |
+
+Se migró al sobreviviente todo lo que estaba en la ficha descartada: precio,
+`branch_stock` sumado por sucursal, proveedor, historial de costo y la
+publicación de Uber Eats. En Pepsi ambas fichas tenían proveedor con el mismo
+costo ($689,08) y ambas tenían publicación en Uber Eats: se borró la del
+descartado para no dejar el producto publicado dos veces. El nombre
+"**Pepelon**" quedó corregido a "Papelón".
+
+Las fichas descartadas **no se borraron**: quedaron inactivas, con stock 0 y
+renombradas con el sufijo `[duplicado, unificado 27/08/2026]`, conservando sus
+movimientos de inventario como historial. Borrarlas habría arrastrado ese
+rastro por el `ON DELETE CASCADE`.
+
+*Por qué `products.stock` es el de Principal y no la suma.* El checkout
+resuelve la sucursal `is_default` —que es Principal— y descuenta de ahí. Poner
+la suma con Sucursal 2 haría que la web ofrezca unidades que no están en la
+tienda que despacha. Pepsi, por ejemplo, tiene 45 entre las dos sucursales
+pero 25 disponibles de verdad.
+
+Quedan los ~16 pares con una ficha ya inactiva y el trío de Powerade, sin
+unificar: son menos urgentes porque la inactiva no se vende.
 
 #### El stock descuadra entre `products` y `branch_stock`
 
