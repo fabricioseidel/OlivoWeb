@@ -336,9 +336,27 @@ El `<select>` de orden en el catálogo tenía `title` pero no `aria-label`:
 `title` sale como tooltip en escritorio, varios lectores lo ignoran y en móvil
 no se ve nunca. Se le agregó `aria-label` sin quitar el `title`.
 
+### Encabezados y títulos de pestaña (2026-08-27)
+
+Segunda pasada del barrido, ahora sobre estructura del documento:
+
+- **`/login` y `/registro` no tenían `<h1>`.** Usaban `<h2 className="o-h1">`:
+  el estilo del encabezado principal con el tag equivocado. Para quien navega
+  con lector de pantalla, la página no tenía encabezado principal al que
+  saltar.
+- **`/contacto` saltaba de `h1` a `h3`.** Email, Teléfono y Dirección son
+  secciones hermanas de "Envíanos un mensaje" (que es `h2`), no subsecciones
+  suyas. El estilo va en las clases, así que corregir el tag no cambió nada
+  de lo que se ve.
+- **`/login`, `/registro` y `/carrito` compartían el título "Olivo Market".**
+  Son `noindex` a propósito —zona privada, no aportan en buscadores— pero el
+  título es lo que se lee en la pestaña: con varias abiertas no se distinguían.
+  Ahora dicen "Entrar", "Crear cuenta" y "Tu carrito".
+
 **Estado tras el barrido:** 13 páginas × 3 anchos sin desbordamiento, sin
 imágenes sin `alt`, sin campos sin etiqueta, sin botones mudos y sin errores
-de JavaScript.
+de JavaScript; y en las 10 páginas públicas, un `<h1>` por página, sin saltos
+de jerarquía, con `lang="es-CL"` y descripción propia.
 
 *Nota para quien repita la medición:* estas páginas piden datos a Supabase, y
 en el contenedor de desarrollo el proxy no llega a Supabase. Con esperas

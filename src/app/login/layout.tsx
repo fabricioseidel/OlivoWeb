@@ -7,6 +7,10 @@ import type { Metadata } from "next";
  * directiva la deja fuera del índice de forma explícita.
  */
 export const metadata: Metadata = {
+  // `noindex` deja la página fuera de Google, pero el título sigue siendo lo
+  // que se lee en la pestaña. Sin uno propio, las tres zonas privadas se
+  // llamaban igual ("Olivo Market") y no se distinguían entre sí.
+  title: 'Entrar',
   robots: { index: false, follow: false },
 };
 
