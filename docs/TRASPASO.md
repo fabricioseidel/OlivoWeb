@@ -203,6 +203,70 @@ distinguirlo y no lo leía nadie. Ahora se marca en la pantalla de pedido manual
 
 ---
 
+### Carga de costos desde facturas (2026-08-27)
+
+El dueño pasó cinco documentos: dos facturas de Dulce Pan (N° 31056 del 25/08
+y N° 30845 del 20/08), una de Tequeñitos Chile SPA (N° 135), una de Nestlé
+(N° 40440063) y una nota simple sin RUT ni IVA.
+
+**Lo que se cargó** — sólo lo respaldado por factura tributaria con match
+inequívoco de SKU o nombre:
+
+| Producto | Costo neto | Origen |
+|---|---:|---|
+| Pan de Mantequilla Dulcepan (`745853642327`) | $1.344,54 | N° 30845, ítem "Mantequilla" (SKU PM-842327) |
+| Pan Salado 7 u dulce pan (`799192124778`) | $1.218,49 | N° 30845, ítem "Salado bol" (SKU PS-124778) |
+| Pan Clineja DulcePan (`799192124792`) | $1.680,67 | N° 31056 y N° 30845, ítem "Pan Clineja" |
+
+El trigger de #72 sincronizó `purchase_price` solo, y los brutos salen
+redondos ($1.600, $1.450, $2.000): confirma que los netos son correctos.
+
+**El SKU de Dulce Pan mapea al barcode.** `CJ-642365` → `745853642365`,
+`PS-124778` → `799192124778`: el SKU lleva los últimos 6 dígitos del código de
+barras. Sirve para casar el resto de sus facturas sin adivinar. Los SKU
+quedaron guardados en `product_suppliers.supplier_sku`, que estaba vacío en
+las 310 filas.
+
+**Proveedor nuevo: "El Oasis"** (`8ee293cc-eb60-489e-a361-245cde5ed768`). No
+existía. Se le ligaron los dos productos que lo llevan en el nombre —
+`Pan Andino el oasis` y `Pan francés 6 unidades el oasis`— **sin costo**,
+porque la nota que entregó no lista ninguno de los dos.
+
+**Lo que NO se cargó, y por qué.** Adivinar un costo es peor que dejarlo
+vacío: queda indistinguible de un dato real.
+
+- *Dulce Pan* factura "Queso" (Q-941475, $2.184,87) y "Torta de Pan"
+  (`752590810566644`, $1.344,54). **Ninguno de los dos existe en el
+  catálogo.** Hay que crearlos antes de poder ligarlos.
+- *Nestlé* factura cuatro helados por caja. Sólo uno casa sin ambigüedad
+  (MEGA Almendras, ya cargado a $1.582). Los otros tres —SAVORY Sandía
+  ($463/un), DNKY Pistacho Chocolate ($1.450/un), MEGA Chocolate Naranja
+  ($1.582/un)— no tienen equivalente claro: el catálogo tiene "Danky 21",
+  "Danky Stranger Things" y "Mega Choco Avellana", que son otros sabores.
+- *La nota de El Oasis* (Quesadillas $2.000, Negras $1.500, Queso 3 $2.100,
+  Azucarados $1.900) no casa con ningún producto del catálogo. "Negras"
+  podría ser `Catalina (galleta negra)`, pero ya está ligada a Pan La Alianza
+  a $1.260,50, y la nota dice $1.500. Requiere que el dueño diga qué es cada
+  ítem.
+
+**Ojo con el IVA de El Oasis.** La nota no es documento tributario: sin
+factura no hay crédito fiscal, así que sus costos van con `tax_rate = 0` y
+`unit_cost` igual a lo que se paga. Cargarlos con 19% inflaría el costo un
+19% contra un crédito que no existe. Queda anotado en las notas del proveedor.
+
+**Duplicados detectados de paso.** `Pan de Mantequilla Dulce Pan`
+(`667186941520`, inactivo, con costo) y `Pan de Mantequilla Dulcepan`
+(`745853642327`, activo, sin costo hasta ahora) son el mismo pan cargado dos
+veces. Conviene revisar si hay más pares así antes de depurar el catálogo.
+
+**`suppliers` no tiene columna RUT.** Las cuatro facturas lo traen y no hay
+dónde guardarlo, así que no se puede casar una factura con su proveedor de
+forma automática. Se nota en que el proveedor está como "Jean Tequeños" y la
+factura dice "Tequeñitos Chile SPA": el costo idéntico ($3.530) dice que son
+el mismo, pero el sistema no lo puede confirmar.
+
+---
+
 ### El checkout cobraba $0 por 64 productos (arreglado el 2026-08-27)
 
 Apareció midiendo el catálogo para el punto 1, no buscándolo. **64 productos
@@ -330,6 +394,9 @@ Ordenado por lo que cuesta plata.
    | Con costo y precio sano, sólo sin revisar | **247** | Mirar y confirmar. Es un clic por producto. |
    | Con costo pero el precio hay que decidirlo | 17 | Ver abajo. |
 
+   **Avance del 2026-08-27 con cinco facturas del dueño:** sin costo bajó de
+   461 a **458**. Ver "Carga de costos desde facturas" más abajo.
+
    O sea: el cuello de botella no es revisar precios, es que **el 63% del
    catálogo no tiene proveedor cargado**. Y de lo que sí tiene costo, el margen
    promedio es **27,5%** — 162 productos con margen sano (≥35%), 85 medio.
@@ -354,10 +421,24 @@ Ordenado por lo que cuesta plata.
    costo $1.500), y el resto entre 2,8% y 11,7%. Esos sí son decisiones de
    precio reales, no errores de unidad.
 
-   **Corolario de modelo, no de datos:** no existe forma de declarar que se
-   compra por caja/kilo y se vende por unidad. Mientras no la haya, el margen
-   de esos productos va a estar mal calculado y el motor de reposición va a
-   pedir cantidades mal. Anotarlo en el nombre es el síntoma.
+   **Corolario — corregido el 2026-08-27 al revisar facturas reales.** La
+   primera versión de esta nota decía que no había forma de declarar que se
+   compra por caja y se vende por unidad. **Es falso:**
+   `product_suppliers.pack_size` existe, tiene UI en el panel (Proveedores →
+   Asignar) y lo usa el motor de reposición; 43 de 310 filas lo tienen cargado.
+
+   El problema real es más simple y más fácil de arreglar: en esos cinco
+   productos alguien cargó **el costo del pack como `unit_cost`**, cuando
+   `unit_cost` tiene que ser el costo de **una unidad de venta**. Que se hace
+   bien en otros lados lo prueba la factura de Nestlé del 24/08: viene a
+   $25.312 la caja de 16 y en la base está cargado $1.582 — la división
+   exacta. Alguien la hace a mano en cada recepción.
+
+   Lo que sí falta es una **red de contención**: nada avisa cuando un
+   `unit_cost` deja un margen absurdo. Un producto que se vende a $300 con
+   costo $1.420 debería saltar solo, y hoy hay que ir a buscarlo. La pantalla
+   de Precios ya calcula `bajo-costo`; lo que falta es que eso llegue a la
+   cara del que carga el costo, no sólo a un informe que nadie abre.
 
 2. **Normalizar `order_items.product_id` y ponerle clave foránea.** Es el
    arreglo de fondo de la trampa de las tres llaves: que la base rechace lo que
