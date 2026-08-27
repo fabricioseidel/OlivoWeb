@@ -265,7 +265,7 @@ export default function EditProductPage() {
       ));
 
       // 2. Guardar/Actualizar los actuales
-      await Promise.all(productSuppliers.map(ps =>
+      const respuestas = await Promise.all(productSuppliers.map(ps =>
         fetch("/api/admin/product-suppliers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -276,10 +276,26 @@ export default function EditProductPage() {
             unitCost: ps.priceWithoutVat,
             notes: "Actualizado desde edición de producto"
           }),
-        })
+        }).then(r => r.json()).catch(() => null)
       ));
 
       showToast('Producto actualizado', 'success');
+
+      // Si algún costo deja el producto vendiéndose a pérdida, se dice acá y
+      // no en un informe que hay que acordarse de abrir. El guardado ya
+      // terminó: esto informa, no bloquea. Se muestra el peor de los avisos
+      // —perder plata pesa más que ganar poco— y con más tiempo en pantalla,
+      // porque es una cifra que hay que leer.
+      const avisos = respuestas.map(r => r?.aviso).filter(Boolean);
+      const peor =
+        avisos.find((a: any) => a.nivel === 'bajo-costo') ?? avisos[0];
+      if (peor) {
+        showToast(
+          `${peor.nivel === 'bajo-costo' ? '⚠️ Se vende bajo el costo. ' : ''}${peor.mensaje}`,
+          peor.nivel === 'bajo-costo' ? 'error' : 'warning',
+          12000
+        );
+      }
       router.push('/admin/productos');
     } catch (e) {
       console.error(e);

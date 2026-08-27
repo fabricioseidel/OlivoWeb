@@ -14,6 +14,7 @@ import {
   formatearMargen,
   derivarCostoProveedor,
   esCostoHeredado,
+  avisoPorCosto,
 } from '@/lib/pricing';
 
 /**
@@ -278,5 +279,82 @@ describe('de dónde viene el costo que se muestra', () => {
     // sólo agrega ruido.
     expect(esCostoHeredado({ cost_source: 'product', purchase_price: 0 })).toBe(false);
     expect(esCostoHeredado({ cost_source: 'product', purchase_price: null })).toBe(false);
+  });
+});
+
+describe('aviso al cargar un costo', () => {
+  /**
+   * Los seis productos que se vendían a pérdida en agosto de 2026 llevaban
+   * meses así y no los encontró nadie desde el panel: aparecieron midiendo el
+   * catálogo para otra cosa. Este aviso existe para que el hallazgo ocurra en
+   * el momento en que se carga el costo, que es cuando alguien puede hacer
+   * algo al respecto.
+   */
+  it('avisa cuando el costo deja el producto vendiéndose a pérdida', () => {
+    // El caso real: marraqueta a $300 la unidad con el costo del kilo, $1.420.
+    const aviso = avisoPorCosto({ precioVenta: 300, costoNeto: 1420.17 });
+
+    expect(aviso).not.toBeNull();
+    expect(aviso!.nivel).toBe('bajo-costo');
+    expect(aviso!.mensaje).toContain('$300');
+    expect(aviso!.mensaje).toContain('$1.690'); // el costo con IVA
+    expect(aviso!.mensaje).toMatch(/pierde/i);
+  });
+
+  it('dice cuánto se pierde por unidad, que es el número accionable', () => {
+    const aviso = avisoPorCosto({ precioVenta: 1000, costoNeto: 1000 });
+    // 1.000 de venta contra 1.190 de costo con IVA: se pierden 190.
+    expect(aviso!.mensaje).toContain('$190');
+  });
+
+  it('avisa por margen flaco aunque no se pierda plata', () => {
+    // Deja algo, pero por debajo del 35% de la regla general.
+    const aviso = avisoPorCosto({ precioVenta: 1000, costoNeto: 700 });
+
+    expect(aviso!.nivel).toBe('bajo-margen');
+    expect(aviso!.mensaje).toMatch(/por debajo/i);
+  });
+
+  it('se calla cuando el margen es sano', () => {
+    expect(avisoPorCosto({ precioVenta: 2500, costoNeto: 1000 })).toBeNull();
+  });
+
+  it('respeta el margen objetivo que se le pase', () => {
+    // Con un objetivo del 10%, el mismo caso deja de ser un problema.
+    expect(avisoPorCosto({ precioVenta: 1000, costoNeto: 700, margen: 0.1 })).toBeNull();
+    expect(avisoPorCosto({ precioVenta: 1000, costoNeto: 700, margen: 0.5 })).not.toBeNull();
+  });
+
+  it('no inventa un problema cuando el producto todavía no tiene precio', () => {
+    // Precio 0 es "falta definirlo", no "se vende regalado": hay 68 productos
+    // así en el catálogo y avisar por todos sería ruido puro.
+    expect(avisoPorCosto({ precioVenta: 0, costoNeto: 1000 })).toBeNull();
+    expect(avisoPorCosto({ precioVenta: -5, costoNeto: 1000 })).toBeNull();
+  });
+
+  it('no dice nada si no hay costo que juzgar', () => {
+    expect(avisoPorCosto({ precioVenta: 1000, costoNeto: 0 })).toBeNull();
+    expect(avisoPorCosto({ precioVenta: 1000, costoNeto: NaN })).toBeNull();
+  });
+
+  it('usa la misma cuenta que la pantalla de precios', () => {
+    // Si divergieran, el panel diría una cosa y el aviso otra sobre el mismo
+    // producto. Las dos salen de `diagnosticarPrecio`.
+    const entrada = { precioVenta: 1000, costoNeto: 1420.17 };
+    const d = diagnosticarPrecio(entrada);
+    const aviso = avisoPorCosto(entrada)!;
+
+    expect(aviso.costoBruto).toBe(d.costoBruto);
+    expect(aviso.margenActual).toBe(d.margenActual);
+    expect(aviso.sugerido).toBe(d.sugerido);
+  });
+
+  it('respeta una tasa de IVA distinta', () => {
+    // El Oasis entrega con nota simple: tax_rate 0, sin crédito fiscal.
+    const conIva = avisoPorCosto({ precioVenta: 1100, costoNeto: 1000, tasa: 19 });
+    const sinIva = avisoPorCosto({ precioVenta: 1100, costoNeto: 1000, tasa: 0 });
+
+    expect(conIva!.nivel).toBe('bajo-costo'); // 1.190 > 1.100
+    expect(sinIva!.nivel).toBe('bajo-margen'); // 1.000 < 1.100, pero deja poco
   });
 });

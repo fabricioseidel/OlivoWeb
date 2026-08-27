@@ -60,6 +60,10 @@ export async function PATCH(
     const payload: Record<string, any> = {};
 
     if (body?.name !== undefined) payload.name = String(body.name).trim();
+    // Vacío se guarda como NULL: el índice único de `rut` es parcial y dos
+    // proveedores informales con cadena vacía chocarían entre sí.
+    if (body?.rut !== undefined)
+      payload.rut = body.rut && String(body.rut).trim() ? String(body.rut).trim() : null;
     if (body?.contactName !== undefined)
       payload.contact_name = body.contactName
         ? String(body.contactName).trim()

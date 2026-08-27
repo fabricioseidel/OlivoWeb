@@ -34,6 +34,18 @@ export default function SupplierForm({
               onChange={(e) => onFormChange("name", e.target.value)}
             />
           </Field>
+          <Field label="RUT">
+            <input
+              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
+              placeholder="77.198.288-3"
+              value={form.rut ?? ""}
+              onChange={(e) => onFormChange("rut", e.target.value)}
+            />
+            <p className="mt-1 text-[11px] text-gray-500">
+              El de su factura. Sirve para reconocerlo cuando el nombre de
+              fantasía no coincide con la razón social.
+            </p>
+          </Field>
           <Field label="Contacto">
             <input
               className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"

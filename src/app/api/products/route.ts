@@ -164,7 +164,20 @@ export async function DELETE(req: Request) {
     }
 
     const { error } = await supabaseServer.from('products').delete().eq('barcode', id);
-    
+
+    // `order_items` tiene una clave foránea con ON DELETE RESTRICT: un producto
+    // que alguien compró no se puede borrar, porque la línea del pedido es el
+    // registro de esa venta. El error de Postgres es ilegible para quien está
+    // en el panel, así que se traduce a lo que hay que hacer.
+    if (error?.code === '23503') {
+      return errorResponse(
+        new Error(
+          'Este producto tiene pedidos registrados y no se puede borrar sin perder ese historial. Desactivalo para sacarlo de la venta.'
+        ),
+        409
+      );
+    }
+
     if (error) throw error;
 
     return successResponse({ success: true });

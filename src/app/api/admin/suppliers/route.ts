@@ -66,6 +66,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const payload = {
       name: String(body?.name ?? "").trim(),
+      // Vacío se guarda como NULL y no como cadena vacía: el índice único es
+      // parcial y dos proveedores informales con "" chocarían entre sí.
+      rut: body?.rut && String(body.rut).trim() ? String(body.rut).trim() : null,
       contact_name: body?.contactName ? String(body.contactName).trim() : null,
       phone: body?.phone ? String(body.phone).trim() : null,
       whatsapp: body?.whatsapp ? String(body.whatsapp).trim() : null,

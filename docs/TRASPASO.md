@@ -295,6 +295,51 @@ el mismo, pero el sistema no lo puede confirmar.
 
 ---
 
+### Cierre de los pendientes menores (2026-08-27, misma sesión)
+
+**El aviso al cargar un costo.** La pantalla de Precios sabía listar lo que se
+vende bajo costo, pero es un informe: hay que acordarse de abrirlo. Los seis
+productos que se vendían a pérdida llevaban meses así y aparecieron midiendo
+el catálogo para otra cosa, no desde el panel. Ahora `avisoPorCosto()`
+(`src/lib/pricing.ts`) comprueba, en el momento de guardar un costo de
+proveedor, si el producto queda bajo costo o bajo su margen, y el aviso llega
+como toast en el editor de producto — con la cifra de cuánto se pierde por
+unidad, que es el número accionable.
+
+**No bloquea.** Vender bajo costo puede ser deliberado (una liquidación, un
+producto gancho) y quien carga la factura no siempre es quien fija el precio.
+Avisar y dejar pasar es lo correcto; impedirlo obligaría a inventar un rodeo.
+Tampoco avisa cuando el precio de venta es 0: eso es "falta definirlo", no "se
+vende regalado", y con 68 productos así sería puro ruido. Sale de
+`diagnosticarPrecio`, la misma cuenta que la pantalla de Precios, para que las
+dos no puedan discrepar. 10 tests.
+
+**`suppliers.rut`** (`20260828000200_suppliers_rut.sql`). No había dónde
+guardar el RUT, que es lo que identifica sin ambigüedad a quien emite una
+factura — por eso el proveedor está como "Jean Tequeños" y su factura dice
+"TEQUEÑITOS CHILE SPA" sin que el sistema pueda confirmar que son el mismo.
+Se cargaron los tres RUT de las facturas procesadas. El índice único es
+**parcial**: dos proveedores informales sin RUT conviven, pero no puede haber
+dos con el mismo. Sin validación de formato a propósito: un CHECK estricto
+rechazaría un RUT extranjero o una factura mal impresa justo cuando hay que
+registrarla. El campo está en la pantalla de proveedores.
+
+**Los duplicados que quedaban.** Al revisarlos resultaron ser tres grupos
+distintos:
+
+- **Dos pares con las dos fichas activas y stock repartido**, que sí había que
+  unificar: *Agua Benedictino 1.5 sin gas* (`7802820441512` ← `900000000032`,
+  queda con 12) y *Agua Cachantún con gas 1.5* (`7801620852955` ←
+  `7801620615895`, queda con 4). Mismo criterio que antes: sobrevive el código
+  escaneable, y en Cachantún además el que se escaneó el 23/08.
+- **Ocho fichas ya resueltas de facto** — inactivas y con stock 0, así que no
+  había nada que mover. Se marcaron con el sufijo `[duplicado, unificado…]`
+  para que nadie las reactive creyendo que son productos distintos.
+- **Un falso positivo**: *Coca-Cola Zero 2 Lt* y *2.5 Lt* se parecen de nombre
+  pero son formatos distintos. No se tocaron.
+
+---
+
 ### Auditoría de duplicados y datos alterados (2026-08-27)
 
 Pedida por el dueño después de encontrar el par de "Pan de Mantequilla". Se
@@ -671,10 +716,24 @@ Ordenado por lo que cuesta plata.
    de Precios ya calcula `bajo-costo`; lo que falta es que eso llegue a la
    cara del que carga el costo, no sólo a un informe que nadie abre.
 
-2. **Normalizar `order_items.product_id` y ponerle clave foránea.** Es el
-   arreglo de fondo de la trampa de las tres llaves: que la base rechace lo que
-   hoy acepta en silencio. Requiere migración de datos (la columna es `text` y
-   guarda un `bigint`).
+2. ~~**Normalizar `order_items.product_id` y ponerle clave foránea.**~~
+   **Hecho el 2026-08-27** (`20260828000100_order_items_fk_a_products.sql`).
+   La columna pasó de `text` a `bigint` con FK a `products(id)` y
+   `ON DELETE RESTRICT`. Las 19 líneas existentes casaban todas, así que la
+   conversión no perdió nada — y salió barato justamente porque se hizo con
+   pocos datos.
+
+   `RESTRICT` y no `CASCADE`: una línea de pedido es el registro de que
+   alguien compró algo. Que borrar un producto se lleve puesta esa venta es
+   peor que no poder borrarlo; para sacarlo de circulación está `is_active`.
+   La ruta `DELETE /api/products` traduce el error de Postgres a una frase
+   que dice qué hacer en vez del código `23503`.
+
+   La migración lleva un guard que la aborta si alguna fila no apunta a un
+   `products.id` válido, con el conteo en el mensaje. Probado contra un
+   Postgres 16 real: rechaza un producto inexistente, rechaza un barcode
+   puesto donde va un id, frena el borrado de un producto con ventas y deja
+   borrar uno sin ellas.
 
 3. **Menor:** `products.purchase_price` ya no debería editarse a mano en ningún
    lado. El editor de producto no la toca (usa la sección "Proveedores y

@@ -118,6 +118,7 @@ export default function SuppliersAdminPage() {
         setForm({
           id: supplier.id,
           name: supplier.name,
+          rut: supplier.rut ?? "",
           contact_name: supplier.contact_name ?? "",
           phone: supplier.phone ?? "",
           whatsapp: supplier.whatsapp ?? "",
@@ -147,6 +148,7 @@ export default function SuppliersAdminPage() {
       setSaving(true);
       const payload = {
         name: form.name,
+        rut: form.rut,
         contactName: form.contact_name,
         phone: form.phone,
         whatsapp: form.whatsapp,
