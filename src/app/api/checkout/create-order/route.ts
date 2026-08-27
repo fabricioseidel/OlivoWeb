@@ -19,7 +19,11 @@ import { toZonedTime } from 'date-fns-tz';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { assertOrdersEnabled } from '@/server/store-status.service';
 import { PREVIEW_HTTP_STATUS } from '@/lib/store-status';
-import { bloqueadosParaVenta, mensajeBloqueo } from "@/server/sellable.service";
+import {
+  bloqueadosParaVenta,
+  mensajeBloqueo,
+  sinPrecioCobrable,
+} from "@/server/sellable.service";
 
 const TIMEZONE = "America/Santiago";
 
@@ -221,6 +225,21 @@ export async function POST(request: NextRequest) {
     if (bloqueados.length > 0) {
       return NextResponse.json(
         { error: mensajeBloqueo(bloqueados), blocked: bloqueados.map((b) => b.barcode) },
+        { status: 409 }
+      );
+    }
+
+    // Un producto activo pero con precio 0 se cobraría a $0: abajo el subtotal
+    // sale de multiplicar `sale_price * cantidad`. La vitrina ya los esconde,
+    // pero esta ruta recibe códigos de barra, no lo que se vio en pantalla.
+    const sinPrecio = sinPrecioCobrable(dbProducts as any[]);
+    if (sinPrecio.length > 0) {
+      console.error(
+        "[checkout] pedido con productos sin precio:",
+        sinPrecio.map((p) => p.barcode).join(", ")
+      );
+      return NextResponse.json(
+        { error: mensajeBloqueo(sinPrecio), blocked: sinPrecio.map((p) => p.barcode) },
         { status: 409 }
       );
     }
