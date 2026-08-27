@@ -401,10 +401,57 @@ existencias que no están en ninguna góndola. La tienda web lee
 `products.stock` (vía `fetchAllProducts`), así que hoy muestra el número
 menos malo de los dos, pero por accidente, no por diseño.
 
-**No se tocó nada.** Antes de resincronizar hay que decidir qué pasa con
-Sucursal 2 — si se desactiva, si se vacía su stock, o si va a operar de
-verdad. Resincronizar sin resolver eso escribe cifras falsas en el
-inventario.
+**Arreglado el 27/08/2026.** La causa estaba escrita en la propia migración
+`20260729000000_resync_branch_stock_from_products.sql`:
+
+> *"Confirmado por Fabri (30-jul-2026): products.stock es hoy el número
+> correcto, y por el momento ambas sucursales manejan un solo stock combinado,
+> sin distinción real entre ellas. Por eso esta reconciliación se aplica a
+> todas las sucursales activas, no solo a la default."*
+
+Es decir: ese resync copió `products.stock` a **las dos** sucursales. Sucursal
+2 —un seed de la migración inicial de `branches`, sin dirección, sin teléfono,
+sin vendedores asignados y sin una sola venta desde el 16/05— quedó con una
+**copia** del inventario de Principal, no con existencias propias. Sus únicos
+56 movimientos son 28 IN y 28 OUT de una deduplicación de agosto, que se
+cancelan entre sí.
+
+Se hicieron dos cosas:
+
+1. **Su stock a cero y la sucursal desactivada.** Desactivarla es lo que
+   impide que el problema vuelva: el resync de julio filtraba por
+   `is_active = true`, que es exactamente cómo se llenó la primera vez.
+   Ninguna RPC filtra sucursales por `is_active` (todas resuelven por
+   `is_default` o reciben el `branch_id`), y `getBranches()` sí lo hace, así
+   que el selector del panel ahora muestra sólo Principal.
+
+2. **`products.stock` resincronizado desde Principal.** Acá estaba el bug
+   activo: `products.stock` reflejaba la **suma** de las dos sucursales, que
+   eran copias la una de la otra. De 340 productos con stock en ambos lados,
+   **255 mostraban cerca del doble** del stock real y 113 exactamente el
+   doble; **ninguno mostraba menos**. Y otros **373 figuraban en cero teniendo
+   stock real** en Principal.
+
+   La consecuencia para el cliente era concreta y es la misma que la migración
+   de julio decía haber arreglado: la web ofrecía 80 Trencitos, el checkout
+   descuenta de `branch_stock` de Principal —donde hay 42— y el pedido moría
+   con "stock insuficiente". Al mismo tiempo escondía 373 productos que sí
+   estaban en góndola.
+
+**Resultado: 730 de 730 productos activos alineados, 0 descuadrados.** El
+inventario pasa de 13.507 unidades declaradas a **7.552** reales. 713
+productos con stock, de los cuales 657 son vendibles por la web (tienen stock
+y precio).
+
+Los 12 productos activos sin fila en Principal ya estaban en cero, así que la
+resincronización no los tocó; nueve son los que se crearon ese mismo día.
+
+**Lo que queda de este tema:** `products.stock` vuelve a moverse solo si algo
+lo escribe por fuera de `inventory.service.ts`. La migración de julio nombra
+al culpable — los flujos de edición e importación de productos actualizan
+`products.stock` y nunca `branch_stock`. Mientras eso siga así, los dos
+números van a volver a separarse; la resincronización de hoy es un parche, no
+la cura.
 
 #### Cinco códigos de barras que no son códigos de barras
 
