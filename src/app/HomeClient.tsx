@@ -60,6 +60,7 @@ export default function HomeClient({ initialBlocks = null }: { initialBlocks?: P
                 block={block}
                 fallbackTitle={storeSettings?.heroTitle}
                 fallbackDescription={storeSettings?.heroDescription}
+                storeSettings={storeSettings}
                 showCategoriesBar
                 categories={categories}
                 categoriesLoading={categoriesLoading}
@@ -106,7 +107,7 @@ export default function HomeClient({ initialBlocks = null }: { initialBlocks?: P
               <ProductSection
                 key={block.id}
                 title={block.title || "Más productos"}
-                icon={<Zap className="w-5 h-5 text-emerald-600" />}
+                icon={<Zap className="w-5 h-5 text-brand-600" />}
                 products={more}
                 loading={productsLoading}
                 href="/productos"
@@ -129,7 +130,7 @@ export default function HomeClient({ initialBlocks = null }: { initialBlocks?: P
       <section className="py-10 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <Link href="/productos"
-            className="o-focus inline-flex h-12 items-center gap-2 rounded-xl bg-emerald-600 px-8 text-base font-semibold text-white transition-colors hover:bg-emerald-700">
+            className="o-focus inline-flex h-12 items-center gap-2 rounded-xl bg-brand-600 px-8 text-base font-semibold text-white transition-colors hover:bg-brand-700">
             Ver todos los productos <ChevronRight className="w-5 h-5" />
           </Link>
         </div>
@@ -144,6 +145,7 @@ function HeroBlock({
   block,
   fallbackTitle,
   fallbackDescription,
+  storeSettings,
   showCategoriesBar,
   categories,
   categoriesLoading,
@@ -151,6 +153,7 @@ function HeroBlock({
   block: PageBlock;
   fallbackTitle?: string;
   fallbackDescription?: string;
+  storeSettings?: { appearance?: { bannerUrl?: string | null } } | null;
   showCategoriesBar?: boolean;
   categories: any[];
   categoriesLoading: boolean;
@@ -167,27 +170,45 @@ function HeroBlock({
   // El H1 debe comunicar el posicionamiento dual (minimarket + paquetería) y
   // contener la comuna: es la señal más fuerte de SEO local de la página.
   const title =
-    block.title || fallbackTitle || "Olivo Market Ñuñoa — Productos venezolanos y punto de envíos";
+    block.title || fallbackTitle || "Tu minimarket en Ñuñoa, con despacho a domicilio";
   const description =
     block.description ||
     fallbackDescription ||
-    "Minimarket venezolano y punto de retiro y envío de encomiendas en Av. José Pedro Alessandri 2010, Ñuñoa.";
+    "Más de 700 productos: abarrotes, bebidas, lácteos, panadería, helados y aseo. Y punto de retiro y envío de encomiendas en Av. José Pedro Alessandri 2010.";
   const buttonText = block.buttonText || "Comprar ahora";
   const buttonLink = block.buttonLink || "/productos";
 
+  // El banner del panel («Apariencia → Banner principal») se guardaba en la
+  // base y no lo mostraba nadie: se podía subir una imagen y no pasaba nada.
+  // Va de fondo del encabezado, que es donde el propio panel dice que va.
+  const banner = storeSettings?.appearance?.bannerUrl;
+
   return (
     <>
-      <section className="bg-[#1a4731] relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 py-8 md:py-10 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 items-center">
+      <section className="relative overflow-hidden bg-brand-900">
+        {banner && (
+          <>
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${banner})` }}
+            />
+            {/* Sin este velo, una foto clara deja el título blanco ilegible.
+                Se mantiene el color de marca para que el encabezado siga
+                siendo reconocible con cualquier imagen. */}
+            <div aria-hidden className="absolute inset-0 bg-brand-950/75" />
+          </>
+        )}
+        <div className="relative max-w-7xl mx-auto px-4 py-8 md:py-10 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 items-center">
           {/* Left: text + search */}
           <div className="text-white">
-            <p className="mb-2 text-sm font-medium text-emerald-300">
-              {block.subtitle || "Productos venezolanos"}
+            <p className="mb-2 text-sm font-medium text-brand-300">
+              {block.subtitle || "Minimarket y punto de encomiendas · Ñuñoa"}
             </p>
             <h1 className="o-display mb-2 text-white">
               {title}
             </h1>
-            <p className="text-emerald-100/70 text-sm md:text-base mb-5 max-w-md">
+            <p className="text-brand-100/70 text-sm md:text-base mb-5 max-w-md">
               {description}
             </p>
             <form onSubmit={submitHeroSearch} className="flex max-w-xl gap-2">
@@ -198,18 +219,18 @@ function HeroBlock({
                   value={heroQuery}
                   onChange={(e) => setHeroQuery(e.target.value)}
                   placeholder="Buscar productos..."
-                  className="w-full h-12 pl-11 pr-4 rounded-xl bg-white text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="w-full h-12 pl-11 pr-4 rounded-xl bg-white text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-400"
                 />
               </div>
               <button
                 type="submit"
-                className="o-focus h-12 shrink-0 rounded-xl bg-emerald-500 px-6 text-sm font-semibold text-white transition-colors hover:bg-emerald-400"
+                className="o-focus h-12 shrink-0 rounded-xl bg-brand-500 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-400"
               >
                 Buscar
               </button>
             </form>
             <div className="flex flex-wrap gap-3 mt-5">
-              <Link href={buttonLink} className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
+              <Link href={buttonLink} className="inline-flex items-center gap-1.5 bg-brand-500 hover:bg-brand-400 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
                 {buttonText} <ChevronRight className="w-4 h-4" />
               </Link>
               <Link href="/ofertas" className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
@@ -220,7 +241,7 @@ function HeroBlock({
             {/* Punto de envíos: couriers, horario y dirección en texto plano.
                 Es el contenido que respalda el schema y las búsquedas locales. */}
             <div className="mt-6 pt-5 border-t border-white/10 space-y-3">
-              <p className="text-sm font-semibold text-emerald-300">
+              <p className="text-sm font-semibold text-brand-300">
                 También somos punto de envíos en Ñuñoa
               </p>
               <ul className="flex flex-wrap gap-2">
@@ -235,10 +256,10 @@ function HeroBlock({
                   </li>
                 ))}
               </ul>
-              <p className="text-sm text-emerald-100/80">
+              <p className="text-sm text-brand-100/80">
                 {BUSINESS.addressFull}
               </p>
-              <p className="text-sm text-emerald-100/80">
+              <p className="text-sm text-brand-100/80">
                 {BUSINESS.openingHoursDisplay
                   .map((h) => `${h.label}: ${h.value}`)
                   .join(" · ")}
@@ -258,17 +279,17 @@ function HeroBlock({
               <p className="text-amber-200/70 text-xs mt-1">en productos seleccionados</p>
             </Link>
             <div className="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3">
-              <Truck className="w-8 h-8 text-emerald-400 shrink-0" />
+              <Truck className="w-8 h-8 text-brand-400 shrink-0" />
               <div>
                 <p className="text-sm font-semibold leading-snug text-white">Envío rápido</p>
-                <p className="text-emerald-300/70 text-xs">Llega en 24-48h</p>
+                <p className="text-brand-300/70 text-xs">Llega en 24-48h</p>
               </div>
             </div>
             <div className="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3">
-              <BadgeCheck className="w-8 h-8 text-emerald-400 shrink-0" />
+              <BadgeCheck className="w-8 h-8 text-brand-400 shrink-0" />
               <div>
                 <p className="text-sm font-semibold leading-snug text-white">Compra protegida</p>
-                <p className="text-emerald-300/70 text-xs">Calidad asegurada</p>
+                <p className="text-brand-300/70 text-xs">Calidad asegurada</p>
               </div>
             </div>
           </div>
@@ -279,12 +300,12 @@ function HeroBlock({
       {showCategoriesBar && (
         <section className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
-            <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-bold whitespace-nowrap hover:bg-emerald-500 transition-colors">
+            <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-brand-600 text-white text-xs font-bold whitespace-nowrap hover:bg-brand-500 transition-colors">
               Todo
             </Link>
             {!categoriesLoading && [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map(cat => (
               <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}
-                className="shrink-0 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 text-xs font-bold whitespace-nowrap transition-colors">
+                className="shrink-0 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-brand-50 hover:text-brand-700 text-gray-700 text-xs font-bold whitespace-nowrap transition-colors">
                 {cat.name}
               </Link>
             ))}
@@ -297,7 +318,7 @@ function HeroBlock({
 
 function FeaturesBlock() {
   return (
-    <section className="bg-[#1a4731]">
+    <section className="bg-brand-900">
       <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap justify-center sm:justify-between gap-y-2 divide-x divide-white/10">
         {[
           { icon: Truck,      text: "Envío en 24-48h" },
@@ -305,8 +326,8 @@ function FeaturesBlock() {
           { icon: Shield,     text: "Pago 100% seguro" },
         ].map(({ icon: Icon, text }) => (
           <div key={text} className="flex items-center gap-2 px-4 sm:px-8">
-            <Icon className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="whitespace-nowrap text-sm text-emerald-100/80">{text}</span>
+            <Icon className="w-4 h-4 text-brand-400 shrink-0" />
+            <span className="whitespace-nowrap text-sm text-brand-100/80">{text}</span>
           </div>
         ))}
       </div>
@@ -361,7 +382,7 @@ function CategoriesBlock({
         </div>
         {categories.length > 6 && (
           <div className="text-center mt-4">
-            <Link href="/categorias" className="o-focus inline-flex items-center gap-1 rounded text-sm font-medium text-emerald-700 hover:text-emerald-800">
+            <Link href="/categorias" className="o-focus inline-flex items-center gap-1 rounded text-sm font-medium text-brand-700 hover:text-brand-800">
               Ver todas las categorías <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -380,7 +401,7 @@ function SectionHeader({ title, icon, href }: { title: string; icon: React.React
         {icon}
         <h2 className="o-h2 text-neutral-900">{title}</h2>
       </div>
-      <Link href={href} className="o-focus flex items-center gap-1 rounded text-sm font-medium text-emerald-700 hover:text-emerald-800">
+      <Link href={href} className="o-focus flex items-center gap-1 rounded text-sm font-medium text-brand-700 hover:text-brand-800">
         Ver todos <ChevronRight className="w-4 h-4" />
       </Link>
     </div>

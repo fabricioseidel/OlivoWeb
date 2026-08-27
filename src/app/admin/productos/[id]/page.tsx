@@ -324,7 +324,7 @@ export default function EditProductPage() {
               <button
                 type="button"
                 onClick={() => setShowScanner(true)}
-                className="absolute bottom-1.5 right-2 p-1.5 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors"
+                className="absolute bottom-1.5 right-2 p-1.5 bg-brand-100 text-brand-600 rounded-lg hover:bg-brand-200 transition-colors"
                 title="Escanear con cámara"
               >
                 <CameraIcon className="h-5 w-5" />

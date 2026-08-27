@@ -41,17 +41,17 @@ export default function NewsletterWidget({
   };
 
   return (
-    <div className="w-full bg-gradient-to-r from-emerald-900 to-teal-900 rounded-2xl p-6 md:p-8">
+    <div className="w-full bg-gradient-to-r from-brand-900 to-teal-900 rounded-2xl p-6 md:p-8">
       <div className="max-w-xl mx-auto text-center">
         <h3 className="font-semibold text-neutral-900">
           {title || "🌿 Únete a la familia Olivo"}
         </h3>
-        <p className="text-emerald-200/70 text-sm mb-6">
+        <p className="text-brand-200/70 text-sm mb-6">
           {description || "Recibe ofertas exclusivas, cupones de descuento y novedades directamente en tu email."}
         </p>
 
         {status === "success" ? (
-          <div className="bg-emerald-500/20 border border-emerald-400/30 rounded-xl p-4 text-emerald-200 font-bold text-sm">
+          <div className="bg-brand-500/20 border border-brand-400/30 rounded-xl p-4 text-brand-200 font-bold text-sm">
             {message}
           </div>
         ) : (
@@ -71,12 +71,12 @@ export default function NewsletterWidget({
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tu@email.com"
               required
-              className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-white/40 focus:border-emerald-400 focus:bg-white/15"
+              className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-white/40 focus:border-brand-400 focus:bg-white/15"
             />
             <button
               type="submit"
               disabled={status === "loading"}
-              className="shrink-0 whitespace-nowrap rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-400 disabled:opacity-50"
+              className="shrink-0 whitespace-nowrap rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-400 disabled:opacity-50"
             >
               {status === "loading" ? "Enviando…" : "Suscribirme"}
             </button>
@@ -87,7 +87,7 @@ export default function NewsletterWidget({
           <p className="text-red-300 text-xs mt-2">{message}</p>
         )}
 
-        <p className="mt-3 text-xs text-emerald-200/70">
+        <p className="mt-3 text-xs text-brand-200/70">
           Puedes cancelar tu suscripción en cualquier momento.
         </p>
       </div>

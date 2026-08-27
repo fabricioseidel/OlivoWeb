@@ -6,9 +6,9 @@ import ProductosClient from "./ProductosClient";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BUSINESS.url),
-  title: "Catálogo de productos venezolanos | Olivo Market Ñuñoa",
+  title: "Catálogo del minimarket | Olivo Market Ñuñoa",
   description:
-    "Todo nuestro catálogo: harina PAN, quesos, dulces, bebidas y abarrotes venezolanos. Compra online con despacho a Ñuñoa, Macul, Peñalolén y San Joaquín, o retira en Av. José Pedro Alessandri 2010.",
+    "Más de 700 productos: abarrotes, bebidas, lácteos, panadería, helados, snacks, dulces y aseo, más una selección venezolana. Compra online con despacho a Ñuñoa, Macul, Peñalolén y San Joaquín, o retira en Av. José Pedro Alessandri 2010.",
   alternates: { canonical: "/productos" },
   openGraph: {
     locale: "es_CL",

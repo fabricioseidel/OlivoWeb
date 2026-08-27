@@ -33,7 +33,7 @@ export default function PuntosPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
       </div>
     );
   }
@@ -42,7 +42,7 @@ export default function PuntosPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <Link href="/mi-cuenta" className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-emerald-600 mb-6 transition-colors">
+      <Link href="/mi-cuenta" className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-brand-600 mb-6 transition-colors">
         <ArrowLeftIcon className="w-4 h-4 mr-2" /> Volver a Mi Cuenta
       </Link>
       
@@ -52,29 +52,29 @@ export default function PuntosPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="relative overflow-hidden rounded-2xl bg-emerald-800 p-6 text-white md:col-span-2">
+        <div className="relative overflow-hidden rounded-2xl bg-brand-800 p-6 text-white md:col-span-2">
           <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10" />
           <div className="relative z-10">
              <div className="flex justify-between items-center mb-6">
                 <div>
-                   <p className="mb-1 text-sm text-emerald-100">Nivel actual</p>
+                   <p className="mb-1 text-sm text-brand-100">Nivel actual</p>
                    <div className="inline-block px-4 py-1 rounded-full bg-white/20 backdrop-blur-md" style={{ backgroundColor: tier?.color ? `${tier.color}40` : '' }}>
                      <p className="font-bold text-lg">{tier?.name || 'Socio'}</p>
                    </div>
                 </div>
-                <SparklesIcon className="w-12 h-12 text-emerald-300 opacity-50" />
+                <SparklesIcon className="w-12 h-12 text-brand-300 opacity-50" />
              </div>
              
              <div>
-               <p className="mb-1 text-sm text-emerald-100">Puntos disponibles</p>
-               <p className="tabular text-4xl font-bold">{points.toLocaleString()} <span className="text-base font-normal text-emerald-100">pts</span></p>
+               <p className="mb-1 text-sm text-brand-100">Puntos disponibles</p>
+               <p className="tabular text-4xl font-bold">{points.toLocaleString()} <span className="text-base font-normal text-brand-100">pts</span></p>
              </div>
 
              <div className="mt-8 pt-6 border-t border-white/20">
                {nextTier ? (
-                 <p className="text-sm text-emerald-50">Te faltan <strong className="font-semibold">{pointsToNextTier} pts</strong> para alcanzar el nivel <strong className="font-semibold">{nextTier.name}</strong> y mejorar tus beneficios.</p>
+                 <p className="text-sm text-brand-50">Te faltan <strong className="font-semibold">{pointsToNextTier} pts</strong> para alcanzar el nivel <strong className="font-semibold">{nextTier.name}</strong> y mejorar tus beneficios.</p>
                ) : (
-                 <p className="text-sm font-medium text-emerald-50">Alcanzaste el nivel máximo del club.</p>
+                 <p className="text-sm font-medium text-brand-50">Alcanzaste el nivel máximo del club.</p>
                )}
              </div>
           </div>
@@ -82,13 +82,13 @@ export default function PuntosPage() {
 
         <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col justify-center">
            <div className="mb-6 flex items-center gap-3">
-              <GiftIcon className="w-8 h-8 text-emerald-500" />
+              <GiftIcon className="w-8 h-8 text-brand-500" />
               <h3 className="o-h3 text-neutral-900">Resumen</h3>
            </div>
            <div className="space-y-4">
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
                  <span className="text-sm font-bold text-gray-500">Puntos Ganados</span>
-                 <span className="tabular font-semibold text-emerald-700">+{totalEarned.toLocaleString()}</span>
+                 <span className="tabular font-semibold text-brand-700">+{totalEarned.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
                  <span className="text-sm font-bold text-gray-500">Puntos Canjeados</span>
@@ -108,7 +108,7 @@ export default function PuntosPage() {
                     <p className="font-bold text-gray-900">{tx.description}</p>
                     <p className="text-xs font-medium text-gray-500">{new Date(tx.created_at).toLocaleDateString()} - {new Date(tx.created_at).toLocaleTimeString()}</p>
                   </div>
-                  <div className={`tabular font-semibold ${tx.points > 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                  <div className={`tabular font-semibold ${tx.points > 0 ? 'text-brand-700' : 'text-red-600'}`}>
                     {tx.points > 0 ? '+' : ''}{tx.points} pts
                   </div>
                </div>

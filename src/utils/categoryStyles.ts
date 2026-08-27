@@ -92,9 +92,9 @@ export const categoryMap: CategoryStyle[] = [
 
 export const defaultStyle: CategoryStyle = { 
   icon: ShoppingBag, 
-  color: 'text-emerald-600', 
-  bg: 'bg-emerald-50', 
-  border: 'group-hover:border-emerald-100',
+  color: 'text-brand-600', 
+  bg: 'bg-brand-50', 
+  border: 'group-hover:border-brand-100',
   iconName: 'ShoppingBag',
   keywords: []
 };

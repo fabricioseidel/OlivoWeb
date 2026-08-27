@@ -99,21 +99,21 @@ export default function ContactoClient() {
 
       <div className="grid md:grid-cols-3 gap-6 mb-12">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600">
+          <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-600">
             <Mail className="size-6" />
           </div>
           <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
           <p className="text-sm text-gray-600 break-all">{settings.emailFromAddress || settings.storeEmail || 'contacto@olivomarket.cl'}</p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600">
+          <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-600">
             <Phone className="size-6" />
           </div>
           <h3 className="font-semibold text-gray-900 mb-1">Teléfono</h3>
           <p className="text-sm text-gray-600">{settings.storePhone || '+56 9 1234 5678'}</p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600">
+          <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-600">
             <MapPin className="size-6" />
           </div>
           <h3 className="font-semibold text-gray-900 mb-1">Dirección</h3>
@@ -170,7 +170,7 @@ export default function ContactoClient() {
               rows={5}
               value={form.message}
               onChange={handleChange}
-              className={`w-full p-4 rounded-xl border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 resize-y ${errors.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-500'}`}
+              className={`w-full p-4 rounded-xl border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 resize-y ${errors.message ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-brand-500 focus:ring-brand-500'}`}
               placeholder="Escribe tu mensaje aquí..."
               disabled={sending}
             />

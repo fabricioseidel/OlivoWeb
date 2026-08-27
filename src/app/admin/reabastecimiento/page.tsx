@@ -153,13 +153,13 @@ export default function ReabastecimientoPage() {
           kicker="Reabastecimiento"
           title="Gestión de Compras"
           subtitle="Monitorea quiebres de stock y coordina proveedores"
-          icon={<ShoppingCartIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<ShoppingCartIcon className="w-6 h-6 text-brand-300" />}
           right={
             <button
               type="button"
               onClick={refreshAll}
               disabled={isLoading}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-emerald-100 text-xs font-bold uppercase tracking-widest transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-brand-100 text-xs font-bold uppercase tracking-widest transition-colors"
               title="Actualizar datos"
             >
               <ArrowPathIcon
@@ -187,7 +187,7 @@ export default function ReabastecimientoPage() {
         <StatsCard
           label="Pendiente de Pago"
           value={stats.totalPending > 0 ? CLP(stats.totalPending) : "$0"}
-          tone="emerald"
+          tone="brand"
           icon={<CurrencyDollarIcon className="w-4 h-4" />}
         />
       </StatsRow>
@@ -219,7 +219,7 @@ export default function ReabastecimientoPage() {
       {activeTab === "recepcion" && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-gray-600">
-            <SparklesIcon className="h-4 w-4 text-emerald-500" />
+            <SparklesIcon className="h-4 w-4 text-brand-500" />
             <span>
               Modo escáner: usá la pistola en cualquier momento o tipeá el SKU.
             </span>

@@ -55,10 +55,10 @@ export default function PrintableInvoice({ order, settings }: PrintableInvoicePr
       `}</style>
 
       {/* Modern Header Banner */}
-      <div className="flex justify-between items-start border-b-[6px] border-emerald-600 pb-8 mb-10">
+      <div className="flex justify-between items-start border-b-[6px] border-brand-600 pb-8 mb-10">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-2xl">
+            <div className="w-12 h-12 bg-brand-600 rounded-xl flex items-center justify-center text-white font-black text-2xl">
               {storeName[0]}
             </div>
             <div>
@@ -70,13 +70,13 @@ export default function PrintableInvoice({ order, settings }: PrintableInvoicePr
           <div className="mt-6 text-sm text-gray-600 leading-relaxed font-medium">
             <p>{storeAddress}</p>
             <p>{storeCity}, {storeCountry}</p>
-            <p className="mt-2 text-emerald-700 font-bold">{storeEmail}</p>
+            <p className="mt-2 text-brand-700 font-bold">{storeEmail}</p>
             {storePhone && <p>{storePhone}</p>}
           </div>
         </div>
         
         <div className="text-right">
-          <h2 className="text-4xl font-black text-emerald-600 tracking-tight uppercase mb-2">FACTURA</h2>
+          <h2 className="text-4xl font-black text-brand-600 tracking-tight uppercase mb-2">FACTURA</h2>
           <div className="inline-block bg-gray-50 border border-gray-200 rounded-xl px-5 py-3 mt-2 text-right">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Nº de Documento</p>
             <p className="text-xl font-black text-gray-900">#{(order.id || '').slice(0, 8).toUpperCase()}</p>
@@ -94,7 +94,7 @@ export default function PrintableInvoice({ order, settings }: PrintableInvoicePr
         {/* Customer Details */}
         <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold">
               {order.customer.name[0]?.toUpperCase() || 'C'}
             </div>
             <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">Facturar A</h3>
@@ -107,10 +107,10 @@ export default function PrintableInvoice({ order, settings }: PrintableInvoicePr
         </div>
         
         {/* Shipping Label Box */}
-        <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100 relative overflow-hidden">
+        <div className="bg-brand-50 rounded-2xl p-6 border border-brand-100 relative overflow-hidden">
           {/* Watermark icon visually */}
-          <div className="absolute -right-4 -top-4 text-emerald-200/40 opacity-50 text-[100px] leading-none pointer-events-none">📍</div>
-          <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-4">Dirección de Entrega</h3>
+          <div className="absolute -right-4 -top-4 text-brand-200/40 opacity-50 text-[100px] leading-none pointer-events-none">📍</div>
+          <h3 className="text-xs font-black text-brand-600 uppercase tracking-widest mb-4">Dirección de Entrega</h3>
           <div className="text-sm font-medium text-gray-800 leading-relaxed relative z-10">
             <p>{order.shipping.address}</p>
             <p>{order.shipping.city}, {order.shipping.postalCode}</p>
@@ -154,7 +154,7 @@ export default function PrintableInvoice({ order, settings }: PrintableInvoicePr
              <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Estado del Pago</h3>
              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider ${
                order.payment.status === 'paid' || order.payment.status === 'Aprobado' || order.payment.status === 'completado'
-                 ? 'bg-emerald-100 text-emerald-700'
+                 ? 'bg-brand-100 text-brand-700'
                  : order.payment.status === 'canceled' || order.payment.status === 'fallido' 
                  ? 'bg-red-100 text-red-700'
                  : 'bg-amber-100 text-amber-700'
@@ -186,7 +186,7 @@ export default function PrintableInvoice({ order, settings }: PrintableInvoicePr
           
           <div className="flex justify-between items-center">
             <span className="text-sm font-black text-gray-900 uppercase tracking-widest">Total a Pagar</span>
-            <span className="text-3xl font-black text-emerald-600">${order.total.toLocaleString('es-CL')}</span>
+            <span className="text-3xl font-black text-brand-600">${order.total.toLocaleString('es-CL')}</span>
           </div>
         </div>
       </div>

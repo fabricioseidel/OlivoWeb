@@ -168,7 +168,7 @@ export default function PuntosPage() {
   if (loading || !config) {
     return (
       <div className="flex justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-500" />
       </div>
     );
   }
@@ -182,7 +182,7 @@ export default function PuntosPage() {
           kicker="Marketing"
           title="Programa de puntos"
           subtitle="Configurá la mecánica de fidelización y consultá saldos de clientes"
-          icon={<StarIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<StarIcon className="w-6 h-6 text-brand-300" />}
           right={
             <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 ring-1 ring-white/15 text-white text-xs font-bold uppercase tracking-widest cursor-pointer min-h-[36px]">
               <input
@@ -191,7 +191,7 @@ export default function PuntosPage() {
                 onChange={(e) =>
                   setConfig({ ...config, is_active: e.target.checked })
                 }
-                className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-500"
+                className="w-4 h-4 rounded text-brand-500 focus:ring-brand-500"
               />
               {config.is_active ? "Programa activo" : "Programa pausado"}
             </label>
@@ -204,7 +204,7 @@ export default function PuntosPage() {
           label="Acumulación"
           value={`${config.points_per_currency} pt`}
           hint={`por cada ${CLP(config.currency_threshold)} gastados`}
-          tone="emerald"
+          tone="brand"
           icon={<ArrowPathIcon className="w-4 h-4" />}
         />
         <StatsCard
@@ -230,7 +230,7 @@ export default function PuntosPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {/* Acumulación */}
         <ConfigCard
-          icon={<ArrowPathIcon className="h-5 w-5 text-emerald-700" />}
+          icon={<ArrowPathIcon className="h-5 w-5 text-brand-700" />}
           title="Acumulación"
         >
           <div className="grid grid-cols-2 gap-3">
@@ -244,7 +244,7 @@ export default function PuntosPage() {
                     currency_threshold: Number(e.target.value),
                   })
                 }
-                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               />
             </Field>
             <Field label="Puntos ganados">
@@ -257,11 +257,11 @@ export default function PuntosPage() {
                     points_per_currency: Number(e.target.value),
                   })
                 }
-                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               />
             </Field>
           </div>
-          <div className="bg-emerald-50 ring-1 ring-emerald-200 rounded-xl p-3 text-sm text-emerald-800">
+          <div className="bg-brand-50 ring-1 ring-brand-200 rounded-xl p-3 text-sm text-brand-800">
             <strong>Mecánica:</strong> Cada{" "}
             {CLP(config.currency_threshold)} gastados ={" "}
             <b>{config.points_per_currency} punto(s)</b>
@@ -284,7 +284,7 @@ export default function PuntosPage() {
                     redemption_value: Number(e.target.value),
                   })
                 }
-                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               />
             </Field>
             <Field label="Mínimo para canjear">
@@ -297,7 +297,7 @@ export default function PuntosPage() {
                     min_points_redeem: Number(e.target.value),
                   })
                 }
-                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               />
             </Field>
           </div>
@@ -320,7 +320,7 @@ export default function PuntosPage() {
                 onChange={(e) =>
                   setConfig({ ...config, welcome_bonus: Number(e.target.value) })
                 }
-                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               />
             </Field>
             <Field label="Cumpleaños" icon={<CakeIcon className="h-3 w-3" />}>
@@ -333,7 +333,7 @@ export default function PuntosPage() {
                     birthday_bonus: Number(e.target.value),
                   })
                 }
-                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               />
             </Field>
             <Field label="Referido" icon={<ShareIcon className="h-3 w-3" />}>
@@ -346,7 +346,7 @@ export default function PuntosPage() {
                     referral_bonus: Number(e.target.value),
                   })
                 }
-                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               />
             </Field>
           </div>
@@ -373,7 +373,7 @@ export default function PuntosPage() {
                   </span>
                   <p className="text-xs text-gray-500">
                     Desde {tier.min_points.toLocaleString()} pts ·{" "}
-                    <b className="text-emerald-700">×{tier.multiplier}</b>{" "}
+                    <b className="text-brand-700">×{tier.multiplier}</b>{" "}
                     multiplicador
                   </p>
                 </div>
@@ -386,7 +386,7 @@ export default function PuntosPage() {
       {/* Customer Lookup */}
       <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-5 sm:p-6 space-y-4">
         <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-          <MagnifyingGlassIcon className="h-5 w-5 text-emerald-700" />
+          <MagnifyingGlassIcon className="h-5 w-5 text-brand-700" />
           Consultar saldo de cliente
         </h2>
         <div className="flex gap-2 flex-wrap">
@@ -397,14 +397,14 @@ export default function PuntosPage() {
               value={lookupEmail}
               onChange={(e) => setLookupEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && lookupCustomer()}
-              className="w-full bg-gray-50 border-none rounded-xl pl-10 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-gray-50 border-none rounded-xl pl-10 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               placeholder="email@cliente.com"
             />
           </div>
           <button
             onClick={lookupCustomer}
             disabled={lookingUp}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 min-h-[44px]"
+            className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 disabled:opacity-50 min-h-[44px]"
           >
             {lookingUp ? "Buscando…" : "Buscar"}
           </button>
@@ -446,8 +446,8 @@ export default function PuntosPage() {
               <Mini
                 label="Ganados"
                 value={customerInfo.totalEarned.toLocaleString()}
-                bg="bg-emerald-50"
-                text="text-emerald-700"
+                bg="bg-brand-50"
+                text="text-brand-700"
               />
               <Mini
                 label="Canjeados"
@@ -476,14 +476,14 @@ export default function PuntosPage() {
                   type="number"
                   value={bonusPoints || ""}
                   onChange={(e) => setBonusPoints(Number(e.target.value))}
-                  className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                   placeholder="Cantidad"
                 />
                 <input
                   type="text"
                   value={bonusReason}
                   onChange={(e) => setBonusReason(e.target.value)}
-                  className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500 sm:col-span-2"
+                  className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500 sm:col-span-2"
                   placeholder="Razón del bonus (opcional)"
                 />
               </div>
@@ -519,7 +519,7 @@ export default function PuntosPage() {
                       </div>
                       <span
                         className={`font-black text-sm whitespace-nowrap ${
-                          tx.points > 0 ? "text-emerald-700" : "text-rose-700"
+                          tx.points > 0 ? "text-brand-700" : "text-rose-700"
                         }`}
                       >
                         {tx.points > 0 ? "+" : ""}
@@ -560,7 +560,7 @@ export default function PuntosPage() {
             <button
               onClick={saveConfig}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 min-h-[44px]"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 disabled:opacity-50 min-h-[44px]"
             >
               <ArrowDownTrayIcon className="h-4 w-4" />
               {saving ? "Guardando…" : "Guardar config"}

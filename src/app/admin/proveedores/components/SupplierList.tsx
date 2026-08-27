@@ -30,7 +30,7 @@ export default function SupplierList({
         <input
           type="search"
           placeholder="Buscar proveedor..."
-          className="w-full bg-gray-50 border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-emerald-500"
+          className="w-full bg-gray-50 border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-brand-500"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
         />
@@ -39,7 +39,7 @@ export default function SupplierList({
       <button
         type="button"
         onClick={onNewSupplier}
-        className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-100 transition-all min-h-[40px]"
+        className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 bg-brand-50 text-brand-700 ring-1 ring-brand-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-brand-100 transition-all min-h-[40px]"
       >
         <PlusIcon className="size-4" />
         Nuevo proveedor
@@ -53,7 +53,7 @@ export default function SupplierList({
             onClick={() => onSelect(supplier.id)}
             className={`w-full text-left px-3 py-3 rounded-lg transition min-h-[44px] ${
               supplier.id === selectedId
-                ? "bg-emerald-50 ring-1 ring-emerald-200"
+                ? "bg-brand-50 ring-1 ring-brand-200"
                 : "hover:bg-gray-50"
             }`}
           >
@@ -62,7 +62,7 @@ export default function SupplierList({
                 {supplier.name}
               </span>
               {supplier.productCount ? (
-                <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full whitespace-nowrap">
+                <span className="text-[10px] font-bold bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full whitespace-nowrap">
                   {supplier.productCount}
                 </span>
               ) : null}

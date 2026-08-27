@@ -100,7 +100,7 @@ export default function QuickSaleForm({ customers }: QuickSaleFormProps) {
         </label>
         <textarea
           id="notas"
-          className={`min-h-[100px] w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition hover:border-emerald-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/40 ${errors.notas ? "border-red-500 focus:border-red-500 focus:ring-red-500/40" : ""
+          className={`min-h-[100px] w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition hover:border-brand-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/40 ${errors.notas ? "border-red-500 focus:border-red-500 focus:ring-red-500/40" : ""
             }`}
           placeholder="Observaciones del pago o referencias internas."
           disabled={isPending}

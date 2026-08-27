@@ -52,7 +52,7 @@ export default function BienvenidosPage() {
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
           {/* ── Beneficios ── */}
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800">
+            <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-3 py-1 text-sm font-medium text-brand-800">
               <QrCodeIcon className="size-4" />
               Beneficio de tienda física
             </span>
@@ -69,7 +69,7 @@ export default function BienvenidosPage() {
             <ul className="space-y-3">
               {benefits.map((b) => (
                 <li key={b.title} className="o-card flex items-start gap-3.5 p-4">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
                     <b.icon className="size-5" />
                   </span>
                   <span>
@@ -143,7 +143,7 @@ export default function BienvenidosPage() {
           {/* El enlace a /nosotros apuntaba a una ruta que no existe. */}
           <Link
             href="/productos"
-            className="o-focus rounded text-sm font-medium text-emerald-700 hover:text-emerald-800"
+            className="o-focus rounded text-sm font-medium text-brand-700 hover:text-brand-800"
           >
             Explorar catálogo
           </Link>

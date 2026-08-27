@@ -36,19 +36,19 @@ export default async function DespachoInfo({ comuna }: { comuna?: ComunaSlug }) 
   if (filas.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
+    <div className="rounded-2xl border border-brand-100 bg-brand-50 p-5">
       <dl className="space-y-2">
         {filas.map((f) => (
           <div key={f.label} className="flex justify-between gap-4">
-            <dt className="text-emerald-900 font-medium">{f.label}</dt>
-            <dd className={`text-emerald-900 ${f.destacado ? "font-semibold" : "font-bold"}`}>
+            <dt className="text-brand-900 font-medium">{f.label}</dt>
+            <dd className={`text-brand-900 ${f.destacado ? "font-semibold" : "font-bold"}`}>
               {f.value}
             </dd>
           </div>
         ))}
       </dl>
-      <p className="mt-3 text-sm text-emerald-800">{ENTREGA.resumen}</p>
-      <p className="mt-2 text-xs text-emerald-700">
+      <p className="mt-3 text-sm text-brand-800">{ENTREGA.resumen}</p>
+      <p className="mt-2 text-xs text-brand-700">
         Valores vigentes según la configuración de la tienda; el costo final se confirma al cerrar el
         pedido. {ENTREGA.retiroEnTienda}
       </p>

@@ -135,26 +135,26 @@ const MenuDropdown = ({
     <div className="relative text-left">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-emerald-900/40 hover:bg-emerald-900/60 border border-white/10 rounded-xl text-xs text-white font-bold uppercase tracking-wider transition-all"
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-brand-900/40 hover:bg-brand-900/60 border border-white/10 rounded-xl text-xs text-white font-bold uppercase tracking-wider transition-all"
       >
         <span className="flex items-center gap-2">
           {currentMode === "OLIVOTEAM" ? (
-            <BuildingStorefrontIcon className="h-4 w-4 text-emerald-400 shrink-0" />
+            <BuildingStorefrontIcon className="h-4 w-4 text-brand-400 shrink-0" />
           ) : (
-            <BeakerIcon className="h-4 w-4 text-emerald-400 shrink-0" />
+            <BeakerIcon className="h-4 w-4 text-brand-400 shrink-0" />
           )}
           <span className="truncate">
             {currentMode === "OLIVOTEAM" ? "OLIVOTEAM" : "LAB FABRI"}
           </span>
         </span>
-        <ChevronDownIcon className={`h-4 w-4 text-emerald-400 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        <ChevronDownIcon className={`h-4 w-4 text-brand-400 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
 
-          <div className="absolute left-0 right-0 mt-2 p-1.5 bg-emerald-950 border border-white/10 rounded-xl shadow-xl z-20 space-y-1">
+          <div className="absolute left-0 right-0 mt-2 p-1.5 bg-brand-950 border border-white/10 rounded-xl shadow-xl z-20 space-y-1">
             <button
               onClick={() => {
                 onChangeMode("OLIVOTEAM");
@@ -162,8 +162,8 @@ const MenuDropdown = ({
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors text-left ${
                 currentMode === "OLIVOTEAM"
-                  ? "bg-emerald-600 text-white"
-                  : "text-emerald-100/70 hover:bg-white/5 hover:text-white"
+                  ? "bg-brand-600 text-white"
+                  : "text-brand-100/70 hover:bg-white/5 hover:text-white"
               }`}
             >
               <BuildingStorefrontIcon className="h-3.5 w-3.5 shrink-0" />
@@ -176,8 +176,8 @@ const MenuDropdown = ({
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors text-left ${
                 currentMode === "LABORATORIO_FABRI"
-                  ? "bg-emerald-600 text-white"
-                  : "text-emerald-100/70 hover:bg-white/5 hover:text-white"
+                  ? "bg-brand-600 text-white"
+                  : "text-brand-100/70 hover:bg-white/5 hover:text-white"
               }`}
             >
               <BeakerIcon className="h-3.5 w-3.5 shrink-0" />
@@ -265,7 +265,7 @@ export default function AdminLayout({
   if (status === "loading" || panelMode === null) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
       </div>
     );
   }
@@ -296,7 +296,7 @@ export default function AdminLayout({
             <button
               onClick={() => updatePanelMode(panelMode === "OLIVOTEAM" ? "LABORATORIO_FABRI" : "OLIVOTEAM")}
               title={panelMode === "OLIVOTEAM" ? "Cambiar a Laboratorio" : "Cambiar a OlivoTeam"}
-              className="p-2 rounded-xl bg-white/5 text-emerald-300 hover:text-white transition-colors"
+              className="p-2 rounded-xl bg-white/5 text-brand-300 hover:text-white transition-colors"
             >
               {panelMode === "OLIVOTEAM" ? (
                 <BuildingStorefrontIcon className="h-5 w-5" />
@@ -313,7 +313,7 @@ export default function AdminLayout({
           {currentMenuGroups.map((group) => (
             <div key={group.label} className="mb-4">
               {!isCollapsed && (
-                <p className="px-4 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500/50">
+                <p className="px-4 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-brand-500/50">
                   {group.label}
                 </p>
               )}
@@ -326,8 +326,8 @@ export default function AdminLayout({
                       href={item.href}
                       className={`flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
                         isActive
-                          ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
-                          : "text-emerald-100/40 hover:text-emerald-300 hover:bg-white/5"
+                          ? "bg-brand-600 text-white shadow-lg shadow-brand-600/20"
+                          : "text-brand-100/40 hover:text-brand-300 hover:bg-white/5"
                       }`}
                     >
                       <item.icon className={`h-4 w-4 shrink-0 ${isCollapsed && !mobile ? "mx-auto" : ""}`} />
@@ -343,14 +343,14 @@ export default function AdminLayout({
         {/* Toggle Switch X-LAB */}
         {(!isCollapsed || mobile) && (
           <div className="px-4 py-3 border-t border-white/5 flex items-center justify-between">
-            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+            <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest flex items-center gap-1.5">
               <BeakerIcon className="h-3.5 w-3.5 shrink-0" />
               <span>X-LAB</span>
             </span>
             <button
               onClick={() => updatePanelMode(panelMode === "OLIVOTEAM" ? "LABORATORIO_FABRI" : "OLIVOTEAM")}
               className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                panelMode === "LABORATORIO_FABRI" ? "bg-emerald-500" : "bg-emerald-950 border-white/20"
+                panelMode === "LABORATORIO_FABRI" ? "bg-brand-500" : "bg-brand-950 border-white/20"
               }`}
             >
               <span
@@ -365,7 +365,7 @@ export default function AdminLayout({
         <div className={`mt-auto ${mobile ? 'px-4 py-4' : 'px-3 py-4'} border-t border-white/5`}>
           <Link
             href="/"
-            className={`flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all bg-white/5 text-emerald-300 hover:text-white hover:bg-white/10`}
+            className={`flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all bg-white/5 text-brand-300 hover:text-white hover:bg-white/10`}
           >
             <ShoppingBagIcon className={`h-4 w-4 shrink-0 ${isCollapsed && !mobile ? "mx-auto" : ""}`} />
             {(!isCollapsed || mobile) && <span className="truncate">Volver a la Tienda</span>}
@@ -412,10 +412,10 @@ export default function AdminLayout({
               leaveFrom="translate-x-0"
               leaveTo="-translate-x-full"
             >
-              <Dialog.Panel className="relative flex w-full max-w-[280px] flex-1 flex-col bg-emerald-950 shadow-2xl">
+              <Dialog.Panel className="relative flex w-full max-w-[280px] flex-1 flex-col bg-brand-950 shadow-2xl">
                 <div className="p-6 flex items-center justify-between border-b border-white/5">
-                  <span className="text-lg font-black text-white tracking-widest">OLIVO<span className="text-emerald-500 italic">ADMIN</span></span>
-                  <button type="button" onClick={() => setMobileMenuOpen(false)} className="p-2 text-emerald-500 hover:text-white">
+                  <span className="text-lg font-black text-white tracking-widest">OLIVO<span className="text-brand-500 italic">ADMIN</span></span>
+                  <button type="button" onClick={() => setMobileMenuOpen(false)} className="p-2 text-brand-500 hover:text-white">
                     <XMarkIcon className="h-5 w-5" />
                   </button>
                 </div>
@@ -428,14 +428,14 @@ export default function AdminLayout({
 
       {/* ── Desktop Sidebar ── */}
       {!isPOS && (
-        <div className={`hidden md:flex flex-col sticky top-0 h-screen bg-emerald-950 transition-all duration-500 ${isCollapsed ? "w-20" : "w-64"}`}>
+        <div className={`hidden md:flex flex-col sticky top-0 h-screen bg-brand-950 transition-all duration-500 ${isCollapsed ? "w-20" : "w-64"}`}>
           <div className="flex items-center h-20 px-6 border-b border-white/5">
-            {!isCollapsed && <span className="text-lg font-black text-white">OLIVO<span className="text-emerald-500 italic">ADMIN</span></span>}
-            {isCollapsed && <span className="text-lg font-black text-emerald-500 mx-auto italic">OA</span>}
+            {!isCollapsed && <span className="text-lg font-black text-white">OLIVO<span className="text-brand-500 italic">ADMIN</span></span>}
+            {isCollapsed && <span className="text-lg font-black text-brand-500 mx-auto italic">OA</span>}
           </div>
           <NavContent />
           <div className="p-4 border-t border-white/5 flex justify-center">
-            <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-2 text-emerald-500 hover:text-emerald-300 transition-colors">
+            <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-2 text-brand-500 hover:text-brand-300 transition-colors">
               {isCollapsed ? <ChevronRightIcon className="h-5 w-5" /> : <ChevronLeftIcon className="h-5 w-5" />}
             </button>
           </div>
@@ -444,11 +444,11 @@ export default function AdminLayout({
 
       {/* ── Main Content ── */}
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-emerald-950 px-4 md:hidden border-b border-white/5">
-          <button onClick={() => setMobileMenuOpen(true)} className="p-2 text-emerald-400">
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-brand-950 px-4 md:hidden border-b border-white/5">
+          <button onClick={() => setMobileMenuOpen(true)} className="p-2 text-brand-400">
             <Bars3Icon className="h-5 w-5" />
           </button>
-          <span className="text-md font-black text-white tracking-widest uppercase">Olivo<span className="text-emerald-500 italic lowercase">Admin</span></span>
+          <span className="text-md font-black text-white tracking-widest uppercase">Olivo<span className="text-brand-500 italic lowercase">Admin</span></span>
           <div className="w-9" />
         </header>
 

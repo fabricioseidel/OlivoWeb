@@ -73,7 +73,7 @@ export default function UpsellingSection() {
                       image: product.image || '',
                       slug: product.id // Fallback if slug missing
                   }, 1)}
-                  className="shrink-0 h-8 w-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all active:scale-95"
+                  className="shrink-0 h-8 w-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center hover:bg-brand-600 hover:text-white transition-all active:scale-95"
                   title="Añadir al carrito"
                 >
                   <PlusIcon className="h-4 w-4" />

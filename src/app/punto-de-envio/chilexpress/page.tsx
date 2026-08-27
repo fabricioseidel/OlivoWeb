@@ -169,15 +169,15 @@ export default function ChilexpressPage() {
 
         <p className="mt-8 text-gray-700">
           También operamos con{" "}
-          <Link href="/punto-de-envio/bluexpress" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/punto-de-envio/bluexpress" className="font-bold text-brand-700 hover:underline">
             Bluexpress
           </Link>{" "}
           y{" "}
-          <Link href="/punto-de-envio/correos-de-chile" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/punto-de-envio/correos-de-chile" className="font-bold text-brand-700 hover:underline">
             Correos de Chile
           </Link>
           . Revisa el{" "}
-          <Link href="/punto-de-envio" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/punto-de-envio" className="font-bold text-brand-700 hover:underline">
             resumen de todos los couriers
           </Link>
           .

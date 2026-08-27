@@ -11,7 +11,7 @@ const EditableRow = memo(function EditableRow({ product, changes, onChange }: { 
   const ready = isProductReady(product, changes);
 
   return (
-    <tr className={`hover:bg-emerald-50/10 transition-colors group ${isDirty ? "bg-emerald-50/5" : ""}`}>
+    <tr className={`hover:bg-brand-50/10 transition-colors group ${isDirty ? "bg-brand-50/5" : ""}`}>
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0 hidden sm:block">
@@ -21,17 +21,17 @@ const EditableRow = memo(function EditableRow({ product, changes, onChange }: { 
             ) : (
               <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">📦</div>
             )}
-            {isDirty && <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full animate-pulse" />}
+            {isDirty && <div className="absolute -top-1 -right-1 w-3 h-3 bg-brand-500 border-2 border-white rounded-full animate-pulse" />}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              {ready && <CheckBadgeIcon className="w-4 h-4 text-emerald-500 shrink-0" title="Listo para mostrar" />}
+              {ready && <CheckBadgeIcon className="w-4 h-4 text-brand-500 shrink-0" title="Listo para mostrar" />}
               <input
                 type="text"
                 value={changes?.name ?? product.name}
                 onChange={(e) => onChange(product.id, "name", e.target.value)}
-                className={`w-full text-sm font-bold leading-tight px-1 py-0.5 bg-transparent border-b-2 transition-all focus:outline-none focus:border-emerald-500 ${
-                  changes?.name !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-800 hover:border-gray-300"
+                className={`w-full text-sm font-bold leading-tight px-1 py-0.5 bg-transparent border-b-2 transition-all focus:outline-none focus:border-brand-500 ${
+                  changes?.name !== undefined ? "border-brand-500 text-brand-700" : "border-transparent text-gray-800 hover:border-gray-300"
                 }`}
               />
             </div>
@@ -46,7 +46,7 @@ const EditableRow = memo(function EditableRow({ product, changes, onChange }: { 
                   changes?.barcode !== undefined
                     ? "border-violet-500 text-violet-600"
                     : product.barcode
-                    ? "border-transparent text-emerald-400 hover:border-gray-300"
+                    ? "border-transparent text-brand-400 hover:border-gray-300"
                     : "border-transparent text-rose-300 hover:border-gray-300"
                 }`}
               />
@@ -69,8 +69,8 @@ const EditableRow = memo(function EditableRow({ product, changes, onChange }: { 
             inputMode="decimal"
             value={changes?.price ?? product.price}
             onChange={(e) => onChange(product.id, "price", e.target.value)}
-            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 pl-5 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
-              changes?.price !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-900 hover:border-gray-200 shadow-sm"
+            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 pl-5 focus:ring-4 focus:ring-brand-500/10 transition-all ${
+              changes?.price !== undefined ? "border-brand-500 text-brand-700" : "border-transparent text-gray-900 hover:border-gray-200 shadow-sm"
             }`}
           />
         </div>
@@ -99,9 +99,9 @@ const EditableRow = memo(function EditableRow({ product, changes, onChange }: { 
             inputMode="numeric"
             value={changes?.stock ?? product.stock}
             onChange={(e) => onChange(product.id, "stock", e.target.value)}
-            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
+            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 focus:ring-4 focus:ring-brand-500/10 transition-all ${
               changes?.stock !== undefined
-                ? "border-emerald-500 text-emerald-700"
+                ? "border-brand-500 text-brand-700"
                 : product.stock <= 5
                 ? "border-amber-100 text-amber-600 bg-amber-50"
                 : "border-transparent text-gray-600 hover:border-gray-200 shadow-sm"
@@ -119,8 +119,8 @@ const EditableRow = memo(function EditableRow({ product, changes, onChange }: { 
             inputMode="numeric"
             value={changes?.minStock ?? product.minStock}
             onChange={(e) => onChange(product.id, "minStock", e.target.value)}
-            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
-              changes?.minStock !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-600 hover:border-gray-200 shadow-sm"
+            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 focus:ring-4 focus:ring-brand-500/10 transition-all ${
+              changes?.minStock !== undefined ? "border-brand-500 text-brand-700" : "border-transparent text-gray-600 hover:border-gray-200 shadow-sm"
             }`}
           />
         </div>
@@ -132,9 +132,9 @@ const EditableRow = memo(function EditableRow({ product, changes, onChange }: { 
             inputMode="numeric"
             value={changes?.optimumStock ?? product.optimumStock}
             onChange={(e) => onChange(product.id, "optimumStock", e.target.value)}
-            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 focus:ring-4 focus:ring-emerald-500/10 transition-all ${
+            className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 focus:ring-4 focus:ring-brand-500/10 transition-all ${
               changes?.optimumStock !== undefined
-                ? "border-emerald-500 text-emerald-700"
+                ? "border-brand-500 text-brand-700"
                 : "border-transparent text-gray-600 hover:border-gray-200 shadow-sm"
             }`}
           />

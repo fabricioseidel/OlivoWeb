@@ -147,7 +147,7 @@ export default function InventarioMode() {
       {resumen && (
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-white/5 rounded-2xl p-3 border border-white/10 text-center">
-            <p className="text-2xl font-black text-emerald-400">{resumen.verificados}</p>
+            <p className="text-2xl font-black text-brand-400">{resumen.verificados}</p>
             <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mt-0.5">
               Verificados
             </p>
@@ -234,7 +234,7 @@ export default function InventarioMode() {
 
           <button
             onClick={() => setCrearConCodigo(codigoNoEncontrado)}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black uppercase tracking-widest text-white hover:bg-emerald-500 transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-xs font-black uppercase tracking-widest text-white hover:bg-brand-500 transition-colors"
           >
             <PlusIcon className="w-4 h-4" />
             Crear producto nuevo
@@ -268,13 +268,13 @@ export default function InventarioMode() {
                 key={e.barcode}
                 className="flex items-center gap-3 bg-white/5 rounded-xl p-3 border border-white/10"
               >
-                <CheckCircleIcon className="w-5 h-5 text-emerald-400 shrink-0" />
+                <CheckCircleIcon className="w-5 h-5 text-brand-400 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-white truncate">{e.name}</p>
                   <p className="text-[10px] text-white/40 font-mono">{e.barcode}</p>
                 </div>
                 {e.nuevo && (
-                  <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 shrink-0">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-brand-400 shrink-0">
                     Activado
                   </span>
                 )}

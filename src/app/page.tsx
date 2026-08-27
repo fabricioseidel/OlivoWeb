@@ -8,9 +8,9 @@ import { getStoreSettingsServer } from "@/server/settings.server";
 // Respaldos escritos para SEO local: nombran la comuna, el rubro y el segundo
 // servicio (paquetería), que es lo que se busca en esta zona. Si el admin
 // define título o descripción en Configuración → SEO, mandan los suyos.
-const FALLBACK_TITLE = "Olivo Market Ñuñoa | Productos Venezolanos y Punto de Envíos";
+const FALLBACK_TITLE = "Olivo Market Ñuñoa | Minimarket con Despacho y Punto de Envíos";
 const FALLBACK_DESCRIPTION =
-  "Minimarket venezolano en Av. José Pedro Alessandri 2010, Ñuñoa. Harina PAN, quesos, pan de jamón y abarrotes. Somos punto de retiro y envío de MercadoLibre, Chilexpress, Bluexpress y Correos de Chile. Despacho a Ñuñoa y Macul.";
+  "Minimarket en Av. José Pedro Alessandri 2010, Ñuñoa: abarrotes, bebidas, lácteos, panadería, helados, cecinas y aseo, más productos venezolanos. Punto de retiro y envío de MercadoLibre, Chilexpress, Bluexpress y Correos de Chile. Despacho a domicilio en Ñuñoa y comunas vecinas.";
 
 /**
  * La portada tenía el título y la descripción escritos a mano, así que la

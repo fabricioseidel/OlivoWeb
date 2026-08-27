@@ -44,7 +44,7 @@ const Dropdown = ({
                       href={item.href}
                       className={`${
                         active
-                          ? `${item.isDanger ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`
+                          ? `${item.isDanger ? "bg-red-50 text-red-700" : "bg-brand-50 text-brand-700"}`
                           : `${item.isDanger ? "text-red-600" : "text-gray-700"}`
                       } block w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
                         item.className || ""
@@ -61,7 +61,7 @@ const Dropdown = ({
                     }}
                     className={`${
                       active
-                        ? `${item.isDanger ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`
+                        ? `${item.isDanger ? "bg-red-50 text-red-700" : "bg-brand-50 text-brand-700"}`
                         : `${item.isDanger ? "text-red-600" : "text-gray-700"}`
                     } block w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
                       item.className || ""

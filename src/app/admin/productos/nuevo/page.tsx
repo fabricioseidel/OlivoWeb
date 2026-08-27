@@ -371,7 +371,7 @@ export default function NewProductPage() {
                     <button
                       type="button"
                       onClick={() => setShowScanner(true)}
-                      className="absolute top-[34px] right-2 p-2 h-10 w-10 flex items-center justify-center bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-200 transition-colors shadow-sm"
+                      className="absolute top-[34px] right-2 p-2 h-10 w-10 flex items-center justify-center bg-brand-100 text-brand-600 rounded-xl hover:bg-brand-200 transition-colors shadow-sm"
                       title="Escanear con cámara"
                     >
                       <CameraIcon className="h-6 w-6" />

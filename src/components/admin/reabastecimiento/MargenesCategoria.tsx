@@ -61,7 +61,7 @@ function Fila({
                   regla.margen !== null &&
                   regla.margenActual < regla.margen
                     ? "font-semibold text-amber-600"
-                    : "font-semibold text-emerald-600"
+                    : "font-semibold text-brand-600"
                 }
               >
                 {formatearMargen(regla.margenActual)}
@@ -81,7 +81,7 @@ function Fila({
           value={margen}
           onChange={(e) => setMargen(e.target.value)}
           placeholder={esGeneral ? "35" : "usa el general"}
-          className="w-20 rounded-lg border border-gray-300 px-2 py-1 text-sm font-semibold text-gray-900 focus:border-emerald-500 focus:ring-emerald-500"
+          className="w-20 rounded-lg border border-gray-300 px-2 py-1 text-sm font-semibold text-gray-900 focus:border-brand-500 focus:ring-brand-500"
         />
         %
       </label>
@@ -89,7 +89,7 @@ function Fila({
       <select
         value={redondeo}
         onChange={(e) => setRedondeo(e.target.value as ModoRedondeo)}
-        className="rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-700 focus:border-emerald-500 focus:ring-emerald-500"
+        className="rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-700 focus:border-brand-500 focus:ring-brand-500"
         title="Cómo se redondea el precio propuesto. Siempre hacia arriba."
       >
         {MODOS_REDONDEO.map((m) => (

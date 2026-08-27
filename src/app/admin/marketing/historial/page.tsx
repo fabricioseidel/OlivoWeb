@@ -33,7 +33,7 @@ type EmailLog = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  sent: "bg-emerald-100 text-emerald-700 ring-emerald-200",
+  sent: "bg-brand-100 text-brand-700 ring-brand-200",
   failed: "bg-rose-100 text-rose-700 ring-rose-200",
   bounced: "bg-amber-100 text-amber-700 ring-amber-200",
   opened: "bg-sky-100 text-sky-700 ring-sky-200",
@@ -180,13 +180,13 @@ export default function HistorialPage() {
           kicker="Marketing"
           title="Historial de emails"
           subtitle="Auditá envíos, fallos y aperturas de todos los emails transaccionales y campañas"
-          icon={<ClockIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<ClockIcon className="w-6 h-6 text-brand-300" />}
           right={
             <div className="flex items-center gap-2">
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="bg-white/10 ring-1 ring-white/15 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-widest text-white focus:ring-2 focus:ring-emerald-400 min-h-[36px]"
+                className="bg-white/10 ring-1 ring-white/15 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-widest text-white focus:ring-2 focus:ring-brand-400 min-h-[36px]"
               >
                 <option value="" className="text-gray-900">
                   Todos
@@ -204,7 +204,7 @@ export default function HistorialPage() {
               <button
                 onClick={loadLogs}
                 disabled={loading}
-                className="p-2 bg-white/10 ring-1 ring-white/15 rounded-xl text-emerald-100 hover:bg-white/15 transition-colors min-h-[36px]"
+                className="p-2 bg-white/10 ring-1 ring-white/15 rounded-xl text-brand-100 hover:bg-white/15 transition-colors min-h-[36px]"
                 title="Actualizar"
               >
                 <ArrowPathIcon
@@ -226,7 +226,7 @@ export default function HistorialPage() {
         <StatsCard
           label="Enviados"
           value={stats.sent.toLocaleString()}
-          tone="emerald"
+          tone="brand"
           icon={<CheckCircleIcon className="w-4 h-4" />}
         />
         <StatsCard
@@ -244,7 +244,7 @@ export default function HistorialPage() {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500" />
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-500" />
         </div>
       ) : (
         <ResponsiveTable<EmailLog>

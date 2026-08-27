@@ -56,9 +56,9 @@ export default function CategorySelector({ value, isDirty, onChange }: { value: 
         ref={btnRef}
         type="button"
         onClick={toggleOpen}
-        className={`w-full flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[0.05em] transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
+        className={`w-full flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[0.05em] transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/50 ${
           isDirty
-            ? "bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-inner"
+            ? "bg-brand-50 text-brand-700 border border-brand-200 shadow-inner"
             : value.length > 0
             ? "bg-gray-100 text-gray-600 border border-transparent hover:bg-gray-200"
             : "bg-rose-50 text-rose-400 border border-rose-100 hover:bg-rose-100"
@@ -84,12 +84,12 @@ export default function CategorySelector({ value, isDirty, onChange }: { value: 
                 type="button"
                 onClick={() => toggleCategory(cat)}
                 className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-[10px] font-black uppercase tracking-wide transition-colors ${
-                  checked ? "bg-emerald-50 text-emerald-700" : "text-gray-500 hover:bg-gray-50"
+                  checked ? "bg-brand-50 text-brand-700" : "text-gray-500 hover:bg-gray-50"
                 }`}
               >
                 <span
                   className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
-                    checked ? "bg-emerald-500 border-emerald-500 text-white" : "border-gray-300"
+                    checked ? "bg-brand-500 border-brand-500 text-white" : "border-gray-300"
                   }`}
                 >
                   {checked && <CheckIcon className="w-2.5 h-2.5" strokeWidth={3} />}

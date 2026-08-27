@@ -38,7 +38,7 @@ export function LegalLayout({
     <div className="o-container py-10 sm:py-14">
       <div className="mx-auto max-w-3xl">
         <nav aria-label="Migas de pan" className="mb-6 text-sm text-neutral-500">
-          <Link href="/" className="hover:text-emerald-700">
+          <Link href="/" className="hover:text-brand-700">
             Inicio
           </Link>
           <span className="mx-2 text-neutral-300">/</span>
@@ -71,7 +71,7 @@ export function LegalLayout({
               <li key={p.href}>
                 <Link
                   href={p.href}
-                  className="text-sm text-emerald-700 underline-offset-4 hover:underline"
+                  className="text-sm text-brand-700 underline-offset-4 hover:underline"
                 >
                   {p.label}
                 </Link>
@@ -138,14 +138,14 @@ function IdentificacionProveedor() {
         <p>
           <a
             href={`mailto:${BUSINESS.email}`}
-            className="text-emerald-700 underline-offset-4 hover:underline"
+            className="text-brand-700 underline-offset-4 hover:underline"
           >
             {BUSINESS.email}
           </a>
           {" · "}
           <a
             href={`tel:${BUSINESS.phoneE164}`}
-            className="text-emerald-700 underline-offset-4 hover:underline"
+            className="text-brand-700 underline-offset-4 hover:underline"
           >
             {BUSINESS.phoneDisplay}
           </a>

@@ -48,7 +48,7 @@ export default function AssignmentForm({
         <Field label="Producto" required>
           <div ref={productPickerRef} className="relative">
             {selectedProductObj ? (
-              <div className="flex items-center justify-between bg-emerald-50 ring-1 ring-emerald-200 rounded-xl px-3 py-2.5 gap-2">
+              <div className="flex items-center justify-between bg-brand-50 ring-1 ring-brand-200 rounded-xl px-3 py-2.5 gap-2">
                 <div className="min-w-0">
                   <div className="text-sm font-bold text-gray-900 truncate">
                     {selectedProductObj.name}
@@ -62,7 +62,7 @@ export default function AssignmentForm({
                 <button
                   type="button"
                   onClick={clearSelectedProduct}
-                  className="p-1.5 rounded-lg text-gray-500 hover:bg-emerald-100 hover:text-gray-900 shrink-0 min-h-[32px] min-w-[32px] inline-flex items-center justify-center"
+                  className="p-1.5 rounded-lg text-gray-500 hover:bg-brand-100 hover:text-gray-900 shrink-0 min-h-[32px] min-w-[32px] inline-flex items-center justify-center"
                   title="Quitar selección"
                 >
                   <XMarkIcon className="h-4 w-4" />
@@ -81,7 +81,7 @@ export default function AssignmentForm({
                     }}
                     onFocus={() => setProductPickerOpen(true)}
                     placeholder="Buscar producto por nombre o código…"
-                    className="w-full bg-white border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-white border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
                 {productPickerOpen && (
@@ -99,7 +99,7 @@ export default function AssignmentForm({
                             key={p.id}
                             type="button"
                             onClick={() => selectProduct(p)}
-                            className="w-full text-left px-3 py-2.5 hover:bg-emerald-50 flex items-center justify-between gap-2 border-b border-gray-100 last:border-0 min-h-[44px]"
+                            className="w-full text-left px-3 py-2.5 hover:bg-brand-50 flex items-center justify-between gap-2 border-b border-gray-100 last:border-0 min-h-[44px]"
                           >
                             <div className="min-w-0 flex-1">
                               <div className="text-sm font-medium text-gray-900 truncate">
@@ -115,7 +115,7 @@ export default function AssignmentForm({
                             <span
                               className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ring-1 ${
                                 p.stock > 10
-                                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                                  ? "bg-brand-50 text-brand-700 ring-brand-200"
                                   : p.stock > 0
                                   ? "bg-amber-50 text-amber-700 ring-amber-200"
                                   : "bg-rose-50 text-rose-700 ring-rose-200"
@@ -145,7 +145,7 @@ export default function AssignmentForm({
         <input
           type="number"
           step="0.01"
-          className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+          className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
           value={assignmentForm.priceWithVat}
           onChange={(e) => handlePriceCalculation("with", e.target.value)}
           placeholder="0.00"
@@ -156,7 +156,7 @@ export default function AssignmentForm({
         <input
           type="number"
           step="0.01"
-          className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+          className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
           value={assignmentForm.priceWithoutVat}
           onChange={(e) =>
             handlePriceCalculation("without", e.target.value)
@@ -169,7 +169,7 @@ export default function AssignmentForm({
         <input
           type="number"
           min={0}
-          className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+          className="w-full bg-white border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
           value={assignmentForm.defaultReorderQty}
           onChange={(e) =>
             handleAssignmentChange("defaultReorderQty", e.target.value)

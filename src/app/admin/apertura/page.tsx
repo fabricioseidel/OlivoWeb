@@ -51,7 +51,7 @@ export default function AperturaPage() {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">
-            <RocketLaunchIcon className="h-6 w-6 text-emerald-600" />
+            <RocketLaunchIcon className="h-6 w-6 text-brand-600" />
             Estado de apertura
           </h1>
           <p className="mt-1 text-sm text-slate-500">

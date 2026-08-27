@@ -7,9 +7,9 @@ import DespachoInfo from "@/components/seo/DespachoInfo";
 import { Breadcrumbs, QaPlano, WhatsappCta } from "@/components/seo/LocalBlocks";
 
 export const metadata: Metadata = {
-  title: "Delivery en Peñalolén | Productos Venezolanos",
+  title: "Minimarket a domicilio en Peñalolén | Delivery desde Ñuñoa",
   description:
-    "Despacho de productos venezolanos a Peñalolén desde Ñuñoa, Av. José Pedro Alessandri 2010. Harina PAN, quesos y abarrotes con entrega a domicilio en la comuna. Pide online o por WhatsApp.",
+    "Despacho de minimarket a Peñalolén desde Ñuñoa, Av. José Pedro Alessandri 2010: abarrotes, bebidas, lácteos, panadería y aseo, más productos venezolanos. Entrega a domicilio en la comuna. Pide online o por WhatsApp.",
   alternates: { canonical: "/delivery/penalolen" },
   openGraph: {
     locale: "es_CL",
@@ -51,14 +51,15 @@ export default function DeliveryPenalolenPage() {
         <Breadcrumbs items={BREADCRUMBS} />
 
         <h1 className="o-display text-neutral-900">
-          Delivery de productos venezolanos en Peñalolén
+          Minimarket a domicilio en Peñalolén
         </h1>
 
         <p className="mt-4 text-lg text-gray-700 leading-relaxed">
-          Llevamos productos venezolanos a Peñalolén desde nuestra tienda en Ñuñoa, en Av. José Pedro
-          Alessandri 2010. Es una de las comunas donde más cuesta encontrar harina de maíz precocida,
-          quesos venezolanos o salsas importadas en el comercio de barrio, y por eso concentramos ahí
-          buena parte de los pedidos con despacho a domicilio.
+          Llevamos la compra a domicilio a Peñalolén desde nuestra tienda en Ñuñoa, en Av. José Pedro
+          Alessandri 2010: abarrotes, bebidas, lácteos, pan, helados y aseo, todo en un mismo pedido.
+          Es además una de las comunas donde más cuesta encontrar harina de maíz precocida, quesos
+          venezolanos o salsas importadas en el comercio de barrio, y por eso concentramos ahí buena
+          parte de los pedidos con despacho a domicilio.
         </p>
 
         <p className="mt-4 text-gray-700 leading-relaxed">
@@ -96,7 +97,7 @@ export default function DeliveryPenalolenPage() {
           <div className="flex flex-wrap gap-3 pt-2">
             <Link
               href="/productos"
-              className="inline-flex items-center rounded-xl bg-emerald-600 px-6 h-12 font-bold text-white transition-colors hover:bg-emerald-500"
+              className="inline-flex items-center rounded-xl bg-brand-600 px-6 h-12 font-bold text-white transition-colors hover:bg-brand-500"
             >
               Ver catálogo
             </Link>
@@ -108,15 +109,15 @@ export default function DeliveryPenalolenPage() {
 
         <p className="mt-8 text-gray-700">
           Consulta también el despacho a{" "}
-          <Link href="/delivery/nunoa" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/delivery/nunoa" className="font-bold text-brand-700 hover:underline">
             Ñuñoa
           </Link>
           ,{" "}
-          <Link href="/delivery/macul" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/delivery/macul" className="font-bold text-brand-700 hover:underline">
             Macul
           </Link>{" "}
           y{" "}
-          <Link href="/delivery/san-joaquin" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/delivery/san-joaquin" className="font-bold text-brand-700 hover:underline">
             San Joaquín
           </Link>
           .

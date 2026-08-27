@@ -43,9 +43,9 @@ export default function ShippingSection({ settings, handleChange }: ShippingSect
         </p>
       </div>
 
-      <div className="border-l-4 border-emerald-500 bg-emerald-50 p-4 rounded">
-        <h3 className="font-semibold text-emerald-900 mb-4 flex items-center gap-2">
-          <SparklesIcon className="h-5 w-5 text-emerald-600" />
+      <div className="border-l-4 border-brand-500 bg-brand-50 p-4 rounded">
+        <h3 className="font-semibold text-brand-900 mb-4 flex items-center gap-2">
+          <SparklesIcon className="h-5 w-5 text-brand-600" />
           Cálculo por Distancia (Haversine)
         </h3>
         <CheckBoxField
@@ -84,8 +84,8 @@ export default function ShippingSection({ settings, handleChange }: ShippingSect
               />
             </div>
 
-            <div className="pt-4 border-t border-emerald-200">
-              <label className="block text-sm font-medium text-emerald-900 mb-2">
+            <div className="pt-4 border-t border-brand-200">
+              <label className="block text-sm font-medium text-brand-900 mb-2">
                 Punto de Origen (Dirección de tu Tienda o Bodega)
               </label>
               <AddressAutocomplete
@@ -103,7 +103,7 @@ export default function ShippingSection({ settings, handleChange }: ShippingSect
                 placeholder="Busca la ubicación exacta de tu bodega..."
               />
               {(settings.shipping?.shippingOriginLat && settings.shipping?.shippingOriginLng) ? (
-                <p className="mt-2 text-xs text-emerald-600 flex items-center gap-1">
+                <p className="mt-2 text-xs text-brand-600 flex items-center gap-1">
                   <CheckCircleIcon className="h-4 w-4" />
                   Coordenadas de origen configuradas satisfactoriamente
                 </p>

@@ -189,7 +189,7 @@ export default function AdminProductsPage() {
         No se encontraron categorías.{" "}
         <Link
           href="/admin/categorias"
-          className="text-emerald-700 hover:underline"
+          className="text-brand-700 hover:underline"
         >
           Crear una categoría
         </Link>
@@ -272,7 +272,7 @@ export default function AdminProductsPage() {
             p.categories.map((cat, idx) => (
               <span
                 key={idx}
-                className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest rounded-md"
+                className="px-2 py-0.5 bg-brand-50 text-brand-700 text-[10px] font-black uppercase tracking-widest rounded-md"
               >
                 {cat}
               </span>
@@ -302,7 +302,7 @@ export default function AdminProductsPage() {
         <div
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ring-1 ${
             p.stock > 10
-              ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
+              ? "bg-brand-50 text-brand-700 ring-brand-100"
               : p.stock > 0
               ? "bg-amber-50 text-amber-700 ring-amber-100"
               : "bg-rose-50 text-rose-700 ring-rose-100"
@@ -311,7 +311,7 @@ export default function AdminProductsPage() {
           <span
             className={`size-1.5 rounded-full ${
               p.stock > 10
-                ? "bg-emerald-500"
+                ? "bg-brand-500"
                 : p.stock > 0
                 ? "bg-amber-500"
                 : "bg-rose-500 animate-pulse"
@@ -366,7 +366,7 @@ export default function AdminProductsPage() {
           }}
           className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ring-1 min-h-[36px] ${
             p.isActive
-              ? "bg-emerald-100 text-emerald-700 ring-emerald-200 hover:bg-emerald-200"
+              ? "bg-brand-100 text-brand-700 ring-brand-200 hover:bg-brand-200"
               : "bg-gray-100 text-gray-500 ring-gray-200 hover:bg-gray-200"
           }`}
         >
@@ -416,13 +416,13 @@ export default function AdminProductsPage() {
             {p.description}
           </p>
           <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="text-sm font-bold text-emerald-700">
+            <span className="text-sm font-bold text-brand-700">
               ${p.price.toLocaleString("es-CL")}
             </span>
             <span
               className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
                 p.stock > 10
-                  ? "bg-emerald-100 text-emerald-700"
+                  ? "bg-brand-100 text-brand-700"
                   : p.stock > 0
                   ? "bg-amber-100 text-amber-700"
                   : "bg-rose-100 text-rose-700"
@@ -450,7 +450,7 @@ export default function AdminProductsPage() {
             onClick={() => toggleActive(p.id, !p.isActive)}
             className={`text-[10px] uppercase tracking-wider font-bold px-3 py-1.5 rounded-lg ring-1 transition-colors min-h-[36px] ${
               p.isActive
-                ? "bg-emerald-50 ring-emerald-200 text-emerald-700"
+                ? "bg-brand-50 ring-brand-200 text-brand-700"
                 : "bg-gray-50 ring-gray-200 text-gray-500"
             }`}
           >
@@ -483,7 +483,7 @@ export default function AdminProductsPage() {
           kicker="Catálogo"
           title="Gestión de Productos"
           subtitle="Control total sobre el catálogo de Olivo Market"
-          icon={<ShoppingBagIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<ShoppingBagIcon className="w-6 h-6 text-brand-300" />}
           right={
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -496,7 +496,7 @@ export default function AdminProductsPage() {
                 className="px-3 py-2 bg-white/10 ring-1 ring-white/15 rounded-xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/15 transition-all inline-flex items-center gap-2 min-h-[36px]"
                 title="Exportar a Excel"
               >
-                <DocumentArrowDownIcon className="size-4 text-emerald-300" />
+                <DocumentArrowDownIcon className="size-4 text-brand-300" />
                 Excel
               </button>
               <button
@@ -538,7 +538,7 @@ export default function AdminProductsPage() {
                 </button>
               </Link>
               <Link href="/admin/productos/nuevo">
-                <button className="px-4 py-2 bg-emerald-500 rounded-xl text-emerald-950 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 inline-flex items-center gap-2 min-h-[36px]">
+                <button className="px-4 py-2 bg-brand-500 rounded-xl text-brand-950 text-[10px] font-black uppercase tracking-widest hover:bg-brand-400 transition-all shadow-lg shadow-brand-500/20 inline-flex items-center gap-2 min-h-[36px]">
                   <PlusIcon className="size-4" />
                   Nuevo
                 </button>
@@ -558,7 +558,7 @@ export default function AdminProductsPage() {
         <StatsCard
           label="Activos"
           value={stats.active.toLocaleString()}
-          tone="emerald"
+          tone="brand"
           icon={<CheckBadgeIcon className="w-4 h-4" />}
         />
         <StatsCard
@@ -578,10 +578,10 @@ export default function AdminProductsPage() {
       <div className="bg-white p-4 sm:p-5 rounded-2xl ring-1 ring-gray-200 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
           <div className="md:col-span-2 relative">
-            <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-600" />
+            <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-600" />
             <input
               type="text"
-              className="block w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 transition-all"
+              className="block w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-brand-500 transition-all"
               placeholder="Buscar por nombre o descripción..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -589,9 +589,9 @@ export default function AdminProductsPage() {
           </div>
 
           <div className="relative">
-            <FunnelIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-600 pointer-events-none" />
+            <FunnelIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-600 pointer-events-none" />
             <select
-              className="block w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 transition-all appearance-none cursor-pointer"
+              className="block w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-brand-500 transition-all appearance-none cursor-pointer"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
@@ -609,7 +609,7 @@ export default function AdminProductsPage() {
               onClick={() => setOnlyEditedToday(!onlyEditedToday)}
               className={`flex-1 px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ring-1 min-h-[44px] ${
                 onlyEditedToday
-                  ? "bg-emerald-500 text-white ring-emerald-500 shadow shadow-emerald-500/20"
+                  ? "bg-brand-500 text-white ring-brand-500 shadow shadow-brand-500/20"
                   : "bg-gray-50 text-gray-500 ring-transparent hover:bg-gray-100"
               }`}
             >
@@ -631,7 +631,7 @@ export default function AdminProductsPage() {
         </div>
 
         <div className="mt-3 flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-          <span className="text-emerald-700">Catálogo actual</span>
+          <span className="text-brand-700">Catálogo actual</span>
           <span className="h-1 w-1 rounded-full bg-gray-300" />
           <span>
             {filteredProducts.length === 0
@@ -714,7 +714,7 @@ export default function AdminProductsPage() {
                   onClick={() => paginate(page)}
                   className={`relative inline-flex shrink-0 items-center px-3 sm:px-4 py-2 border border-gray-200 bg-white text-sm font-medium ${
                     currentPage === page
-                      ? "z-10 bg-emerald-50 border-emerald-500 text-emerald-700"
+                      ? "z-10 bg-brand-50 border-brand-500 text-brand-700"
                       : "text-gray-700 hover:bg-gray-50"
                   }`}
                 >

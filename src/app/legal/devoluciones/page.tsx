@@ -77,7 +77,7 @@ export default function DevolucionesPage() {
               Escríbenos a{" "}
               <a
                 href={`mailto:${BUSINESS.email}`}
-                className="text-emerald-700 underline underline-offset-4"
+                className="text-brand-700 underline underline-offset-4"
               >
                 {BUSINESS.email}
               </a>{" "}

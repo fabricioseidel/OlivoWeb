@@ -127,7 +127,7 @@ export default function OrderConfirmationClient() {
         <h2 className="mb-4 text-2xl font-bold tracking-tight text-neutral-900">No encontramos tu pedido</h2>
         <p className="mb-8 text-neutral-500">Si crees que esto es un error, por favor contáctanos.</p>
         <Link href="/">
-          <Button className="h-12 rounded-xl bg-emerald-600 px-8 font-semibold hover:bg-emerald-700">
+          <Button className="h-12 rounded-xl bg-brand-600 px-8 font-semibold hover:bg-brand-700">
             Volver a la tienda
           </Button>
         </Link>
@@ -228,7 +228,7 @@ export default function OrderConfirmationClient() {
                   type="button"
                   onClick={handleRetry}
                   disabled={retrying}
-                  className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                  className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
                 >
                   {retrying ? (
                     <>
@@ -257,14 +257,14 @@ export default function OrderConfirmationClient() {
                   <div key={s.label} className="flex flex-col items-center">
                     <div
                       className={`flex h-10 w-10 items-center justify-center rounded-full border-4 border-white ${
-                        s.done ? "bg-emerald-600 text-white" : "bg-neutral-100 text-neutral-400"
+                        s.done ? "bg-brand-600 text-white" : "bg-neutral-100 text-neutral-400"
                       }`}
                     >
                       <s.icon className="h-4 w-4 stroke-[2.5]" />
                     </div>
                     <p
                       className={`mt-3 text-xs font-medium ${
-                        s.done ? "text-emerald-700" : "text-neutral-400"
+                        s.done ? "text-brand-700" : "text-neutral-400"
                       }`}
                     >
                       {s.label}
@@ -284,7 +284,7 @@ export default function OrderConfirmationClient() {
               </Link>
               <Link
                 href="/productos"
-                className="flex h-12 items-center justify-center gap-2 rounded-xl border border-neutral-200 font-semibold text-neutral-800 transition hover:border-emerald-500 hover:text-emerald-700"
+                className="flex h-12 items-center justify-center gap-2 rounded-xl border border-neutral-200 font-semibold text-neutral-800 transition hover:border-brand-500 hover:text-brand-700"
               >
                 <ShoppingBagIcon className="h-4 w-4" />
                 Seguir comprando
@@ -295,7 +295,7 @@ export default function OrderConfirmationClient() {
           {/* Soporte */}
           <div className="flex flex-col items-center justify-between gap-4 border-t border-neutral-100 bg-neutral-50/80 px-6 py-6 sm:flex-row sm:px-12">
             <div className="flex items-center gap-3 text-left">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm">
                 <ChatBubbleBottomCenterTextIcon className="h-5 w-5" />
               </div>
               <div>
@@ -308,7 +308,7 @@ export default function OrderConfirmationClient() {
                 href={whatsappLink(supportPhone, orderInquiryMessage({ shortId, total: order?.total, status: copy.badge }))}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-11 shrink-0 items-center rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                className="flex h-11 shrink-0 items-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition hover:bg-brand-700"
               >
                 Escribir por WhatsApp
               </a>

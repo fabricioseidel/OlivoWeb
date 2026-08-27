@@ -57,9 +57,13 @@ export const DEFAULT_BLOCKS: PageBlock[] = [
     enabled: true,
     // El título del hero es el <h1> de la portada: debe nombrar la comuna y el
     // posicionamiento dual (minimarket + paquetería) por SEO local.
-    title: 'Olivo Market Ñuñoa — Productos venezolanos y punto de envíos',
+    //
+    // Decía "Productos venezolanos", que es el 1,7% del catálogo: dejaba fuera
+    // de las búsquedas a quien busca abarrotes, helados o panadería en Ñuñoa.
+    title: 'Minimarket en Ñuñoa con despacho a domicilio y punto de encomiendas',
+    subtitle: 'Minimarket y punto de encomiendas · Ñuñoa',
     description:
-      'Minimarket venezolano y punto de retiro y envío de encomiendas en Av. José Pedro Alessandri 2010, Ñuñoa.',
+      'Más de 700 productos: abarrotes, bebidas, lácteos, panadería, helados y aseo. Retiro y envío de encomiendas en Av. José Pedro Alessandri 2010, Ñuñoa.',
     buttonText: 'Comprar ahora',
     buttonLink: '/productos',
   },

@@ -213,7 +213,7 @@ export default function AdminOrdersPage() {
       key: "id",
       header: <SortHeader field="id">ID</SortHeader>,
       cell: (o) => (
-        <span className="font-black tracking-widest text-emerald-700 text-[11px] uppercase">
+        <span className="font-black tracking-widest text-brand-700 text-[11px] uppercase">
           #{o.id.substring(0, 8)}…
         </span>
       ),
@@ -223,7 +223,7 @@ export default function AdminOrdersPage() {
       header: <SortHeader field="customer">Cliente</SortHeader>,
       cell: (o) => (
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold ring-2 ring-white shadow-sm shrink-0">
+          <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold ring-2 ring-white shadow-sm shrink-0">
             {o.customer?.[0]?.toUpperCase() || "C"}
           </div>
           <div className="min-w-0">
@@ -266,7 +266,7 @@ export default function AdminOrdersPage() {
       cell: (o) => (
         <Link
           href={`/admin/pedidos/${o.id}`}
-          className="inline-flex items-center gap-2 px-3 py-2 bg-white ring-1 ring-gray-200 text-emerald-700 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-emerald-50 hover:ring-emerald-200 transition-colors min-h-[36px]"
+          className="inline-flex items-center gap-2 px-3 py-2 bg-white ring-1 ring-gray-200 text-brand-700 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-brand-50 hover:ring-brand-200 transition-colors min-h-[36px]"
         >
           <EyeIcon className="h-4 w-4" /> Ver
         </Link>
@@ -299,7 +299,7 @@ export default function AdminOrdersPage() {
       <div className="pt-3 border-t border-gray-100 flex justify-end">
         <Link
           href={`/admin/pedidos/${o.id}`}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-emerald-100 transition-colors min-h-[36px]"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-50 text-brand-700 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-brand-100 transition-colors min-h-[36px]"
         >
           <EyeIcon className="h-4 w-4" />
           Ver pedido
@@ -315,7 +315,7 @@ export default function AdminOrdersPage() {
           kicker="Pedidos"
           title="Pedidos de Clientes"
           subtitle="Gestión de órdenes recibidas desde la tienda online"
-          icon={<ClipboardDocumentListIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<ClipboardDocumentListIcon className="w-6 h-6 text-brand-300" />}
         />
       }
     >
@@ -334,7 +334,7 @@ export default function AdminOrdersPage() {
         <StatsCard
           label="Completados"
           value={stats.completado.toLocaleString()}
-          tone="emerald"
+          tone="brand"
         />
         <StatsCard
           label="Cancelados"
@@ -348,7 +348,7 @@ export default function AdminOrdersPage() {
           <div className="relative md:col-span-2">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
-              className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-brand-500"
               placeholder="Buscar cliente, email, ID, fecha o monto"
               value={searchTerm}
               onChange={(e) => {
@@ -358,7 +358,7 @@ export default function AdminOrdersPage() {
             />
           </div>
           <select
-            className="bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-emerald-500"
+            className="bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-brand-500"
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
@@ -373,7 +373,7 @@ export default function AdminOrdersPage() {
           </select>
           <input
             type="date"
-            className="bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-emerald-500"
+            className="bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-brand-500"
             value={dateFrom}
             onChange={(e) => {
               setDateFrom(e.target.value);
@@ -382,7 +382,7 @@ export default function AdminOrdersPage() {
           />
           <input
             type="date"
-            className="bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-emerald-500"
+            className="bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-brand-500"
             value={dateTo}
             onChange={(e) => {
               setDateTo(e.target.value);
@@ -449,7 +449,7 @@ export default function AdminOrdersPage() {
                 onClick={() => paginate(i + 1)}
                 className={`px-3 py-1.5 rounded-lg ring-1 text-sm min-h-[36px] ${
                   currentPage === i + 1
-                    ? "bg-emerald-50 ring-emerald-500 text-emerald-700 font-bold"
+                    ? "bg-brand-50 ring-brand-500 text-brand-700 font-bold"
                     : "ring-gray-200 hover:bg-gray-50 text-gray-600"
                 }`}
               >

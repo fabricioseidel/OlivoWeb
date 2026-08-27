@@ -28,7 +28,7 @@ export default function Select({ label, value, options, disabled, error, onChang
         className={`w-full rounded-xl border-2 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:ring-2 ${
           error
             ? "border-red-500 focus:border-red-500 focus:ring-red-500/40"
-            : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/40"
+            : "border-gray-200 focus:border-brand-500 focus:ring-brand-500/40"
         }`}
         value={value}
         onChange={handleChange}
