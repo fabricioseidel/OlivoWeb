@@ -12,6 +12,7 @@ import MultiImageUpload from "@/components/ui/MultiImageUpload";
 import { TrashIcon, PlusIcon, CameraIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import UnifiedScanner from "@/components/admin/scanner/UnifiedScanner";
 import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
+import { derivarCostoProveedor, aBruto } from "@/lib/pricing";
 
 
 interface FormState {
@@ -122,7 +123,7 @@ export default function EditProductPage() {
               supplierId: a.supplier_id,
               supplierName: a.supplier?.name || 'Desconocido',
               priceWithoutVat: Number(a.unit_cost || 0),
-              priceWithVat: Number(a.unit_cost || 0) * 1.19,
+              priceWithVat: aBruto(Number(a.unit_cost || 0)) ?? 0,
             }));
             setProductSuppliers(mappedAssignments);
             setInitialSupplierIds(mappedAssignments.map((a: any) => a.supplierId));
@@ -137,11 +138,13 @@ export default function EditProductPage() {
     fetchData();
   }, [id]);
 
-  // Lógica de cálculo de precios con/sin IVA
+  // Los dos campos de costo y el precio sugerido salen de `pricing.ts`; acá
+  // sólo se decide dónde dejar cada resultado.
   const handlePriceCalculation = (field: 'with' | 'without', value: string) => {
-    const numValue = parseFloat(value);
+    const derivado = derivarCostoProveedor(field === 'with' ? 'conIva' : 'sinIva', value);
 
-    if (isNaN(numValue)) {
+    if (!derivado) {
+      // Todavía no es un número: se respeta lo tecleado sin recalcular nada.
       setTempSupplier(prev => ({
         ...prev,
         priceWithVat: field === 'with' ? value : prev.priceWithVat,
@@ -150,30 +153,12 @@ export default function EditProductPage() {
       return;
     }
 
-    if (field === 'with') {
-      const withoutVat = numValue / 1.19;
-      setTempSupplier(prev => ({
-        ...prev,
-        priceWithVat: value,
-        priceWithoutVat: withoutVat.toFixed(2),
-      }));
-
-      // Calcular precio sugerido: (Precio Compra con IVA) / 0.65
-      const suggested = numValue / 0.65;
-      setForm(prev => prev ? ({ ...prev, suggestedPrice: suggested.toFixed(0) }) : prev);
-
-    } else {
-      const withVat = numValue * 1.19;
-      setTempSupplier(prev => ({
-        ...prev,
-        priceWithoutVat: value,
-        priceWithVat: withVat.toFixed(2),
-      }));
-
-      // Calcular precio sugerido: (Precio Compra con IVA) / 0.65
-      const suggested = withVat / 0.65;
-      setForm(prev => prev ? ({ ...prev, suggestedPrice: suggested.toFixed(0) }) : prev);
-    }
+    setTempSupplier(prev => ({
+      ...prev,
+      priceWithVat: derivado.conIva,
+      priceWithoutVat: derivado.sinIva,
+    }));
+    setForm(prev => (prev ? { ...prev, suggestedPrice: derivado.sugerido } : prev));
   };
 
   const addSupplier = () => {

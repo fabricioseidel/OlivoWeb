@@ -30,33 +30,64 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
   const [suggestions, setSuggestions] = useState<Array<any>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const onChangeRef = useRef(onChange);
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
+  /**
+   * Al desmontar hay que cancelar las dos cosas: el temporizador pendiente y la
+   * búsqueda en vuelo.
+   *
+   * Sin esto, quien escribe su dirección y sale del checkout antes de que
+   * termine la búsqueda deja un temporizador que dispara sobre un componente
+   * que ya no existe, con la petición corriendo igual.
+   */
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      abortRef.current?.abort();
+    };
+  }, []);
 
   const doNominatimSearch = useCallback(
     (q: string) => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      // Lo que ya estaba buscando dejó de importar: la consulta cambió.
+      abortRef.current?.abort();
+
       if (!q || q.trim().length < 3) {
         setSuggestions([]);
         setShowSuggestions(false);
         return;
       }
 
-      if (debounceRef.current) window.clearTimeout(debounceRef.current);
       debounceRef.current = window.setTimeout(async () => {
+        const control = new AbortController();
+        abortRef.current = control;
+
         try {
           const url = new URL("/api/address/search", window.location.origin);
           url.searchParams.set("q", q);
           url.searchParams.set("country", country.toLowerCase());
 
-          const res = await fetch(url.toString());
+          const res = await fetch(url.toString(), { signal: control.signal });
           if (!res.ok) throw new Error("Search failed");
           const data = await res.json();
+
+          // Mientras se esperaba la respuesta el usuario pudo seguir escribiendo.
+          // Sin esta guarda, una búsqueda vieja que llega tarde pisa los
+          // resultados de la nueva y le muestra sugerencias de lo que ya borró.
+          if (control.signal.aborted) return;
+
           setSuggestions(data || []);
           setShowSuggestions(true);
           setProviderFallback(false);
         } catch (e) {
+          // Cancelar a propósito no es una caída del servicio: avisarlo pondría
+          // el aviso de "escribe la dirección a mano" en cada tecla.
+          if (control.signal.aborted) return;
+
           console.warn("AddressAutocomplete: search error", e);
           setProviderFallback(true);
           setSuggestions([]);

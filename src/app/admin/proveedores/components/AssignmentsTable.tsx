@@ -2,6 +2,7 @@
 
 import { type Product } from "@/contexts/ProductContext";
 import { type Assignment, type EditFormState } from "../lib";
+import { aBruto } from "@/lib/pricing";
 
 interface AssignmentsTableProps {
   assignments: Assignment[];
@@ -161,7 +162,7 @@ export default function AssignmentsTable({
                         cost > 0 ? "text-emerald-700" : "text-rose-600"
                       }`}
                     >
-                      ${(cost * 1.19).toFixed(2)}
+                      ${(aBruto(cost) ?? 0).toFixed(2)}
                     </td>
                     <td
                       className={`px-4 py-3 text-right ${

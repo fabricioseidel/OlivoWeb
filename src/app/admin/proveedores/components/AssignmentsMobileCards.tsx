@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/admin/shell";
 import { type Product } from "@/contexts/ProductContext";
 import Field from "./Field";
 import { type Assignment, type EditFormState } from "../lib";
+import { aBruto } from "@/lib/pricing";
 
 interface AssignmentsMobileCardsProps {
   assignments: Assignment[];
@@ -85,7 +86,7 @@ export default function AssignmentsMobileCards({
                         cost > 0 ? "text-emerald-700" : "text-rose-600"
                       }`}
                     >
-                      ${(cost * 1.19).toFixed(2)}
+                      ${(aBruto(cost) ?? 0).toFixed(2)}
                     </div>
                     <div className="text-[10px] text-gray-400 uppercase font-bold">
                       Con IVA

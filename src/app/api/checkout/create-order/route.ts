@@ -19,6 +19,7 @@ import { toZonedTime } from 'date-fns-tz';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { assertOrdersEnabled } from '@/server/store-status.service';
 import { PREVIEW_HTTP_STATUS } from '@/lib/store-status';
+import { bloqueadosParaVenta, mensajeBloqueo } from "@/server/sellable.service";
 
 const TIMEZONE = "America/Santiago";
 
@@ -206,6 +207,22 @@ export async function POST(request: NextRequest) {
 
     if (productsErr || !dbProducts) {
        return NextResponse.json({ error: 'No se pudo validar el stock de los productos.' }, { status: 500 });
+    }
+
+    // Regla de venta web: sólo se vende lo que tiene costo de proveedor y
+    // precio revisado. Apagada por defecto, y cuando lo está no cuesta ni un
+    // viaje a la base. Se comprueba acá, en el servidor, porque esconder el
+    // producto del catálogo no impide que alguien llame esta ruta con su
+    // código: el pedido se crearía igual y habría que salir a explicarle al
+    // cliente por qué no llega.
+    const bloqueados = await bloqueadosParaVenta(
+      dbProducts.map((p: any) => String(p.barcode))
+    );
+    if (bloqueados.length > 0) {
+      return NextResponse.json(
+        { error: mensajeBloqueo(bloqueados), blocked: bloqueados.map((b) => b.barcode) },
+        { status: 409 }
+      );
     }
 
     let calculatedSubtotal = 0;
