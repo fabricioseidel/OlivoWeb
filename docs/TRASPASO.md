@@ -232,22 +232,47 @@ existía. Se le ligaron los dos productos que lo llevan en el nombre —
 `Pan Andino el oasis` y `Pan francés 6 unidades el oasis`— **sin costo**,
 porque la nota que entregó no lista ninguno de los dos.
 
+**Siete productos nuevos, creados con el dueño en la línea.** Los ítems que no
+casaban con nada del catálogo resultaron ser productos que efectivamente no
+existían. Se crearon con costo cargado y **precio de venta en 0**, a la espera
+de que el dueño lo defina:
+
+| Código | Producto | Costo | IVA | Pack | Sugerido 35% |
+|---|---|---:|---:|---:|---:|
+| `900000000105` | Quesadilla El Oasis | $2.000 | 0% | — | $3.080 |
+| `900000000106` | Catalinas El Oasis (5 un.) | $1.500 | 0% | 5 | $2.310 |
+| `900000000107` | Pan de Queso El Oasis | $2.100 | 0% | — | $3.240 |
+| `900000000108` | Pan Azucarado El Oasis | $1.900 | 0% | — | $2.930 |
+| `900000000109` | Helado Savory Sandía 53 Gr | $463 | 19% | 16 | $850 |
+| `900000000110` | Helado Danky Pistacho Chocolate 125 Ml | $1.450 | 19% | 18 | $2.660 |
+| `900000000111` | Helado Mega Chocolate Naranja 90 Ml | $1.582 | 19% | 16 | $2.900 |
+
+Quedan **activos con precio 0 a propósito**, y es seguro: la tienda no los
+muestra (`isProductVisible` descarta precio ≤ 0) y el checkout los rechaza
+(el arreglo de más abajo). Activos aparecen en la pantalla de Precios con su
+costo y el precio sugerido; inactivos no aparecerían y nadie se acordaría de
+ellos. Para Mega Chocolate Naranja hay un comparable directo: los otros dos
+MEGA del catálogo tienen el mismo costo ($1.582) y se venden a $2.500.
+
+Los tres helados llevan `pack_size` (16, 18, 16) y el código Nestlé en
+`supplier_sku` — es la primera vez que el pack de compra queda declarado en
+vez de resuelto a mano.
+
 **Lo que NO se cargó, y por qué.** Adivinar un costo es peor que dejarlo
 vacío: queda indistinguible de un dato real.
 
 - *Dulce Pan* factura "Queso" (Q-941475, $2.184,87) y "Torta de Pan"
   (`752590810566644`, $1.344,54). **Ninguno de los dos existe en el
   catálogo.** Hay que crearlos antes de poder ligarlos.
-- *Nestlé* factura cuatro helados por caja. Sólo uno casa sin ambigüedad
-  (MEGA Almendras, ya cargado a $1.582). Los otros tres —SAVORY Sandía
-  ($463/un), DNKY Pistacho Chocolate ($1.450/un), MEGA Chocolate Naranja
-  ($1.582/un)— no tienen equivalente claro: el catálogo tiene "Danky 21",
-  "Danky Stranger Things" y "Mega Choco Avellana", que son otros sabores.
-- *La nota de El Oasis* (Quesadillas $2.000, Negras $1.500, Queso 3 $2.100,
-  Azucarados $1.900) no casa con ningún producto del catálogo. "Negras"
-  podría ser `Catalina (galleta negra)`, pero ya está ligada a Pan La Alianza
-  a $1.260,50, y la nota dice $1.500. Requiere que el dueño diga qué es cada
-  ítem.
+- *Dulce Pan* factura además "Queso" (Q-941475) y "Torta de Pan", que tampoco
+  existen en el catálogo y quedaron sin crear: a diferencia de los de arriba,
+  el dueño todavía no confirmó qué son.
+
+Los helados de Nestlé y los ítems de El Oasis sí se resolvieron, preguntando
+en vez de adivinando — están en la tabla de arriba. El dato que lo destrabó:
+"Negras" son catalinas (o cucas), vienen de a 5, y El Oasis es otra marca que
+hace la misma línea de panes venezolanos y andinos que Dulce Pan. Eso explica
+por qué los nombres se parecían tanto sin ser los mismos productos.
 
 **Ojo con el IVA de El Oasis.** La nota no es documento tributario: sin
 factura no hay crédito fiscal, así que sus costos van con `tax_rate = 0` y
