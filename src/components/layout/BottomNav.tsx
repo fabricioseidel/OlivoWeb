@@ -36,8 +36,8 @@ export default function BottomNav() {
                             key={item.href}
                             href={item.href}
                             className={`flex flex-col items-center justify-center gap-0.5 py-2 transition-colors relative ${active
-                                ? "text-emerald-600"
-                                : "text-gray-500 hover:text-emerald-500"
+                                ? "text-brand-600"
+                                : "text-gray-500 hover:text-brand-500"
                                 }`}
                         >
                             <div className="relative">
@@ -46,7 +46,7 @@ export default function BottomNav() {
                                 <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
                                 {/* Cart badge */}
                                 {item.href === "/carrito" && itemCount > 0 && (
-                                    <span className="absolute -right-3 -top-2 flex size-5 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white ring-2 ring-white">
+                                    <span className="absolute -right-3 -top-2 flex size-5 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white ring-2 ring-white">
                                         {itemCount > 9 ? "9+" : itemCount}
                                     </span>
                                 )}
@@ -56,7 +56,7 @@ export default function BottomNav() {
                             </span>
                             {/* Active indicator dot */}
                             {active && (
-                                <span className="absolute top-1 w-1 h-1 rounded-full bg-emerald-600" />
+                                <span className="absolute top-1 w-1 h-1 rounded-full bg-brand-600" />
                             )}
                         </Link>
                     );

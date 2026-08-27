@@ -47,7 +47,7 @@ export default function OperacionesApp() {
               onClick={() => setMode(id)}
               className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-b-2 ${
                 mode === id
-                  ? "border-emerald-500 text-emerald-400"
+                  ? "border-brand-500 text-brand-400"
                   : "border-transparent text-white/30 hover:text-white/60"
               }`}
             >
@@ -73,7 +73,7 @@ export default function OperacionesApp() {
             <button
               type="button"
               onClick={() => setMode("CAJA")}
-              className="mt-6 inline-flex items-center justify-center rounded-xl bg-emerald-600 px-6 h-12 font-bold text-white transition-colors hover:bg-emerald-500"
+              className="mt-6 inline-flex items-center justify-center rounded-xl bg-brand-600 px-6 h-12 font-bold text-white transition-colors hover:bg-brand-500"
             >
               Ir a abrir la caja
             </button>

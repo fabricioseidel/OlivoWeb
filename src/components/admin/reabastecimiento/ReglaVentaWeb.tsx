@@ -101,7 +101,7 @@ export default function ReglaVentaWeb({ onCambio }: { onCambio?: () => void }) {
     <div
       className={`rounded-2xl p-4 ring-1 ${
         impacto.activa
-          ? "bg-emerald-50 ring-emerald-200"
+          ? "bg-brand-50 ring-brand-200"
           : limpio
             ? "bg-white ring-gray-200"
             : "bg-amber-50 ring-amber-200"
@@ -109,7 +109,7 @@ export default function ReglaVentaWeb({ onCambio }: { onCambio?: () => void }) {
     >
       <div className="flex flex-wrap items-start gap-3">
         {impacto.activa ? (
-          <ShieldCheckIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+          <ShieldCheckIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
         ) : (
           <NoSymbolIcon className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
         )}
@@ -125,17 +125,17 @@ export default function ReglaVentaWeb({ onCambio }: { onCambio?: () => void }) {
 
           {impacto.activa ? (
             bloqueados > 0 ? (
-              <p className="mt-2 text-xs font-semibold text-emerald-900">
+              <p className="mt-2 text-xs font-semibold text-brand-900">
                 {bloqueados} de {impacto.total} productos no se están vendiendo
                 por la web ahora mismo.
               </p>
             ) : (
-              <p className="mt-2 text-xs font-semibold text-emerald-900">
+              <p className="mt-2 text-xs font-semibold text-brand-900">
                 Los {impacto.total} productos activos cumplen la regla.
               </p>
             )
           ) : limpio ? (
-            <p className="mt-2 text-xs font-semibold text-emerald-700">
+            <p className="mt-2 text-xs font-semibold text-brand-700">
               Encenderla ahora no dejaría ningún producto fuera.
             </p>
           ) : (

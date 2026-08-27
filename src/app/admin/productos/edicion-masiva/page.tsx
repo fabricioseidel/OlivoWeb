@@ -659,7 +659,7 @@ export default function BulkEditProductsPage() {
           <div className="mt-6 text-center">
             <button
               onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-              className="px-8 h-12 rounded-2xl bg-white border-2 border-gray-200 hover:border-emerald-400 font-black text-xs uppercase tracking-widest text-gray-500 hover:text-emerald-600 transition-colors shadow-sm"
+              className="px-8 h-12 rounded-2xl bg-white border-2 border-gray-200 hover:border-brand-400 font-black text-xs uppercase tracking-widest text-gray-500 hover:text-brand-600 transition-colors shadow-sm"
             >
               Mostrar más ({filteredProducts.length - visibleCount} restantes)
             </button>
@@ -684,7 +684,7 @@ export default function BulkEditProductsPage() {
 
       <div className="hidden md:flex mt-8 justify-center gap-6 text-[10px] font-black uppercase tracking-widest text-gray-400 opacity-60">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" /> Cambios detectados
+          <span className="w-2 h-2 rounded-full bg-brand-500" /> Cambios detectados
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-amber-500" /> Alerta Stock Bajo

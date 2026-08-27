@@ -96,7 +96,7 @@ function LoginForm() {
             ¿No tienes una cuenta?{" "}
             <Link
               href="/registro"
-              className="o-focus rounded font-semibold text-emerald-700 transition-colors hover:text-emerald-800"
+              className="o-focus rounded font-semibold text-brand-700 transition-colors hover:text-brand-800"
             >
               Regístrate aquí
             </Link>
@@ -145,7 +145,7 @@ function LoginForm() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-5 w-5 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded-lg cursor-pointer transition-all"
+                  className="h-5 w-5 text-brand-600 focus:ring-brand-500 border-gray-300 rounded-lg cursor-pointer transition-all"
                 />
                 <span className="ml-2 block text-sm text-gray-500 font-bold group-hover:text-gray-900 transition-colors">Recordarme</span>
               </label>
@@ -153,7 +153,7 @@ function LoginForm() {
               <div className="text-sm">
                 <Link
                   href="/recuperar-password"
-                  className="o-focus rounded font-medium text-neutral-500 transition-colors hover:text-emerald-700"
+                  className="o-focus rounded font-medium text-neutral-500 transition-colors hover:text-brand-700"
                 >
                   ¿Olvidaste tu contraseña?
                 </Link>
@@ -174,7 +174,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center flex-col gap-4">
-      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-emerald-500"></div>
+      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-brand-500"></div>
       <p className="text-sm text-neutral-500">Cargando…</p>
     </div>}>
       <LoginForm />

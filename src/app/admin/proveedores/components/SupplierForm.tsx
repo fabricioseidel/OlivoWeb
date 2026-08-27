@@ -29,28 +29,28 @@ export default function SupplierForm({
           <Field label="Nombre" required>
             <input
               required
-              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               value={form.name ?? ""}
               onChange={(e) => onFormChange("name", e.target.value)}
             />
           </Field>
           <Field label="Contacto">
             <input
-              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               value={form.contact_name ?? ""}
               onChange={(e) => onFormChange("contact_name", e.target.value)}
             />
           </Field>
           <Field label="Teléfono">
             <input
-              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               value={form.phone ?? ""}
               onChange={(e) => onFormChange("phone", e.target.value)}
             />
           </Field>
           <Field label="WhatsApp">
             <input
-              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               value={form.whatsapp ?? ""}
               onChange={(e) => onFormChange("whatsapp", e.target.value)}
             />
@@ -58,14 +58,14 @@ export default function SupplierForm({
           <Field label="Email">
             <input
               type="email"
-              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               value={form.email ?? ""}
               onChange={(e) => onFormChange("email", e.target.value)}
             />
           </Field>
           <Field label="Días de despacho">
             <input
-              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               value={form.dispatch_days ?? ""}
               onChange={(e) =>
                 onFormChange("dispatch_days", e.target.value)
@@ -78,7 +78,7 @@ export default function SupplierForm({
               type="number"
               min={0}
               step="0.01"
-              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               value={form.min_order_amount ?? ""}
               onChange={(e) =>
                 onFormChange("min_order_amount", e.target.value)
@@ -87,7 +87,7 @@ export default function SupplierForm({
           </Field>
           <Field label="Tipo de pago">
             <input
-              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
               value={form.payment_type ?? ""}
               onChange={(e) =>
                 onFormChange("payment_type", e.target.value)
@@ -99,7 +99,7 @@ export default function SupplierForm({
             <Field label="Notas">
               <textarea
                 rows={3}
-                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500 resize-none"
+                className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500 resize-none"
                 value={form.notes ?? ""}
                 onChange={(e) => onFormChange("notes", e.target.value)}
               />

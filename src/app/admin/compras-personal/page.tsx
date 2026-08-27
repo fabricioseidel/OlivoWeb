@@ -97,7 +97,7 @@ export default function ComprasPersonalPage() {
         </p>
       ) : vendedores.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-gray-300 p-10 text-center">
-          <CheckCircleIcon className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
+          <CheckCircleIcon className="w-10 h-10 text-brand-500 mx-auto mb-3" />
           <p className="font-bold text-gray-900">No hay compras pendientes de cobro</p>
           <p className="text-sm text-gray-500 mt-1">
             Todas las compras del personal están pagadas o ya fueron descontadas.
@@ -125,7 +125,7 @@ export default function ComprasPersonalPage() {
                     type="button"
                     onClick={() => liquidar(v)}
                     disabled={liquidando !== null}
-                    className="rounded-xl bg-emerald-600 px-5 h-11 font-bold text-white transition-colors hover:bg-emerald-500 disabled:opacity-40"
+                    className="rounded-xl bg-brand-600 px-5 h-11 font-bold text-white transition-colors hover:bg-brand-500 disabled:opacity-40"
                   >
                     {liquidando === v.sellerName ? "Liquidando…" : "Marcar descontado"}
                   </button>

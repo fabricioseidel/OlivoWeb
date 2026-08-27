@@ -291,8 +291,8 @@ export default function ShippingForm({
         <div className="flex items-center justify-between mb-6">
           <h3 className="o-h3 text-neutral-900">Método de envío</h3>
           {isCalculating && (
-            <div className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full animate-pulse">
-              <div className="animate-spin h-3.3 w-3.5 border-2 border-emerald-600 border-t-transparent rounded-full mr-2" />
+            <div className="flex items-center text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full animate-pulse">
+              <div className="animate-spin h-3.3 w-3.5 border-2 border-brand-600 border-t-transparent rounded-full mr-2" />
               Calculando distancia...
             </div>
           )}
@@ -321,7 +321,7 @@ export default function ShippingForm({
           {shippingMethods.map((method) => {
             const isSelected = selectedMethod === method.id;
             return (
-              <div key={method.id} className={`overflow-hidden rounded-xl border transition-colors ${isSelected ? 'border-emerald-500 bg-emerald-50/50' : 'border-neutral-200 bg-white hover:border-neutral-300'}`}>
+              <div key={method.id} className={`overflow-hidden rounded-xl border transition-colors ${isSelected ? 'border-brand-500 bg-brand-50/50' : 'border-neutral-200 bg-white hover:border-neutral-300'}`}>
                 <label
                   htmlFor={method.id}
                   className="flex items-center justify-between p-5 cursor-pointer"
@@ -335,13 +335,13 @@ export default function ShippingForm({
                         value={method.id}
                         checked={isSelected}
                         onChange={onMethodChange}
-                        className="h-5 w-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer"
+                        className="h-5 w-5 text-brand-600 border-gray-300 focus:ring-brand-500 cursor-pointer"
                       />
                     </div>
                     
                     <div className="ml-5 flex items-center gap-4">
                       {method.id === 'dynamic' && (
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20">
+                        <div className="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center shadow-lg shadow-brand-600/20">
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -369,7 +369,7 @@ export default function ShippingForm({
                       </span>
                     )}
                     {method.price === 0 ? (
-                      <span className="text-[15px] font-semibold text-emerald-700">Gratis</span>
+                      <span className="text-[15px] font-semibold text-brand-700">Gratis</span>
                     ) : (
                       <span className="tabular text-[15px] font-semibold text-neutral-900">${method.price.toLocaleString('es-CL')}</span>
                     )}
@@ -378,7 +378,7 @@ export default function ShippingForm({
 
                 {/* Sub UI for dynamic shipping when selected */}
                 {isSelected && method.id === 'dynamic' && (
-                  <div className="px-5 pb-5 pt-2 border-t border-emerald-100/50 mt-1">
+                  <div className="px-5 pb-5 pt-2 border-t border-brand-100/50 mt-1">
                      <p className="text-sm font-bold text-gray-900 mb-3">Programa tu entrega:</p>
                      
                      {/* Horizontal Days Selector */}
@@ -393,8 +393,8 @@ export default function ShippingForm({
                                onClick={() => handleDateClick(d)}
                                className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all ${
                                  isDaySelected 
-                                  ? 'border-emerald-600 bg-emerald-600 text-white shadow-md' 
-                                  : 'border-gray-200 bg-white text-gray-600 hover:border-emerald-300'
+                                  ? 'border-brand-600 bg-brand-600 text-white shadow-md' 
+                                  : 'border-gray-200 bg-white text-gray-600 hover:border-brand-300'
                                }`}
                              >
                                {formatShortDate(d)}
@@ -406,8 +406,8 @@ export default function ShippingForm({
                      {/* Slots Selector */}
                      <div className="mt-4">
                         {slotsLoading ? (
-                           <div className="flex py-4 items-center justify-center text-emerald-600 text-xs font-bold">
-                             <div className="animate-spin h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full mr-2" />
+                           <div className="flex py-4 items-center justify-center text-brand-600 text-xs font-bold">
+                             <div className="animate-spin h-4 w-4 border-2 border-brand-600 border-t-transparent rounded-full mr-2" />
                              Cargando horarios...
                            </div>
                         ) : (
@@ -425,11 +425,11 @@ export default function ShippingForm({
                                         !slot.available 
                                          ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
                                          : isSlotSelected
-                                           ? 'border-emerald-600 bg-emerald-50'
-                                           : 'border-gray-200 hover:border-emerald-300 bg-white'
+                                           ? 'border-brand-600 bg-brand-50'
+                                           : 'border-gray-200 hover:border-brand-300 bg-white'
                                       }`}
                                     >
-                                      <p className={`text-sm font-medium ${!slot.available ? 'text-neutral-400' : isSlotSelected ? 'text-emerald-900' : 'text-neutral-700'}`}>
+                                      <p className={`text-sm font-medium ${!slot.available ? 'text-neutral-400' : isSlotSelected ? 'text-brand-900' : 'text-neutral-700'}`}>
                                         {slot.label}
                                       </p>
                                       <p className="mt-0.5 text-xs text-neutral-500">

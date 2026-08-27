@@ -154,15 +154,15 @@ export default function CorreosDeChilePage() {
 
         <p className="mt-8 text-gray-700">
           Compara con{" "}
-          <Link href="/punto-de-envio/chilexpress" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/punto-de-envio/chilexpress" className="font-bold text-brand-700 hover:underline">
             Chilexpress
           </Link>{" "}
           y{" "}
-          <Link href="/punto-de-envio/bluexpress" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/punto-de-envio/bluexpress" className="font-bold text-brand-700 hover:underline">
             Bluexpress
           </Link>{" "}
           en el{" "}
-          <Link href="/punto-de-envio" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/punto-de-envio" className="font-bold text-brand-700 hover:underline">
             hub de paquetería
           </Link>
           .

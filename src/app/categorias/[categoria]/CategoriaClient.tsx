@@ -43,7 +43,7 @@ export default function CategoriaClient() {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3">
-        <div className="size-10 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+        <div className="size-10 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
         <span className="text-sm text-neutral-500">Cargando productos…</span>
       </div>
     );
@@ -64,7 +64,7 @@ export default function CategoriaClient() {
     <div className="o-container o-section">
       <Link
         href="/categorias"
-        className="o-focus group mb-5 inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-emerald-700"
+        className="o-focus group mb-5 inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-brand-700"
       >
         <ArrowLeftIcon className="size-4 transition-transform group-hover:-translate-x-0.5" />
         Todas las categorías
@@ -83,7 +83,7 @@ export default function CategoriaClient() {
           </p>
           <Link
             href="/productos"
-            className="o-focus inline-flex h-11 items-center rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+            className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
           >
             Ver catálogo completo
           </Link>

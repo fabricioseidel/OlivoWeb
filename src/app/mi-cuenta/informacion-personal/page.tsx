@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeftIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
 
-const inputClass = "w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 transition-all";
+const inputClass = "w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 transition-all";
 const labelClass = "mb-1.5 block text-sm font-medium text-neutral-700";
 
 export default function InformacionPersonalPage() {
@@ -77,7 +77,7 @@ export default function InformacionPersonalPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500" />
       </div>
     );
   }
@@ -86,7 +86,7 @@ export default function InformacionPersonalPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <Link
         href="/mi-cuenta"
-        className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-emerald-600 mb-8 transition-colors"
+        className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-brand-600 mb-8 transition-colors"
       >
         <ArrowLeftIcon className="w-4 h-4 mr-2" />
         Volver a Mi Cuenta
@@ -99,9 +99,9 @@ export default function InformacionPersonalPage() {
 
       <div className="o-card p-6">
         {saved && (
-          <div className="flex items-center gap-3 mb-6 px-5 py-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
-            <CheckCircleIcon className="w-5 h-5 text-emerald-600 shrink-0" />
-            <p className="text-sm font-bold text-emerald-800">Información actualizada correctamente</p>
+          <div className="flex items-center gap-3 mb-6 px-5 py-4 bg-brand-50 border border-brand-200 rounded-2xl">
+            <CheckCircleIcon className="w-5 h-5 text-brand-600 shrink-0" />
+            <p className="text-sm font-bold text-brand-800">Información actualizada correctamente</p>
           </div>
         )}
 
@@ -150,7 +150,7 @@ export default function InformacionPersonalPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="o-focus inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="o-focus inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
               {isSubmitting ? "Guardando…" : "Guardar cambios"}

@@ -169,7 +169,7 @@ export default function SugerenciasPanel({ onAfterDraftsCreated }: Props) {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-xl font-black tracking-tight text-gray-900 flex items-center gap-2">
-            <SparklesIcon className="h-5 w-5 text-emerald-500" />
+            <SparklesIcon className="h-5 w-5 text-brand-500" />
             Reposición semi-automática
           </h2>
           <p className="text-sm text-gray-500 mt-1 max-w-2xl">
@@ -181,7 +181,7 @@ export default function SugerenciasPanel({ onAfterDraftsCreated }: Props) {
         </div>
         <Link
           href="/admin/proveedores/asignar"
-          className="text-sm font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2"
+          className="text-sm font-semibold text-brand-700 hover:text-brand-900 underline underline-offset-2"
         >
           Asignar proveedores a productos →
         </Link>
@@ -214,7 +214,7 @@ export default function SugerenciasPanel({ onAfterDraftsCreated }: Props) {
             type="checkbox"
             checked={onlyWithSupplier}
             onChange={(e) => setOnlyWithSupplier(e.target.checked)}
-            className="rounded text-emerald-600 focus:ring-emerald-500"
+            className="rounded text-brand-600 focus:ring-brand-500"
           />
           Sólo con proveedor asignado
         </label>
@@ -227,7 +227,7 @@ export default function SugerenciasPanel({ onAfterDraftsCreated }: Props) {
             <Button
               onClick={generateDrafts}
               disabled={generating}
-              className="bg-emerald-700 hover:bg-emerald-800"
+              className="bg-brand-700 hover:bg-brand-800"
             >
               <DocumentPlusIcon className="h-5 w-5 mr-2" />
               {generating
@@ -243,7 +243,7 @@ export default function SugerenciasPanel({ onAfterDraftsCreated }: Props) {
           <SummaryCard
             label="Productos a pedir"
             value={data.total_items.toString()}
-            color="emerald"
+            color="brand"
           />
           <SummaryCard
             label="Proveedores involucrados"
@@ -282,9 +282,9 @@ export default function SugerenciasPanel({ onAfterDraftsCreated }: Props) {
       )}
 
       {lastDraft && lastDraft.result.orders_created > 0 && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+        <div className="bg-brand-50 border border-brand-200 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            <div className="flex items-center gap-2 text-emerald-900 font-bold">
+            <div className="flex items-center gap-2 text-brand-900 font-bold">
               <CheckCircleIcon className="h-5 w-5" />
               {lastDraft.result.orders_created} borradores creados ·{" "}
               {lastDraft.result.items_created} items ·{" "}
@@ -292,16 +292,16 @@ export default function SugerenciasPanel({ onAfterDraftsCreated }: Props) {
             </div>
             <Link
               href="/admin/reabastecimiento?tab=pedidos"
-              className="text-xs font-bold uppercase tracking-wider text-emerald-700 hover:text-emerald-900"
+              className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:text-brand-900"
             >
               Ver pedidos →
             </Link>
           </div>
-          <div className="space-y-1 text-sm text-emerald-900/90">
+          <div className="space-y-1 text-sm text-brand-900/90">
             {lastDraft.result.orders.map((o) => (
               <div
                 key={o.order_id}
-                className="flex justify-between border-t border-emerald-200 pt-1"
+                className="flex justify-between border-t border-brand-200 pt-1"
               >
                 <Link
                   href={`/admin/pedidos-proveedor/${o.order_id}`}
@@ -363,7 +363,7 @@ function NumberField({
           if (Number.isFinite(n))
             setValue(Math.min(max, Math.max(min, Math.floor(n))));
         }}
-        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
+        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500"
       />
     </div>
   );
@@ -376,10 +376,10 @@ function SummaryCard({
 }: {
   label: string;
   value: string;
-  color: "emerald" | "blue" | "amber";
+  color: "brand" | "blue" | "amber";
 }) {
   const colors = {
-    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    brand: "bg-brand-50 text-brand-700 border-brand-200",
     blue: "bg-blue-50 text-blue-700 border-blue-200",
     amber: "bg-amber-50 text-amber-700 border-amber-200",
   } as const;
@@ -441,7 +441,7 @@ function SupplierBucketCard({ bucket }: { bucket: SupplierBucket }) {
                   ? "text-rose-600"
                   : coverNum < 7
                   ? "text-amber-600"
-                  : "text-emerald-700";
+                  : "text-brand-700";
               return (
                 <tr key={it.barcode} className="hover:bg-gray-50">
                   <td className="px-4 py-2">
@@ -470,7 +470,7 @@ function SupplierBucketCard({ bucket }: { bucket: SupplierBucket }) {
                   <td className="text-right px-2 py-2 text-gray-500">
                     {it.pack_size ?? "—"}
                   </td>
-                  <td className="text-right px-2 py-2 font-black text-emerald-700">
+                  <td className="text-right px-2 py-2 font-black text-brand-700">
                     {it.suggested_qty}
                   </td>
                   <td className="text-right px-2 py-2 text-gray-700">

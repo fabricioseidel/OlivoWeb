@@ -79,7 +79,7 @@ export default function FiltersToolbar({
               placeholder="Buscar por nombre, código o categoría..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             />
           </div>
         </div>
@@ -88,7 +88,7 @@ export default function FiltersToolbar({
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500"
         >
           <option value="">Todas las categorías</option>
           {uniqueCategories.map((cat) => (
@@ -102,7 +102,7 @@ export default function FiltersToolbar({
         <select
           value={filterValid}
           onChange={(e) => setFilterValid(e.target.value as any)}
-          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500"
         >
           <option value="all">Todos</option>
           <option value="valid">✅ Solo válidos</option>
@@ -115,7 +115,7 @@ export default function FiltersToolbar({
             type="checkbox"
             checked={showOnlySelected}
             onChange={(e) => setShowOnlySelected(e.target.checked)}
-            className="rounded text-emerald-600"
+            className="rounded text-brand-600"
           />
           <span className="text-sm">Solo para exportar</span>
         </label>
@@ -127,7 +127,7 @@ export default function FiltersToolbar({
 
         <button
           onClick={selectAllExportFiltered}
-          className="px-3 py-1.5 text-sm bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition"
+          className="px-3 py-1.5 text-sm bg-brand-100 text-brand-700 rounded-lg hover:bg-brand-200 transition"
         >
           Marcar export ({filteredProducts.length})
         </button>

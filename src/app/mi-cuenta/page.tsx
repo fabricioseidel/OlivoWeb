@@ -35,8 +35,8 @@ const STATUS_LABELS: Record<string, string> = {
 const mapStatus = (s: string) => STATUS_LABELS[s] || s;
 
 const STATUS_STYLES: Record<string, string> = {
-  Entregado: "bg-emerald-100 text-emerald-800",
-  Completado: "bg-emerald-100 text-emerald-800",
+  Entregado: "bg-brand-100 text-brand-800",
+  Completado: "bg-brand-100 text-brand-800",
   "En proceso": "bg-amber-100 text-amber-800",
   Pendiente: "bg-amber-100 text-amber-800",
   Enviado: "bg-blue-100 text-blue-800",
@@ -142,7 +142,7 @@ export default function MiCuentaPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="size-10 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+        <div className="size-10 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
       </div>
     );
   }
@@ -165,12 +165,12 @@ export default function MiCuentaPage() {
         {/* ── Perfil y accesos ── */}
         <div className="space-y-4 lg:col-span-1">
           <div className="o-card p-6 text-center">
-            <div className="mx-auto mb-4 flex size-20 items-center justify-center overflow-hidden rounded-full bg-emerald-50">
+            <div className="mx-auto mb-4 flex size-20 items-center justify-center overflow-hidden rounded-full bg-brand-50">
               {session?.user?.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={session.user.image} alt="" className="h-full w-full object-cover" />
               ) : (
-                <UserIcon className="size-9 text-emerald-600" />
+                <UserIcon className="size-9 text-brand-600" />
               )}
             </div>
             <h2 className="o-h3 text-neutral-900">{displayName}</h2>
@@ -188,7 +188,7 @@ export default function MiCuentaPage() {
                     <span className="ml-1 text-sm font-normal text-neutral-500">pts</span>
                   </p>
                 </div>
-                <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                <span className="rounded-md bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-800">
                   {loyalty?.tier?.name || 'Socio'}
                 </span>
               </div>
@@ -200,7 +200,7 @@ export default function MiCuentaPage() {
                 </p>
                 <Link
                   href="/mi-cuenta/puntos"
-                  className="o-focus shrink-0 rounded text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                  className="o-focus shrink-0 rounded text-xs font-medium text-brand-700 hover:text-brand-800"
                 >
                   Ver beneficios
                 </Link>
@@ -209,7 +209,7 @@ export default function MiCuentaPage() {
 
             <Link
               href="/mi-cuenta/pedidos"
-              className="o-focus mt-4 block rounded-xl border border-neutral-200 p-4 transition-colors hover:border-emerald-300"
+              className="o-focus mt-4 block rounded-xl border border-neutral-200 p-4 transition-colors hover:border-brand-300"
             >
               <p className="tabular text-2xl font-bold text-neutral-900">{totalOrders}</p>
               <p className="mt-0.5 text-xs text-neutral-500">
@@ -225,14 +225,14 @@ export default function MiCuentaPage() {
                 href={item.href}
                 className="o-focus group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-neutral-50"
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600 transition-colors group-hover:bg-emerald-50 group-hover:text-emerald-700">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600 transition-colors group-hover:bg-brand-50 group-hover:text-brand-700">
                   <item.icon className="size-5" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold text-neutral-900">{item.title}</span>
                   <span className="block text-xs text-neutral-500">{item.detail}</span>
                 </span>
-                <ChevronRightIcon className="size-4 shrink-0 text-neutral-300 group-hover:text-emerald-600" />
+                <ChevronRightIcon className="size-4 shrink-0 text-neutral-300 group-hover:text-brand-600" />
               </Link>
             ))}
           </nav>
@@ -245,7 +245,7 @@ export default function MiCuentaPage() {
               <h2 className="o-h3 text-neutral-900">Pedidos recientes</h2>
               <Link
                 href="/mi-cuenta/pedidos"
-                className="o-focus group inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-emerald-700 hover:text-emerald-800"
+                className="o-focus group inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-brand-700 hover:text-brand-800"
               >
                 Ver todos
                 <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
@@ -271,7 +271,7 @@ export default function MiCuentaPage() {
                       </div>
                       <p className="tabular text-xl font-bold text-neutral-900">{clp(order.total)}</p>
                       <p className="o-caption text-neutral-500">{order.date}</p>
-                      <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 text-sm text-neutral-500 group-hover:text-emerald-700">
+                      <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 text-sm text-neutral-500 group-hover:text-brand-700">
                         <span>{order.items} {order.items === 1 ? 'producto' : 'productos'}</span>
                         <ChevronRightIcon className="size-4" />
                       </div>

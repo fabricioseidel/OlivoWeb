@@ -26,7 +26,7 @@ export default function AssignmentsHeader({
       </div>
       {assignmentsCount > 0 && (
         <div className="flex items-center gap-2 flex-wrap text-[10px] font-black uppercase tracking-widest">
-          <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full ring-1 ring-emerald-200">
+          <span className="px-2 py-1 bg-brand-50 text-brand-700 rounded-full ring-1 ring-brand-200">
             {assignmentStats.withCost} con costo
           </span>
           {assignmentStats.withoutCost > 0 && (

@@ -64,7 +64,7 @@ export default function AssignmentsMobileCards({
               key={`${assignment.product_id}-${assignment.supplier_id}`}
               className={`ring-1 rounded-xl p-4 space-y-2 transition-colors ${
                 isEditing
-                  ? "bg-emerald-50/50 ring-emerald-300"
+                  ? "bg-brand-50/50 ring-brand-300"
                   : "bg-gray-50 ring-gray-100"
               }`}
             >
@@ -83,7 +83,7 @@ export default function AssignmentsMobileCards({
                   <div className="text-right shrink-0">
                     <div
                       className={`text-sm font-black ${
-                        cost > 0 ? "text-emerald-700" : "text-rose-600"
+                        cost > 0 ? "text-brand-700" : "text-rose-600"
                       }`}
                     >
                       ${(aBruto(cost) ?? 0).toFixed(2)}
@@ -101,7 +101,7 @@ export default function AssignmentsMobileCards({
                     <input
                       type="number"
                       step="0.01"
-                      className="w-full bg-white border-none rounded-lg px-2 py-2 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                      className="w-full bg-white border-none rounded-lg px-2 py-2 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                       value={editForm.priceWithVat}
                       onChange={(e) =>
                         handleEditPriceChange("with", e.target.value)
@@ -113,7 +113,7 @@ export default function AssignmentsMobileCards({
                     <input
                       type="number"
                       step="0.01"
-                      className="w-full bg-white border-none rounded-lg px-2 py-2 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                      className="w-full bg-white border-none rounded-lg px-2 py-2 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                       value={editForm.priceWithoutVat}
                       onChange={(e) =>
                         handleEditPriceChange("without", e.target.value)
@@ -125,7 +125,7 @@ export default function AssignmentsMobileCards({
                     <input
                       type="number"
                       min={0}
-                      className="w-full bg-white border-none rounded-lg px-2 py-2 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                      className="w-full bg-white border-none rounded-lg px-2 py-2 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                       value={editForm.defaultReorderQty}
                       onChange={(e) =>
                         setEditForm((prev) => ({
@@ -184,7 +184,7 @@ export default function AssignmentsMobileCards({
                         saveEditAssignment(assignment.product_id)
                       }
                       disabled={assignmentSaving}
-                      className="flex-1 px-3 py-2 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-emerald-700 transition min-h-[40px]"
+                      className="flex-1 px-3 py-2 bg-brand-600 text-white rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-brand-700 transition min-h-[40px]"
                     >
                       {assignmentSaving ? "..." : "Guardar"}
                     </button>

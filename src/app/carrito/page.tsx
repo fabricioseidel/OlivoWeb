@@ -117,7 +117,7 @@ export default function CartPage() {
                     <div className="min-w-0">
                       <Link
                         href={`/productos/${item.slug}`}
-                        className="o-focus line-clamp-2 text-[15px] font-semibold leading-snug text-neutral-900 transition-colors hover:text-emerald-700"
+                        className="o-focus line-clamp-2 text-[15px] font-semibold leading-snug text-neutral-900 transition-colors hover:text-brand-700"
                       >
                         {item.name}
                       </Link>
@@ -172,7 +172,7 @@ export default function CartPage() {
 
           <Link
             href="/productos"
-            className="o-focus inline-flex items-center gap-2 rounded-lg py-2 text-sm font-medium text-emerald-700 hover:text-emerald-800"
+            className="o-focus inline-flex items-center gap-2 rounded-lg py-2 text-sm font-medium text-brand-700 hover:text-brand-800"
           >
             <PlusIcon className="size-4" />
             Seguir comprando
@@ -183,30 +183,30 @@ export default function CartPage() {
         <div className="lg:col-span-1">
           <div className="o-card sticky top-24 p-6">
             {showFreeShippingMeter && (
-              <div className="mb-6 rounded-xl bg-emerald-50 p-4">
+              <div className="mb-6 rounded-xl bg-brand-50 p-4">
                 {reachedFreeShipping ? (
                   <>
-                    <p className="text-sm font-medium text-emerald-800">
+                    <p className="text-sm font-medium text-brand-800">
                       Alcanzaste el monto para envío gratis.
                     </p>
                     {/* En el carrito todavía no hay dirección, y el envío gratis
                         depende de que el despacho quede dentro de la zona de
                         reparto. Prometerlo sin condiciones acá deja al checkout
                         desdiciéndose solo. */}
-                    <p className="mt-1 text-xs text-emerald-700">
+                    <p className="mt-1 text-xs text-brand-700">
                       Se aplica al pagar si tu dirección está dentro de nuestra zona de reparto.
                     </p>
                   </>
                 ) : (
                   <>
                     <div className="mb-2 flex items-baseline justify-between gap-2">
-                      <span className="text-sm font-medium text-emerald-900">Envío gratis</span>
-                      <span className="tabular text-sm text-emerald-700">
+                      <span className="text-sm font-medium text-brand-900">Envío gratis</span>
+                      <span className="tabular text-sm text-brand-700">
                         te faltan {clp(missingForFreeShipping)}
                       </span>
                     </div>
                     <div
-                      className="h-1.5 w-full overflow-hidden rounded-full bg-emerald-200"
+                      className="h-1.5 w-full overflow-hidden rounded-full bg-brand-200"
                       role="progressbar"
                       aria-valuenow={Math.round(progress)}
                       aria-valuemin={0}
@@ -214,7 +214,7 @@ export default function CartPage() {
                       aria-label="Progreso hacia envío gratis"
                     >
                       <div
-                        className="h-full rounded-full bg-emerald-600 transition-[width] duration-500"
+                        className="h-full rounded-full bg-brand-600 transition-[width] duration-500"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -256,7 +256,7 @@ export default function CartPage() {
                 href={whatsappLink(settings.storePhone, cartInquiryMessage(cartItems, total))}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="o-focus mt-5 block rounded-xl border border-neutral-200 px-4 py-3 text-center text-sm font-medium text-neutral-700 transition-colors hover:border-emerald-300 hover:text-emerald-700"
+                className="o-focus mt-5 block rounded-xl border border-neutral-200 px-4 py-3 text-center text-sm font-medium text-neutral-700 transition-colors hover:border-brand-300 hover:text-brand-700"
               >
                 {t("cart.supportCta")}
               </a>

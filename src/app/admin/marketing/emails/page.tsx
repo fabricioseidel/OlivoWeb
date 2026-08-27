@@ -206,7 +206,7 @@ export default function EmailTemplatesPage() {
   if (isLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-emerald-500" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-brand-500" />
       </div>
     );
   }
@@ -218,7 +218,7 @@ export default function EmailTemplatesPage() {
           kicker="Marketing"
           title="Plantillas de email"
           subtitle="Editá los emails transaccionales y campañas automatizadas de la tienda"
-          icon={<EnvelopeIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<EnvelopeIcon className="w-6 h-6 text-brand-300" />}
           right={
             isDirty && (
               <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-100 ring-1 ring-amber-200 text-amber-900 text-xs font-bold uppercase tracking-widest">
@@ -240,7 +240,7 @@ export default function EmailTemplatesPage() {
         <StatsCard
           label="Editadas (7d)"
           value={stats.recentlyUpdated.toLocaleString()}
-          tone="emerald"
+          tone="brand"
           icon={<PencilSquareIcon className="w-4 h-4" />}
         />
       </StatsRow>
@@ -250,7 +250,7 @@ export default function EmailTemplatesPage() {
         <div className="lg:col-span-4 space-y-4">
           <div className="bg-white rounded-2xl ring-1 ring-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/40">
-              <h2 className="text-xs font-black uppercase tracking-widest text-emerald-900 flex items-center gap-2">
+              <h2 className="text-xs font-black uppercase tracking-widest text-brand-900 flex items-center gap-2">
                 <EnvelopeIcon className="h-4 w-4" />
                 Plantillas base
               </h2>
@@ -264,14 +264,14 @@ export default function EmailTemplatesPage() {
                     onClick={() => selectTemplate(t)}
                     className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all min-h-[64px] ${
                       active
-                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
-                        : "hover:bg-emerald-50 text-gray-700"
+                        ? "bg-brand-600 text-white shadow-md shadow-brand-600/20"
+                        : "hover:bg-brand-50 text-gray-700"
                     }`}
                   >
                     <div className="flex flex-col min-w-0">
                       <span
                         className={`font-black text-[10px] uppercase tracking-widest mb-0.5 ${
-                          active ? "text-emerald-100" : "text-gray-400"
+                          active ? "text-brand-100" : "text-gray-400"
                         }`}
                       >
                         {TEMPLATE_LABELS[t.slug] || t.slug}
@@ -294,8 +294,8 @@ export default function EmailTemplatesPage() {
           </div>
 
           {/* Placeholders */}
-          <div className="bg-emerald-950 rounded-2xl p-5 text-white ring-1 ring-white/5">
-            <p className="font-black uppercase tracking-widest text-emerald-300 text-xs mb-3 flex items-center gap-2">
+          <div className="bg-brand-950 rounded-2xl p-5 text-white ring-1 ring-white/5">
+            <p className="font-black uppercase tracking-widest text-brand-300 text-xs mb-3 flex items-center gap-2">
               <CodeBracketIcon className="h-4 w-4" />
               Placeholders disponibles
             </p>
@@ -306,7 +306,7 @@ export default function EmailTemplatesPage() {
                     key={p}
                     type="button"
                     onClick={() => copyPlaceholder(p)}
-                    className="group inline-flex items-center gap-1 bg-white/10 px-2 py-1 rounded-md text-emerald-300 font-bold border border-white/5 hover:bg-white/15 text-xs"
+                    className="group inline-flex items-center gap-1 bg-white/10 px-2 py-1 rounded-md text-brand-300 font-bold border border-white/5 hover:bg-white/15 text-xs"
                     title="Click para copiar"
                   >
                     <span>{`{{${p}}}`}</span>
@@ -315,11 +315,11 @@ export default function EmailTemplatesPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-emerald-100/50 text-xs italic">
+              <p className="text-brand-100/50 text-xs italic">
                 Seleccioná una plantilla.
               </p>
             )}
-            <p className="mt-4 text-emerald-100/40 leading-relaxed text-xs italic border-t border-white/5 pt-3">
+            <p className="mt-4 text-brand-100/40 leading-relaxed text-xs italic border-t border-white/5 pt-3">
               Click para copiar. Pegá la variable en el cuerpo HTML para inyectar
               datos reales del cliente o la orden.
             </p>
@@ -332,8 +332,8 @@ export default function EmailTemplatesPage() {
             <div className="bg-white rounded-2xl ring-1 ring-gray-200 shadow-sm flex flex-col min-h-[600px] overflow-hidden">
               <div className="px-5 sm:px-7 py-4 border-b border-gray-100 flex items-center justify-between gap-3 bg-gray-50/40 flex-wrap">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                    <PencilSquareIcon className="h-5 w-5 text-emerald-700" />
+                  <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center shrink-0">
+                    <PencilSquareIcon className="h-5 w-5 text-brand-700" />
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-base sm:text-lg font-black text-gray-900 truncate">
@@ -350,7 +350,7 @@ export default function EmailTemplatesPage() {
                     onClick={() => setPreviewMode("edit")}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all min-h-[36px] ${
                       previewMode === "edit"
-                        ? "bg-white text-emerald-700 shadow-sm"
+                        ? "bg-white text-brand-700 shadow-sm"
                         : "text-gray-500"
                     }`}
                   >
@@ -361,7 +361,7 @@ export default function EmailTemplatesPage() {
                     onClick={() => setPreviewMode("preview")}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all min-h-[36px] ${
                       previewMode === "preview"
-                        ? "bg-white text-emerald-700 shadow-sm"
+                        ? "bg-white text-brand-700 shadow-sm"
                         : "text-gray-500"
                     }`}
                   >
@@ -377,7 +377,7 @@ export default function EmailTemplatesPage() {
                     Asunto del correo
                   </label>
                   <input
-                    className="w-full h-12 px-4 rounded-xl bg-gray-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white transition-all outline-none font-bold text-gray-900 text-sm"
+                    className="w-full h-12 px-4 rounded-xl bg-gray-50 border-2 border-transparent focus:border-brand-500 focus:bg-white transition-all outline-none font-bold text-gray-900 text-sm"
                     value={selectedTemplate.subject}
                     onChange={(e) =>
                       setSelectedTemplate({
@@ -400,7 +400,7 @@ export default function EmailTemplatesPage() {
 
                   {previewMode === "edit" ? (
                     <textarea
-                      className="flex-1 w-full p-4 rounded-2xl bg-gray-950 text-emerald-300 font-mono text-xs ring-1 ring-gray-800 outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none overflow-y-auto"
+                      className="flex-1 w-full p-4 rounded-2xl bg-gray-950 text-brand-300 font-mono text-xs ring-1 ring-gray-800 outline-none focus:ring-2 focus:ring-brand-500/50 resize-none overflow-y-auto"
                       value={selectedTemplate.body_html}
                       onChange={(e) =>
                         setSelectedTemplate({
@@ -434,7 +434,7 @@ export default function EmailTemplatesPage() {
                     variant="outline"
                     onClick={handleSendCampaign}
                     disabled={isSending || isSaving || isDirty}
-                    className="!px-4 !py-2.5 !rounded-xl !border-2 !border-emerald-200 !text-emerald-700 hover:!bg-emerald-50 !font-bold !text-sm min-h-[44px]"
+                    className="!px-4 !py-2.5 !rounded-xl !border-2 !border-brand-200 !text-brand-700 hover:!bg-brand-50 !font-bold !text-sm min-h-[44px]"
                   >
                     <MegaphoneIcon className="h-4 w-4 mr-1.5" />
                     {isSending ? "Enviando…" : "Enviar campaña"}
@@ -460,7 +460,7 @@ export default function EmailTemplatesPage() {
                     variant="primary"
                     onClick={handleSave}
                     disabled={isSaving || isSending || !isDirty}
-                    className="!px-5 !py-2.5 !rounded-xl !shadow-lg !shadow-emerald-600/20 min-h-[44px]"
+                    className="!px-5 !py-2.5 !rounded-xl !shadow-lg !shadow-brand-600/20 min-h-[44px]"
                   >
                     {isSaving ? (
                       <span className="flex items-center gap-2">

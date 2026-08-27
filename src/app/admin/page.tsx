@@ -188,10 +188,10 @@ export default function AdminDashboard() {
           kicker="Resumen"
           title="Centro de Control"
           subtitle="Operaciones en tiempo real de Olivo Market"
-          icon={<ChartBarIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<ChartBarIcon className="w-6 h-6 text-brand-300" />}
           right={
-            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 ring-1 ring-white/15 text-emerald-100 text-[10px] font-black uppercase tracking-widest">
-              <span className="size-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_10px_2px_#10B981]" />
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 ring-1 ring-white/15 text-brand-100 text-[10px] font-black uppercase tracking-widest">
+              <span className="size-2 bg-brand-400 rounded-full animate-pulse shadow-[0_0_10px_2px_#10B981]" />
               Sync: {lastSync || "—"}
             </div>
           }
@@ -213,7 +213,7 @@ export default function AdminDashboard() {
             </p>
             <button
               onClick={loadOrders}
-              className="inline-flex items-center gap-2 bg-gray-50 text-gray-600 px-4 py-2 rounded-xl text-xs font-black tracking-widest uppercase hover:bg-emerald-50 hover:text-emerald-700 transition-colors ring-1 ring-gray-200 min-h-[44px]"
+              className="inline-flex items-center gap-2 bg-gray-50 text-gray-600 px-4 py-2 rounded-xl text-xs font-black tracking-widest uppercase hover:bg-brand-50 hover:text-brand-700 transition-colors ring-1 ring-gray-200 min-h-[44px]"
             >
               <ArrowPathIcon className="w-4 h-4" />
               <BoltIcon className="w-3 h-3" />

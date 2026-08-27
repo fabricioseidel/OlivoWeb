@@ -144,7 +144,7 @@ export default function PuntoDeEnvioPage() {
                   <td className="py-3 pr-4">Sí, pickup</td>
                   <td className="py-3 pr-4">Sí</td>
                   <td className="py-3 pr-4">Sí</td>
-                  <td className="py-3 pr-4 font-bold text-emerald-700">Sí</td>
+                  <td className="py-3 pr-4 font-bold text-brand-700">Sí</td>
                   <td className="py-3">Corrido</td>
                 </tr>
                 <tr className="border-b border-gray-100">
@@ -180,7 +180,7 @@ export default function PuntoDeEnvioPage() {
               <li key={s.slug}>
                 <Link
                   href={`/punto-de-envio/${s.slug}`}
-                  className="block rounded-2xl border border-gray-200 bg-white p-5 transition-colors hover:border-emerald-300"
+                  className="block rounded-2xl border border-gray-200 bg-white p-5 transition-colors hover:border-brand-300"
                 >
                   <p className="font-semibold text-neutral-900">{s.nombre}</p>
                   <p className="mt-1 text-sm text-gray-600">{s.descripcion}</p>

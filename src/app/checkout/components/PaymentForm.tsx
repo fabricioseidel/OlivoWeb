@@ -37,7 +37,7 @@ export default function PaymentForm({
               htmlFor={method.id}
               className={`flex cursor-pointer items-center gap-3.5 rounded-xl border p-4 transition-colors ${
                 isSelected
-                  ? 'border-emerald-500 bg-emerald-50/50'
+                  ? 'border-brand-500 bg-brand-50/50'
                   : 'border-neutral-200 bg-white hover:border-neutral-300'
               }`}
             >
@@ -54,7 +54,7 @@ export default function PaymentForm({
               <span
                 aria-hidden="true"
                 className={`flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                  isSelected ? 'border-emerald-600 bg-emerald-600' : 'border-neutral-300 bg-white'
+                  isSelected ? 'border-brand-600 bg-brand-600' : 'border-neutral-300 bg-white'
                 }`}
               >
                 {isSelected && <span className="size-1.5 rounded-full bg-white" />}

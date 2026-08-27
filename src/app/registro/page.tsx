@@ -94,7 +94,7 @@ export default function RegisterPage() {
             ¿Ya tienes una cuenta?{" "}
             <Link
               href="/login"
-              className="o-focus rounded font-semibold text-emerald-700 transition-colors hover:text-emerald-800"
+              className="o-focus rounded font-semibold text-brand-700 transition-colors hover:text-brand-800"
             >
               Inicia Sesión aquí
             </Link>

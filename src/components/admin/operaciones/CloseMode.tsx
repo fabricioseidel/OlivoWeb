@@ -152,7 +152,7 @@ export default function CloseMode() {
           return (
             <div key={m} className="bg-white/5 rounded-2xl p-3 border border-white/10">
               <div className="flex items-center gap-3 mb-2">
-                <Icon className="h-5 w-5 text-emerald-400 shrink-0" />
+                <Icon className="h-5 w-5 text-brand-400 shrink-0" />
                 <span className="text-[11px] font-black uppercase tracking-widest text-white flex-1">{METHOD_LABEL[m]}</span>
                 <span className="text-[10px] text-yellow-400 font-bold">Esperado: $ {exp.toLocaleString()}</span>
               </div>
@@ -160,14 +160,14 @@ export default function CloseMode() {
                 <input type="number" inputMode="numeric" placeholder="Contado físico"
                   value={hasInput ? (act || "") : ""}
                   onChange={e => setCounts(c => ({ ...c, [m]: Number(e.target.value) || 0 }))}
-                  className="flex-1 bg-black border border-white/10 rounded-xl p-2.5 text-base font-black text-white outline-none focus:border-emerald-500" />
+                  className="flex-1 bg-black border border-white/10 rounded-xl p-2.5 text-base font-black text-white outline-none focus:border-brand-500" />
                 <button onClick={() => setCounts(c => ({ ...c, [m]: exp }))}
-                  className="px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/20">
+                  className="px-3 py-2 bg-brand-500/10 border border-brand-500/30 text-brand-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-brand-500/20">
                   = Esperado
                 </button>
               </div>
               {hasInput && (
-                <div className={`mt-2 flex justify-between items-center text-xs ${diff === 0 ? "text-white/40" : diff > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                <div className={`mt-2 flex justify-between items-center text-xs ${diff === 0 ? "text-white/40" : diff > 0 ? "text-brand-400" : "text-red-400"}`}>
                   <span className="font-bold uppercase tracking-widest text-[9px]">Diferencia</span>
                   <span className="font-black">{diff >= 0 ? "+" : ""}$ {diff.toLocaleString()}</span>
                 </div>
@@ -180,7 +180,7 @@ export default function CloseMode() {
       {/* Total */}
       <div className={`flex justify-between items-center p-4 rounded-2xl border ${
         totalDiff === 0 ? "bg-white/5 border-white/10 text-white/60" :
-        totalDiff > 0   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
+        totalDiff > 0   ? "bg-brand-500/10 border-brand-500/30 text-brand-400" :
                           "bg-red-500/10 border-red-500/30 text-red-400"
       }`}>
         <div>

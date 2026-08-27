@@ -273,7 +273,7 @@ export default function SupplierOrderDetailPage({
           <div className="flex gap-2 shrink-0">
             <button
               onClick={() => updateStatus('pendiente')}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
+              className="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold"
             >
               Confirmar borrador
             </button>
@@ -298,7 +298,7 @@ export default function SupplierOrderDetailPage({
             <button
               type="button"
               onClick={() => updateStatus("gestionado")}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white ring-1 ring-gray-200 hover:ring-emerald-300 hover:text-emerald-700 text-gray-700 text-sm font-bold transition active:scale-[0.98] min-h-[44px]"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white ring-1 ring-gray-200 hover:ring-brand-300 hover:text-brand-700 text-gray-700 text-sm font-bold transition active:scale-[0.98] min-h-[44px]"
             >
               <Check className="h-4 w-4" />
               Marcar como gestionado
@@ -327,7 +327,7 @@ export default function SupplierOrderDetailPage({
                       <div className="text-[10px] text-gray-400 font-mono uppercase tracking-wider">{item.product_sku}</div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-sm font-black text-emerald-600">${item.subtotal.toFixed(2)}</div>
+                      <div className="text-sm font-black text-brand-600">${item.subtotal.toFixed(2)}</div>
                       <div className="text-[10px] text-gray-400 uppercase font-bold">Subtotal</div>
                     </div>
                   </div>
@@ -344,9 +344,9 @@ export default function SupplierOrderDetailPage({
                   </div>
                 </div>
               ))}
-              <div className="bg-emerald-50 rounded-lg p-4 flex justify-between items-center border border-emerald-100 mt-4">
-                <span className="text-sm font-bold text-emerald-800 uppercase tracking-wider">Total Pedido:</span>
-                <span className="text-lg font-black text-emerald-900">${order.total.toFixed(2)}</span>
+              <div className="bg-brand-50 rounded-lg p-4 flex justify-between items-center border border-brand-100 mt-4">
+                <span className="text-sm font-bold text-brand-800 uppercase tracking-wider">Total Pedido:</span>
+                <span className="text-lg font-black text-brand-900">${order.total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -540,7 +540,7 @@ export default function SupplierOrderDetailPage({
                   <div>
                     <button
                       onClick={() => updateStatus('recibido')}
-                      className="w-full px-4 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.98]"
+                      className="w-full px-4 py-3 bg-brand-600 text-white font-bold rounded-lg hover:bg-brand-700 flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.98]"
                     >
                       <Check className="h-5 w-5" />
                       Marcar como Recibido

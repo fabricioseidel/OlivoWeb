@@ -15,7 +15,7 @@ import {
 export const metadata: Metadata = {
   title: "Tienda en Ñuñoa | Olivo Market — Av. José Pedro Alessandri",
   description:
-    "Visita Olivo Market en Av. José Pedro Alessandri 2010, Local A, Ñuñoa. Minimarket de productos venezolanos y punto de envíos, con horario, cómo llegar y mapa. Atención presencial todos los días.",
+    "Visita Olivo Market en Av. José Pedro Alessandri 2010, Local A, Ñuñoa. Minimarket completo y punto de envíos, con horario, cómo llegar y mapa. Atención presencial todos los días.",
   alternates: { canonical: "/tienda-nunoa" },
   openGraph: {
     locale: "es_CL",
@@ -71,7 +71,7 @@ export default function TiendaNunoaPage() {
 
         <p className="mt-4 text-lg text-gray-700 leading-relaxed">
           Nuestra tienda física está en <strong>Av. José Pedro Alessandri 2010, Local A, Ñuñoa</strong>,
-          y funciona como minimarket de productos venezolanos y como punto de envíos al mismo tiempo.
+          y funciona como minimarket completo y como punto de envíos al mismo tiempo.
           Puedes venir a comprar harina PAN, quesos, pan de jamón y abarrotes, y en la misma visita
           dejar o retirar una encomienda de MercadoLibre, Chilexpress, Bluexpress o Correos de Chile.
         </p>
@@ -121,20 +121,33 @@ export default function TiendaNunoaPage() {
         <section className="mt-10 space-y-4">
           <h2 className="o-h2 text-neutral-900">Qué encuentras en el local</h2>
           <ul className="grid gap-2 sm:grid-cols-2 text-gray-700">
-            <li>Harina PAN y harinas de maíz precocida</li>
-            <li>Quesos y charcutería venezolana</li>
-            <li>Pan de jamón y panadería en temporada</li>
-            <li>Salsas, aliños y abarrotes importados</li>
-            <li>Bebidas y snacks venezolanos</li>
+            <li>Abarrotes, arroz, fideos, aceite y conservas</li>
+            <li>Bebidas, aguas, jugos, isotónicas y energéticas</li>
+            <li>Lácteos, quesos y cecinas</li>
+            <li>Panadería y pastelería</li>
+            <li>Helados y postres</li>
+            <li>Snacks, galletas, chocolates y dulces</li>
+            <li>Café y desayuno</li>
+            <li>Aseo del hogar y cuidado personal</li>
+            <li>Alimento para mascotas</li>
             <li>Punto de retiro y envío de encomiendas</li>
           </ul>
+
+          <h3 className="mt-6 text-base font-semibold text-neutral-900">
+            Además, productos venezolanos
+          </h3>
+          <p className="text-gray-700 leading-relaxed">
+            Una selección que no se consigue en las cadenas: harina PAN y harinas de maíz
+            precocida, quesos y charcutería venezolana, pan de jamón en temporada, salsas,
+            aliños y dulces. Reponemos de forma constante y, si algo se agota, lo pedimos.
+          </p>
           <p className="text-gray-700">
             ¿Prefieres comprar online?{" "}
-            <Link href="/productos" className="font-bold text-emerald-700 hover:underline">
+            <Link href="/productos" className="font-bold text-brand-700 hover:underline">
               Revisa el catálogo completo
             </Link>{" "}
             o mira los{" "}
-            <Link href="/punto-de-envio" className="font-bold text-emerald-700 hover:underline">
+            <Link href="/punto-de-envio" className="font-bold text-brand-700 hover:underline">
               servicios de paquetería
             </Link>
             .

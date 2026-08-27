@@ -15,13 +15,13 @@ export function NapBlock({ className = "" }: { className?: string }) {
       <p>{BUSINESS.addressFull}</p>
       <p>
         Teléfono:{" "}
-        <a href={`tel:${BUSINESS.phoneE164}`} className="font-bold text-emerald-700 hover:underline">
+        <a href={`tel:${BUSINESS.phoneE164}`} className="font-bold text-brand-700 hover:underline">
           {BUSINESS.phoneDisplay}
         </a>
       </p>
       <p>
         Email:{" "}
-        <a href={`mailto:${BUSINESS.email}`} className="font-bold text-emerald-700 hover:underline">
+        <a href={`mailto:${BUSINESS.email}`} className="font-bold text-brand-700 hover:underline">
           {BUSINESS.email}
         </a>
       </p>
@@ -125,7 +125,7 @@ export function Breadcrumbs({
             {i === items.length - 1 ? (
               <span className="font-bold text-gray-700">{item.name}</span>
             ) : (
-              <Link href={item.path} className="hover:text-emerald-700 hover:underline">
+              <Link href={item.path} className="hover:text-brand-700 hover:underline">
                 {item.name}
               </Link>
             )}
@@ -146,9 +146,9 @@ export function ServiciosCourier({ slug }: { slug: CourierSlug }) {
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
-        <h3 className="font-semibold text-emerald-900">Qué puedes hacer acá</h3>
-        <ul className="mt-3 space-y-2 text-emerald-900">
+      <div className="rounded-2xl border border-brand-100 bg-brand-50 p-5">
+        <h3 className="font-semibold text-brand-900">Qué puedes hacer acá</h3>
+        <ul className="mt-3 space-y-2 text-brand-900">
           {service.puedeHacer.map((item) => (
             <li key={item} className="flex gap-2">
               <span aria-hidden="true" className="font-semibold">✓</span>
@@ -156,7 +156,7 @@ export function ServiciosCourier({ slug }: { slug: CourierSlug }) {
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-sm font-bold text-emerald-800">
+        <p className="mt-4 text-sm font-bold text-brand-800">
           Horario: {service.horarioDisplay}
         </p>
       </div>
@@ -200,7 +200,7 @@ export function WhatsappCta({ mensaje, children }: { mensaje: string; children: 
       href={whatsappLink(mensaje)}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 h-12 font-bold text-white transition-colors hover:bg-emerald-500"
+      className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 h-12 font-bold text-white transition-colors hover:bg-brand-500"
     >
       {children}
     </a>

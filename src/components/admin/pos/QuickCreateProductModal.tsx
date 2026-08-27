@@ -76,7 +76,7 @@ export default function QuickCreateProductModal({ initialBarcode, onClose, onCre
     <div className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="w-full max-w-sm bg-[#111] border border-white/10 rounded-2xl p-5 text-white">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 text-emerald-400">
+          <div className="flex items-center gap-2 text-brand-400">
             <BoltIcon className="h-5 w-5" />
             <h2 className="text-sm font-black uppercase tracking-widest">Creación rápida</h2>
           </div>
@@ -96,7 +96,7 @@ export default function QuickCreateProductModal({ initialBarcode, onClose, onCre
             <input
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
-              className="w-full bg-black border border-white/10 rounded-xl px-3 py-2.5 text-white font-mono text-sm outline-none focus:border-emerald-500"
+              className="w-full bg-black border border-white/10 rounded-xl px-3 py-2.5 text-white font-mono text-sm outline-none focus:border-brand-500"
             />
           </div>
           <div>
@@ -108,7 +108,7 @@ export default function QuickCreateProductModal({ initialBarcode, onClose, onCre
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full bg-black border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-emerald-500"
+              className="w-full bg-black border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -123,7 +123,7 @@ export default function QuickCreateProductModal({ initialBarcode, onClose, onCre
                 required
                 value={price}
                 onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                className="w-full bg-black border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-emerald-500"
+                className="w-full bg-black border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500"
               />
             </div>
             <div>
@@ -136,7 +136,7 @@ export default function QuickCreateProductModal({ initialBarcode, onClose, onCre
                 min={0}
                 value={stock}
                 onChange={(e) => setStock(Number(e.target.value) || 0)}
-                className="w-full bg-black border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-emerald-500"
+                className="w-full bg-black border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-brand-500"
               />
             </div>
           </div>
@@ -151,7 +151,7 @@ export default function QuickCreateProductModal({ initialBarcode, onClose, onCre
             <button
               type="submit"
               disabled={saving}
-              className="flex-[2] h-11 rounded-xl bg-emerald-500 text-black text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 active:bg-emerald-600 transition-colors"
+              className="flex-[2] h-11 rounded-xl bg-brand-500 text-black text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 active:bg-brand-600 transition-colors"
             >
               {saving && <ArrowPathIcon className="h-4 w-4 animate-spin" />}
               Crear y agregar

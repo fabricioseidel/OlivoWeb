@@ -112,7 +112,7 @@ export default function Navbar() {
                     style={{ height: '2rem' }}
                   />
                 ) : (
-                  <span className="text-xl font-bold text-emerald-600 tracking-tight group-hover:text-emerald-700 transition-colors">
+                  <span className="text-xl font-bold text-brand-600 tracking-tight group-hover:text-brand-700 transition-colors">
                     {settings.storeName || 'OLIVOMARKET'}
                   </span>
                 )}
@@ -124,8 +124,8 @@ export default function Navbar() {
                   key={item.name}
                   href={item.href}
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-300 ${isActive(item.href)
-                    ? "border-emerald-600 text-gray-900"
-                    : "border-transparent text-gray-500 hover:text-emerald-600 hover:border-emerald-200"
+                    ? "border-brand-600 text-gray-900"
+                    : "border-transparent text-gray-500 hover:text-brand-600 hover:border-brand-200"
                     }`}
                 >
                   {item.name}
@@ -142,17 +142,17 @@ export default function Navbar() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar productos..."
-                className="w-full pl-9 pr-3 h-9 rounded-full bg-white border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 focus:shadow-sm transition-all"
+                className="w-full pl-9 pr-3 h-9 rounded-full bg-white border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-100 focus:shadow-sm transition-all"
               />
             </form>
             <Link
               href="/carrito"
-              className={`relative p-2 rounded-xl text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all duration-300 ${animateCart ? 'scale-110 text-emerald-600' : ''
+              className={`relative p-2 rounded-xl text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition-all duration-300 ${animateCart ? 'scale-110 text-brand-600' : ''
                 }`}
             >
               <ShoppingBag className="h-6 w-6" strokeWidth={2} />
               {itemCount > 0 && (
-                <span className={`absolute -top-1 -right-1 bg-emerald-600 text-white text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white ${animateCart ? 'scale-125' : ''}`}>
+                <span className={`absolute -top-1 -right-1 bg-brand-600 text-white text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white ${animateCart ? 'scale-125' : ''}`}>
                   {itemCount}
                 </span>
               )}
@@ -163,11 +163,11 @@ export default function Navbar() {
             ) : session ? (
               <Dropdown
                 trigger={
-                  <div className="h-9 w-9 rounded-full bg-emerald-100/50 flex items-center justify-center overflow-hidden border border-emerald-200 hover:border-emerald-400 transition-colors cursor-pointer">
+                  <div className="h-9 w-9 rounded-full bg-brand-100/50 flex items-center justify-center overflow-hidden border border-brand-200 hover:border-brand-400 transition-colors cursor-pointer">
                     {session.user?.image ? (
                       <ImageWithFallback className="h-full w-full object-cover" src={session.user.image} alt="Perfil" fallback="/file.svg" />
                     ) : (
-                      <span className="text-emerald-700 font-bold text-sm">{initial}</span>
+                      <span className="text-brand-700 font-bold text-sm">{initial}</span>
                     )}
                   </div>
                 }
@@ -175,27 +175,27 @@ export default function Navbar() {
               />
             ) : (
               <div className="flex items-center gap-3">
-                <Link href="/login" className="text-sm font-semibold text-gray-500 hover:text-emerald-600 transition-colors">Entrar</Link>
-                <Link href="/registro" className="text-sm font-semibold bg-emerald-600 text-white px-5 py-2 rounded-full hover:bg-emerald-700 shadow-sm transition-all active:scale-95">Registrarse</Link>
+                <Link href="/login" className="text-sm font-semibold text-gray-500 hover:text-brand-600 transition-colors">Entrar</Link>
+                <Link href="/registro" className="text-sm font-semibold bg-brand-600 text-white px-5 py-2 rounded-full hover:bg-brand-700 shadow-sm transition-all active:scale-95">Registrarse</Link>
               </div>
             )}
           </div>
 
           <div className="-mr-2 flex items-center gap-1 sm:hidden">
-            <button onClick={() => setMobileSearchOpen(!mobileSearchOpen)} className="p-2 rounded-xl text-gray-400 hover:text-emerald-600">
+            <button onClick={() => setMobileSearchOpen(!mobileSearchOpen)} className="p-2 rounded-xl text-gray-400 hover:text-brand-600">
               <Search className="h-5 w-5" />
             </button>
-            <Link href="/carrito" className={`relative p-2 rounded-xl text-gray-400 hover:text-emerald-600 ${animateCart ? 'scale-110 text-emerald-600' : ''}`}>
+            <Link href="/carrito" className={`relative p-2 rounded-xl text-gray-400 hover:text-brand-600 ${animateCart ? 'scale-110 text-brand-600' : ''}`}>
               <ShoppingBag className="h-5 w-5" strokeWidth={2} />
               {itemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-emerald-600 text-white text-xs font-semibold rounded-full h-4.5 w-4.5 flex items-center justify-center ring-2 ring-white">
+                <span className="absolute -top-0.5 -right-0.5 bg-brand-600 text-white text-xs font-semibold rounded-full h-4.5 w-4.5 flex items-center justify-center ring-2 ring-white">
                   {itemCount}
                 </span>
               )}
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-xl text-gray-400 hover:text-emerald-600 focus:outline-none"
+              className="inline-flex items-center justify-center p-2 rounded-xl text-gray-400 hover:text-brand-600 focus:outline-none"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -212,7 +212,7 @@ export default function Navbar() {
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-2xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-2xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               placeholder="Buscar productos..."
             />
           </form>
@@ -236,8 +236,8 @@ export default function Navbar() {
                 key={item.name}
                 href={item.href}
                 className={`block px-4 py-3 rounded-2xl text-base font-medium transition-all ${isActive(item.href)
-                  ? "bg-emerald-50 text-emerald-700 font-bold"
-                  : "text-gray-500 hover:bg-gray-50 hover:text-emerald-600"
+                  ? "bg-brand-50 text-brand-700 font-bold"
+                  : "text-gray-500 hover:bg-gray-50 hover:text-brand-600"
                   }`}
               >
                 {item.name}
@@ -249,11 +249,11 @@ export default function Navbar() {
               {session ? (
                 <>
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden border border-emerald-200">
+                    <div className="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center overflow-hidden border border-brand-200">
                       {session.user?.image ? (
                         <ImageWithFallback className="h-10 w-10 rounded-full object-cover" src={session.user.image} alt="Perfil" fallback="/file.svg" />
                       ) : (
-                        <span className="text-emerald-700 font-bold">{initial}</span>
+                        <span className="text-brand-700 font-bold">{initial}</span>
                       )}
                     </div>
                   </div>
@@ -266,13 +266,13 @@ export default function Navbar() {
                 <div className="flex flex-col space-y-3 w-full">
                   <Link
                     href="/login"
-                    className="block text-center py-2 text-base font-medium text-gray-500 hover:text-emerald-600"
+                    className="block text-center py-2 text-base font-medium text-gray-500 hover:text-brand-600"
                   >
                     Entrar
                   </Link>
                   <Link
                     href="/registro"
-                    className="block text-center w-full bg-emerald-600 text-white py-3 rounded-2xl font-medium shadow-lg shadow-emerald-200"
+                    className="block text-center w-full bg-brand-600 text-white py-3 rounded-2xl font-medium shadow-lg shadow-brand-200"
                   >
                     Registrarse
                   </Link>
@@ -286,7 +286,7 @@ export default function Navbar() {
                     <Link
                       key={item.label}
                       href={item.href}
-                      className={`flex items-center px-4 py-3 rounded-2xl text-base font-medium transition-colors ${item.isDanger ? 'text-red-500 hover:bg-red-50 font-bold' : 'text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'
+                      className={`flex items-center px-4 py-3 rounded-2xl text-base font-medium transition-colors ${item.isDanger ? 'text-red-500 hover:bg-red-50 font-bold' : 'text-gray-500 hover:bg-brand-50 hover:text-brand-700'
                         }`}
                     >
                       {item.icon && <item.icon className="h-5 w-5 mr-3" />}
@@ -299,7 +299,7 @@ export default function Navbar() {
                         item.onClick?.();
                         setMobileMenuOpen(false);
                       }}
-                      className={`flex items-center w-full px-4 py-3 rounded-2xl text-base font-medium transition-colors ${item.isDanger ? 'text-red-500 hover:bg-red-50 font-bold' : 'text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'
+                      className={`flex items-center w-full px-4 py-3 rounded-2xl text-base font-medium transition-colors ${item.isDanger ? 'text-red-500 hover:bg-red-50 font-bold' : 'text-gray-500 hover:bg-brand-50 hover:text-brand-700'
                         }`}
                     >
                       {item.icon && <item.icon className="h-5 w-5 mr-3" />}

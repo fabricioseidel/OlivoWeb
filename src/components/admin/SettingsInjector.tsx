@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { escalaDeMarca, textoLegibleSobre, PASOS } from "@/lib/brand-palette";
 
 /**
  * Componente que aplica dinámicamente los colores y configuraciones de la tienda
@@ -30,6 +31,27 @@ function SettingsInjectorInner() {
     
     if (settings.appearance?.primaryColor) {
       root.style.setProperty("--color-primary", settings.appearance.primaryColor);
+
+      // Y con él, los once pasos de la escala de marca. Sin esto el color
+      // primario sólo movía un par de reglas sueltas mientras el resto del
+      // sitio seguía pintado de verde fijo: el selector del panel prometía
+      // algo que no hacía.
+      //
+      // `escalaDeMarca` devuelve null si el color no se entiende; en ese caso
+      // no se toca nada y queda la escala por defecto, que es lo correcto —
+      // mejor el verde de siempre que un sitio a medio pintar.
+      const escala = escalaDeMarca(settings.appearance.primaryColor);
+      if (escala) {
+        for (const paso of PASOS) {
+          root.style.setProperty(`--color-brand-${paso}`, escala[paso]);
+        }
+        // Para que un botón siga siendo legible si alguien elige un primario
+        // claro: con texto blanco fijo, un amarillo quedaría ilegible.
+        root.style.setProperty(
+          "--color-brand-contraste",
+          textoLegibleSobre(settings.appearance.primaryColor)
+        );
+      }
     }
     if (settings.appearance?.secondaryColor) {
       root.style.setProperty("--color-secondary", settings.appearance.secondaryColor);

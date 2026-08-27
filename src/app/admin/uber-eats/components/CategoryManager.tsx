@@ -60,13 +60,13 @@ export default function CategoryManager({
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
               placeholder="Nueva categoría..."
-              className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+              className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500"
               onKeyDown={(e) => e.key === "Enter" && addCategory()}
             />
             <button
               onClick={addCategory}
               disabled={!newCategoryName.trim()}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1"
+              className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 flex items-center gap-1"
             >
               <PlusIcon className="w-4 h-4" />
               Agregar
@@ -83,7 +83,7 @@ export default function CategoryManager({
                       type="text"
                       value={editCategoryValue}
                       onChange={(e) => setEditCategoryValue(e.target.value)}
-                      className="flex-1 px-2 py-1 border rounded focus:ring-2 focus:ring-emerald-500"
+                      className="flex-1 px-2 py-1 border rounded focus:ring-2 focus:ring-brand-500"
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === "Enter") renameCategory(cat, editCategoryValue);
@@ -92,7 +92,7 @@ export default function CategoryManager({
                     />
                     <button
                       onClick={() => renameCategory(cat, editCategoryValue)}
-                      className="px-2 py-1 bg-emerald-600 text-white text-sm rounded"
+                      className="px-2 py-1 bg-brand-600 text-white text-sm rounded"
                     >
                       Guardar
                     </button>
@@ -116,7 +116,7 @@ export default function CategoryManager({
                         setEditingCategory(cat);
                         setEditCategoryValue(cat);
                       }}
-                      className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded opacity-0 group-hover:opacity-100 transition"
+                      className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded opacity-0 group-hover:opacity-100 transition"
                       title="Editar categoría"
                     >
                       <PencilIcon className="w-4 h-4" />

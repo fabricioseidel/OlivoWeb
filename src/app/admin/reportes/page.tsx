@@ -101,12 +101,12 @@ export default function ReportesPage() {
       <header className="flex flex-col sm:flex-row sm:items-end gap-3 justify-between">
         <div>
           <h1 className="text-2xl font-black uppercase tracking-widest flex items-center gap-2">
-            <ChartBarIcon className="h-6 w-6 text-emerald-600" /> Reportes
+            <ChartBarIcon className="h-6 w-6 text-brand-600" /> Reportes
           </h1>
           <p className="text-xs text-gray-500 mt-1">Ventas y turnos de caja agrupados por método, día y sucursal.</p>
         </div>
         <button onClick={exportCSV} disabled={!report}
-          className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-30">
+          className="flex items-center gap-2 px-3 py-2 bg-brand-500/10 border border-brand-500/30 text-brand-600 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-30">
           <ArrowDownTrayIcon className="h-4 w-4" /> Exportar CSV
         </button>
       </header>
@@ -145,7 +145,7 @@ export default function ReportesPage() {
             </button>
           ))}
           <button onClick={fetchData} disabled={loading}
-            className="px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 rounded-xl">
+            className="px-3 py-2 bg-brand-500/10 border border-brand-500/30 text-brand-600 rounded-xl">
             <ArrowPathIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
@@ -156,7 +156,7 @@ export default function ReportesPage() {
         {(["sales", "shifts"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-              tab === t ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-gray-900"
+              tab === t ? "bg-brand-500 text-black" : "text-gray-500 hover:text-gray-900"
             }`}>
             {t === "sales" ? "Ventas" : "Turnos"}
           </button>
@@ -187,7 +187,7 @@ export default function ReportesPage() {
                       <div key={method} className="flex items-center gap-3">
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-700 w-24">{METHOD_LABEL[method] ?? method}</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} />
+                          <div className="h-full bg-brand-500" style={{ width: `${pct}%` }} />
                         </div>
                         <span className="text-xs font-black text-gray-900 w-28 text-right">$ {Number(total).toLocaleString()}</span>
                         <span className="text-[10px] text-gray-400 w-10 text-right">{pct.toFixed(0)}%</span>
@@ -206,7 +206,7 @@ export default function ReportesPage() {
                   <div key={d.date} className="flex items-center gap-3">
                     <span className="text-[10px] font-black text-gray-700 w-24">{d.date}</span>
                     <div className="flex-1 h-5 bg-gray-200 rounded-md overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 flex items-center justify-end pr-2"
+                      <div className="h-full bg-gradient-to-r from-brand-500 to-brand-400 flex items-center justify-end pr-2"
                         style={{ width: `${(d.total / maxDay) * 100}%` }}>
                         <span className="text-[9px] font-black text-black">${d.total.toLocaleString()}</span>
                       </div>
@@ -228,7 +228,7 @@ export default function ReportesPage() {
                       <p className="text-xs font-black text-gray-900">{b.branch_name ?? "(sin sucursal)"}</p>
                       <p className="text-[10px] text-gray-400">{b.count} ventas</p>
                     </div>
-                    <p className="text-base font-black text-emerald-600">$ {Number(b.total).toLocaleString()}</p>
+                    <p className="text-base font-black text-brand-600">$ {Number(b.total).toLocaleString()}</p>
                   </div>
                 ))}
               </div>
@@ -241,12 +241,12 @@ export default function ReportesPage() {
               <div className="space-y-1.5">
                 {report.top_products.map((p, idx) => (
                   <div key={p.barcode} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                    <span className="text-[10px] font-black text-emerald-600 w-6">#{idx + 1}</span>
+                    <span className="text-[10px] font-black text-brand-600 w-6">#{idx + 1}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-gray-900 truncate">{p.name}</p>
                       <p className="text-[10px] text-gray-400">{p.units} u.</p>
                     </div>
-                    <p className="text-xs font-black text-emerald-600">$ {Number(p.revenue).toLocaleString()}</p>
+                    <p className="text-xs font-black text-brand-600">$ {Number(p.revenue).toLocaleString()}</p>
                   </div>
                 ))}
               </div>
@@ -266,13 +266,13 @@ export default function ReportesPage() {
                       <p className="text-xs font-black text-gray-900">{new Date(s.started_at).toLocaleString()}</p>
                       <p className="text-[10px] text-gray-500">
                         {s.branch_name ?? "(sin sucursal)"} · {s.hours_open?.toFixed(1)}h ·
-                        <span className={s.status === "OPEN" ? " text-yellow-400" : " text-emerald-600"}> {s.status}</span>
+                        <span className={s.status === "OPEN" ? " text-yellow-400" : " text-brand-600"}> {s.status}</span>
                       </p>
                     </div>
                     <span className={`text-sm font-black ${
                       s.difference === null ? "text-gray-500" :
                       s.difference === 0    ? "text-gray-700" :
-                      s.difference > 0      ? "text-emerald-600" : "text-red-400"
+                      s.difference > 0      ? "text-brand-600" : "text-red-400"
                     }`}>
                       {s.difference !== null ? `${s.difference >= 0 ? "+" : ""}$ ${s.difference.toLocaleString()}` : "—"}
                     </span>
@@ -286,7 +286,7 @@ export default function ReportesPage() {
                           <p className="text-[10px] text-gray-400">Esperado: ${b.expected.toLocaleString()}</p>
                           <p className={`text-[10px] font-bold ${
                             b.difference === 0 ? "text-gray-500" :
-                            b.difference > 0   ? "text-emerald-600" : "text-red-400"
+                            b.difference > 0   ? "text-brand-600" : "text-red-400"
                           }`}>
                             {b.difference >= 0 ? "+" : ""}$ {b.difference.toLocaleString()}
                           </p>
@@ -308,7 +308,7 @@ function KpiCard({ label, value, sub, icon: Icon }: { label: string; value: stri
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-3">
       <div className="flex items-center gap-2 mb-1">
-        <Icon className="h-4 w-4 text-emerald-600" />
+        <Icon className="h-4 w-4 text-brand-600" />
         <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{label}</p>
       </div>
       <p className="text-xl font-black text-gray-900">{value}</p>

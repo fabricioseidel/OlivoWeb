@@ -170,9 +170,12 @@ export const FALLBACK_SETTINGS: StoreSettings = {
   paymentTestMode: true,
   emailFromName: "OLIVOMARKET",
   emailFromAddress: "noreply@olivomarket.cl",
-  heroTitle: "Sabor que te conecta con casa",
+  // El texto anterior ("Sabor que te conecta con casa" / "Llevamos lo mejor de
+  // Venezuela...") describía el 1,7% del catálogo. Encabeza lo que la tienda
+  // es; lo venezolano tiene su propia sección más abajo.
+  heroTitle: "Tu minimarket en Ñuñoa, con despacho a domicilio",
   heroDescription:
-    "Llevamos lo mejor de Venezuela directo a tu puerta en Chile. Calidad garantizada, frescura y el sabor que ya conoces.",
+    "Más de 700 productos: abarrotes, bebidas, lácteos, panadería, helados y aseo. Y punto de retiro y envío de encomiendas.",
   // Sin fila de settings la tienda queda en vitrina: se puede mirar, no comprar.
   // Es el estado seguro — abrir se decide en el panel, no por desplegar.
   previewMode: true,

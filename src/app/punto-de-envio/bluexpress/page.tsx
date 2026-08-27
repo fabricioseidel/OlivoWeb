@@ -163,11 +163,11 @@ export default function BluexpressPage() {
 
         <p className="mt-8 text-gray-700">
           Revisa también{" "}
-          <Link href="/punto-de-envio/chilexpress" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/punto-de-envio/chilexpress" className="font-bold text-brand-700 hover:underline">
             Chilexpress
           </Link>{" "}
           o el{" "}
-          <Link href="/punto-de-envio" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/punto-de-envio" className="font-bold text-brand-700 hover:underline">
             listado completo de couriers
           </Link>
           .

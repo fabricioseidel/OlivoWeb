@@ -50,7 +50,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-white p-4">
-        <div className="size-10 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+        <div className="size-10 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
         <span className="text-sm text-neutral-500">Cargando producto…</span>
       </div>
     );
@@ -68,7 +68,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
         </p>
         <Link
           href="/productos"
-          className="o-focus flex h-12 items-center rounded-xl bg-emerald-600 px-7 font-semibold text-white transition-colors hover:bg-emerald-700"
+          className="o-focus flex h-12 items-center rounded-xl bg-brand-600 px-7 font-semibold text-white transition-colors hover:bg-brand-700"
         >
           Volver a la tienda
         </Link>
@@ -131,7 +131,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
         <div className="o-container py-3">
           <Link
             href="/productos"
-            className="o-focus group inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-emerald-700"
+            className="o-focus group inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-brand-700"
           >
             <ArrowLeftIcon className="size-4 transition-transform group-hover:-translate-x-0.5" />
             Volver al catálogo
@@ -157,7 +157,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
               )}
               {loadingDetails && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/60">
-                  <div className="size-7 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+                  <div className="size-7 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
                 </div>
               )}
             </div>
@@ -172,7 +172,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
                     aria-current={selectedImage === index}
                     className={`o-focus flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-neutral-50 p-1.5 transition-colors sm:size-20 ${
                       selectedImage === index
-                        ? "border-emerald-500 bg-white"
+                        ? "border-brand-500 bg-white"
                         : "border-neutral-200 hover:border-neutral-300"
                     }`}
                     onClick={() => setSelectedImage(index)}
@@ -243,7 +243,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
                     key={index}
                     className="flex items-center gap-2.5 rounded-xl border border-neutral-200 px-3.5 py-2.5"
                   >
-                    <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-emerald-600" />
+                    <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-brand-600" />
                     <span className="text-sm text-neutral-700">{feature}</span>
                   </li>
                 ))}
@@ -280,7 +280,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
                 <button
                   onClick={handleAddToCart}
                   disabled={outOfStock}
-                  className="o-focus h-13 flex-1 rounded-xl bg-emerald-600 text-base font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-500"
+                  className="o-focus h-13 flex-1 rounded-xl bg-brand-600 text-base font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-500"
                 >
                   {outOfStock ? 'Sin stock' : 'Agregar al carrito'}
                 </button>
@@ -289,7 +289,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
                 <button
                   onClick={handleWhatsApp}
-                  className="o-focus inline-flex items-center gap-2 rounded-lg text-sm font-medium text-neutral-700 transition-colors hover:text-emerald-700"
+                  className="o-focus inline-flex items-center gap-2 rounded-lg text-sm font-medium text-neutral-700 transition-colors hover:text-brand-700"
                 >
                   <ChatBubbleLeftRightIcon className="size-4" />
                   Consultar por WhatsApp

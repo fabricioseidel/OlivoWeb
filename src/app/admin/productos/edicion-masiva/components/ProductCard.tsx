@@ -36,9 +36,9 @@ const ProductCard = memo(function ProductCard({
     <div
       className={`relative rounded-3xl border-2 overflow-hidden bg-white transition-all ${
         selected
-          ? "border-emerald-500 ring-4 ring-emerald-500/15 shadow-xl shadow-emerald-500/10"
+          ? "border-brand-500 ring-4 ring-brand-500/15 shadow-xl shadow-brand-500/10"
           : isDirty
-          ? "border-emerald-300 shadow-lg shadow-emerald-500/5"
+          ? "border-brand-300 shadow-lg shadow-brand-500/5"
           : "border-gray-100 shadow-sm hover:border-gray-200 hover:shadow-md"
       }`}
     >
@@ -48,15 +48,15 @@ const ProductCard = memo(function ProductCard({
         title={selected ? "Quitar de la selección" : "Seleccionar"}
         className={`absolute top-2 left-2 z-10 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all shadow ${
           selected
-            ? "bg-emerald-500 border-emerald-500 text-white"
-            : "bg-white/90 border-gray-300 text-transparent hover:border-emerald-400"
+            ? "bg-brand-500 border-brand-500 text-white"
+            : "bg-white/90 border-gray-300 text-transparent hover:border-brand-400"
         }`}
       >
         <CheckIcon className="w-4 h-4" strokeWidth={3} />
       </button>
 
       {ready ? (
-        <span className="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest shadow">
+        <span className="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-500 text-white text-[9px] font-black uppercase tracking-widest shadow">
           <CheckBadgeIcon className="w-3.5 h-3.5" /> Listo
         </span>
       ) : (
@@ -85,8 +85,8 @@ const ProductCard = memo(function ProductCard({
           type="text"
           value={changes?.name ?? product.name}
           onChange={(e) => onChange(product.id, "name", e.target.value)}
-          className={`w-full text-sm font-black leading-tight bg-transparent border-b-2 pb-1 transition-all focus:outline-none focus:border-emerald-500 truncate ${
-            changes?.name !== undefined ? "border-emerald-500 text-emerald-700" : "border-transparent text-gray-900 hover:border-gray-200"
+          className={`w-full text-sm font-black leading-tight bg-transparent border-b-2 pb-1 transition-all focus:outline-none focus:border-brand-500 truncate ${
+            changes?.name !== undefined ? "border-brand-500 text-brand-700" : "border-transparent text-gray-900 hover:border-gray-200"
           }`}
         />
         <input
@@ -128,8 +128,8 @@ const ProductCard = memo(function ProductCard({
                 onChange={(e) => onChange(product.id, "price", e.target.value)}
                 className={`w-full h-9 rounded-lg border border-gray-200 font-black text-xs pl-5 pr-1 shadow-inner ${
                   changes?.price !== undefined
-                    ? "bg-emerald-50 border-emerald-300 text-emerald-800"
-                    : "bg-gray-50 text-gray-900 focus:bg-white focus:border-emerald-500"
+                    ? "bg-brand-50 border-brand-300 text-brand-800"
+                    : "bg-gray-50 text-gray-900 focus:bg-white focus:border-brand-500"
                 }`}
               />
             </div>
@@ -161,10 +161,10 @@ const ProductCard = memo(function ProductCard({
               onChange={(e) => onChange(product.id, "stock", e.target.value)}
               className={`w-full h-9 rounded-lg border border-gray-200 font-black text-xs px-2 text-center shadow-inner ${
                 changes?.stock !== undefined
-                  ? "bg-emerald-50 border-emerald-300 text-emerald-800"
+                  ? "bg-brand-50 border-brand-300 text-brand-800"
                   : product.stock <= 5
                   ? "bg-red-50 border-red-300 text-red-700"
-                  : "bg-gray-50 text-gray-900 focus:bg-white focus:border-emerald-500"
+                  : "bg-gray-50 text-gray-900 focus:bg-white focus:border-brand-500"
               }`}
             />
           </div>

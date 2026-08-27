@@ -42,7 +42,7 @@ export default function LiveReceptionBoard({ orders, onUpdateStatus }: LiveRecep
   };
 
   const OrderCard = ({ order, nextAction, nextStatus, isWarning = false }: { order: LiveOrder, nextAction: string, nextStatus: string, isWarning?: boolean }) => {
-    const timeColor = isWarning ? "text-red-600 bg-red-50" : "text-emerald-700 bg-emerald-50";
+    const timeColor = isWarning ? "text-red-600 bg-red-50" : "text-brand-700 bg-brand-50";
 
     return (
       <div className={`bg-white rounded-3xl p-5 border-2 ${isWarning ? 'border-amber-200 shadow-amber-100/50' : 'border-gray-100 shadow-gray-200/50'} shadow-xl flex flex-col gap-4 transition-all hover:scale-[1.02] group`}>
@@ -65,12 +65,12 @@ export default function LiveReceptionBoard({ orders, onUpdateStatus }: LiveRecep
         <div className="bg-gray-50 rounded-2xl p-4 flex justify-between items-center border border-gray-100">
           <div>
             <p className="text-[10px] text-gray-500 font-black tracking-widest uppercase mb-1">Total</p>
-            <p className="font-black text-xl text-emerald-600">${Number(order.total || 0).toLocaleString('es-CL')}</p>
+            <p className="font-black text-xl text-brand-600">${Number(order.total || 0).toLocaleString('es-CL')}</p>
           </div>
           <div className="text-right">
              <p className="text-[10px] text-gray-500 font-black tracking-widest uppercase mb-1">{order.productos} Items</p>
              <div className="flex items-center justify-end gap-1">
-                <span className={`w-2 h-2 rounded-full ${order.paymentStatus === 'paid' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                <span className={`w-2 h-2 rounded-full ${order.paymentStatus === 'paid' ? 'bg-brand-500' : 'bg-amber-500'}`}></span>
                 <span className="text-xs font-bold text-gray-700">{order.paymentStatus === 'paid' ? 'Pagado' : 'Pago Pendiente'}</span>
              </div>
           </div>
@@ -80,7 +80,7 @@ export default function LiveReceptionBoard({ orders, onUpdateStatus }: LiveRecep
           <Link href={`/admin/pedidos/${order.id}`} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[11px] font-black uppercase tracking-widest py-3 rounded-2xl transition-colors flex items-center justify-center gap-1">
              <EyeIcon className="w-4 h-4" /> Ver
           </Link>
-          <button onClick={() => onUpdateStatus(order.id, nextStatus)} className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black uppercase tracking-widest py-3 rounded-2xl shadow-lg shadow-emerald-600/30 transition-all active:scale-95 flex items-center justify-center gap-2">
+          <button onClick={() => onUpdateStatus(order.id, nextStatus)} className="flex-[2] bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-black uppercase tracking-widest py-3 rounded-2xl shadow-lg shadow-brand-600/30 transition-all active:scale-95 flex items-center justify-center gap-2">
             {nextAction} <ArrowRightIcon className="w-4 h-4" />
           </button>
         </div>
@@ -129,7 +129,7 @@ export default function LiveReceptionBoard({ orders, onUpdateStatus }: LiveRecep
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+            <span className="w-3 h-3 rounded-full bg-brand-500"></span>
             LISTOS / ENVIADOS
           </h2>
           <span className="bg-gray-100 text-gray-600 font-bold px-3 py-1 rounded-full text-xs">{readyOrders.length}</span>

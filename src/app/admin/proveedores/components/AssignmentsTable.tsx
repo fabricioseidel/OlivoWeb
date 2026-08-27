@@ -69,7 +69,7 @@ export default function AssignmentsTable({
             return (
               <tr
                 key={`${assignment.product_id}-${assignment.supplier_id}`}
-                className={isEditing ? "bg-emerald-50/50" : ""}
+                className={isEditing ? "bg-brand-50/50" : ""}
               >
                 <td className="px-4 py-3">
                   <div className="font-medium text-gray-900">
@@ -87,7 +87,7 @@ export default function AssignmentsTable({
                       <input
                         type="number"
                         step="0.01"
-                        className="w-24 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-sm font-medium text-right focus:ring-2 focus:ring-emerald-500"
+                        className="w-24 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-sm font-medium text-right focus:ring-2 focus:ring-brand-500"
                         value={editForm.priceWithoutVat}
                         onChange={(e) =>
                           handleEditPriceChange(
@@ -102,7 +102,7 @@ export default function AssignmentsTable({
                       <input
                         type="number"
                         step="0.01"
-                        className="w-24 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-sm font-medium text-right focus:ring-2 focus:ring-emerald-500"
+                        className="w-24 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-sm font-medium text-right focus:ring-2 focus:ring-brand-500"
                         value={editForm.priceWithVat}
                         onChange={(e) =>
                           handleEditPriceChange("with", e.target.value)
@@ -114,7 +114,7 @@ export default function AssignmentsTable({
                       <input
                         type="number"
                         min={0}
-                        className="w-20 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-sm font-medium text-right focus:ring-2 focus:ring-emerald-500"
+                        className="w-20 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-sm font-medium text-right focus:ring-2 focus:ring-brand-500"
                         value={editForm.defaultReorderQty}
                         onChange={(e) =>
                           setEditForm((prev) => ({
@@ -141,7 +141,7 @@ export default function AssignmentsTable({
                             saveEditAssignment(assignment.product_id)
                           }
                           disabled={assignmentSaving}
-                          className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition min-h-[36px]"
+                          className="px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-bold hover:bg-brand-700 transition min-h-[36px]"
                         >
                           {assignmentSaving ? "..." : "Guardar"}
                         </button>
@@ -159,7 +159,7 @@ export default function AssignmentsTable({
                     </td>
                     <td
                       className={`px-4 py-3 text-right font-semibold ${
-                        cost > 0 ? "text-emerald-700" : "text-rose-600"
+                        cost > 0 ? "text-brand-700" : "text-rose-600"
                       }`}
                     >
                       ${(aBruto(cost) ?? 0).toFixed(2)}

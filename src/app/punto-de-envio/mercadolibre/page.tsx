@@ -166,11 +166,11 @@ export default function MercadoLibrePage() {
 
         <p className="mt-8 text-gray-700">
           ¿Necesitas otro courier? Revisa{" "}
-          <Link href="/punto-de-envio" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/punto-de-envio" className="font-bold text-brand-700 hover:underline">
             todos los servicios de paquetería
           </Link>{" "}
           o visita la{" "}
-          <Link href="/tienda-nunoa" className="font-bold text-emerald-700 hover:underline">
+          <Link href="/tienda-nunoa" className="font-bold text-brand-700 hover:underline">
             tienda en Ñuñoa
           </Link>
           .

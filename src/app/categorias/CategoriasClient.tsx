@@ -11,7 +11,7 @@ export default function CategoriasClient() {
 
   if (loading) return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-white p-4">
-      <div className="size-10 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+      <div className="size-10 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
       <span className="text-sm text-neutral-500">Cargando categorías…</span>
     </div>
   );
@@ -57,7 +57,7 @@ export default function CategoriasClient() {
             </p>
             <Link
               href="/productos"
-              className="o-focus inline-flex h-11 items-center rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+              className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
             >
               Ver todos los productos
             </Link>
@@ -86,13 +86,13 @@ export default function CategoriasClient() {
             <div className="mt-10 flex flex-wrap justify-center gap-3 border-t border-neutral-100 pt-10">
               <Link
                 href="/productos"
-                className="o-focus inline-flex h-11 items-center rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+                className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
               >
                 Ver catálogo completo
               </Link>
               <Link
                 href="/ofertas"
-                className="o-focus inline-flex h-11 items-center rounded-xl border border-neutral-200 px-6 text-sm font-semibold text-neutral-700 transition-colors hover:border-emerald-400 hover:text-emerald-700"
+                className="o-focus inline-flex h-11 items-center rounded-xl border border-neutral-200 px-6 text-sm font-semibold text-neutral-700 transition-colors hover:border-brand-400 hover:text-brand-700"
               >
                 Ver ofertas
               </Link>

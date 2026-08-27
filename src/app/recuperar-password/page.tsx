@@ -36,8 +36,8 @@ export default function RecuperarPasswordPage() {
       <div className="w-full max-w-md">
         {sent ? (
           <div className="o-card p-6 text-center sm:p-8">
-            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-emerald-50">
-              <CheckCircleIcon className="size-7 text-emerald-600" />
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-brand-50">
+              <CheckCircleIcon className="size-7 text-brand-600" />
             </div>
             <h1 className="o-h2 mb-2 text-neutral-900">Revisa tu correo</h1>
             <p className="o-body mb-7 text-neutral-600">
@@ -51,7 +51,7 @@ export default function RecuperarPasswordPage() {
               ¿No te llegó? Revisa la carpeta de spam o{" "}
               <button
                 onClick={() => { setSent(false); setError(null); }}
-                className="o-focus rounded font-medium text-emerald-700 hover:text-emerald-800"
+                className="o-focus rounded font-medium text-brand-700 hover:text-brand-800"
               >
                 inténtalo de nuevo
               </button>
@@ -84,7 +84,7 @@ export default function RecuperarPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
-                  className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-emerald-500"
+                  className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-brand-500"
                 />
               </div>
 
@@ -101,7 +101,7 @@ export default function RecuperarPasswordPage() {
 
             <p className="mt-6 text-center text-sm text-neutral-500">
               ¿Te acordaste?{" "}
-              <Link href="/login" className="o-focus rounded font-medium text-emerald-700 hover:text-emerald-800">
+              <Link href="/login" className="o-focus rounded font-medium text-brand-700 hover:text-brand-800">
                 Iniciar sesión
               </Link>
             </p>
