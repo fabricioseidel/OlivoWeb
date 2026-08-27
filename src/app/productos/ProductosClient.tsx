@@ -122,6 +122,10 @@ function ProductsContent() {
             <select
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as SortKey)}
+              // `title` sale como tooltip en escritorio pero no es un nombre
+              // accesible fiable: varios lectores de pantalla lo ignoran y en
+              // móvil no se ve nunca. `aria-label` sí lo es.
+              aria-label="Ordenar productos"
               title="Ordenar productos"
               className="h-11 px-3 rounded-2xl bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-600 focus:outline-none focus:border-brand-400 cursor-pointer"
             >

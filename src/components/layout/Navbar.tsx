@@ -182,10 +182,19 @@ export default function Navbar() {
           </div>
 
           <div className="-mr-2 flex items-center gap-1 lg:hidden">
-            <button onClick={() => setMobileSearchOpen(!mobileSearchOpen)} className="p-2 rounded-xl text-gray-400 hover:text-brand-600">
+            <button
+              onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+              aria-label={mobileSearchOpen ? "Cerrar búsqueda" : "Buscar productos"}
+              aria-expanded={mobileSearchOpen}
+              className="p-2 rounded-xl text-gray-400 hover:text-brand-600"
+            >
               <Search className="h-5 w-5" />
             </button>
-            <Link href="/carrito" className={`relative p-2 rounded-xl text-gray-400 hover:text-brand-600 ${animateCart ? 'scale-110 text-brand-600' : ''}`}>
+            <Link
+              href="/carrito"
+              aria-label={itemCount > 0 ? `Carrito, ${itemCount} producto${itemCount === 1 ? '' : 's'}` : 'Carrito, vacío'}
+              className={`relative p-2 rounded-xl text-gray-400 hover:text-brand-600 ${animateCart ? 'scale-110 text-brand-600' : ''}`}
+            >
               <ShoppingBag className="h-5 w-5" strokeWidth={2} />
               {itemCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-brand-600 text-white text-xs font-semibold rounded-full h-4.5 w-4.5 flex items-center justify-center ring-2 ring-white">
@@ -195,6 +204,8 @@ export default function Navbar() {
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={mobileMenuOpen}
               className="inline-flex items-center justify-center p-2 rounded-xl text-gray-400 hover:text-brand-600 focus:outline-none"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}

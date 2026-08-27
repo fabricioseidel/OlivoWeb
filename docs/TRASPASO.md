@@ -322,6 +322,30 @@ lugar de empujar la página. Verificado después: **0 desbordamientos en 11
 anchos × 6 páginas** (360, 375, 414, 640, 700, 768, 850, 1024, 1180, 1280,
 1440).
 
+### Botones de icono sin nombre accesible (2026-08-27)
+
+Del mismo barrido salieron tres controles que un lector de pantalla anunciaba
+sólo como "botón" o "enlace", porque su contenido es un `<svg>` y nada más:
+el botón de búsqueda y el de menú del navbar móvil, y el enlace al carrito.
+Los tres llevan ahora `aria-label`, y los dos que abren y cierran algo llevan
+también `aria-expanded` para que se anuncie el estado. El del carrito dice
+cuántos productos hay, que es la información que el número sobre el icono da
+a quien puede verlo.
+
+El `<select>` de orden en el catálogo tenía `title` pero no `aria-label`:
+`title` sale como tooltip en escritorio, varios lectores lo ignoran y en móvil
+no se ve nunca. Se le agregó `aria-label` sin quitar el `title`.
+
+**Estado tras el barrido:** 13 páginas × 3 anchos sin desbordamiento, sin
+imágenes sin `alt`, sin campos sin etiqueta, sin botones mudos y sin errores
+de JavaScript.
+
+*Nota para quien repita la medición:* estas páginas piden datos a Supabase, y
+en el contenedor de desarrollo el proxy no llega a Supabase. Con esperas
+cortas (menos de ~2 s) la página todavía muestra el error de carga y el
+detector lo reporta como fallo. No es un error real: con `networkidle` o
+~2,5 s de espera, todas cargan limpias.
+
 ### Los textos de la portada no se encontraban (2026-08-27)
 
 El dueño mandó una captura del móvil marcando el encabezado: *"no veo lugar
