@@ -878,6 +878,121 @@ productos con stock que no se pueden vender por la web ni se ven en la tienda.
 
 ---
 
+## Uber Direct: la cotización real (2026-08-28)
+
+La evaluación de Uber Direct estaba bloqueada por un solo número: cuánto cobra
+Uber por una entrega en Ñuñoa. Ya se puede responder. Se midió con
+`scripts/uber-direct-cotizar.mjs` contra la API real, con las credenciales de
+la app de **prueba**.
+
+**El número, en una línea: Uber cobra entre $2.953 y $4.726 en Ñuñoa y Macul.
+El checkout cobra hoy un tope de $1.500. Uber sale entre 2,0 y 3,2 veces eso.**
+
+### La unidad del `fee`: hay que dividir por 100
+
+Era la duda abierta: el `fee` viene en la unidad mínima de la moneda y el peso
+chileno no tiene centavos, así que no se sabía si Uber divide por 100.
+**Divide.** Uber usa exponente 2 fijo (cents) aunque el CLP no tenga subunidad.
+
+Dos evidencias independientes:
+
+- **Por magnitud.** El crudo para 2 km es `338400`. Leído sin dividir son
+  $338.400 —unos 350 USD por llevar un paquete dos kilómetros—, absurdo por un
+  factor de 100. Leído `/100` son $3.384, que es exactamente lo que vale un
+  delivery en Santiago.
+- **Por documentación.** La referencia de Uber describe el `fee` de
+  `delivery_quotes` en cents, con el ejemplo `"fee": 558` / `"currency_type":
+  "USD"`.
+
+Que ninguna de las dos lecturas dé un número redondo en pesos es esperable: el
+precio no lo fija una tarifa en CLP, lo fija el motor de Uber.
+
+### Las cotizaciones
+
+Diez direcciones de Ñuñoa y Macul, viernes 2026-08-28 ~16:05 hora de Chile, sin
+lluvia, fuera de hora punta. `km` es Haversine en línea recta desde el local.
+
+| Destino | km | `fee` crudo | Costo real | ETA |
+|---|---:|---:|---:|---:|
+| Los Plátanos 1200, Macul | 1,37 | 338400 | $3.384 | 53 min |
+| Duble Almeyda 2900, Ñuñoa | 1,44 | 338400 | $3.384 | 53 min |
+| Av. Macul 3200, Macul | 1,69 | 295300 | **$2.953** | 53 min |
+| Av. Irarrázaval 3400, Ñuñoa | 2,03 | 338400 | $3.384 | 57 min |
+| Av. Grecia 1570, Ñuñoa | 2,17 | 338400 | $3.384 | 54 min |
+| Av. Quilín 3250, Macul | 3,14 | 338400 | $3.384 | 53 min |
+| Av. Departamental 1400, Macul | 3,25 | 427500 | $4.275 | 64 min |
+| Av. Vicuña Mackenna 4860, Macul | 3,28 | 472600 | $4.726 | 64 min |
+| Av. Irarrázaval 5400, Ñuñoa | 3,40 | 427500 | $4.275 | 64 min |
+| Av. Ossa 100, Ñuñoa | 4,08 | 472600 | **$4.726** | 69 min |
+
+Mínimo $2.953, promedio $3.788, máximo $4.726. Fuera de las dos comunas se
+midió hasta $5.675 (Santa Rosa 4200, San Joaquín).
+
+**El precio va por escalones, no por kilómetro.** Sólo aparecen cinco valores
+—295300, 338400, 427500, 472600, 567500— y no ordenan por distancia en línea
+recta: Quilín a 3,14 km cuesta lo mismo que Irarrázaval a 2,03 km, y menos que
+Departamental a 3,25 km. Ordenan bien por `duration`, que es lo que Uber
+factura: ruta y tiempo, no radio. **No se puede predecir el precio de Uber con
+Haversine.** Hay que cotizar.
+
+### La cobertura tiene huecos, y no son un radio
+
+Con las credenciales de prueba, `address_undeliverable` en Las Condes (4,4 km)
+y San Miguel (6,4 km), pero sí hay cobertura en La Reina (5,1 km) y Peñalolén
+(5,0 km). Es un polígono, no un círculo, así que **el radio de reparto propio
+(`RADIO_DESPACHO_KM_DEFAULT`, 8 km) no sirve para predecir si Uber acepta**. La
+única forma de saberlo es pedir la cotización y manejar el error.
+
+Ojo: esto se midió con la app de prueba y podría ser una restricción del
+sandbox. Reverificar con las credenciales de producción antes de fijar
+cobertura en el checkout.
+
+### Qué umbral de envío gratis deja margen
+
+Con margen promedio de catálogo de **27,5%**, un carro de $U deja $U × 0,275 de
+margen bruto, y de ahí sale el envío.
+
+| Umbral | Margen bruto | Neto con Uber promedio ($3.788) | Neto en el peor caso ($4.726) |
+|---:|---:|---:|---:|
+| $15.000 | $4.125 | +$337 | **−$601** |
+| $20.000 | $5.500 | +$1.712 | +$774 |
+| $25.000 | $6.875 | +$3.087 | +$2.149 |
+| **$30.000** | **$8.250** | **+$4.462** | **+$3.524** |
+| $35.000 | $9.625 | +$5.837 | +$4.899 |
+
+El punto de equilibrio —donde se gana exactamente cero— es **$17.185** en el
+peor caso medido. Cualquier umbral de envío gratis por debajo de eso hace que
+el pedido pierda plata.
+
+**Recomendación: `freeShippingMinimum` en $30.000.** Deja el 43% del margen
+bruto vivo incluso en la dirección más cara medida, y es un carro alcanzable en
+un minimarket. $25.000 también cierra, pero deja sólo el 31%.
+
+**Falta descontar la comisión de MercadoPago** (~3,49% + IVA), que el 27,5% no
+incluye: a $30.000 son unos $1.245, y bajan el neto del peor caso de $3.524 a
+~$2.279 — sigue positivo. A $25.000 lo dejan en ~$1.111, que ya es apretado.
+Es la razón principal para preferir $30.000 sobre $25.000. Confirmar la
+comisión real antes de fijarlo.
+
+### Lo que falta medir antes de integrar
+
+- **Hora punta y lluvia.** Todo esto es un viernes a las 16:05 con buen tiempo.
+  El tope sobre el cual no se ofrece Uber (regla 2 de la integración) no se
+  puede fijar sin ver cuánto sube un martes a las 21:00 o con lluvia. Provisorio
+  sugerido: $6.500, apenas por encima del máximo absoluto medido ($5.675).
+- **Si el `fee` depende del valor del carro.** No se probó; todas las
+  cotizaciones fueron sin `manifest_total_value`.
+- **Precios y cobertura de producción.** Estos son de la app de prueba.
+
+### Credenciales
+
+Las de la app de prueba quedaron expuestas en un chat el 2026-08-28 y **hay que
+rotarlas antes de producción**. Van en `.env.local` (que está en `.gitignore`)
+para correr el script, y las de producción sólo en las variables de entorno de
+Vercel. Nunca en un archivo rastreado.
+
+---
+
 ## Doctrinas del proyecto (no romper)
 
 Reglas que este código sostiene a propósito. Romperlas reintroduce errores que
@@ -973,6 +1088,27 @@ que existen. Si agregás uno nuevo, comprobá la FK primero.
 El proxy del contenedor devuelve **403 CONNECT** para el host de Supabase (y
 para casi todo lo demás). El único camino es el conector MCP. No pierdas tiempo
 con `curl`.
+
+### Uber sí sale por red; Supabase no
+
+A diferencia de Supabase, `auth.uber.com` y `api.uber.com` **están en el
+allowlist del entorno** desde el 2026-08-28 y responden. Si vuelven a dar 403,
+es configuración del entorno y aplica sólo a sesiones nuevas: no se rodea, se
+pide que lo agreguen (y que dejen marcada la casilla de los gestores de
+paquetes, porque sin ella se rompe npm).
+
+### El `fee` de Uber viene en centavos aunque el CLP no tenga centavos
+
+`fee: 338400` con `currency_type: "CLP"` son **$3.384, no $338.400**. Uber usa
+exponente 2 fijo. Toda lectura del `fee` divide por 100. Ver "Uber Direct: la
+cotización real" más arriba.
+
+### `pickup_address` y `dropoff_address` van como string, no como objeto
+
+Son un `JSON.stringify(...)` metido en un campo de texto. Mandarlos como objeto
+devuelve **400 sin explicar por qué**. El endpoint de token, además, está
+limitado a 100 pedidos por hora: la integración tiene que cachear el token, no
+pedir uno por cotización. El token que devolvió dura 30 días.
 
 ---
 
