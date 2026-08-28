@@ -455,6 +455,27 @@ hidratar.
 estados sólo-`hover:` sobre iconos sin texto (umbral no textual, 3:1); y el
 logo de la factura impresa, que no es un botón.
 
+#### Contraste no textual de los campos de formulario (medido, sin tocar)
+
+WCAG 1.4.11 pide **3:1** para lo que hace falta para *identificar* un control.
+Para un campo de formulario eso es su borde contra el fondo de la página, salvo
+que el relleno del campo ya se distinga solo — se miden las dos vías y basta
+con que una cumpla.
+
+**16 campos en 5 páginas quedan por debajo**, todos por la misma causa:
+`border-gray-200` (`#e5e7eb`) da **1,24:1** sobre blanco, y el relleno tampoco
+salva (blanco sobre blanco es 1,00; `bg-gray-50` sobre blanco, 1,05). Afecta
+los formularios de contacto, login, registro y los buscadores del catálogo.
+
+No lo toqué porque cambia el peso visual de **todos** los formularios del
+sitio, y eso es una decisión de aspecto. Si se decide arreglarlo, el reemplazo
+es `border-gray-500` (`#6b7280`, **4,83:1**).
+
+**Ojo con `border-gray-400`**, que es lo que uno pondría por instinto: da
+**2,54:1** y sigue fallando. El salto tiene que ser hasta el 500.
+
+Se mide con `docs/auditoria-contraste-no-textual.mjs`, igual que el otro.
+
 #### Decisión pendiente del dueño: dos colores reconocibles
 
 Los tres casos que quedan cambian un color que la gente reconoce, así que no
@@ -1081,6 +1102,13 @@ Ordenado por lo que cuesta plata.
    Si preferís que se vean como están, se quedan: es un banner promocional y un
    botón que la gente encuentra igual por el logo. Detalle en "El verde de marca
    no se leía encima de sí mismo".
+
+   - **Los bordes de los campos de formulario**, aparte. `border-gray-200` da
+     1,24:1 contra el fondo y el mínimo no textual es 3, así que en 16 campos
+     de contacto, login, registro y los buscadores no se distingue dónde
+     empieza el campo. El reemplazo es `border-gray-500` (4,83:1) — no
+     `border-gray-400`, que da 2,54:1 y sigue fallando. Tampoco lo toqué porque
+     cambia el peso visual de todos los formularios del sitio.
 
 ---
 
