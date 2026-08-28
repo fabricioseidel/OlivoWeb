@@ -487,6 +487,17 @@ Dos cosas más, del mismo barrido:
   sobre el verde oscuro del pie, así que sirve en los dos fondos donde hay
   controles.
 
+- **No había enlace para saltar al contenido.** Quien navega con teclado tenía
+  que pasar por los ~12 controles del navbar —logo, seis enlaces, buscador,
+  carrito, Entrar y Registrarse— antes de llegar al contenido, y otra vez en
+  cada página. Es **WCAG 2.4.1, nivel A**, o sea más severo que todo lo de
+  contraste. Va en `ShopShell`, invisible hasta que recibe el foco, y `<main>`
+  lleva `id="contenido"` y `tabIndex={-1}` — sin eso varios navegadores mueven
+  el scroll pero dejan el foco en el enlace, y el siguiente Tab vuelve al
+  navbar. Comprobado en el navegador: primera parada del tabulador, el foco
+  cae en `<main>` al activarlo, y el Tab siguiente ya está dentro del
+  contenido.
+
 **Blancos táctiles**: medidos a 390 px de ancho, **0 fallos** de WCAG 2.5.8.
 
 **Cómo medir el foco sin equivocarse.** Me costó tres intentos y los tres
