@@ -31,7 +31,7 @@ export default function CheckoutSteps({ currentStep }: CheckoutStepsProps) {
                   aria-hidden="true"
                   className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
                     active
-                      ? 'bg-brand-600 text-white'
+                      ? 'bg-brand-boton text-brand-contraste'
                       : 'border border-neutral-300 bg-white text-neutral-400'
                   }`}
                 >

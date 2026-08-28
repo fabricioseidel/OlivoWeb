@@ -23,8 +23,24 @@
   --color-brand-900: #064e3b;
   --color-brand-950: #022c22;
 
-  /* Texto legible sobre el primario. Lo recalcula SettingsInjector. */
+  /* Superficie del botón primario y su texto.
+     No es `brand-600` a secas porque el verde de marca es demasiado claro para
+     llevar texto blanco: `#059669` con blanco da 3,8:1 y el mínimo WCAG AA
+     para texto normal es 4,5. Este tono es el punto más cercano a `brand-600`
+     que sí llega (4,5:1), o sea el mismo verde apenas más profundo.
+     `superficieDeBoton()` lo calcula; el default de acá tiene que coincidir con
+     lo que esa función devuelve para el primario por defecto, y hay un test que
+     lo verifica para que no se separen. Cuando el panel define otro primario,
+     SettingsInjector recalcula ambos. */
+  --color-brand-boton: #00875e;
   --color-brand-contraste: #ffffff;
+
+  /* El mismo verde pero cuando va como TEXTO sobre fondo claro: enlaces,
+     botones de contorno, migas. Es el fallo espejo del botón —el verde de
+     catálogo sobre blanco da los mismos 3,8:1— y por eso hace falta un token
+     propio: acá el que se mueve es el texto, porque el fondo blanco no es
+     negociable. Lo calcula `textoDeMarca()`. */
+  --color-brand-texto: #00875e;
 
   --color-primary: #059669; /* emerald-600 */
   --color-primary-hover: color-mix(in srgb, var(--color-primary), black 14%);

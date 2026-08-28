@@ -88,8 +88,8 @@ function ProductsContent() {
   const chipClass = (active: boolean) =>
     `shrink-0 px-4 h-9 rounded-full text-xs font-bold transition-all border ${
       active
-        ? "bg-brand-600 text-white border-brand-600 shadow-sm"
-        : "bg-white text-gray-500 border-gray-200 hover:border-brand-300 hover:text-brand-600"
+        ? "bg-brand-boton text-brand-contraste border-brand-boton shadow-sm"
+        : "bg-white text-gray-500 border-gray-200 hover:border-brand-300 hover:text-brand-texto"
     }`;
 
   return (
@@ -97,7 +97,7 @@ function ProductsContent() {
       <section className="bg-brand-950 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-brand-500/20 rounded-full blur-[100px] pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 py-7 md:py-9 relative z-10">
-          <h1 className="o-display text-neutral-900">
+          <h1 className="o-display text-white">
             {activeCategoryName || "Nuestro Catálogo"}
           </h1>
           <p className="text-brand-100/60 text-sm font-medium">

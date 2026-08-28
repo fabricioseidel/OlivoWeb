@@ -131,7 +131,7 @@ export default function HomeClient({ initialBlocks = null }: { initialBlocks?: P
       <section className="py-10 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <Link href="/productos"
-            className="o-focus inline-flex h-12 items-center gap-2 rounded-xl bg-brand-600 px-8 text-base font-semibold text-white transition-colors hover:bg-brand-700">
+            className="o-focus inline-flex h-12 items-center gap-2 rounded-xl bg-brand-boton px-8 text-base font-semibold text-brand-contraste transition-colors hover:bg-brand-700">
             Ver todos los productos <ChevronRight className="w-5 h-5" />
           </Link>
         </div>
@@ -226,13 +226,13 @@ function HeroBlock({
               </div>
               <button
                 type="submit"
-                className="o-focus h-12 shrink-0 rounded-xl bg-brand-500 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-400"
+                className="o-focus h-12 shrink-0 rounded-xl bg-brand-boton px-6 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-400"
               >
                 Buscar
               </button>
             </form>
             <div className="flex flex-wrap gap-3 mt-5">
-              <Link href={buttonLink} className="inline-flex items-center gap-1.5 bg-brand-500 hover:bg-brand-400 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
+              <Link href={buttonLink} className="inline-flex items-center gap-1.5 bg-brand-boton hover:bg-brand-400 text-brand-contraste font-bold text-sm px-5 h-10 rounded-lg transition-colors">
                 {buttonText} <ChevronRight className="w-4 h-4" />
               </Link>
               <Link href="/ofertas" className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
@@ -284,14 +284,14 @@ function HeroBlock({
               <Truck className="w-8 h-8 text-brand-400 shrink-0" />
               <div>
                 <p className="text-sm font-semibold leading-snug text-white">Envío rápido</p>
-                <p className="text-brand-300/70 text-xs">Llega en 24-48h</p>
+                <p className="text-brand-300 text-xs">Llega en 24-48h</p>
               </div>
             </div>
             <div className="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3">
               <BadgeCheck className="w-8 h-8 text-brand-400 shrink-0" />
               <div>
                 <p className="text-sm font-semibold leading-snug text-white">Compra protegida</p>
-                <p className="text-brand-300/70 text-xs">Calidad asegurada</p>
+                <p className="text-brand-300 text-xs">Calidad asegurada</p>
               </div>
             </div>
           </div>
@@ -302,7 +302,7 @@ function HeroBlock({
       {showCategoriesBar && (
         <section className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
-            <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-brand-600 text-white text-xs font-bold whitespace-nowrap hover:bg-brand-500 transition-colors">
+            <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-brand-boton text-brand-contraste text-xs font-bold whitespace-nowrap hover:bg-brand-700 transition-colors">
               Todo
             </Link>
             {!categoriesLoading && [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map(cat => (

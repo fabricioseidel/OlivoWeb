@@ -189,6 +189,111 @@ export function escalaDeMarca(hexPrimario: string): Record<PasoMarca, string> | 
   return escala;
 }
 
+/** Luminancia relativa WCAG de un color ya en RGB. */
+function luminancia([r, g, b]: Rgb): number {
+  const [lr, lg, lb] = [r, g, b].map(aLineal);
+  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+}
+
+/** Razón de contraste WCAG entre dos colores. Va de 1 (iguales) a 21. */
+export function contraste(hexA: string, hexB: string): number {
+  const a = leerHex(hexA);
+  const b = leerHex(hexB);
+  if (!a || !b) return 1;
+  const [alta, baja] = [luminancia(a), luminancia(b)].sort((x, y) => y - x);
+  return (alta + 0.05) / (baja + 0.05);
+}
+
+/** Mínimo WCAG AA para texto normal. El texto grande se conforma con 3. */
+export const CONTRASTE_AA = 4.5;
+
+/**
+ * Mueve un color hasta que contraste lo suficiente con otro.
+ *
+ * Se mueve SOLO la luminosidad en OKLCH: se conservan el tono y el croma, así
+ * que sigue siendo el color que la persona eligió en el panel, apenas más
+ * oscuro o más claro. Bajar el croma o girar el tono habrían cambiado el color
+ * de la marca, que es justamente lo que no se quiere tocar.
+ *
+ * Busca el punto MÁS CERCANO al original que cumple, no uno cómodo lejos del
+ * borde: el objetivo es que se lea, no repintar la marca. Si el color ya
+ * cumple, vuelve intacto.
+ *
+ * La dirección se decide sola: si `contra` es claro hay que oscurecer, y si es
+ * oscuro hay que aclarar. El extremo correspondiente siempre cumple (blanco
+ * sobre negro da 21:1), así que la búsqueda binaria converge sin necesitar una
+ * salida de emergencia.
+ */
+export function ajustarHastaContraste(
+  hex: string,
+  contra: string,
+  contrasteMinimo: number = CONTRASTE_AA
+): string {
+  const rgb = leerHex(hex);
+  const rgbContra = leerHex(contra);
+  if (!rgb || !rgbContra) return hex;
+
+  const propio = aHex(rgb);
+  if (contraste(propio, contra) >= contrasteMinimo) return propio;
+
+  const base = rgbAOklch(rgb);
+  const extremo = luminancia(rgbContra) > 0.1791 ? 0 : 1;
+
+  let cerca = base.L;
+  let lejos = extremo;
+  let mejor = aHex(oklchARgb({ ...base, L: extremo }));
+
+  for (let i = 0; i < 24; i++) {
+    const medio = (cerca + lejos) / 2;
+    const intento = aHex(oklchARgb({ ...base, L: medio }));
+    if (contraste(intento, contra) >= contrasteMinimo) {
+      lejos = medio;
+      mejor = intento;
+    } else {
+      cerca = medio;
+    }
+  }
+
+  return mejor;
+}
+
+/**
+ * Fondo y texto del botón primario, con contraste AA garantizado.
+ *
+ * `textoLegibleSobre` elige el MEJOR de blanco y negro, que no es lo mismo que
+ * elegir uno que ALCANCE el mínimo. Con el verde de la marca ninguno de los dos
+ * llega: blanco sobre `#059669` da 3,8:1 y el mínimo para texto normal es 4,5.
+ * Un botón que dice "Comprar ahora" no se puede leer a medias.
+ *
+ * Así que además del texto hay que mover el fondo, hasta el tono más cercano
+ * que lo aguante.
+ */
+export function superficieDeBoton(
+  hexPrimario: string,
+  contrasteMinimo: number = CONTRASTE_AA
+): { fondo: string; texto: "#ffffff" | "#111111" } {
+  const texto = textoLegibleSobre(hexPrimario);
+  if (!leerHex(hexPrimario)) return { fondo: COLOR_PRIMARIO_DEFECTO, texto };
+  return { fondo: ajustarHastaContraste(hexPrimario, texto, contrasteMinimo), texto };
+}
+
+/**
+ * El color de marca cuando va como TEXTO sobre fondo claro.
+ *
+ * Es el fallo espejo del botón: los enlaces y los botones de contorno pintan el
+ * verde sobre blanco, y el verde de catálogo sobre blanco da los mismos 3,8:1
+ * que fallan en el botón. Acá el que se mueve es el color del texto, no el
+ * fondo, porque el fondo blanco no es negociable.
+ */
+export function textoDeMarca(
+  hexPrimario: string,
+  fondo: string = "#ffffff",
+  contrasteMinimo: number = CONTRASTE_AA
+): string {
+  if (!leerHex(hexPrimario)) return ajustarHastaContraste(COLOR_PRIMARIO_DEFECTO, fondo, contrasteMinimo);
+  return ajustarHastaContraste(hexPrimario, fondo, contrasteMinimo);
+}
+
 /**
  * ¿Sobre este color conviene texto blanco o negro?
  *

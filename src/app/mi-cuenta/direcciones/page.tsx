@@ -217,7 +217,7 @@ export default function DireccionesPage() {
         {!mostrarFormulario && (
           <button
             onClick={() => { setDireccionActual(null); setFormData(formularioVacio); setMostrarFormulario(true); }}
-            className="o-focus inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+            className="o-focus inline-flex h-11 items-center gap-2 rounded-xl bg-brand-boton px-5 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-700"
           >
             <PlusIcon className="w-4 h-4" />
             Agregar
@@ -312,7 +312,7 @@ export default function DireccionesPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="o-focus flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="o-focus flex h-11 items-center gap-2 rounded-xl bg-brand-boton px-5 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSubmitting && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
                 {isSubmitting ? "Guardando…" : "Guardar dirección"}
@@ -427,7 +427,7 @@ export default function DireccionesPage() {
             </p>
             <button
               onClick={() => { setFormData(formularioVacio); setMostrarFormulario(true); }}
-              className="o-focus inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+              className="o-focus inline-flex h-11 items-center gap-2 rounded-xl bg-brand-boton px-6 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-700"
             >
               <PlusIcon className="w-4 h-4" />
               Agregar dirección

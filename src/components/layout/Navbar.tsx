@@ -152,7 +152,7 @@ export default function Navbar() {
             >
               <ShoppingBag className="h-6 w-6" strokeWidth={2} />
               {itemCount > 0 && (
-                <span className={`absolute -top-1 -right-1 bg-brand-600 text-white text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white ${animateCart ? 'scale-125' : ''}`}>
+                <span className={`absolute -top-1 -right-1 bg-brand-boton text-brand-contraste text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white ${animateCart ? 'scale-125' : ''}`}>
                   {itemCount}
                 </span>
               )}
@@ -176,7 +176,7 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center gap-3">
                 <Link href="/login" className="text-sm font-semibold text-gray-500 hover:text-brand-600 transition-colors">Entrar</Link>
-                <Link href="/registro" className="text-sm font-semibold bg-brand-600 text-white px-5 py-2 rounded-full hover:bg-brand-700 shadow-sm transition-all active:scale-95">Registrarse</Link>
+                <Link href="/registro" className="text-sm font-semibold bg-brand-boton text-brand-contraste px-5 py-2 rounded-full hover:bg-brand-700 shadow-sm transition-all active:scale-95">Registrarse</Link>
               </div>
             )}
           </div>
@@ -197,7 +197,7 @@ export default function Navbar() {
             >
               <ShoppingBag className="h-5 w-5" strokeWidth={2} />
               {itemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-brand-600 text-white text-xs font-semibold rounded-full h-4.5 w-4.5 flex items-center justify-center ring-2 ring-white">
+                <span className="absolute -top-0.5 -right-0.5 bg-brand-boton text-brand-contraste text-xs font-semibold rounded-full h-4.5 w-4.5 flex items-center justify-center ring-2 ring-white">
                   {itemCount}
                 </span>
               )}
@@ -283,7 +283,7 @@ export default function Navbar() {
                   </Link>
                   <Link
                     href="/registro"
-                    className="block text-center w-full bg-brand-600 text-white py-3 rounded-2xl font-medium shadow-lg shadow-brand-200"
+                    className="block text-center w-full bg-brand-boton text-brand-contraste py-3 rounded-2xl font-medium shadow-lg shadow-brand-200"
                   >
                     Registrarse
                   </Link>

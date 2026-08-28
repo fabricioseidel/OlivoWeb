@@ -69,7 +69,7 @@ export default function BienvenidosPage() {
             <ul className="space-y-3">
               {benefits.map((b) => (
                 <li key={b.title} className="o-card flex items-start gap-3.5 p-4">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-boton text-brand-contraste">
                     <b.icon className="size-5" />
                   </span>
                   <span>

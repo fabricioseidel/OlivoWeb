@@ -200,7 +200,7 @@ export function WhatsappCta({ mensaje, children }: { mensaje: string; children: 
       href={whatsappLink(mensaje)}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 h-12 font-bold text-white transition-colors hover:bg-brand-500"
+      className="inline-flex items-center gap-2 rounded-xl bg-brand-boton px-6 h-12 font-bold text-brand-contraste transition-colors hover:bg-brand-700"
     >
       {children}
     </a>

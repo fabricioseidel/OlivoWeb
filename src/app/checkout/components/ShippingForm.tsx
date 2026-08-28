@@ -341,7 +341,7 @@ export default function ShippingForm({
                     
                     <div className="ml-5 flex items-center gap-4">
                       {method.id === 'dynamic' && (
-                        <div className="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center shadow-lg shadow-brand-600/20">
+                        <div className="w-12 h-12 rounded-2xl bg-brand-boton text-brand-contraste flex items-center justify-center shadow-lg shadow-brand-600/20">
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -393,7 +393,7 @@ export default function ShippingForm({
                                onClick={() => handleDateClick(d)}
                                className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all ${
                                  isDaySelected 
-                                  ? 'border-brand-600 bg-brand-600 text-white shadow-md' 
+                                  ? 'border-brand-600 bg-brand-boton text-brand-contraste shadow-md' 
                                   : 'border-gray-200 bg-white text-gray-600 hover:border-brand-300'
                                }`}
                              >

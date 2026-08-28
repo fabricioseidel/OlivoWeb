@@ -177,7 +177,7 @@ function ProductCard({ product }: Props) {
                 onClick={handleAddOne}
                 disabled={product.stock !== undefined && quantityInCart >= product.stock}
                 aria-label={`Agregar una unidad de ${product.name}`}
-                className="o-focus flex size-8 items-center justify-center rounded-lg bg-brand-600 text-white transition-colors hover:bg-brand-700 disabled:opacity-40"
+                className="o-focus flex size-8 items-center justify-center rounded-lg bg-brand-boton text-brand-contraste transition-colors hover:bg-brand-700 disabled:opacity-40"
               >
                 <Plus className="size-4" strokeWidth={2.5} />
               </button>
@@ -190,7 +190,7 @@ function ProductCard({ product }: Props) {
               className={`o-focus flex h-10 w-full shrink-0 items-center justify-center rounded-xl transition-colors sm:w-10 ${
                 outOfStock
                   ? 'cursor-not-allowed bg-neutral-100 text-neutral-300'
-                  : 'bg-brand-600 text-white hover:bg-brand-700'
+                  : 'bg-brand-boton text-brand-contraste hover:bg-brand-700'
               }`}
             >
               <Plus strokeWidth={2.5} className="size-5" />

@@ -190,7 +190,7 @@ export default function PedidosPage() {
               onClick={() => { setFiltroEstado(f); setPaginaActual(1); }}
               className={`o-focus rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 filtroEstado === f
-                  ? "bg-brand-600 text-white"
+                  ? "bg-brand-boton text-brand-contraste"
                   : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
               }`}
             >
@@ -236,7 +236,7 @@ export default function PedidosPage() {
                           <button
                             onClick={() => handlePagar(pedido.id)}
                             disabled={payingId === pedido.id}
-                            className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+                            className="rounded-lg bg-brand-boton px-3 py-1.5 text-xs font-semibold text-brand-contraste transition hover:bg-brand-700 disabled:opacity-60"
                           >
                             {payingId === pedido.id ? "Generando…" : "Pagar ahora"}
                           </button>
@@ -285,7 +285,7 @@ export default function PedidosPage() {
                     <button
                       onClick={() => handlePagar(pedido.id)}
                       disabled={payingId === pedido.id}
-                      className="h-10 flex-1 rounded-xl bg-brand-600 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-60"
+                      className="h-10 flex-1 rounded-xl bg-brand-boton text-sm font-semibold text-brand-contraste transition active:scale-[0.98] disabled:opacity-60"
                     >
                       {payingId === pedido.id ? "Generando…" : "Pagar ahora"}
                     </button>
@@ -348,7 +348,7 @@ export default function PedidosPage() {
             )}
             <Link
               href="/productos"
-              className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+              className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-boton px-6 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-700"
             >
               Ir a la tienda
             </Link>
