@@ -401,6 +401,102 @@ for f in pathlib.Path('src/app/admin').rglob('*.tsx'):
 EOF
 ```
 
+### El verde de marca no se leía encima de sí mismo (2026-08-28)
+
+Auditoría de contraste sobre 10 rutas públicas, en escritorio (1280) y móvil
+(390). **26 casos únicos bajo el mínimo WCAG AA. Quedan 3**, y los tres son
+decisiones de color que no me corresponden (más abajo).
+
+**Dos textos directamente invisibles.** "Nuestro Catálogo" iba con
+`text-neutral-900` sobre `bg-brand-950`: **1,18:1**, negro sobre verde muy
+oscuro. El título del newsletter igual, 1,84:1. En los dos casos el `<p>`
+hermano ya usaba color claro — fue un encabezado que quedó atrás cuando se
+oscureció la sección.
+
+**El resto era sistémico.** El verde de la marca es demasiado claro para llevar
+texto blanco encima: `#059669` con blanco da **3,77:1** y el mínimo para texto
+normal es 4,5. Todo botón primario del sitio estaba por debajo, y el de más
+tráfico —"Comprar ahora"— en 2,54:1.
+
+Ya existía `textoLegibleSobre()`, que elige el mejor de blanco y negro. Pero
+elegir el mejor no es lo mismo que alcanzar el mínimo: para el verde de marca
+ninguno de los dos llega desde el color base. Y además **nadie consumía
+`--color-brand-contraste`**: se calculaba en `SettingsInjector`, con un
+comentario explicando que servía para que un primario claro no dejara el botón
+ilegible, y todos los botones llevaban `text-white` fijo.
+
+En `src/lib/brand-palette.ts` va `ajustarHastaContraste()`: mueve **sólo la
+luminosidad en OKLCH** hasta alcanzar el mínimo, conservando tono y croma. El
+botón sigue siendo del color elegido en el panel, apenas más profundo. Busca el
+punto más cercano que cumple —el objetivo es que se lea, no repintar la marca—
+y un color que ya cumple vuelve intacto. De ahí salen dos tokens:
+
+| token | qué es | por defecto |
+|---|---|---|
+| `--color-brand-boton` | superficie del botón, con su texto a ≥4,5:1 | `#00875e` |
+| `--color-brand-texto` | el mismo verde como **texto** sobre fondo claro | `#00875e` |
+| `--color-brand-contraste` | el texto que va encima del botón | `#ffffff` |
+
+`brand-texto` existe porque es el fallo espejo: enlaces y botones de contorno
+pintan el verde sobre blanco, y ahí el que se mueve es el texto, porque el
+fondo blanco no es negociable.
+
+Con el verde por defecto `#059669 → #00875e`; con el que hay configurado hoy en
+el panel `#10b981 → #00875d`. Con un amarillo el texto sale negro y el fondo no
+se toca. Con un rojo o un azul que ya cumplen, no cambia nada.
+
+Los defaults están escritos a mano en `globals.css` para que el primer render
+—antes de que `SettingsInjector` corra— ya salga legible, y **hay un test que
+verifica que coincidan** con lo que calcula el módulo: si alguien cambia el
+perfil y no toca el CSS, el sitio arrancaría con un tono y saltaría a otro al
+hidratar.
+
+**Lo que no se tocó:** los `bg-brand-600` decorativos sin texto encima; los
+estados sólo-`hover:` sobre iconos sin texto (umbral no textual, 3:1); y el
+logo de la factura impresa, que no es un botón.
+
+#### Decisión pendiente del dueño: dos colores reconocibles
+
+Los tres casos que quedan cambian un color que la gente reconoce, así que no
+los toqué:
+
+| dónde | ahora | propuesta | queda en |
+|---|---|---|---|
+| Banner de ofertas de la portada — "Descuentos hasta 40% OFF" (2,13:1) y su bajada (1,69:1) | `from-amber-500 to-orange-500` | `from-amber-700 to-orange-700` | 5,02:1 |
+| Botón "Chat directo por WhatsApp" en /contacto (1,98:1) | `#25D366`, el verde oficial de WhatsApp | `#075E54`, el verde oscuro **también oficial** de WhatsApp | 7,67:1 |
+
+En los dos casos el texto blanco se queda; lo que baja es el fondo. El banner
+pasaría de ámbar brillante a ámbar quemado, y el botón de WhatsApp de verde
+claro a verde azulado oscuro. Si preferís que se vean como están, se quedan
+como están: es un banner promocional y un botón que la gente encuentra igual
+por el logo.
+
+#### El auditor, y la trampa que me costó dos vueltas
+
+Queda en `docs/auditoria-contraste.mjs`. Se corre con el sitio compilado:
+
+```
+npm run build && npx next start -p 3000 &
+node docs/auditoria-contraste.mjs
+```
+
+Dos cosas que hacen mentir a un auditor ingenuo, y por las que este no sirve de
+copiar y pegar desde otro proyecto:
+
+1. **Tailwind v4 emite los colores en `oklch()`.** Un parser que sólo entienda
+   `rgb()` los descarta **en silencio** — y descarta justo los que importan. La
+   primera pasada me dio "todo limpio" en el título del catálogo que estaba a
+   1,18:1. Acá los colores se resuelven pintándolos en un canvas de 1×1 y
+   leyendo el píxel, que acepta cualquier sintaxis que el navegador entienda.
+2. **El fondo casi nunca está en el elemento del texto.** Hay que subir por el
+   árbol hasta el primer ancestro opaco, y si ese fondo es un gradiente, medir
+   contra **todas** sus paradas de color y quedarse con la peor. Sin esto, el
+   banner ámbar salía como "blanco sobre blanco", 1,00:1, que es falso.
+
+Y una tercera que ya estaba documentada más abajo: las páginas que piden datos
+a Supabase tardan, y desde este contenedor la petición **falla**. Con menos de
+~2.600 ms de espera se mide la pantalla de error en vez de la página.
+
 ### Los textos de la portada no se encontraban (2026-08-27)
 
 El dueño mandó una captura del móvil marcando el encabezado: *"no veo lugar
@@ -761,6 +857,15 @@ ya costaron trabajo encontrar.
    Revocar sólo de `anon`/`authenticated` **no quita el permiso heredado** — es
    un error que ya se cometió y se corrigió dos veces en este repo.
 
+8. **El contraste se calcula, no se elige a ojo.** Toda la aritmética de color
+   vive en `src/lib/brand-palette.ts`, igual que la de precios vive en
+   `pricing.ts`. Un botón primario nuevo usa `bg-brand-boton
+   text-brand-contraste`; el color de marca como texto sobre fondo claro usa
+   `text-brand-texto`. **No** `bg-brand-600 text-white`: ese par da 3,77:1 y el
+   mínimo es 4,5. Los tokens salen de `ajustarHastaContraste()`, que garantiza
+   el mínimo sea cual sea el color que el dueño elija en el panel, y hay tests
+   que lo verifican para nueve colores distintos.
+
 ---
 
 ## Trampas conocidas
@@ -914,6 +1019,22 @@ Ordenado por lo que cuesta plata.
 4. **Menor:** el tipo de `settings` declara `paypal` y `crypto` como medios de
    pago; el checkout sólo implementa MercadoPago. `PaymentSection` ya lo
    explica honestamente, así que es esquema muerto, no un control que miente.
+
+5. **Decisión de color, no de código (2026-08-28).** Quedan dos textos bajo el
+   mínimo de contraste, y arreglarlos cambia un color que la gente reconoce, así
+   que la decisión es tuya. Es un cambio de una línea en cada caso:
+
+   - **Banner de ofertas de la portada.** "Descuentos hasta 40% OFF" está en
+     2,13:1 y su bajada en 1,69:1. Pasar el degradado de `amber-500/orange-500`
+     a `amber-700/orange-700` lo deja en 5,02:1 — ámbar quemado en vez de ámbar
+     brillante.
+   - **Botón "Chat directo por WhatsApp" en /contacto**, 1,98:1. Pasar de
+     `#25D366` (el verde claro de WhatsApp) a `#075E54` (el verde oscuro, que
+     también es oficial de WhatsApp) lo deja en 7,67:1.
+
+   Si preferís que se vean como están, se quedan: es un banner promocional y un
+   botón que la gente encuentra igual por el logo. Detalle en "El verde de marca
+   no se leía encima de sí mismo".
 
 ---
 
