@@ -206,7 +206,7 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
               aria-expanded={mobileMenuOpen}
-              className="inline-flex items-center justify-center p-2 rounded-xl text-gray-400 hover:text-brand-600 focus:outline-none"
+              className="o-focus inline-flex items-center justify-center p-2 rounded-xl text-gray-400 hover:text-brand-600"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>

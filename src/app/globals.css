@@ -431,7 +431,12 @@ body {
 
   /* ── Foco visible y consistente en todo el sitio ── */
   .o-focus:focus-visible {
-    outline: 2px solid var(--color-primary);
+    /* El anillo se pintaba con --color-primary, que es el color crudo elegido
+       en el panel: sobre blanco da 2,54:1 y el mínimo para contraste no
+       textual es 3. `brand-texto` es el mismo color ya ajustado —4,54:1 sobre
+       blanco, 3,34:1 sobre el verde oscuro del encabezado— así que sirve en
+       los dos fondos donde hay controles. */
+    outline: 2px solid var(--color-brand-texto);
     outline-offset: 2px;
   }
 }

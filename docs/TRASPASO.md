@@ -471,6 +471,41 @@ claro a verde azulado oscuro. Si preferís que se vean como están, se quedan
 como están: es un banner promocional y un botón que la gente encuentra igual
 por el logo.
 
+#### Foco de teclado (2026-08-28)
+
+Dos cosas más, del mismo barrido:
+
+- **El botón de menú móvil no mostraba foco.** Tenía `focus:outline-none` sin
+  nada que lo reemplazara: quien navega con teclado no veía dónde estaba
+  parado, y es el control que abre todo el menú en teléfono. Ahora usa
+  `o-focus`. Fue el único control del sitio público con el foco anulado sin
+  reemplazo — los `Input` que aparecían en el grep tienen `focus:ring-2` en
+  otra línea del mismo `className`, así que eran falsos positivos.
+- **El anillo de foco se pintaba con `--color-primary`**, el color crudo
+  elegido en el panel: sobre blanco da 2,54:1 y el mínimo para contraste no
+  textual es 3. Ahora usa `--color-brand-texto` — 4,54:1 sobre blanco y 3,34:1
+  sobre el verde oscuro del pie, así que sirve en los dos fondos donde hay
+  controles.
+
+**Blancos táctiles**: medidos a 390 px de ancho, **0 fallos** de WCAG 2.5.8.
+
+**Cómo medir el foco sin equivocarse.** Me costó tres intentos y los tres
+errores eran míos, no del sitio:
+
+1. `outline: auto 1px` **es** el anillo por defecto del navegador y se ve
+   perfectamente. Contarlo como "sin foco" reprueba medio sitio sin motivo.
+2. `transition-colors` de Tailwind v4 **incluye `outline-color`**. Leer el
+   color justo después de enfocar devuelve el valor a mitad de la transición
+   —o sea `currentColor`— y parece que la regla no se aplicara. Hay que
+   esperar ~350 ms.
+3. Si se enfocan todos los elementos en un bucle y se mide al final, sólo el
+   último tiene el foco. Hay que enfocar, esperar y medir de a uno.
+
+Lo mismo pasó con los blancos táctiles: la exención por separación de WCAG
+2.5.8 se mide **centro a centro** (círculos de 24 px de diámetro), no borde a
+borde. Medido por los bordes daban 17 fallos en el pie; medido bien, ninguno —
+enlaces de 17 px separados 17 px tienen 34 px entre centros y cumplen.
+
 #### El auditor, y la trampa que me costó dos vueltas
 
 Queda en `docs/auditoria-contraste.mjs`. Se corre con el sitio compilado:
