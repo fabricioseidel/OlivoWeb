@@ -364,6 +364,43 @@ cortas (menos de ~2 s) la página todavía muestra el error de carga y el
 detector lo reporta como fallo. No es un error real: con `networkidle` o
 ~2,5 s de espera, todas cargan limpias.
 
+### Tres tablas del panel recortaban columnas sin dejar llegar a ellas (2026-08-28)
+
+El panel de administración no se pudo revisar en el navegador —requiere login
+y desde el contenedor el proxy no llega a Supabase para autenticar—, así que
+se revisó por análisis estático: buscar `<table>` sin un contenedor con scroll
+horizontal por encima.
+
+Aparecieron tres, y el problema no era que faltara el scroll sino que estaba
+**`overflow-hidden`**, que es peor: recorta lo que no entra y además impide
+desplazarse hasta ello. Las columnas de la derecha quedaban inaccesibles.
+
+- `edicion-masiva/components/ProductTable.tsx` — siete columnas con ancho fijo
+  (`w-48`, dos `w-28`, `w-24`, dos `w-20`) más el padding suman unos **1.040
+  px**, y la tabla se muestra desde `lg:` (1.024 px). En un laptop, "Mín." y
+  "Ópt." caían fuera.
+- `productos/[id]/page.tsx` y `productos/nuevo/page.tsx` — la tabla de
+  proveedores del producto, mismo patrón.
+
+El `overflow-hidden` no se quitó: es lo que recorta las esquinas redondeadas
+del contenedor. El scroll pasó a un `div` propio adentro, y la tabla grande
+lleva `min-w-[1040px]` para que el scroll tenga de qué agarrarse.
+
+**Cómo repetir la comprobación** (busca tablas sin contenedor de scroll en los
+600 caracteres anteriores):
+
+```
+python3 - <<'EOF'
+import re, pathlib
+for f in pathlib.Path('src/app/admin').rglob('*.tsx'):
+    s = f.read_text(encoding='utf-8')
+    for m in re.finditer(r'<table\b', s):
+        antes = s[max(0, m.start()-600):m.start()]
+        if not any(k in antes for k in ('overflow-x-auto','overflow-auto','overflow-x-scroll')):
+            print(f"{f}:{s[:m.start()].count(chr(10))+1}")
+EOF
+```
+
 ### Los textos de la portada no se encontraban (2026-08-27)
 
 El dueño mandó una captura del móvil marcando el encabezado: *"no veo lugar

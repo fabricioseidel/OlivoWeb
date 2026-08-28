@@ -464,6 +464,10 @@ export default function EditProductPage() {
           {/* Lista de proveedores agregados */}
           {productSuppliers.length > 0 ? (
             <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+              {/* El scroll va en un div propio: `overflow-hidden` en el
+                  contenedor redondea las esquinas pero recorta las columnas
+                  que no entran, sin dejar desplazarse hasta ellas. */}
+              <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
@@ -494,6 +498,7 @@ export default function EditProductPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           ) : (
             <p className="text-sm text-gray-500 italic text-center py-2">No hay proveedores asignados.</p>
