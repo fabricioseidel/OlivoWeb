@@ -6,15 +6,18 @@ import { sendOrderConfirmation } from '@/server/email.service';
 import { recordCouponUsage, getCouponByCode, validateCoupon } from '@/server/coupon.service';
 import { earnPoints, redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
-import { quoteShipping } from '@/lib/shipping-policy';
+import { quoteEconomico, quoteShipping } from '@/lib/shipping-policy';
 import {
   MAX_ORDERS_PER_SLOT,
   SAME_DAY_CUTOFF_HOUR,
+  economicoSlotEsValido,
+  primeraFechaEconomica,
   sameDaySlotIsAllowed,
   slotMatches,
+  slotsEconomicosForDate,
   slotsForDate,
 } from '@/lib/delivery-slots';
-import { format, getHours } from 'date-fns';
+import { format, getHours, getMinutes } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { assertOrdersEnabled } from '@/server/store-status.service';
@@ -61,6 +64,49 @@ async function calculateServerShippingCost(
   ciudad: string | null | undefined
 ): Promise<{ cost: number } | { error: string }> {
   if (shippingMethod === 'pickup') return { cost: 0 };
+
+  if (shippingMethod === 'economico') {
+    const { data: settings } = await supabaseServer
+      .from('settings')
+      .select('enable_dynamic_shipping, shipping_origin_lat, shipping_origin_lng, shipping_max_distance_km, free_shipping_enabled, free_shipping_minimum')
+      .eq('id', true)
+      .maybeSingle();
+
+    if (!settings?.enable_dynamic_shipping) {
+      return { error: 'El envío a domicilio no está disponible en este momento.' };
+    }
+    if (!settings.shipping_origin_lat || !settings.shipping_origin_lng) {
+      return { error: 'El envío a domicilio no está configurado. Selecciona retiro en tienda.' };
+    }
+
+    // La distancia se calcula si hay coordenadas, pero no se exige: la tarifa
+    // es plana, así que sólo decide si la dirección cae dentro de la zona de
+    // reparto. Sin coordenadas manda el nombre de la comuna, como en el resto
+    // del checkout.
+    const distanceKm =
+      coords && typeof coords.lat === 'number' && typeof coords.lng === 'number'
+        ? haversineKm(
+            { lat: Number(settings.shipping_origin_lat), lng: Number(settings.shipping_origin_lng) },
+            coords
+          )
+        : null;
+
+    const quote = quoteEconomico({
+      subtotal,
+      ciudad,
+      distanceKm,
+      maxDistanceKm: Number(settings.shipping_max_distance_km) || null,
+      freeShippingMinimum: settings.free_shipping_enabled
+        ? Number(settings.free_shipping_minimum ?? 0) || null
+        : null,
+    });
+
+    if (!quote.disponible) {
+      return { error: 'Esa dirección queda fuera de la zona de reparto. Podés elegir retiro en tienda.' };
+    }
+
+    return { cost: quote.price };
+  }
 
   if (shippingMethod === 'dynamic') {
     const { data: settings } = await supabaseServer
@@ -154,8 +200,11 @@ export async function POST(request: NextRequest) {
 
     const userId = (session?.user as any)?.id || null;
 
-    // Extra Validation for Delivery Slots (Only for dynamic shipping = home delivery)
-    if (shippingMethod === "dynamic") {
+    // Extra Validation for Delivery Slots (toda entrega a domicilio, en
+    // cualquiera de sus dos modalidades: la programada de la jornada y la
+    // económica de la ronda de reparto del dueño).
+    const esEconomico = shippingMethod === "economico";
+    if (shippingMethod === "dynamic" || esEconomico) {
       const { deliveryDate, deliveryTimeSlot } = shippingInfo;
       if (!deliveryDate || !deliveryTimeSlot) {
          return NextResponse.json({ error: 'Debe seleccionar una fecha y bloque horario para el envío a domicilio.' }, { status: 400 });
@@ -163,8 +212,11 @@ export async function POST(request: NextRequest) {
 
       // 0a: El bloque tiene que existir para esa fecha. Fuera del horario de
       // atención no hay quien despache, así que no se acepta aunque el
-      // navegador lo haya mandado.
-      const slotsDelDia = slotsForDate(deliveryDate);
+      // navegador lo haya mandado. Cada modalidad tiene su propia grilla: el
+      // económico sólo sale en la ronda de reparto, no en cualquier bloque.
+      const slotsDelDia = esEconomico
+        ? slotsEconomicosForDate(deliveryDate)
+        : slotsForDate(deliveryDate);
       const slot = slotsDelDia.find((s) => s.id === deliveryTimeSlot);
       if (!slot) {
         return NextResponse.json({ error: 'El bloque horario seleccionado no está disponible para esa fecha.' }, { status: 400 });
@@ -191,9 +243,26 @@ export async function POST(request: NextRequest) {
       const nowUtc = new Date();
       const nowInChile = toZonedTime(nowUtc, TIMEZONE);
       const currentHour = getHours(nowInChile);
+      // El corte del económico son las 22:30, así que la hora entera no basta.
+      const nowMin = currentHour * 60 + getMinutes(nowInChile);
       const todayStr = format(nowInChile, "yyyy-MM-dd");
 
-      if (deliveryDate === todayStr && !sameDaySlotIsAllowed(slot, slotsDelDia, currentHour)) {
+      // El económico tiene su propia regla temporal y no la del mismo día: el
+      // pedido se prepara durante el turno del dueño y sale en la ronda de la
+      // mañana siguiente, así que nunca puede ser para hoy.
+      if (esEconomico) {
+        if (!economicoSlotEsValido(deliveryDate, slot.id, todayStr, nowMin)) {
+          const primera = primeraFechaEconomica(todayStr, nowMin);
+          return NextResponse.json(
+            {
+              error: primera
+                ? `El envío económico sale en la ronda de reparto de la mañana, así que se prepara el día anterior. La fecha más cercana disponible es el ${primera}.`
+                : 'No hay fechas disponibles para el envío económico en las próximas dos semanas.',
+            },
+            { status: 400 }
+          );
+        }
+      } else if (deliveryDate === todayStr && !sameDaySlotIsAllowed(slot, slotsDelDia, currentHour)) {
         if (currentHour >= SAME_DAY_CUTOFF_HOUR) {
           return NextResponse.json({ error: `Ya pasó la hora límite (${SAME_DAY_CUTOFF_HOUR}:00) para envíos del mismo día. Seleccione otra fecha.` }, { status: 400 });
         }

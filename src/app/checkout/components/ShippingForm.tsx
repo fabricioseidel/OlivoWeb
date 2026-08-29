@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Input from "@/components/ui/Input";
 import AddressAutocomplete, { AddressResult } from "@/components/AddressAutocomplete";
-import { firstSelectableDate, slotsForDate } from "@/lib/delivery-slots";
+import {
+  firstSelectableDate,
+  primeraFechaEconomica,
+  slotsEconomicosForDate,
+  slotsForDate,
+} from "@/lib/delivery-slots";
 
 export interface ShippingInfo {
   fullName: string;
@@ -46,14 +51,29 @@ const formatDateForApi = (d: Date) =>
 /**
  * Próximos días con despacho. Se saltan los días en que el local no abre:
  * ofrecer una fecha sin bloques deja al cliente mirando una lista vacía.
+ *
+ * El económico además arranca más tarde: su ronda sale en la mañana y el
+ * pedido se prepara el día anterior, así que hoy nunca es una opción.
  */
-const getNextDays = (numDays: number) => {
+const getNextDays = (numDays: number, esEconomico = false) => {
   const days: Date[] = [];
   const today = new Date();
+  const desde = esEconomico
+    ? primeraFechaEconomica(
+        formatDateForApi(today),
+        today.getHours() * 60 + today.getMinutes()
+      )
+    : null;
+
   for (let i = 0; days.length < numDays && i < numDays * 3; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() + i);
-    if (slotsForDate(formatDateForApi(d)).length > 0) days.push(d);
+    const dStr = formatDateForApi(d);
+    if (desde && dStr < desde) continue;
+    const tiene = esEconomico
+      ? slotsEconomicosForDate(dStr).length > 0
+      : slotsForDate(dStr).length > 0;
+    if (tiene) days.push(d);
   }
   return days;
 };
@@ -69,7 +89,15 @@ export default function ShippingForm({
   fieldErrors = {}
 }: ShippingFormProps) {
   
-  const [availableDays] = useState<Date[]>(() => getNextDays(7)); // 7 días con despacho
+  // Las dos modalidades no ofrecen los mismos días: el económico reparte en su
+  // ronda y arranca recién mañana, así que la lista se recalcula al cambiar de
+  // método en vez de fijarse una sola vez.
+  const esEconomico = selectedMethod === 'economico';
+  const esAgendable = selectedMethod === 'dynamic' || esEconomico;
+  const availableDays = useMemo(
+    () => (esAgendable ? getNextDays(7, esEconomico) : []),
+    [esAgendable, esEconomico]
+  ); // 7 días con despacho
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotsError, setSlotsError] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<{ id: string; label: string; available: boolean; capacityRatio: string }[]>([]);
@@ -96,21 +124,29 @@ export default function ShippingForm({
     // Se preselecciona la primera fecha que admite despacho, no "hoy" a secas:
     // pasada la hora de corte hoy ya no tiene bloques, y el cliente entraba
     // directo a "no hay horarios disponibles para esta fecha".
-    if (selectedMethod === 'dynamic' && !shippingInfo.deliveryDate && availableDays.length > 0) {
+    if (esAgendable && !shippingInfo.deliveryDate && availableDays.length > 0) {
        const now = new Date();
-       const inicial = firstSelectableDate(formatDateForApi(now), now.getHours());
-       onChange({ target: { name: 'deliveryDate', value: inicial } });
+       const hoy = formatDateForApi(now);
+       const inicial = esEconomico
+         ? primeraFechaEconomica(hoy, now.getHours() * 60 + now.getMinutes())
+         : firstSelectableDate(hoy, now.getHours());
+       if (inicial) onChange({ target: { name: 'deliveryDate', value: inicial } });
     }
-  }, [selectedMethod, shippingInfo.deliveryDate, availableDays, onChange]);
+  }, [esAgendable, esEconomico, shippingInfo.deliveryDate, availableDays, onChange]);
 
   useEffect(() => {
     const fetchSlots = async () => {
-      if (selectedMethod !== 'dynamic' || !shippingInfo.deliveryDate) return;
+      if (!esAgendable || !shippingInfo.deliveryDate) return;
       
       setSlotsLoading(true);
       setSlotsError(false);
       try {
-        const res = await fetch(`/api/shipping/slots?date=${shippingInfo.deliveryDate}`);
+        // El servidor decide la disponibilidad con la grilla de la modalidad:
+        // pedir los bloques de una y agendar en la otra ofrecería horarios en
+        // los que no sale nadie a repartir.
+        const res = await fetch(
+          `/api/shipping/slots?date=${shippingInfo.deliveryDate}${esEconomico ? "&mode=economico" : ""}`
+        );
         if (!res.ok) throw new Error(`Slots request failed (${res.status})`);
 
         const data = await res.json();
@@ -376,8 +412,8 @@ export default function ShippingForm({
                   </div>
                 </label>
 
-                {/* Sub UI for dynamic shipping when selected */}
-                {isSelected && method.id === 'dynamic' && (
+                {/* Agenda de entrega: la usan las dos modalidades a domicilio. */}
+                {isSelected && (method.id === 'dynamic' || method.id === 'economico') && (
                   <div className="px-5 pb-5 pt-2 border-t border-brand-100/50 mt-1">
                      <p className="text-sm font-bold text-gray-900 mb-3">Programa tu entrega:</p>
                      

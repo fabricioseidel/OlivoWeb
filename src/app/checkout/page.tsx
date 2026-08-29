@@ -21,7 +21,8 @@ import OrderSummary from "./components/OrderSummary";
 import CheckoutSteps from "./components/CheckoutSteps";
 import { AddressResult } from "@/components/AddressAutocomplete";
 import { calculateDistance, calculateShippingCost } from "@/utils/shipping-calculator";
-import { quoteShipping } from "@/lib/shipping-policy";
+import { quoteEconomico, quoteShipping } from "@/lib/shipping-policy";
+import { ventanaEconomicaPublicable } from "@/lib/delivery-slots";
 
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { PREVIEW_DEFAULT_MESSAGE } from "@/lib/store-status";
@@ -118,6 +119,28 @@ export default function CheckoutPage() {
     });
   }, [dynamicShipping, subtotal, shippingInfo.city, distanceKm, storeSettings]);
 
+  /**
+   * Envío económico: la ronda de reparto propia, a tarifa plana.
+   *
+   * Se cotiza aparte del despacho por distancia porque no comparten regla —el
+   * económico es plano y sólo el económico libera el envío gratis— y porque
+   * puede no estar disponible aunque el otro sí lo esté: fuera de la zona de
+   * reparto no hay quien la haga.
+   */
+  const economico = useMemo(() => {
+    if (!dynamicShipping) return null;
+    return quoteEconomico({
+      subtotal,
+      ciudad: shippingInfo.city,
+      distanceKm,
+      maxDistanceKm: storeSettings?.shipping?.shippingMaxDistanceKm ?? null,
+      freeShippingMinimum:
+        storeSettings?.shipping?.freeShippingEnabled
+          ? Number(storeSettings.shipping.freeShippingMinimum ?? 0) || null
+          : null,
+    });
+  }, [dynamicShipping, subtotal, shippingInfo.city, distanceKm, storeSettings]);
+
   const shippingMethods = useMemo(() => {
     const list = [...baseShippingMethods];
     if (!dynamicShipping) return list;
@@ -131,8 +154,21 @@ export default function CheckoutPage() {
         }
       : dynamicShipping;
 
-    return [priced, ...list];
-  }, [dynamicShipping, quote]);
+    if (!economico?.disponible) return [priced, ...list];
+
+    // El texto sale de las ventanas reales, no se escribe a mano: si mañana
+    // cambia la ronda, cambia solo y no queda prometiendo un horario viejo.
+    const ventana = ventanaEconomicaPublicable();
+    const economicoMethod: ShippingMethod = {
+      id: "economico",
+      name: "Envío económico (programado)",
+      price: economico.price,
+      originalPrice: economico.freeApplied ? economico.rawPrice : undefined,
+      days: `Lo llevamos nosotros en la ronda de reparto: lunes a sábado de ${ventana.semana}, domingos de ${ventana.domingo}. Se agenda desde el día siguiente.`,
+    };
+
+    return [economicoMethod, priced, ...list];
+  }, [dynamicShipping, quote, economico]);
 
   const selectedMethod = shippingMethods.find((method) => method.id === selectedShippingMethod);
 
@@ -334,6 +370,15 @@ export default function CheckoutPage() {
     if (errors) {
       setFieldErrors(errors);
       alert("Por favor completa tus datos y dirección de entrega.");
+      return;
+    }
+    // Las dos modalidades a domicilio se agendan. El servidor rechaza el
+    // pedido sin fecha y bloque, así que sin esto el cliente se enteraba
+    // recién al apretar pagar.
+    const requiereAgenda =
+      selectedShippingMethod === "dynamic" || selectedShippingMethod === "economico";
+    if (requiereAgenda && (!shippingInfo.deliveryDate || !shippingInfo.deliveryTimeSlot)) {
+      alert("Elige la fecha y el bloque horario de tu entrega.");
       return;
     }
     setFieldErrors({});
@@ -607,6 +652,15 @@ export default function CheckoutPage() {
                     {/* Feedback de las reglas de despacho: sin esto el cliente
                         ve un precio distinto al calculado por distancia y no
                         entiende por qué. */}
+                    {selectedShippingMethod === 'economico' && economico?.freeApplied && (
+                      <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+                        <p className="text-sm font-semibold text-brand-900">Tu envío es gratis</p>
+                        <p className="mt-1 text-sm text-brand-800">
+                          Tu compra supera el mínimo y tu dirección está dentro de nuestra zona de reparto.
+                        </p>
+                      </div>
+                    )}
+
                     {selectedShippingMethod === 'dynamic' && quote?.freeApplied && (
                       <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
                         <p className="text-sm font-semibold text-brand-900">Tu envío es gratis</p>
@@ -642,7 +696,7 @@ export default function CheckoutPage() {
                       </div>
                     )}
 
-                    {selectedShippingMethod === 'dynamic' && (
+                    {(selectedShippingMethod === 'dynamic' || selectedShippingMethod === 'economico') && (
                       <div className="flex items-center gap-3 rounded-xl border border-neutral-200 p-4">
                         <ClockIcon className="size-5 shrink-0 text-neutral-400" />
                         <div>
