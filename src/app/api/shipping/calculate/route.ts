@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { FACTOR_CALLES } from "@/lib/shipping-policy";
 
 export async function POST(req: Request) {
   try {
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
               Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(origin.lat * Math.PI / 180) * Math.cos(destination.lat * Math.PI / 180);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     // Multiplicamos por 1.3 para aproximar la distancia real en calles vs línea recta
-    const distanceKm = R * c * 1.3;
+    const distanceKm = R * c * FACTOR_CALLES;
     
     return NextResponse.json({
       distanceKm,

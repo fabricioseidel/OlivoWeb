@@ -174,22 +174,24 @@ export function ventanaPublicable(): { semana: string; finDeSemana: string } {
  *
  * No son un horario de atención sino un turno de reparto, y por eso viven acá
  * y no en `BUSINESS.openingHours`: el local puede estar abierto sin que haya
- * nadie repartiendo. De lunes a sábado sale antes de entrar a su turno del
- * local (13:30 a 22:30); el domingo no tiene ese turno de por medio y reparte
- * en dos bloques a lo largo del día.
+ * nadie repartiendo.
  *
- * Se recortan igual al horario de atención, porque los pedidos salen del
- * local: el sábado la ventana de las 08:00 queda en 10:00–12:00 sola, que es
- * cuando el local recién abre.
+ * Entre semana sale una vez, antes de entrar a su turno del local (13:30 a
+ * 22:30). El fin de semana el local abre recién a las 10:00 y los pedidos
+ * salen de ahí, así que la ronda de la mañana empieza con la persiana: son dos
+ * bloques, mañana y tarde. Cubren los siete días con reparto propio.
+ *
+ * Se recortan igual al horario de atención, que es la última defensa contra
+ * prometer una entrega con el local cerrado.
  */
 const VENTANAS_REPARTO: { dayOfWeek: string[]; startMin: number; endMin: number }[] = [
   {
-    dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
     startMin: 8 * 60,
     endMin: 12 * 60,
   },
-  { dayOfWeek: ["Sunday"], startMin: 10 * 60, endMin: 14 * 60 },
-  { dayOfWeek: ["Sunday"], startMin: 14 * 60, endMin: 18 * 60 },
+  { dayOfWeek: ["Saturday", "Sunday"], startMin: 10 * 60, endMin: 12 * 60 },
+  { dayOfWeek: ["Saturday", "Sunday"], startMin: 14 * 60, endMin: 18 * 60 },
 ];
 
 /**
@@ -259,17 +261,17 @@ export function economicoSlotEsValido(dateStr: string, slotId: string, todayStr:
   return slotsEconomicosForDate(dateStr).some((s) => slotMatches(s, slotId));
 }
 
-/** Ventana del económico publicable, derivada de las ventanas reales. */
-export function ventanaEconomicaPublicable(): { semana: string; domingo: string } {
+/** Ventana del reparto propio publicable, derivada de las ventanas reales. */
+export function ventanaEconomicaPublicable(): { semana: string; finDeSemana: string } {
   const format = (slots: DeliverySlot[]) =>
     slots.length === 0
       ? "sin reparto"
       : slots.map((s) => `${toHHMM(s.startMin)} a ${toHHMM(s.endMin)}`).join(" y ");
 
-  // 2024-01-01 fue lunes y 2024-01-07 domingo: se usan solo para leer el
+  // 2024-01-01 fue lunes y 2024-01-06 sábado: se usan solo para leer el
   // horario de cada tipo de día, no como fechas reales.
   return {
     semana: format(slotsEconomicosForDate("2024-01-01")),
-    domingo: format(slotsEconomicosForDate("2024-01-07")),
+    finDeSemana: format(slotsEconomicosForDate("2024-01-06")),
   };
 }

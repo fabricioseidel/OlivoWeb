@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BUSINESS } from "@/lib/seo/business";
-import { ENTREGA, TOPE_POR_COMUNA } from "@/lib/shipping-policy";
+import {
+  ENTREGA,
+  RADIO_DESPACHO_KM_DEFAULT,
+  RADIO_ZONA_PLANA_KM,
+  TARIFA_ZONA_PLANA_CLP,
+} from "@/lib/shipping-policy";
 import { LegalLayout, Lista, Seccion } from "@/components/legal/LegalLayout";
 
 /**
@@ -22,15 +27,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const COMUNAS_CON_TOPE = BUSINESS.comunas
-  .filter((c) => TOPE_POR_COMUNA[c.slug] !== undefined)
-  .map((c) => c.nombre);
-
 export default function TerminosPage() {
-  const topeMasBajo = Math.min(
-    ...Object.values(TOPE_POR_COMUNA).filter((v): v is number => v !== undefined)
-  );
-
   return (
     <LegalLayout
       titulo="Términos y condiciones"
@@ -98,9 +95,11 @@ export default function TerminosPage() {
               retiro es sin costo.
             </>,
             <>
-              <strong>Costo de despacho:</strong> se calcula por distancia y se
-              muestra antes de pagar. En {COMUNAS_CON_TOPE.join(" y ")} tiene un
-              tope de ${topeMasBajo.toLocaleString("es-CL")}.
+              <strong>Costo de despacho:</strong> dentro de{" "}
+              {RADIO_ZONA_PLANA_KM} km del local es una tarifa plana de $
+              {TARIFA_ZONA_PLANA_CLP.toLocaleString("es-CL")}. Más lejos se calcula
+              por distancia, hasta un máximo de {RADIO_DESPACHO_KM_DEFAULT} km. En
+              todos los casos el costo se muestra antes de pagar.
             </>,
           ]}
         />

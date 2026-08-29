@@ -21,7 +21,11 @@ import OrderSummary from "./components/OrderSummary";
 import CheckoutSteps from "./components/CheckoutSteps";
 import { AddressResult } from "@/components/AddressAutocomplete";
 import { calculateDistance, calculateShippingCost } from "@/utils/shipping-calculator";
-import { quoteEconomico, quoteShipping } from "@/lib/shipping-policy";
+import {
+  quoteAgendado,
+  RADIO_ZONA_PLANA_KM,
+  TARIFA_ZONA_PLANA_CLP,
+} from "@/lib/shipping-policy";
 import { ventanaEconomicaPublicable } from "@/lib/delivery-slots";
 
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -97,39 +101,22 @@ export default function CheckoutPage() {
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  // El despacho a domicilio pasa por las reglas de tope por comuna y envío
-  // gratis por monto; el retiro en tienda ya es 0 y no se toca.
-  //
-  // Se cotiza siempre que la opción exista, no solo cuando está seleccionada:
-  // el precio que se muestra en la tarjeta tiene que ser el mismo que entra al
-  // total. Antes la tarjeta mostraba la tarifa cruda por distancia y el resumen
-  // la ya ajustada, así que no coincidían.
-  const quote = useMemo(() => {
-    if (!dynamicShipping) return null;
-    return quoteShipping({
-      rawPrice: dynamicShipping.price,
-      subtotal,
-      ciudad: shippingInfo.city,
-      distanceKm,
-      maxDistanceKm: storeSettings?.shipping?.shippingMaxDistanceKm ?? null,
-      freeShippingMinimum:
-        storeSettings?.shipping?.freeShippingEnabled
-          ? Number(storeSettings.shipping.freeShippingMinimum ?? 0) || null
-          : null,
-    });
-  }, [dynamicShipping, subtotal, shippingInfo.city, distanceKm, storeSettings]);
-
   /**
-   * Envío económico: la ronda de reparto propia, a tarifa plana.
+   * Despacho agendado: la ronda de reparto propia.
    *
-   * Se cotiza aparte del despacho por distancia porque no comparten regla —el
-   * económico es plano y sólo el económico libera el envío gratis— y porque
-   * puede no estar disponible aunque el otro sí lo esté: fuera de la zona de
-   * reparto no hay quien la haga.
+   * Se cotiza siempre que la opción exista, no solo cuando está seleccionada:
+   * el precio que se muestra en la tarjeta tiene que ser el mismo que entra al
+   * total. Antes la tarjeta mostraba la tarifa cruda por distancia y el resumen
+   * la ya ajustada, así que no coincidían.
+   *
+   * `dynamicShipping` sigue siendo la fuente de la tarifa por distancia, que es
+   * lo que se cobra pasada la zona de tarifa plana. Ya no se ofrece como opción
+   * suelta: es el mismo reparto, con dos tramos de precio.
    */
-  const economico = useMemo(() => {
+  const agendado = useMemo(() => {
     if (!dynamicShipping) return null;
-    return quoteEconomico({
+    return quoteAgendado({
+      rawPrice: dynamicShipping.price,
       subtotal,
       ciudad: shippingInfo.city,
       distanceKm,
@@ -143,32 +130,22 @@ export default function CheckoutPage() {
 
   const shippingMethods = useMemo(() => {
     const list = [...baseShippingMethods];
-    if (!dynamicShipping) return list;
-
-    const priced: ShippingMethod = quote
-      ? {
-          ...dynamicShipping,
-          price: quote.price,
-          // Tarifa antes del tope/envío gratis, para tacharla en la tarjeta.
-          originalPrice: quote.price !== quote.rawPrice ? quote.rawPrice : undefined,
-        }
-      : dynamicShipping;
-
-    if (!economico?.disponible) return [priced, ...list];
+    if (!agendado?.disponible) return list;
 
     // El texto sale de las ventanas reales, no se escribe a mano: si mañana
     // cambia la ronda, cambia solo y no queda prometiendo un horario viejo.
     const ventana = ventanaEconomicaPublicable();
-    const economicoMethod: ShippingMethod = {
-      id: "economico",
-      name: "Envío económico (programado)",
-      price: economico.price,
-      originalPrice: economico.freeApplied ? economico.rawPrice : undefined,
-      days: `Lo llevamos nosotros en la ronda de reparto: lunes a sábado de ${ventana.semana}, domingos de ${ventana.domingo}. Se agenda desde el día siguiente.`,
+    const agendadoMethod: ShippingMethod = {
+      id: "agendado",
+      name: "Envío a domicilio (agendado)",
+      price: agendado.price,
+      // Tarifa antes del envío gratis, para tacharla en la tarjeta.
+      originalPrice: agendado.freeApplied ? agendado.rawPrice : undefined,
+      days: `Lo llevamos nosotros: lunes a viernes de ${ventana.semana}, sábados y domingos de ${ventana.finDeSemana}. Se agenda desde el día siguiente.`,
     };
 
-    return [economicoMethod, priced, ...list];
-  }, [dynamicShipping, quote, economico]);
+    return [agendadoMethod, ...list];
+  }, [agendado]);
 
   const selectedMethod = shippingMethods.find((method) => method.id === selectedShippingMethod);
 
@@ -376,7 +353,7 @@ export default function CheckoutPage() {
     // pedido sin fecha y bloque, así que sin esto el cliente se enteraba
     // recién al apretar pagar.
     const requiereAgenda =
-      selectedShippingMethod === "dynamic" || selectedShippingMethod === "economico";
+      selectedShippingMethod === "agendado";
     if (requiereAgenda && (!shippingInfo.deliveryDate || !shippingInfo.deliveryTimeSlot)) {
       alert("Elige la fecha y el bloque horario de tu entrega.");
       return;
@@ -652,7 +629,7 @@ export default function CheckoutPage() {
                     {/* Feedback de las reglas de despacho: sin esto el cliente
                         ve un precio distinto al calculado por distancia y no
                         entiende por qué. */}
-                    {selectedShippingMethod === 'economico' && economico?.freeApplied && (
+                    {selectedShippingMethod === 'agendado' && agendado?.freeApplied && (
                       <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
                         <p className="text-sm font-semibold text-brand-900">Tu envío es gratis</p>
                         <p className="mt-1 text-sm text-brand-800">
@@ -661,42 +638,31 @@ export default function CheckoutPage() {
                       </div>
                     )}
 
-                    {selectedShippingMethod === 'dynamic' && quote?.freeApplied && (
+                    {/* Por qué el envío cuesta lo que cuesta. Con dos tramos
+                        de precio, ver un número sin explicación deja al cliente
+                        preguntándose si se equivocó de dirección. */}
+                    {selectedShippingMethod === 'agendado' && !agendado?.freeApplied && agendado?.tarifaPlana && (
                       <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
-                        <p className="text-sm font-semibold text-brand-900">Tu envío es gratis</p>
-                        <p className="mt-1 text-sm text-brand-800">
-                          Tu compra supera el mínimo y tu dirección está dentro de nuestra zona de reparto.
-                        </p>
-                      </div>
-                    )}
-                    {/* Si alcanzó el mínimo pero igual se cobra el despacho,
-                        se explica el motivo. Antes solo aparecía el cobro. */}
-                    {selectedShippingMethod === 'dynamic' && quote?.freeBlockedReason && (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                        <p className="text-sm font-semibold text-amber-900">
-                          Tu compra alcanza el monto de envío gratis, pero no pudimos aplicarlo
-                        </p>
-                        <p className="mt-1 text-sm text-amber-800">
-                          {quote.freeBlockedReason === 'fuera-de-rango'
-                            ? `Tu dirección queda a ${quote.distanceKm?.toFixed(1)} km del local, fuera de nuestra zona de reparto con envío gratis. Igual te llevamos el pedido cobrando el despacho, o puedes retirarlo en tienda sin costo.`
-                            : quote.freeBlockedReason === 'comuna-desconocida'
-                              ? 'No logramos identificar tu comuna a partir de la dirección. Elige una dirección sugerida por el buscador que incluya la comuna, o escríbenos y lo ajustamos.'
-                              : 'El envío gratis aplica en las comunas donde hacemos despacho propio. Escríbenos y vemos cómo ayudarte.'}
-                        </p>
-                      </div>
-                    )}
-
-                    {selectedShippingMethod === 'dynamic' && quote?.capApplied && (
-                      <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
-                        <p className="text-sm font-semibold text-brand-900">Tarifa preferente</p>
+                        <p className="text-sm font-semibold text-brand-900">Tarifa cercana</p>
                         <p className="tabular mt-1 text-sm text-brand-800">
-                          Por tu comuna el envío tiene un tope de ${quote.price.toLocaleString('es-CL')}
-                          {' '}en vez de ${quote.rawPrice.toLocaleString('es-CL')}.
+                          Estás a menos de {RADIO_ZONA_PLANA_KM} km del local, así que el envío te sale
+                          ${TARIFA_ZONA_PLANA_CLP.toLocaleString('es-CL')} plano.
                         </p>
                       </div>
                     )}
 
-                    {(selectedShippingMethod === 'dynamic' || selectedShippingMethod === 'economico') && (
+                    {selectedShippingMethod === 'agendado' && !agendado?.freeApplied && agendado && !agendado.tarifaPlana && (
+                      <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                        <p className="text-sm font-semibold text-neutral-900">Envío por distancia</p>
+                        <p className="tabular mt-1 text-sm text-neutral-700">
+                          Tu dirección queda a {agendado.distanceKm?.toFixed(1)} km del local, fuera de la zona
+                          de tarifa plana, así que el envío se calcula por distancia. También puedes retirar en
+                          tienda sin costo.
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedShippingMethod === 'agendado' && (
                       <div className="flex items-center gap-3 rounded-xl border border-neutral-200 p-4">
                         <ClockIcon className="size-5 shrink-0 text-neutral-400" />
                         <div>

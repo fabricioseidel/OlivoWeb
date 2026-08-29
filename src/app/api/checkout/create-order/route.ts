@@ -6,16 +6,13 @@ import { sendOrderConfirmation } from '@/server/email.service';
 import { recordCouponUsage, getCouponByCode, validateCoupon } from '@/server/coupon.service';
 import { earnPoints, redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
-import { quoteEconomico, quoteShipping } from '@/lib/shipping-policy';
+import { quoteAgendado, FACTOR_CALLES } from '@/lib/shipping-policy';
 import {
   MAX_ORDERS_PER_SLOT,
-  SAME_DAY_CUTOFF_HOUR,
   economicoSlotEsValido,
   primeraFechaEconomica,
-  sameDaySlotIsAllowed,
   slotMatches,
   slotsEconomicosForDate,
-  slotsForDate,
 } from '@/lib/delivery-slots';
 import { format, getHours, getMinutes } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
@@ -30,7 +27,7 @@ import {
 
 const TIMEZONE = "America/Santiago";
 
-/** Distancia Haversine ×1.3 (mismo cálculo que /api/shipping/calculate). */
+/** Distancia Haversine ajustada por el factor de calles (ver FACTOR_CALLES). */
 function haversineKm(
   origin: { lat: number; lng: number },
   destination: { lat: number; lng: number }
@@ -45,17 +42,17 @@ function haversineKm(
       Math.cos((origin.lat * Math.PI) / 180) *
       Math.cos((destination.lat * Math.PI) / 180);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c * 1.3;
+  return R * c * FACTOR_CALLES;
 }
 
 /**
  * Recalcula el costo de envío en servidor. Nunca confía en el valor que
  * envía el navegador.
  *
- * Aplica las mismas reglas de `quoteShipping` que usa el checkout para
- * mostrar el precio (tope por comuna y envío gratis por monto). Antes solo
- * devolvía la tarifa por distancia, así que el cliente veía "Gratis" o el
- * tope de $1.500 y se le cobraba la tarifa completa.
+ * Aplica las mismas reglas de `quoteAgendado` que usa el checkout para
+ * mostrar el precio (tarifa plana cerca, por distancia lejos, y envío gratis
+ * por monto). Antes solo devolvía la tarifa por distancia, así que el cliente
+ * veía "Gratis" o el tope de $1.500 y se le cobraba la tarifa completa.
  */
 async function calculateServerShippingCost(
   shippingMethod: string,
@@ -65,50 +62,7 @@ async function calculateServerShippingCost(
 ): Promise<{ cost: number } | { error: string }> {
   if (shippingMethod === 'pickup') return { cost: 0 };
 
-  if (shippingMethod === 'economico') {
-    const { data: settings } = await supabaseServer
-      .from('settings')
-      .select('enable_dynamic_shipping, shipping_origin_lat, shipping_origin_lng, shipping_max_distance_km, free_shipping_enabled, free_shipping_minimum')
-      .eq('id', true)
-      .maybeSingle();
-
-    if (!settings?.enable_dynamic_shipping) {
-      return { error: 'El envío a domicilio no está disponible en este momento.' };
-    }
-    if (!settings.shipping_origin_lat || !settings.shipping_origin_lng) {
-      return { error: 'El envío a domicilio no está configurado. Selecciona retiro en tienda.' };
-    }
-
-    // La distancia se calcula si hay coordenadas, pero no se exige: la tarifa
-    // es plana, así que sólo decide si la dirección cae dentro de la zona de
-    // reparto. Sin coordenadas manda el nombre de la comuna, como en el resto
-    // del checkout.
-    const distanceKm =
-      coords && typeof coords.lat === 'number' && typeof coords.lng === 'number'
-        ? haversineKm(
-            { lat: Number(settings.shipping_origin_lat), lng: Number(settings.shipping_origin_lng) },
-            coords
-          )
-        : null;
-
-    const quote = quoteEconomico({
-      subtotal,
-      ciudad,
-      distanceKm,
-      maxDistanceKm: Number(settings.shipping_max_distance_km) || null,
-      freeShippingMinimum: settings.free_shipping_enabled
-        ? Number(settings.free_shipping_minimum ?? 0) || null
-        : null,
-    });
-
-    if (!quote.disponible) {
-      return { error: 'Esa dirección queda fuera de la zona de reparto. Podés elegir retiro en tienda.' };
-    }
-
-    return { cost: quote.price };
-  }
-
-  if (shippingMethod === 'dynamic') {
+  if (shippingMethod === 'agendado') {
     const { data: settings } = await supabaseServer
       .from('settings')
       .select('enable_dynamic_shipping, shipping_base_fee, shipping_price_per_km, shipping_origin_lat, shipping_origin_lng, shipping_max_distance_km, free_shipping_enabled, free_shipping_minimum')
@@ -121,31 +75,39 @@ async function calculateServerShippingCost(
     if (!settings.shipping_origin_lat || !settings.shipping_origin_lng) {
       return { error: 'El envío a domicilio no está configurado. Selecciona retiro en tienda.' };
     }
-    if (!coords || typeof coords.lat !== 'number' || typeof coords.lng !== 'number') {
-      return { error: 'No pudimos validar la dirección de envío. Selecciona una dirección sugerida por el buscador.' };
-    }
 
-    const distanceKm = haversineKm(
-      { lat: Number(settings.shipping_origin_lat), lng: Number(settings.shipping_origin_lng) },
-      coords
-    );
-    const rawCost = Number(settings.shipping_base_fee || 0) + distanceKm * Number(settings.shipping_price_per_km || 0);
+    // La distancia no se exige: dentro de la zona cercana la tarifa es plana y
+    // no depende de ella. Sin coordenadas se cae al nombre de la comuna, que es
+    // el caso degradado y cobra la plana.
+    const distanceKm =
+      coords && typeof coords.lat === 'number' && typeof coords.lng === 'number'
+        ? haversineKm(
+            { lat: Number(settings.shipping_origin_lat), lng: Number(settings.shipping_origin_lng) },
+            coords
+          )
+        : null;
+
+    const rawCost =
+      Number(settings.shipping_base_fee || 0) +
+      (distanceKm ?? 0) * Number(settings.shipping_price_per_km || 0);
     if (!Number.isFinite(rawCost) || rawCost < 0) {
       return { error: 'No se pudo calcular el costo de envío.' };
     }
 
-    const quote = quoteShipping({
+    const quote = quoteAgendado({
       rawPrice: rawCost,
       subtotal,
       ciudad,
-      // La misma distancia que se acaba de calcular: el envío gratis se decide
-      // por cercanía, no por cómo venga escrito el nombre de la comuna.
       distanceKm,
       maxDistanceKm: Number(settings.shipping_max_distance_km) || null,
       freeShippingMinimum: settings.free_shipping_enabled
         ? Number(settings.free_shipping_minimum ?? 0) || null
         : null,
     });
+
+    if (!quote.disponible) {
+      return { error: 'Esa dirección queda fuera de nuestra zona de reparto. Puedes retirar en tienda sin costo.' };
+    }
 
     return { cost: quote.price };
   }
@@ -200,23 +162,18 @@ export async function POST(request: NextRequest) {
 
     const userId = (session?.user as any)?.id || null;
 
-    // Extra Validation for Delivery Slots (toda entrega a domicilio, en
-    // cualquiera de sus dos modalidades: la programada de la jornada y la
-    // económica de la ronda de reparto del dueño).
-    const esEconomico = shippingMethod === "economico";
-    if (shippingMethod === "dynamic" || esEconomico) {
+    // La entrega a domicilio se agenda: hay una sola ronda de reparto por
+    // franja y el pedido tiene que caber en ella.
+    if (shippingMethod === "agendado") {
       const { deliveryDate, deliveryTimeSlot } = shippingInfo;
       if (!deliveryDate || !deliveryTimeSlot) {
          return NextResponse.json({ error: 'Debe seleccionar una fecha y bloque horario para el envío a domicilio.' }, { status: 400 });
       }
 
-      // 0a: El bloque tiene que existir para esa fecha. Fuera del horario de
-      // atención no hay quien despache, así que no se acepta aunque el
-      // navegador lo haya mandado. Cada modalidad tiene su propia grilla: el
-      // económico sólo sale en la ronda de reparto, no en cualquier bloque.
-      const slotsDelDia = esEconomico
-        ? slotsEconomicosForDate(deliveryDate)
-        : slotsForDate(deliveryDate);
+      // 0a: El bloque tiene que existir para esa fecha. Fuera de la ronda de
+      // reparto no hay quien lleve el pedido, así que no se acepta aunque el
+      // navegador lo haya mandado.
+      const slotsDelDia = slotsEconomicosForDate(deliveryDate);
       const slot = slotsDelDia.find((s) => s.id === deliveryTimeSlot);
       if (!slot) {
         return NextResponse.json({ error: 'El bloque horario seleccionado no está disponible para esa fecha.' }, { status: 400 });
@@ -239,35 +196,24 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 0c: Validate same day logic
-      const nowUtc = new Date();
-      const nowInChile = toZonedTime(nowUtc, TIMEZONE);
-      const currentHour = getHours(nowInChile);
-      // El corte del económico son las 22:30, así que la hora entera no basta.
-      const nowMin = currentHour * 60 + getMinutes(nowInChile);
+      // 0c: La regla temporal del reparto propio. Lo que decide no es la fecha
+      // pedida sino el turno en que el pedido se prepara: entra durante el
+      // turno, sale en la ronda siguiente. Por eso nunca puede ser para hoy, y
+      // por eso el corte necesita los minutos y no sólo la hora.
+      const nowInChile = toZonedTime(new Date(), TIMEZONE);
+      const nowMin = getHours(nowInChile) * 60 + getMinutes(nowInChile);
       const todayStr = format(nowInChile, "yyyy-MM-dd");
 
-      // El económico tiene su propia regla temporal y no la del mismo día: el
-      // pedido se prepara durante el turno del dueño y sale en la ronda de la
-      // mañana siguiente, así que nunca puede ser para hoy.
-      if (esEconomico) {
-        if (!economicoSlotEsValido(deliveryDate, slot.id, todayStr, nowMin)) {
-          const primera = primeraFechaEconomica(todayStr, nowMin);
-          return NextResponse.json(
-            {
-              error: primera
-                ? `El envío económico sale en la ronda de reparto de la mañana, así que se prepara el día anterior. La fecha más cercana disponible es el ${primera}.`
-                : 'No hay fechas disponibles para el envío económico en las próximas dos semanas.',
-            },
-            { status: 400 }
-          );
-        }
-      } else if (deliveryDate === todayStr && !sameDaySlotIsAllowed(slot, slotsDelDia, currentHour)) {
-        if (currentHour >= SAME_DAY_CUTOFF_HOUR) {
-          return NextResponse.json({ error: `Ya pasó la hora límite (${SAME_DAY_CUTOFF_HOUR}:00) para envíos del mismo día. Seleccione otra fecha.` }, { status: 400 });
-        }
-        const ultimo = slotsDelDia[slotsDelDia.length - 1];
-        return NextResponse.json({ error: `Para el mismo día solo está disponible el horario de ${ultimo.label}.` }, { status: 400 });
+      if (!economicoSlotEsValido(deliveryDate, slot.id, todayStr, nowMin)) {
+        const primera = primeraFechaEconomica(todayStr, nowMin);
+        return NextResponse.json(
+          {
+            error: primera
+              ? `Ese horario ya no se puede agendar: el pedido se prepara el día anterior a la ronda de reparto. La fecha más cercana disponible es el ${primera}.`
+              : 'No hay fechas disponibles para el envío a domicilio en las próximas dos semanas.',
+          },
+          { status: 400 }
+        );
       }
     }
 

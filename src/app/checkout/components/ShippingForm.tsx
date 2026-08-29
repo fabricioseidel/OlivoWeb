@@ -92,8 +92,11 @@ export default function ShippingForm({
   // Las dos modalidades no ofrecen los mismos días: el económico reparte en su
   // ronda y arranca recién mañana, así que la lista se recalcula al cambiar de
   // método en vez de fijarse una sola vez.
-  const esEconomico = selectedMethod === 'economico';
-  const esAgendable = selectedMethod === 'dynamic' || esEconomico;
+  // La entrega a domicilio es siempre agendada: hay una sola ronda de reparto
+  // por franja. `esEconomico` conserva el nombre porque es el que usa la grilla
+  // de bloques del reparto propio en delivery-slots.
+  const esEconomico = selectedMethod === 'agendado';
+  const esAgendable = esEconomico;
   const availableDays = useMemo(
     () => (esAgendable ? getNextDays(7, esEconomico) : []),
     [esAgendable, esEconomico]
@@ -335,7 +338,7 @@ export default function ShippingForm({
         </div>
 
         <div className="space-y-4">
-          {(!shippingMethods.find(m => m.id === 'dynamic')) && (
+          {(!shippingMethods.find(m => m.id === 'agendado')) && (
             <div className="flex items-center justify-between p-5 rounded-xl border border-dashed border-neutral-200 bg-neutral-50">
               <div className="flex items-center">
                 <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mr-4 border border-gray-200">
@@ -376,7 +379,7 @@ export default function ShippingForm({
                     </div>
                     
                     <div className="ml-5 flex items-center gap-4">
-                      {method.id === 'dynamic' && (
+                      {method.id === 'agendado' && (
                         <div className="w-12 h-12 rounded-2xl bg-brand-boton text-brand-contraste flex items-center justify-center shadow-lg shadow-brand-600/20">
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -413,7 +416,7 @@ export default function ShippingForm({
                 </label>
 
                 {/* Agenda de entrega: la usan las dos modalidades a domicilio. */}
-                {isSelected && (method.id === 'dynamic' || method.id === 'economico') && (
+                {isSelected && method.id === 'agendado' && (
                   <div className="px-5 pb-5 pt-2 border-t border-brand-100/50 mt-1">
                      <p className="text-sm font-bold text-gray-900 mb-3">Programa tu entrega:</p>
                      
