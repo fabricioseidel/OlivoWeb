@@ -993,6 +993,82 @@ Vercel. Nunca en un archivo rastreado.
 
 ---
 
+## Envío económico: el despacho propio programado (2026-08-28)
+
+Construido en la misma sesión, a partir de los números de Uber. La decisión de
+fondo del dueño: **Uber no reemplaza el despacho propio, lo complementa.** El
+reparto propio pasa a ser la opción barata y programada, y Uber queda para
+quien quiera rapidez y la pague.
+
+### Las reglas, y por qué son así
+
+| Regla | Valor | Por qué |
+|---|---|---|
+| Tarifa | $1.500 plano | La ronda sale igual; el costo marginal de una dirección más dentro de la zona es casi cero. Cobrar por km complica el precio sin recaudar más. |
+| Ronda, lunes a sábado | 08:00–12:00 | El dueño reparte antes de entrar a su turno del local (13:30–22:30). |
+| Ronda, domingo | 10:00–14:00 y 14:00–18:00 | Sin turno de por medio, reparte a lo largo del día. |
+| Corte | 22:30 | Cierre del turno. Los pedidos se preparan durante el turno y salen en la ronda de la mañana siguiente. |
+| Envío gratis | $35.000, **sólo en esta modalidad** | Ver abajo. |
+
+**El económico nunca se ofrece para hoy.** No es una restricción arbitraria: la
+ronda sale en la mañana y para entonces el pedido tiene que estar preparado
+desde el día anterior. Un pedido que entra antes de las 22:30 sale mañana; uno
+que entra después se corre un día, porque lo prepara el turno siguiente.
+
+**El sábado la ventana se recorta sola a 10:00–12:00.** La ventana nominal
+empieza a las 08:00, pero el fin de semana el local abre a las 10:00 y los
+pedidos salen de ahí. El recorte contra `BUSINESS.openingHours` ya existía para
+el despacho programado y se reusó: sin él prometeríamos una entrega con la
+cortina baja.
+
+Las ventanas de reparto viven en `delivery-slots.ts` y **no** en
+`BUSINESS.openingHours`, porque no son un horario de atención: el local puede
+estar abierto sin que haya nadie repartiendo. El horario del local no se tocó
+—se confirmó con el dueño que sigue siendo 07:45–20:30 entre semana y
+10:00–18:00 el fin de semana; su turno de 13:30 a 22:30 es un turno personal,
+no el horario del negocio.
+
+### Por qué el envío gratis es sólo del económico
+
+Con margen de catálogo de 27,5%, un carro de $35.000 deja $9.625 de margen
+bruto, y unos $8.200 después de la comisión de MercadoPago.
+
+- **Regalando el económico** el costo es bencina: quedan ~$7.700 limpios.
+- **Regalando un envío de Uber** a $4.726 quedan ~$3.400. Y como el precio de
+  Uber lo fija Uber, un pico de lluvia o demanda puede llevarlo por encima de
+  los $8.200 y dejar el pedido en pérdida.
+
+O sea que la misma regla vale plata muy distinta según quién reparta. Amarrarla
+al económico elimina ese riesgo y además empuja al cliente hacia la modalidad
+que a la tienda casi no le cuesta.
+
+### Lo que falta para que quede andando
+
+1. **Encender `free_shipping_enabled` y poner el mínimo en $35.000** desde el
+   panel de administración. Es configuración de la tienda, no código: hoy nace
+   apagada y con $50.000 por defecto. Sin este paso el económico funciona pero
+   nunca es gratis.
+2. **Calibrar la capacidad por ronda.** Quedó en `MAX_ORDERS_PER_SLOT` (5), que
+   es el tope del despacho programado. Cinco entregas en una ronda de cuatro
+   horas puede ser poco o mucho; no hay dato para decidirlo todavía, y por eso
+   se dejó el valor existente en vez de inventar otro.
+3. **Uber (`express`) no está construido.** Las cuatro reglas acordadas —doble
+   cotización, tope sobre el cual no se ofrece, no llamar con la tienda
+   cerrada, crear la entrega recién con el pago confirmado— siguen pendientes,
+   y el tope no se puede fijar sin medir a Uber en hora punta y con lluvia.
+
+### Dónde quedó cada cosa
+
+- `src/lib/delivery-slots.ts` — ventanas de reparto, corte de las 22:30,
+  `slotsEconomicosForDate`, `primeraFechaEconomica`, `economicoSlotEsValido`.
+- `src/lib/shipping-policy.ts` — `TARIFA_ECONOMICO_CLP`, `quoteEconomico` y
+  `dentroDeZonaDeReparto`, que salió de adentro de `quoteShipping` porque las
+  dos modalidades necesitan la misma respuesta.
+- `src/__tests__/envio-economico.test.ts` — 16 casos.
+- `/api/shipping/slots?mode=economico`, `create-order` y el checkout.
+
+---
+
 ## Doctrinas del proyecto (no romper)
 
 Reglas que este código sostiene a propósito. Romperlas reintroduce errores que
