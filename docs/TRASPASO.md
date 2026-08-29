@@ -993,79 +993,103 @@ Vercel. Nunca en un archivo rastreado.
 
 ---
 
-## Envío económico: el despacho propio programado (2026-08-28)
+## Las tres opciones de entrega (2026-08-28)
 
-Construido en la misma sesión, a partir de los números de Uber. La decisión de
-fondo del dueño: **Uber no reemplaza el despacho propio, lo complementa.** El
-reparto propio pasa a ser la opción barata y programada, y Uber queda para
-quien quiera rapidez y la pague.
+El esquema que definió el dueño, después de ver lo que cobra Uber. **Uber no
+reemplaza el despacho propio: lo complementa.** El reparto propio es la opción
+programada y barata; Uber queda para quien quiera rapidez y la pague.
 
-### Las reglas, y por qué son así
+| | Opción 1 | Opción 2 | Opción 3 |
+|---|---|---|---|
+| **Qué es** | Retiro en tienda | Envío a domicilio agendado | Envío flash |
+| **Quién** | El cliente | El dueño, en su ronda | Uber Direct |
+| **Precio** | Gratis | $1.500 hasta 2 km; por distancia hasta 6 km | Lo que cotice Uber |
+| **Gratis desde** | — | $30.000 | $40.000 |
+| **Estado** | Andando | **Andando** | **Sin construir** |
 
-| Regla | Valor | Por qué |
-|---|---|---|
-| Tarifa | $1.500 plano | La ronda sale igual; el costo marginal de una dirección más dentro de la zona es casi cero. Cobrar por km complica el precio sin recaudar más. |
-| Ronda, lunes a sábado | 08:00–12:00 | El dueño reparte antes de entrar a su turno del local (13:30–22:30). |
-| Ronda, domingo | 10:00–14:00 y 14:00–18:00 | Sin turno de por medio, reparte a lo largo del día. |
-| Corte | 22:30 | Cierre del turno. Los pedidos se preparan durante el turno y salen en la ronda de la mañana siguiente. |
-| Envío gratis | $35.000, **sólo en esta modalidad** | Ver abajo. |
+### Los dos tramos de precio de la opción 2
 
-**El económico nunca se ofrece para hoy.** No es una restricción arbitraria: la
-ronda sale en la mañana y para entonces el pedido tiene que estar preparado
-desde el día anterior. Un pedido que entra antes de las 22:30 sale mañana; uno
-que entra después se corre un día, porque lo prepara el turno siguiente.
+Dentro de **2 km** la ronda no se alarga de forma apreciable, así que cobrar por
+kilómetro no recauda más y sólo complica el precio: rige la tarifa plana de
+$1.500. Pasado ese radio la ronda sí se estira y vuelve el cálculo por
+distancia, hasta el tope de **6 km**. Más lejos la modalidad no se ofrece.
 
-**El sábado la ventana se recorta sola a 10:00–12:00.** La ventana nominal
-empieza a las 08:00, pero el fin de semana el local abre a las 10:00 y los
-pedidos salen de ahí. El recorte contra `BUSINESS.openingHours` ya existía para
-el despacho programado y se reusó: sin él prometeríamos una entrega con la
-cortina baja.
+Antes esto eran dos opciones separadas compitiendo en la misma pantalla. Ahora
+es un método con dos tramos, que es como funciona en la realidad.
 
-Las ventanas de reparto viven en `delivery-slots.ts` y **no** en
-`BUSINESS.openingHours`, porque no son un horario de atención: el local puede
-estar abierto sin que haya nadie repartiendo. El horario del local no se tocó
-—se confirmó con el dueño que sigue siendo 07:45–20:30 entre semana y
-10:00–18:00 el fin de semana; su turno de 13:30 a 22:30 es un turno personal,
-no el horario del negocio.
+**Los radios están en distancia de recorrido, no en línea recta.** Se comparan
+contra el Haversine multiplicado por `FACTOR_CALLES` (1,3), así que 6 km de
+radio son unos 4,6 en línea recta. Ese factor estaba copiado en dos rutas de
+API sin que se viera que tenía que ser el mismo número; ahora vive en
+`shipping-policy`.
 
-### Por qué el envío gratis es sólo del económico
+### Las rondas cubren los siete días
 
-Con margen de catálogo de 27,5%, un carro de $35.000 deja $9.625 de margen
-bruto, y unos $8.200 después de la comisión de MercadoPago.
+| Días | Ronda |
+|---|---|
+| Lunes a viernes | 08:00–12:00 |
+| Sábado y domingo | 10:00–12:00 y 14:00–18:00 |
 
-- **Regalando el económico** el costo es bencina: quedan ~$7.700 limpios.
-- **Regalando un envío de Uber** a $4.726 quedan ~$3.400. Y como el precio de
-  Uber lo fija Uber, un pico de lluvia o demanda puede llevarlo por encima de
-  los $8.200 y dejar el pedido en pérdida.
+Entre semana sale una vez, antes del turno del dueño en el local (13:30–22:30).
+El fin de semana el local abre recién a las 10:00 y los pedidos salen de ahí,
+así que la ronda de la mañana empieza con la persiana y se agrega una de tarde.
 
-O sea que la misma regla vale plata muy distinta según quién reparta. Amarrarla
-al económico elimina ese riesgo y además empuja al cliente hacia la modalidad
-que a la tienda casi no le cuesta.
+**Corte: 22:30**, el cierre del turno. Los pedidos se preparan durante el turno
+y salen en la ronda siguiente, así que **el agendado nunca se ofrece para hoy**.
+Uno que entra después de las 22:30 se corre un día, porque lo prepara el turno
+siguiente.
 
-### Lo que falta para que quede andando
+### Por qué el envío gratis tiene dos mínimos
 
-1. **Encender `free_shipping_enabled` y poner el mínimo en $35.000** desde el
-   panel de administración. Es configuración de la tienda, no código: hoy nace
-   apagada y con $50.000 por defecto. Sin este paso el económico funciona pero
-   nunca es gratis.
-2. **Calibrar la capacidad por ronda.** Quedó en `MAX_ORDERS_PER_SLOT` (5), que
-   es el tope del despacho programado. Cinco entregas en una ronda de cuatro
-   horas puede ser poco o mucho; no hay dato para decidirlo todavía, y por eso
-   se dejó el valor existente en vez de inventar otro.
-3. **Uber (`express`) no está construido.** Las cuatro reglas acordadas —doble
-   cotización, tope sobre el cual no se ofrece, no llamar con la tienda
-   cerrada, crear la entrega recién con el pago confirmado— siguen pendientes,
-   y el tope no se puede fijar sin medir a Uber en hora punta y con lluvia.
+Porque la misma regla vale plata muy distinta según quién reparta. Con margen de
+catálogo 27,5% y comisión de MercadoPago ~4,15%:
 
-### Dónde quedó cada cosa
+| Modalidad | Mínimo | Costo del envío | Neto por pedido |
+|---|---:|---:|---:|
+| Agendado | $30.000 | bencina (~$500) | **$6.504** |
+| Flash (Uber) | $40.000 | $2.953 – $4.726 | **$4.613 – $6.386** |
 
-- `src/lib/delivery-slots.ts` — ventanas de reparto, corte de las 22:30,
-  `slotsEconomicosForDate`, `primeraFechaEconomica`, `economicoSlotEsValido`.
-- `src/lib/shipping-policy.ts` — `TARIFA_ECONOMICO_CLP`, `quoteEconomico` y
-  `dentroDeZonaDeReparto`, que salió de adentro de `quoteShipping` porque las
-  dos modalidades necesitan la misma respuesta.
-- `src/__tests__/envio-economico.test.ts` — 16 casos.
-- `/api/shipping/slots?mode=economico`, `create-order` y el checkout.
+El número que importa para el flash: a $40.000, **Uber tendría que cobrar más de
+$9.339 para que el pedido pierda plata**. El máximo medido en Ñuñoa y Macul fue
+$4.726, así que hay el doble de colchón. Igual hace falta el tope de la regla 2
+de la integración —lluvia y hora punta siguen sin medirse.
+
+### Las landings dejaron de publicar el tope por comuna
+
+`TOPE_POR_COMUNA` y `quoteShipping` se **eliminaron**: quedaron sin uso al
+reemplazarlos `quoteAgendado`, e implementaban la regla vieja. Además prometían
+la tarifa plana en todo Ñuñoa, cuando ahora rige dentro del radio — quien vivía
+en el mismo Ñuñoa pero más lejos veía un precio que el checkout no respetaba.
+Los términos y `DespachoInfo` ahora hablan de radios.
+
+### El mapa de cobertura
+
+`src/components/MapaCobertura.tsx` reemplaza al iframe de Google Maps que había
+en `/contacto` y `/tienda-nunoa`. Dibuja los dos radios sobre OpenStreetMap:
+gratis, sin API key, con atribución visible como exige la licencia, y montado
+sólo cuando entra en pantalla.
+
+**Los círculos se dibujan deshaciendo el factor de calles**
+(`radioDibujableMetros`, testeado). Pintar 6 km redondos habría prometido
+cobertura a casi 8 km de calle, que es justo lo que el checkout rechaza.
+
+Ojo para probarlo desde el contenedor del agente: **la política de egreso
+bloquea `tile.openstreetmap.org` con 403**, así que el mapa sale gris. No es un
+bug — en producción los tiles los pide el navegador del visitante.
+
+### Lo que falta
+
+1. **Encender el envío gratis desde el panel.** Hoy nace apagado y con $50.000.
+   Ojo: `settings.free_shipping_minimum` es **un solo número**, y el esquema
+   pide dos ($30.000 agendado / $40.000 flash). Hasta que exista el flash
+   alcanza con poner $30.000; cuando se construya Uber hay que agregar la
+   segunda columna.
+2. **Bajar `shipping_max_distance_km` a 6** en el panel, o dejar que tome el
+   valor de fábrica que ya bajó de 8 a 6.
+3. **La opción 3 (flash) no está construida.** Siguen pendientes las cuatro
+   reglas acordadas, y el tope no se puede fijar sin medir a Uber en hora punta
+   y con lluvia.
+4. **Calibrar la capacidad por ronda**, hoy en `MAX_ORDERS_PER_SLOT` (5).
 
 ---
 
