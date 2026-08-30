@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BUSINESS, whatsappLink, getService, type CourierSlug } from "@/lib/seo/business";
 import MapaCobertura from "@/components/MapaCobertura";
+import { getShippingInfo } from "@/lib/seo/shipping-info";
 
 /**
  * Bloques de UI compartidos por las landings locales.
@@ -57,8 +58,13 @@ export function HorariosBlock({ className = "" }: { className?: string }) {
  * etiqueta accesible del mapa la arma el propio componente con los radios
  * reales, para que no haya dos textos que puedan divergir.
  */
-export function MapEmbed({ title: _title }: { title: string }) {
-  return <MapaCobertura />;
+export async function MapEmbed({ title: _title }: { title: string }) {
+  // El radio sale de la configuración de la tienda y no del valor de fábrica:
+  // el checkout valida contra ese mismo número, y un mapa que dibuja un radio
+  // distinto al que el checkout acepta promete una cobertura que después no
+  // se cumple.
+  const info = await getShippingInfo();
+  return <MapaCobertura radioMaximoKm={info.maxDistanceKm ?? undefined} />;
 }
 
 /** Preguntas frecuentes visibles — obligatorio si se emite FAQPage. */
