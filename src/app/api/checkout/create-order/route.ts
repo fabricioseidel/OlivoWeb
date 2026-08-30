@@ -8,6 +8,13 @@ import { earnPoints, redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@
 import { createPaymentPreference } from '@/server/payments.service';
 import { quoteAgendado, FACTOR_CALLES } from '@/lib/shipping-policy';
 import {
+  quoteFlash,
+  revalidarFlash,
+  MINIMO_FLASH_CLP_DEFAULT,
+} from '@/lib/flash-policy';
+import { cotizarFlash, uberDirectConfigurado } from '@/server/uber-direct.service';
+import { tiendaAbierta } from '@/lib/delivery-slots';
+import {
   MAX_ORDERS_PER_SLOT,
   economicoSlotEsValido,
   primeraFechaEconomica,
@@ -54,12 +61,17 @@ function haversineKm(
  * por monto). Antes solo devolvía la tarifa por distancia, así que el cliente
  * veía "Gratis" o el tope de $1.500 y se le cobraba la tarifa completa.
  */
-async function calculateServerShippingCost(
-  shippingMethod: string,
-  coords: { lat: number; lng: number } | null | undefined,
-  subtotal: number,
-  ciudad: string | null | undefined
-): Promise<{ cost: number } | { error: string }> {
+async function calculateServerShippingCost(params: {
+  shippingMethod: string;
+  coords: { lat: number; lng: number } | null | undefined;
+  subtotal: number;
+  ciudad: string | null | undefined;
+  /** Datos de destino, sólo para el flash. */
+  shippingInfo: Record<string, unknown> | null | undefined;
+  /** Lo que el cliente vio al elegir el flash, para poder revalidarlo. */
+  precioFlashMostrado: number | null;
+}): Promise<{ cost: number; quoteIdFlash?: string | null } | { error: string; recotizado?: number }> {
+  const { shippingMethod, coords, subtotal, ciudad } = params;
   if (shippingMethod === 'pickup') return { cost: 0 };
 
   if (shippingMethod === 'agendado') {
@@ -110,6 +122,101 @@ async function calculateServerShippingCost(
     }
 
     return { cost: quote.price };
+  }
+
+  if (shippingMethod === 'flash') {
+    if (!uberDirectConfigurado()) {
+      return { error: 'El envío flash no está disponible en este momento.' };
+    }
+
+    // Regla 3, otra vez acá y no sólo en la cotización: entre que el cliente
+    // vio el precio y apretó pagar el local pudo cerrar, y una entrega creada
+    // con la cortina baja se paga igual.
+    const ahora = toZonedTime(new Date(), TIMEZONE);
+    const abierta = tiendaAbierta(
+      format(ahora, 'yyyy-MM-dd'),
+      getHours(ahora) * 60 + getMinutes(ahora)
+    );
+    if (!abierta) {
+      return { error: 'El envío flash sólo se puede pedir con la tienda abierta. Puedes agendar tu entrega.' };
+    }
+
+    const info = params.shippingInfo || {};
+    const calle = String(info.address || '');
+    const comuna = String(info.city || ciudad || '');
+    if (!calle || !comuna) {
+      return { error: 'No pudimos validar la dirección de envío.' };
+    }
+
+    const { data: settings } = await supabaseServer
+      .from('settings')
+      .select('*')
+      .eq('id', true)
+      .maybeSingle();
+
+    const minimoFlash =
+      settings?.free_shipping_enabled === true
+        ? Number(settings?.free_shipping_minimum_flash ?? MINIMO_FLASH_CLP_DEFAULT) ||
+          MINIMO_FLASH_CLP_DEFAULT
+        : null;
+
+    // Regla 1: la segunda cotización, ahora que el cliente va a pagar.
+    let cotizacion: Awaited<ReturnType<typeof cotizarFlash>>;
+    try {
+      cotizacion = await cotizarFlash({
+        calle,
+        comuna,
+        lat: coords?.lat ?? null,
+        lng: coords?.lng ?? null,
+        telefono: info.phone ? String(info.phone) : null,
+      });
+    } catch (e) {
+      console.error('[flash] no se pudo recotizar al crear el pedido:', e);
+      return { error: 'No pudimos confirmar el envío flash. Intenta de nuevo o agenda tu entrega.' };
+    }
+
+    const quote = quoteFlash({
+      costoUber: cotizacion ? cotizacion.costoCLP : null,
+      subtotal,
+      freeShippingMinimum: minimoFlash,
+      tiendaAbierta: true,
+    });
+
+    if (!quote.disponible) {
+      const porque =
+        quote.motivo === 'sobre-el-tope'
+          ? 'El envío flash está muy caro en este momento por alta demanda.'
+          : 'Uber no está llegando a esa dirección en este momento.';
+      return { error: `${porque} Puedes agendar tu entrega o retirar en tienda.` };
+    }
+
+    // Un envío gratis no necesita revalidarse: el cliente paga 0 igual, y la
+    // diferencia la absorbe la tienda por definición.
+    if (quote.freeApplied) {
+      return { cost: 0, quoteIdFlash: cotizacion?.quoteId ?? null };
+    }
+
+    // Sin precio mostrado no hay contra qué comparar (por ejemplo, alguien que
+    // llama la ruta directo). Se cobra lo que Uber cotiza ahora.
+    if (params.precioFlashMostrado === null) {
+      return { cost: quote.price, quoteIdFlash: cotizacion?.quoteId ?? null };
+    }
+
+    const revalidacion = revalidarFlash({
+      precioMostrado: params.precioFlashMostrado,
+      precioNuevo: quote.price,
+    });
+
+    if (!revalidacion.aceptable) {
+      // No se cobra: se le avisa. Cambiarle el total a alguien que ya apretó
+      // pagar es la clase de sorpresa que hace que no vuelva.
+      return {
+        error: `El costo del envío flash subió a $${quote.price.toLocaleString('es-CL')} mientras completabas el pedido. Vuelve a elegir el envío para confirmar el nuevo precio.`,
+        recotizado: quote.price,
+      };
+    }
+
+    return { cost: revalidacion.precioACobrar, quoteIdFlash: cotizacion?.quoteId ?? null };
   }
 
   return { error: 'Método de envío no válido.' };
@@ -284,16 +391,25 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Recalcular envío, cupón y puntos en servidor (nunca confiar en el cliente)
-    const shippingResult = await calculateServerShippingCost(
+    const shippingResult = await calculateServerShippingCost({
       shippingMethod,
-      shippingInfo?.coords,
-      calculatedSubtotal,
-      shippingInfo?.city
-    );
+      coords: shippingInfo?.coords,
+      subtotal: calculatedSubtotal,
+      ciudad: shippingInfo?.city,
+      shippingInfo,
+      precioFlashMostrado:
+        typeof body.flashPrecioMostrado === 'number' ? body.flashPrecioMostrado : null,
+    });
     if ('error' in shippingResult) {
-      return NextResponse.json({ error: shippingResult.error }, { status: 400 });
+      return NextResponse.json(
+        { error: shippingResult.error, recotizado: shippingResult.recotizado },
+        { status: 400 }
+      );
     }
     let serverShippingCost = shippingResult.cost;
+    // El id de la cotización viaja con la dirección hasta el webhook de pago,
+    // que es el único lugar donde se crea la entrega (regla 4).
+    const quoteIdFlash = shippingResult.quoteIdFlash ?? null;
 
     let couponDiscount = 0;
     if (couponCode) {
@@ -350,7 +466,7 @@ export async function POST(request: NextRequest) {
         subtotal: calculatedSubtotal,
         shipping_cost: serverShippingCost,
         shipping_method: shippingMethod,
-        shipping_address: shippingInfo,
+        shipping_address: quoteIdFlash ? { ...shippingInfo, uberQuoteId: quoteIdFlash } : shippingInfo,
         payment_method: paymentMethod,
         payment_status: 'pending',
         coupon_code: couponCode || null,

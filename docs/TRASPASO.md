@@ -1005,7 +1005,7 @@ programada y barata; Uber queda para quien quiera rapidez y la pague.
 | **Quién** | El cliente | El dueño, en su ronda | Uber Direct |
 | **Precio** | Gratis | $1.500 hasta 2 km; por distancia hasta 6 km | Lo que cotice Uber |
 | **Gratis desde** | — | $30.000 | $40.000 |
-| **Estado** | Andando | **Andando** | **Sin construir** |
+| **Estado** | Andando | **Andando** | **Andando** |
 
 ### Los dos tramos de precio de la opción 2
 
@@ -1077,19 +1077,74 @@ Ojo para probarlo desde el contenedor del agente: **la política de egreso
 bloquea `tile.openstreetmap.org` con 403**, así que el mapa sale gris. No es un
 bug — en producción los tiles los pide el navegador del visitante.
 
+### El envío flash (Uber Direct)
+
+Construido el 2026-08-28. Las cuatro reglas acordadas, y dónde vive cada una:
+
+| Regla | Dónde | Cómo |
+|---|---|---|
+| 1. Cotizar dos veces | `create-order` | Recotiza antes de cobrar y compara con lo que el cliente vio (`revalidarFlash`). Dentro del 10% se respeta el precio mostrado y la tienda absorbe la diferencia; por encima no se cobra, se le avisa. |
+| 2. Tope sobre el cual no se ofrece | `flash-policy` | `TOPE_FLASH_CLP` = $6.500. Sobre eso la opción desaparece y queda el agendado. |
+| 3. No llamar con la tienda cerrada | `/api/shipping/flash` y `create-order` | `tiendaAbierta()`, derivada de `BUSINESS.openingHours`. Se comprueba **antes** de llamar: preguntar y descartar gastaría cuota igual. |
+| 4. Crear la entrega con el pago confirmado | webhook de MercadoPago | `crearEntregaDePedidoPagado`. En ningún otro lado. |
+
+**Por qué el tope es $6.500 y no otro.** Las cotizaciones que lo justifican son
+de un viernes a las 16:05 con buen tiempo. **Falta medir en hora punta y con
+lluvia**, así que el número hay que revisarlo con datos, no dejarlo envejecer.
+Con el mínimo del flash en $40.000 un pedido regalado aguanta hasta unos $9.300
+de envío, así que cortar en $6.500 lo deja cómodamente en azul.
+
+**El token se cachea en memoria del proceso.** El endpoint admite 100 pedidos
+por hora y el token dura 30 días, así que pedir uno por cotización dejaría la
+tienda sin cotizar a las cien visitas. Es caché por instancia: con más tráfico
+del que hoy tiene la tienda convendría moverlo a un almacén compartido.
+
+**El checkout cotiza una vez por dirección, no por cambio de carrito.** El costo
+de Uber no depende del subtotal —sólo el envío gratis—, así que la llamada manda
+`subtotal: 0` y el mínimo se aplica del lado del cliente. Agregar un producto no
+gasta otra cotización.
+
+**Si Uber no contesta, la opción desaparece y el checkout sigue.** Sin
+credenciales, con la tienda cerrada, sin cobertura o con Uber caído, el cliente
+ve las otras dos opciones y ni se entera. Nunca se lo bloquea por esto.
+
+**Si la entrega falla después del pago**, el webhook igual responde 200 y deja
+`UBER_DELIVERY_FAILED` en la auditoría. Devolver error haría que MercadoPago
+reintente, y cada reintento crearía otra entrega: un pedido pagado sin
+repartidor se resuelve a mano, tres repartidores cobrados por el mismo pedido no.
+La creación es idempotente por `uberDeliveryId`.
+
+**Hay un test de integración contra la API real**
+(`src/__tests__/uber-direct.integracion.test.ts`), que se salta solo sin
+credenciales. Existe porque los demás tests del flash son puros: verifican las
+reglas, pero no que el cuerpo que se le manda a Uber sea el que Uber acepta —y
+eso ya rompió una vez, con las direcciones como objeto en vez de string.
+Corre en entorno `node` y no en el jsdom del proyecto: el `URLSearchParams` de
+jsdom no es el que espera el `fetch` de undici y el pedido del token falla con
+un error que en producción no ocurre.
+
+### Los dos mínimos de envío gratis
+
+`free_shipping_minimum` (agendado, $30.000) y `free_shipping_minimum_flash`
+(flash, $40.000), los dos editables desde el panel. Son dos y no uno porque el
+mismo regalo cuesta plata muy distinta según quién reparta. La migración
+`20260828000500` agrega la columna; es idempotente y está probada contra un
+Postgres 16 real.
+
 ### Lo que falta
 
-1. **Encender el envío gratis desde el panel.** Hoy nace apagado y con $50.000.
-   Ojo: `settings.free_shipping_minimum` es **un solo número**, y el esquema
-   pide dos ($30.000 agendado / $40.000 flash). Hasta que exista el flash
-   alcanza con poner $30.000; cuando se construya Uber hay que agregar la
-   segunda columna.
-2. **Bajar `shipping_max_distance_km` a 6** en el panel, o dejar que tome el
-   valor de fábrica que ya bajó de 8 a 6.
-3. **La opción 3 (flash) no está construida.** Siguen pendientes las cuatro
-   reglas acordadas, y el tope no se puede fijar sin medir a Uber en hora punta
-   y con lluvia.
-4. **Calibrar la capacidad por ronda**, hoy en `MAX_ORDERS_PER_SLOT` (5).
+1. **Aplicar la migración `20260828000500`** y **encender el envío gratis desde
+   el panel**. El código funciona sin la columna —se cae al valor de fábrica—,
+   pero hasta encenderlo ningún envío es gratis.
+2. **Rotar las credenciales de Uber.** Las que hay son de la app de prueba y
+   quedaron expuestas en un chat. Las de producción van sólo en las variables
+   de entorno de Vercel.
+3. **Medir a Uber en hora punta y con lluvia**, para fijar `TOPE_FLASH_CLP` con
+   datos en vez de con un viernes de buen tiempo.
+4. **Verificar cobertura y precios con credenciales de producción.** La app de
+   prueba rechazó Las Condes a 4,4 km pero aceptó La Reina a 5,1; puede ser una
+   restricción del sandbox.
+5. **Calibrar la capacidad por ronda**, hoy en `MAX_ORDERS_PER_SLOT` (5).
 
 ---
 

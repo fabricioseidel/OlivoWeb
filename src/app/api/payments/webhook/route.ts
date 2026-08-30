@@ -3,6 +3,7 @@ import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { supabaseServer } from '@/lib/supabase-server';
 import { auditLog } from '@/server/audit.service';
 import { restoreOrderStock } from '@/server/inventory.service';
+import { crearEntregaFlash } from '@/server/uber-direct.service';
 import crypto from 'crypto';
 
 /**
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
         // Verificar que el monto pagado coincide con el total de la orden
         const { data: order } = await supabaseServer
           .from('orders')
-          .select('total')
+          .select('total, shipping_method, shipping_address')
           .eq('id', orderId)
           .single();
 
@@ -115,6 +116,14 @@ export async function POST(request: NextRequest) {
           actor: 'mp-webhook',
           details: { paymentId: String(paymentId), amount: paidAmount, mpStatus: status },
         });
+
+        // Regla 4 del envío flash: la entrega de Uber se crea acá y en ningún
+        // otro lado. Al apretar comprar todavía no: un pago que después se
+        // rechaza dejaría un repartidor en camino a buscar un pedido que nadie
+        // pagó, y esa entrega se cobra igual.
+        if (order?.shipping_method === 'flash') {
+          await crearEntregaDePedidoPagado(orderId, order);
+        }
       } else if (orderId && (status === 'rejected' || status === 'cancelled' || status === 'refunded' || status === 'in_mediation')) {
         console.log(`[MP Webhook] 🔄 Restaurando stock para orden ${orderId} debido a estado: ${status}`);
 
@@ -184,3 +193,83 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * Despacha la entrega de Uber de un pedido flash ya pagado.
+ *
+ * Nunca lanza: el pago ya está confirmado y el pedido ya quedó marcado. Si
+ * Uber falla, este webhook igual tiene que responder 200 — si devolviera error,
+ * MercadoPago reintentaría y cada reintento crearía otra entrega. Un pedido
+ * pagado sin repartidor asignado se resuelve a mano; tres repartidores
+ * cobrados por el mismo pedido, no.
+ */
+async function crearEntregaDePedidoPagado(
+  orderId: string,
+  order: { shipping_address?: unknown; total?: number | string | null }
+): Promise<void> {
+  const dir = (order.shipping_address ?? {}) as Record<string, unknown>;
+
+  // Idempotencia: MercadoPago reenvía el mismo webhook más de una vez.
+  if (dir.uberDeliveryId) {
+    console.log(`[MP Webhook] La orden ${orderId} ya tiene entrega de Uber; no se crea otra.`);
+    return;
+  }
+
+  const quoteId = dir.uberQuoteId ? String(dir.uberQuoteId) : null;
+  if (!quoteId) {
+    console.error(`[MP Webhook] ❌ Orden flash ${orderId} sin uberQuoteId: hay que despacharla a mano.`);
+    await auditLog({
+      action: 'UBER_DELIVERY_FAILED',
+      entity: 'orders',
+      entityId: orderId,
+      actor: 'mp-webhook',
+      details: { motivo: 'sin-quote-id' },
+    });
+    return;
+  }
+
+  try {
+    const entrega = await crearEntregaFlash({
+      quoteId,
+      destino: {
+        calle: String(dir.address || ''),
+        comuna: String(dir.city || ''),
+        codigoPostal: dir.zipCode ? String(dir.zipCode) : undefined,
+        lat: (dir.coords as { lat?: number })?.lat ?? null,
+        lng: (dir.coords as { lng?: number })?.lng ?? null,
+      },
+      nombreCliente: String(dir.fullName || 'Cliente'),
+      telefonoCliente: String(dir.phone || ''),
+      referenciaPedido: String(orderId),
+      // Valor declarado, para el seguro de Uber ante pérdida o daño.
+      valorPedidoCLP: Number(order.total) || 0,
+    });
+
+    await supabaseServer
+      .from('orders')
+      .update({
+        shipping_address: { ...dir, uberDeliveryId: entrega.id, uberTracking: entrega.tracking },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+
+    console.log(`[MP Webhook] 🛵 Entrega de Uber creada para la orden ${orderId}: ${entrega.id}`);
+    await auditLog({
+      action: 'UBER_DELIVERY_CREATED',
+      entity: 'orders',
+      entityId: orderId,
+      actor: 'mp-webhook',
+      details: { deliveryId: entrega.id, quoteId },
+    });
+  } catch (e) {
+    // El pedido queda pagado y sin repartidor. Se registra fuerte para que se
+    // note y se despache a mano: es preferible a no cobrar o a duplicar.
+    console.error(`[MP Webhook] ❌ No se pudo crear la entrega de Uber de la orden ${orderId}:`, e);
+    await auditLog({
+      action: 'UBER_DELIVERY_FAILED',
+      entity: 'orders',
+      entityId: orderId,
+      actor: 'mp-webhook',
+      details: { motivo: e instanceof Error ? e.message : String(e), quoteId },
+    });
+  }
+}

@@ -42,6 +42,8 @@ export type StoreSettings = {
     enableShipping?: boolean;
     freeShippingEnabled?: boolean;
     freeShippingMinimum?: number;
+    /** Mínimo del envío flash. Más alto: ese envío lo cobra Uber. */
+    freeShippingMinimumFlash?: number;
     localDeliveryEnabled?: boolean;
     localDeliveryFee?: number;
     localDeliveryTimeDays?: number;
@@ -145,7 +147,8 @@ export const FALLBACK_SETTINGS: StoreSettings = {
   shipping: {
     enableShipping: true,
     freeShippingEnabled: false,
-    freeShippingMinimum: 50000,
+    freeShippingMinimum: 30000,
+    freeShippingMinimumFlash: 40000,
     localDeliveryEnabled: true,
     localDeliveryFee: 5000,
     localDeliveryTimeDays: 3,
@@ -210,6 +213,7 @@ export function mapSettingsRow(data: Record<string, any>): StoreSettings {
       enableShipping: data.enable_shipping,
       freeShippingEnabled: data.free_shipping_enabled,
       freeShippingMinimum: data.free_shipping_minimum,
+      freeShippingMinimumFlash: data.free_shipping_minimum_flash,
       localDeliveryEnabled: data.local_delivery_enabled,
       localDeliveryFee: data.local_delivery_fee,
       localDeliveryTimeDays: data.local_delivery_time_days,

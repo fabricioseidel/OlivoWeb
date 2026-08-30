@@ -27,6 +27,7 @@ import {
   TARIFA_ZONA_PLANA_CLP,
 } from "@/lib/shipping-policy";
 import { ventanaEconomicaPublicable } from "@/lib/delivery-slots";
+import { quoteFlash, MINIMO_FLASH_CLP_DEFAULT } from "@/lib/flash-policy";
 
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { PREVIEW_DEFAULT_MESSAGE } from "@/lib/store-status";
@@ -65,6 +66,20 @@ export default function CheckoutPage() {
   // Distancia real al destino. El envío gratis se decide con esto, no con el
   // nombre de la comuna que devuelva el buscador de direcciones.
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
+  /**
+   * Lo que contestó Uber para esta dirección.
+   *
+   * Se guarda el costo crudo y no el precio final porque el costo no depende
+   * del carrito: sólo el envío gratis. Así una dirección se cotiza una vez y
+   * cambiar el carrito no gasta otra llamada a Uber.
+   */
+  const [flashUber, setFlashUber] = useState<{
+    disponible: boolean;
+    costo: number | null;
+    etaMin: number | null;
+    quoteId: string | null;
+    motivo: string | null;
+  } | null>(null);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState("pickup");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("mercadopago");
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
@@ -128,6 +143,27 @@ export default function CheckoutPage() {
     });
   }, [dynamicShipping, subtotal, shippingInfo.city, distanceKm, storeSettings]);
 
+  /**
+   * Precio del flash con el carrito actual.
+   *
+   * El servidor ya comprobó tienda abierta, cobertura y tope; acá sólo se
+   * aplica el envío gratis, que es lo único que depende del carrito. El
+   * servidor lo vuelve a calcular todo al crear el pedido: esto es para
+   * mostrar.
+   */
+  const flash = useMemo(() => {
+    if (!flashUber?.disponible || flashUber.costo === null) return null;
+    return quoteFlash({
+      costoUber: flashUber.costo,
+      subtotal,
+      freeShippingMinimum: storeSettings?.shipping?.freeShippingEnabled
+        ? Number(storeSettings.shipping.freeShippingMinimumFlash ?? MINIMO_FLASH_CLP_DEFAULT) ||
+          MINIMO_FLASH_CLP_DEFAULT
+        : null,
+      tiendaAbierta: true,
+    });
+  }, [flashUber, subtotal, storeSettings]);
+
   const shippingMethods = useMemo(() => {
     const list = [...baseShippingMethods];
     if (!agendado?.disponible) return list;
@@ -144,8 +180,21 @@ export default function CheckoutPage() {
       days: `Lo llevamos nosotros: lunes a viernes de ${ventana.semana}, sábados y domingos de ${ventana.finDeSemana}. Se agenda desde el día siguiente.`,
     };
 
-    return [agendadoMethod, ...list];
-  }, [agendado]);
+    if (!flash?.disponible) return [agendadoMethod, ...list];
+
+    const eta = flashUber?.etaMin;
+    const flashMethod: ShippingMethod = {
+      id: "flash",
+      name: "Envío flash",
+      price: flash.price,
+      originalPrice: flash.freeApplied ? flash.rawPrice : undefined,
+      days: eta
+        ? `Lo lleva un repartidor de Uber, llega en unos ${eta} minutos.`
+        : "Lo lleva un repartidor de Uber, llega en menos de una hora.",
+    };
+
+    return [flashMethod, agendadoMethod, ...list];
+  }, [agendado, flash, flashUber]);
 
   const selectedMethod = shippingMethods.find((method) => method.id === selectedShippingMethod);
 
@@ -194,12 +243,12 @@ export default function CheckoutPage() {
           if (!isNaN(cost)) {
             setDistanceKm(dist);
             setDynamicShipping({
-              id: "dynamic",
+              id: "agendado",
               name: `Envío a domicilio (${dist.toFixed(1)} km)`,
               price: Math.round(cost),
               days: "Despacho propio (Agendable)"
             });
-            setSelectedShippingMethod("dynamic");
+            setSelectedShippingMethod("agendado");
           }
         } else {
           console.error("Distance calculation failed:", result.error);
@@ -215,6 +264,59 @@ export default function CheckoutPage() {
       }
     }
   }, [storeSettings]);
+
+  /**
+   * Cotiza el flash cuando cambia la dirección.
+   *
+   * Va con `subtotal: 0` a propósito: lo que se quiere de Uber es el costo, y
+   * el envío gratis se resuelve abajo con el carrito actual. Si fuera el
+   * subtotal real, cada producto que el cliente agrega gastaría otra
+   * cotización.
+   */
+  useEffect(() => {
+    const calle = shippingInfo.address?.trim();
+    const comuna = shippingInfo.city?.trim();
+    if (!calle || !comuna) {
+      setFlashUber(null);
+      return;
+    }
+
+    let cancelado = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/shipping/flash", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            calle,
+            comuna,
+            lat: coords?.lat ?? null,
+            lng: coords?.lng ?? null,
+            telefono: shippingInfo.phone || null,
+            subtotal: 0,
+          }),
+        });
+        if (!res.ok || cancelado) return;
+        const d = await res.json();
+        if (cancelado) return;
+        setFlashUber({
+          disponible: Boolean(d.disponible),
+          costo: typeof d.rawPrice === "number" && d.rawPrice > 0 ? d.rawPrice : null,
+          etaMin: typeof d.etaMin === "number" ? d.etaMin : null,
+          quoteId: d.quoteId ?? null,
+          motivo: d.motivo ?? null,
+        });
+      } catch {
+        // Que el flash no cotice no puede frenar el checkout: quedan las otras
+        // dos opciones y el cliente ni se entera.
+        if (!cancelado) setFlashUber(null);
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [shippingInfo.address, shippingInfo.city, shippingInfo.phone, coords]);
 
   // Effect to trigger calculation when settings or coordinates are available
   useEffect(() => {
@@ -408,6 +510,10 @@ export default function CheckoutPage() {
         items: cartItems,
         shippingInfo: { ...shippingInfo, coords: coords || undefined },
         shippingMethod: selectedShippingMethod,
+        // Regla 1: el servidor recotiza el flash antes de cobrar y compara
+        // contra esto. Si subió poco, se respeta lo que el cliente vio.
+        flashPrecioMostrado:
+          selectedShippingMethod === "flash" && flash ? flash.price : null,
         paymentMethod: selectedPaymentMethod,
         couponCode: appliedCoupon?.code,
         loyaltyRedeemed: redeemedPoints > 0 ? {
@@ -629,6 +735,15 @@ export default function CheckoutPage() {
                     {/* Feedback de las reglas de despacho: sin esto el cliente
                         ve un precio distinto al calculado por distancia y no
                         entiende por qué. */}
+                    {selectedShippingMethod === 'flash' && flash?.freeApplied && (
+                      <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+                        <p className="text-sm font-semibold text-brand-900">Tu envío flash es gratis</p>
+                        <p className="mt-1 text-sm text-brand-800">
+                          Tu compra supera el mínimo, así que el repartidor lo ponemos nosotros.
+                        </p>
+                      </div>
+                    )}
+
                     {selectedShippingMethod === 'agendado' && agendado?.freeApplied && (
                       <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
                         <p className="text-sm font-semibold text-brand-900">Tu envío es gratis</p>

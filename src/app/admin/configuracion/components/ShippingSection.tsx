@@ -125,14 +125,30 @@ export default function ShippingSection({ settings, handleChange }: ShippingSect
           onChange={(val) => handleChange(["shipping", "freeShippingEnabled"], val)}
         />
         {settings.shipping?.freeShippingEnabled && (
-          <div className="mt-4">
+          <div className="mt-4 space-y-4">
+            {/* Son dos montos y no uno porque el mismo regalo cuesta plata muy
+                distinta según quién reparta: el despacho propio cuesta bencina
+                y el flash cuesta lo que Uber cobre ese día. */}
             <InputField
-              label="Monto mínimo"
+              label="Monto mínimo — envío agendado (lo llevas tú)"
               type="number"
               value={settings.shipping?.freeShippingMinimum || 0}
               onChange={(val) => handleChange(["shipping", "freeShippingMinimum"], Number(val))}
               prefix="$"
             />
+            <InputField
+              label="Monto mínimo — envío flash (lo lleva Uber)"
+              type="number"
+              value={settings.shipping?.freeShippingMinimumFlash || 0}
+              onChange={(val) =>
+                handleChange(["shipping", "freeShippingMinimumFlash"], Number(val))
+              }
+              prefix="$"
+            />
+            <p className="text-sm text-blue-900">
+              El mínimo del flash conviene más alto: ese envío lo cobra Uber, no cuesta
+              sólo bencina.
+            </p>
           </div>
         )}
       </div>

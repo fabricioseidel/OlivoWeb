@@ -59,7 +59,8 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   shipping: {
     enableShipping: true,
     freeShippingEnabled: false,
-    freeShippingMinimum: 50000,
+    freeShippingMinimum: 30000,
+    freeShippingMinimumFlash: 40000,
     localDeliveryEnabled: true,
     localDeliveryFee: 5000,
     localDeliveryTimeDays: 3,

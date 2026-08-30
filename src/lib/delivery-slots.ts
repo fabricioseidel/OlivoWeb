@@ -275,3 +275,21 @@ export function ventanaEconomicaPublicable(): { semana: string; finDeSemana: str
     finDeSemana: format(slotsEconomicosForDate("2024-01-06")),
   };
 }
+
+/**
+ * ¿El local está atendiendo en este momento?
+ *
+ * Es la regla 3 del envío flash: no se llama a Uber con la tienda cerrada,
+ * porque no hay quien le entregue el paquete al repartidor y la entrega se
+ * pagaría igual.
+ *
+ * Se deriva de `BUSINESS.openingHours`, que es la fuente única del horario y
+ * lo mismo que publican las landings y el schema. `nowMin` son minutos desde
+ * medianoche, en hora de Chile: la zona horaria la resuelve el llamador, que
+ * es quien tiene el reloj.
+ */
+export function tiendaAbierta(dateStr: string, nowMin: number): boolean {
+  const horario = openingHoursFor(dateStr);
+  if (!horario) return false;
+  return nowMin >= toMinutes(horario.opens) && nowMin < toMinutes(horario.closes);
+}
