@@ -28,7 +28,9 @@ export default async function DespachoInfo({ comuna: _comuna }: { comuna?: Comun
       destacado: true,
     });
     filas.push({
-      label: `Hasta ${RADIO_DESPACHO_KM_DEFAULT} km`,
+      // El radio sale de la configuración, igual que el mapa: es el mismo
+      // número contra el que valida el checkout.
+      label: `Hasta ${info.maxDistanceKm ?? RADIO_DESPACHO_KM_DEFAULT} km`,
       value: "Según distancia",
     });
   } else if (info.localDeliveryFee !== null) {

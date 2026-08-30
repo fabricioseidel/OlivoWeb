@@ -231,3 +231,16 @@ describe("radios dibujables en el mapa", () => {
     expect(distanciaQueVeElCheckout).toBeLessThanOrEqual(RADIO_DESPACHO_KM_DEFAULT);
   });
 });
+
+describe("el mapa dibuja lo que el checkout acepta", () => {
+  it("para cualquier radio configurado, el borde dibujado es entregable", () => {
+    // El mapa ya no dibuja el radio de fábrica sino el que el admin configuró.
+    // Esta es la propiedad que tiene que valer para todos: lo que se pinta como
+    // límite tiene que pasar la validación, no quedar justo afuera.
+    for (const radioConfigurado of [2, 4, 6, 8, 12]) {
+      const bordeKm = radioDibujableMetros(radioConfigurado) / 1000;
+      const loQueVeElCheckout = bordeKm * FACTOR_CALLES;
+      expect(loQueVeElCheckout).toBeLessThanOrEqual(radioConfigurado + 1e-9);
+    }
+  });
+});
