@@ -43,7 +43,7 @@ export default function NewsletterWidget({
   return (
     <div className="w-full bg-gradient-to-r from-brand-900 to-teal-900 rounded-2xl p-6 md:p-8">
       <div className="max-w-xl mx-auto text-center">
-        <h3 className="font-semibold text-neutral-900">
+        <h3 className="mb-2 font-semibold text-white">
           {title || "🌿 Únete a la familia Olivo"}
         </h3>
         <p className="text-brand-200/70 text-sm mb-6">
@@ -76,7 +76,7 @@ export default function NewsletterWidget({
             <button
               type="submit"
               disabled={status === "loading"}
-              className="shrink-0 whitespace-nowrap rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-400 disabled:opacity-50"
+              className="shrink-0 whitespace-nowrap rounded-xl bg-brand-boton px-6 py-3 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-400 disabled:opacity-50"
             >
               {status === "loading" ? "Enviando…" : "Suscribirme"}
             </button>

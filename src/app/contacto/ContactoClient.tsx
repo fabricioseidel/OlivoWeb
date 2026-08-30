@@ -102,21 +102,21 @@ export default function ContactoClient() {
           <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-600">
             <Mail className="size-6" />
           </div>
-          <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
+          <h2 className="font-semibold text-gray-900 mb-1">Email</h2>
           <p className="text-sm text-gray-600 break-all">{settings.emailFromAddress || settings.storeEmail || 'contacto@olivomarket.cl'}</p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
           <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-600">
             <Phone className="size-6" />
           </div>
-          <h3 className="font-semibold text-gray-900 mb-1">Teléfono</h3>
+          <h2 className="font-semibold text-gray-900 mb-1">Teléfono</h2>
           <p className="text-sm text-gray-600">{settings.storePhone || '+56 9 1234 5678'}</p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
           <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-600">
             <MapPin className="size-6" />
           </div>
-          <h3 className="font-semibold text-gray-900 mb-1">Dirección</h3>
+          <h2 className="font-semibold text-gray-900 mb-1">Dirección</h2>
           <p className="text-sm text-gray-600">{settings.storeAddress || 'Av. Principal 123, Santiago'}</p>
         </div>
       </div>

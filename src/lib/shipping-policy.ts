@@ -14,12 +14,6 @@
 import { BUSINESS, type ComunaSlug } from "@/lib/seo/business";
 import { SAME_DAY_CUTOFF_HOUR, ventanaPublicable } from "@/lib/delivery-slots";
 
-/** Tope de despacho para las comunas más cercanas al local. */
-export const TOPE_POR_COMUNA: Partial<Record<ComunaSlug, number>> = {
-  nunoa: 1500,
-  macul: 1500,
-};
-
 /** Comunas aledañas: las que publicamos como zona de reparto. */
 export const COMUNAS_CON_DESPACHO: ComunaSlug[] = BUSINESS.comunas.map((c) => c.slug);
 
@@ -27,11 +21,39 @@ export const COMUNAS_CON_DESPACHO: ComunaSlug[] = BUSINESS.comunas.map((c) => c.
  * Radio de reparto por defecto, en kilómetros.
  *
  * Es el respaldo cuando la configuración de la tienda no trae un radio propio
- * (`settings.shipping_max_distance_km`, editable desde el admin). 8 km cubre
- * las cinco comunas que publicamos midiendo desde el local, con la distancia
- * ya ajustada por el factor de calles (×1.3) del cálculo Haversine.
+ * (`settings.shipping_max_distance_km`, editable desde el admin). La distancia
+ * con la que se compara ya viene ajustada por el factor de calles (×1.3) del
+ * cálculo Haversine, así que 6 km de recorrido son unos 4,6 en línea recta.
+ *
+ * Bajó de 8 a 6 el 2026-08-28: 8 km era el alcance que se publicaba, pero el
+ * reparto lo hace una persona en una ronda con horario de salida fijo, y a esa
+ * distancia una sola entrega se come la ronda entera.
  */
-export const RADIO_DESPACHO_KM_DEFAULT = 8;
+export const RADIO_DESPACHO_KM_DEFAULT = 6;
+
+/**
+ * Cuánto más largo es el recorrido real que la línea recta.
+ *
+ * Las distancias del despacho se calculan con Haversine —que da la línea
+ * recta— y se multiplican por este factor para acercarse a lo que realmente
+ * se maneja por calle. Todos los radios de esta sección están expresados en
+ * esa distancia ajustada, así que 6 km de radio son unos 4,6 en línea recta.
+ *
+ * Vive acá porque estaba copiado en dos rutas de API y en ninguna de las dos
+ * se veía que el número tenía que ser el mismo: si una se corrige y la otra
+ * no, el checkout cobra por una distancia y valida contra otra.
+ */
+export const FACTOR_CALLES = 1.3;
+
+/**
+ * Radio dentro del cual el despacho propio cuesta la tarifa plana.
+ *
+ * Es el corazón de la opción agendada: cerca del local la ronda no se alarga
+ * de forma apreciable, así que cobrar por kilómetro no recauda más y sólo
+ * complica el precio. Pasado este radio la ronda sí se estira, y ahí vuelve a
+ * mandar el cálculo por distancia.
+ */
+export const RADIO_ZONA_PLANA_KM = 2;
 
 /**
  * Ventana de entrega del despacho propio.
@@ -70,119 +92,156 @@ export function comunaToSlug(nombre: string | null | undefined): ComunaSlug | nu
   return match ? match.slug : null;
 }
 
-export type ShippingQuote = {
-  /** Precio final a cobrar, en CLP. */
-  price: number;
-  /** Precio antes de aplicar tope o envío gratis (para mostrar el ahorro). */
-  rawPrice: number;
-  /** El pedido superó el mínimo de envío gratis. */
-  freeApplied: boolean;
-  /** Se aplicó el tope de la comuna. */
-  capApplied: boolean;
-  /** Comuna detectada, si se pudo determinar. */
-  comuna: ComunaSlug | null;
-  /**
-   * Por qué NO se aplicó el envío gratis pese a alcanzar el monto.
-   *
-   * `fuera-de-rango` es el único motivo real: la dirección quedó más lejos que
-   * el radio de reparto. Los dos motivos de comuna solo aparecen cuando no hay
-   * distancia calculada, que es el caso degradado.
-   */
-  freeBlockedReason:
-    | "fuera-de-rango"
-    | "comuna-desconocida"
-    | "comuna-sin-cobertura"
-    | null;
-  /** Distancia usada para decidir, si se conocía. */
-  distanceKm: number | null;
-};
+/** Radio de reparto efectivo: el que configuró el admin, o el de por defecto. */
+export function radioEfectivo(maxDistanceKm?: number | null): number {
+  return typeof maxDistanceKm === "number" &&
+    Number.isFinite(maxDistanceKm) &&
+    maxDistanceKm > 0
+    ? maxDistanceKm
+    : RADIO_DESPACHO_KM_DEFAULT;
+}
 
 /**
- * Calcula el costo de despacho aplicando, en orden:
- *  1. Envío gratis si el subtotal alcanza el mínimo y la dirección está dentro
- *     del radio de reparto.
- *  2. Tope por comuna (Ñuñoa y Macul).
+ * ¿La dirección cae dentro de la zona en la que repartimos nosotros?
  *
- * El criterio del envío gratis es la DISTANCIA, no el nombre de la comuna.
- * Antes exigía que el buscador de direcciones devolviera exactamente "Ñuñoa",
- * "Macul", etc.; cuando devolvía "Santiago" o "Región Metropolitana" —cosa
- * frecuente— el cliente alcanzaba el mínimo y de todas formas se le cobraba el
- * despacho. La distancia ya la calculamos nosotros con Haversine, sin depender
- * de ningún servicio externo ni de cómo venga escrito el texto de la dirección.
- *
- * El nombre de la comuna sigue usándose para el tope por comuna y como
- * respaldo cuando no hay coordenadas.
+ * Con distancia conocida manda ella; sin ella se cae al nombre de la comuna.
+ * Vive suelta —y no dentro de `quoteShipping`— porque el envío económico
+ * necesita la misma respuesta: si la dirección queda fuera de la zona, no hay
+ * quien la reparta y la modalidad entera no se puede ofrecer.
  */
-export function quoteShipping(params: {
-  /** Costo calculado por distancia: tarifa base + km × valor por km. */
-  rawPrice: number;
-  /** Subtotal del carrito, para evaluar el envío gratis. */
-  subtotal: number;
-  /** Comuna de la dirección de destino (texto libre; se normaliza acá). */
-  ciudad?: string | null;
-  /** Monto mínimo de compra para envío gratis. `null` desactiva la regla. */
-  freeShippingMinimum: number | null;
-  /**
-   * Distancia al destino en km. Cuando viene, manda ella. Si no viene, se cae
-   * al criterio antiguo por nombre de comuna.
-   */
+export function dentroDeZonaDeReparto(params: {
   distanceKm?: number | null;
-  /** Radio de reparto configurado por el admin. */
+  comuna: ComunaSlug | null;
   maxDistanceKm?: number | null;
-}): ShippingQuote {
-  const { rawPrice, subtotal, ciudad, freeShippingMinimum } = params;
-  const comuna = comunaToSlug(ciudad);
-  const base = Math.max(0, Math.round(rawPrice));
-
+}): boolean {
   const distanceKm =
     typeof params.distanceKm === "number" && Number.isFinite(params.distanceKm)
       ? params.distanceKm
       : null;
-  const radio =
-    typeof params.maxDistanceKm === "number" &&
-    Number.isFinite(params.maxDistanceKm) &&
-    params.maxDistanceKm > 0
-      ? params.maxDistanceKm
-      : RADIO_DESPACHO_KM_DEFAULT;
 
-  const alcanzoElMonto = freeShippingMinimum !== null && subtotal >= freeShippingMinimum;
+  return distanceKm !== null
+    ? distanceKm <= radioEfectivo(params.maxDistanceKm)
+    : params.comuna !== null && COMUNAS_CON_DESPACHO.includes(params.comuna);
+}
 
-  // ¿La dirección está dentro de la zona de reparto? Con distancia conocida es
-  // una comparación directa; sin ella se usa el nombre de la comuna.
-  const dentroDeZona =
-    distanceKm !== null
-      ? distanceKm <= radio
-      : comuna !== null && COMUNAS_CON_DESPACHO.includes(comuna);
+// ── Envío agendado: el reparto que hace el dueño ─────────────────────────────
 
-  // 1. Envío gratis por monto, dentro de la zona de reparto
-  if (alcanzoElMonto && dentroDeZona) {
+/**
+ * Tarifa plana del despacho propio dentro de la zona cercana, en CLP.
+ *
+ * Es plana a propósito y no sale de la fórmula por distancia: dentro de los
+ * primeros kilómetros el reparto va en una ronda única, así que el costo
+ * marginal de una dirección más es casi cero.
+ */
+export const TARIFA_ZONA_PLANA_CLP = 1500;
+
+export type AgendadoQuote = {
+  /** Si es `false`, la modalidad no se ofrece: queda fuera del alcance. */
+  disponible: boolean;
+  /** Precio final a cobrar, en CLP. */
+  price: number;
+  /** Tarifa antes del envío gratis, para poder tacharla en la tarjeta. */
+  rawPrice: number;
+  freeApplied: boolean;
+  /** `true` si se aplicó la tarifa plana en vez del cálculo por distancia. */
+  tarifaPlana: boolean;
+  comuna: ComunaSlug | null;
+  distanceKm: number | null;
+};
+
+/**
+ * Cotiza el despacho propio agendado, en sus dos regímenes.
+ *
+ * Cerca del local (`RADIO_ZONA_PLANA_KM`) cuesta la tarifa plana; más lejos
+ * vuelve el cálculo por distancia, hasta el radio máximo. Pasado ese radio la
+ * modalidad no existe: no hay ronda que llegue.
+ *
+ * El envío gratis vive acá y **no** en la cotización de Uber a propósito. Este
+ * reparto lo hace el dueño, así que regalarlo cuesta bencina; regalar uno de
+ * Uber cuesta lo que Uber cobre ese día, y por eso el flash tiene su propio
+ * mínimo, más alto.
+ *
+ * Sin distancia conocida —el buscador de direcciones no siempre devuelve
+ * coordenadas— se cae al nombre de la comuna para decidir si hay cobertura, y
+ * se cobra la tarifa plana: es el caso degradado, y equivocarse a favor del
+ * cliente es preferible a cobrarle de más por un dato que no tenemos.
+ */
+export function quoteAgendado(params: {
+  /** Costo por distancia ya calculado: tarifa base + km × valor por km. */
+  rawPrice: number;
+  /** Subtotal del carrito, para evaluar el envío gratis. */
+  subtotal: number;
+  /** Comuna de destino (texto libre; se normaliza acá). */
+  ciudad?: string | null;
+  /** Monto mínimo para envío gratis en esta modalidad. `null` la desactiva. */
+  freeShippingMinimum: number | null;
+  /** Distancia al destino en km, ya ajustada por el factor de calles. */
+  distanceKm?: number | null;
+  /** Radio máximo de reparto configurado por el admin. */
+  maxDistanceKm?: number | null;
+  /** Radio de la tarifa plana. Se deja inyectar para poder probarlo. */
+  radioZonaPlanaKm?: number;
+}): AgendadoQuote {
+  const comuna = comunaToSlug(params.ciudad);
+  const distanceKm =
+    typeof params.distanceKm === "number" && Number.isFinite(params.distanceKm)
+      ? params.distanceKm
+      : null;
+
+  const disponible = dentroDeZonaDeReparto({
+    distanceKm,
+    comuna,
+    maxDistanceKm: params.maxDistanceKm,
+  });
+
+  if (!disponible) {
     return {
-      price: 0, rawPrice: base, freeApplied: true, capApplied: false,
-      comuna, freeBlockedReason: null, distanceKm,
+      disponible: false,
+      price: 0,
+      rawPrice: 0,
+      freeApplied: false,
+      tarifaPlana: false,
+      comuna,
+      distanceKm,
     };
   }
 
-  // Si alcanzó el monto pero no se aplicó, se registra el motivo para poder
-  // explicárselo al cliente en vez de cobrarle sin más.
-  const freeBlockedReason = !alcanzoElMonto
-    ? null
-    : distanceKm !== null
-      ? ("fuera-de-rango" as const)
-      : comuna === null
-        ? ("comuna-desconocida" as const)
-        : ("comuna-sin-cobertura" as const);
+  const radioPlano =
+    typeof params.radioZonaPlanaKm === "number" && params.radioZonaPlanaKm > 0
+      ? params.radioZonaPlanaKm
+      : RADIO_ZONA_PLANA_KM;
 
-  // 2. Tope por comuna
-  const tope = comuna ? TOPE_POR_COMUNA[comuna] : undefined;
-  if (typeof tope === "number" && base > tope) {
-    return {
-      price: tope, rawPrice: base, freeApplied: false, capApplied: true,
-      comuna, freeBlockedReason, distanceKm,
-    };
-  }
+  // Sin distancia no se puede saber si cae en la zona plana; se asume que sí,
+  // que es el lado seguro para el cliente.
+  const tarifaPlana = distanceKm === null || distanceKm <= radioPlano;
+  const base = tarifaPlana
+    ? TARIFA_ZONA_PLANA_CLP
+    : Math.max(0, Math.round(params.rawPrice));
+
+  const gratis =
+    params.freeShippingMinimum !== null && params.subtotal >= params.freeShippingMinimum;
 
   return {
-    price: base, rawPrice: base, freeApplied: false, capApplied: false,
-    comuna, freeBlockedReason, distanceKm,
+    disponible: true,
+    price: gratis ? 0 : base,
+    rawPrice: base,
+    freeApplied: gratis,
+    tarifaPlana,
+    comuna,
+    distanceKm,
   };
+}
+
+/**
+ * Radio en metros que hay que dibujar en un mapa para un radio de reparto dado.
+ *
+ * Los radios del despacho están expresados en distancia **de recorrido**: la
+ * línea recta multiplicada por `FACTOR_CALLES`. Un círculo en un mapa es línea
+ * recta, así que para dibujarlos hay que deshacer ese factor. Dibujar 6 km
+ * redondos prometería cobertura a casi 8 km de calle, que es exactamente lo
+ * que el checkout después rechaza — y un mapa que promete lo que el checkout
+ * niega es peor que no publicar mapa.
+ */
+export function radioDibujableMetros(radioRecorridoKm: number): number {
+  return (radioRecorridoKm / FACTOR_CALLES) * 1000;
 }

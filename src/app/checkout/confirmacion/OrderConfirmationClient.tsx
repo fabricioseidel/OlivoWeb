@@ -228,7 +228,7 @@ export default function OrderConfirmationClient() {
                   type="button"
                   onClick={handleRetry}
                   disabled={retrying}
-                  className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+                  className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-brand-boton px-6 font-semibold text-brand-contraste transition hover:bg-brand-700 disabled:opacity-60"
                 >
                   {retrying ? (
                     <>
@@ -257,7 +257,7 @@ export default function OrderConfirmationClient() {
                   <div key={s.label} className="flex flex-col items-center">
                     <div
                       className={`flex h-10 w-10 items-center justify-center rounded-full border-4 border-white ${
-                        s.done ? "bg-brand-600 text-white" : "bg-neutral-100 text-neutral-400"
+                        s.done ? "bg-brand-boton text-brand-contraste" : "bg-neutral-100 text-neutral-400"
                       }`}
                     >
                       <s.icon className="h-4 w-4 stroke-[2.5]" />
@@ -308,7 +308,7 @@ export default function OrderConfirmationClient() {
                 href={whatsappLink(supportPhone, orderInquiryMessage({ shortId, total: order?.total, status: copy.badge }))}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-11 shrink-0 items-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition hover:bg-brand-700"
+                className="flex h-11 shrink-0 items-center rounded-xl bg-brand-boton px-6 text-sm font-semibold text-brand-contraste transition hover:bg-brand-700"
               >
                 Escribir por WhatsApp
               </a>

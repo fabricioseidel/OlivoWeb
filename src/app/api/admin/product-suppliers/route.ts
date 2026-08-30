@@ -1,6 +1,55 @@
 import { NextResponse } from "next/server";
 import { requireApiAdmin } from "@/lib/api-auth";
 import { supabaseServer } from "@/lib/supabase-server";
+import { avisoPorCosto, MARGEN_POR_DEFECTO, TASA_IVA, type ModoRedondeo } from "@/lib/pricing";
+import { CATEGORIA_POR_DEFECTO } from "@/server/pricing.service";
+
+/**
+ * ¿Este costo deja el producto vendiéndose a pérdida o por debajo de su margen?
+ *
+ * Se comprueba al guardar y el resultado viaja en la respuesta como `aviso`.
+ * No impide guardar: puede ser deliberado, y quien carga la factura no siempre
+ * es quien fija el precio. Lo que no puede pasar es que nadie se entere.
+ */
+async function comprobarCosto(productId: string, unitCost: number | null, taxRate: number) {
+  if (unitCost === null || !Number.isFinite(unitCost) || unitCost <= 0) return null;
+
+  const { data: producto } = await supabaseServer
+    .from("products")
+    .select("name, category, sale_price, margin_override")
+    .eq("barcode", productId)
+    .maybeSingle();
+
+  if (!producto) return null;
+
+  // El margen objetivo sale del producto, de su categoría o de la regla
+  // general — el mismo orden que usa la pantalla de Precios.
+  const { data: reglas } = await supabaseServer
+    .from("category_margins")
+    .select("category, margin, rounding")
+    .in("category", [producto.category ?? "", CATEGORIA_POR_DEFECTO]);
+
+  const porCategoria = (reglas ?? []).find((r: any) => r.category === producto.category);
+  const general = (reglas ?? []).find((r: any) => r.category === CATEGORIA_POR_DEFECTO);
+  const regla = porCategoria ?? general;
+
+  const margen =
+    producto.margin_override != null
+      ? Number(producto.margin_override)
+      : regla
+        ? Number(regla.margin)
+        : MARGEN_POR_DEFECTO;
+
+  const aviso = avisoPorCosto({
+    precioVenta: Number(producto.sale_price ?? 0),
+    costoNeto: unitCost,
+    tasa: taxRate,
+    margen,
+    redondeo: (regla?.rounding as ModoRedondeo) ?? "decena",
+  });
+
+  return aviso ? { ...aviso, producto: producto.name } : null;
+}
 
 export async function GET(req: Request) {
   const auth = await requireApiAdmin();
@@ -123,7 +172,21 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json(data, { status: 201 });
+    // El costo ya quedó guardado: el aviso es información, no una condición.
+    // Si la comprobación falla, se guarda igual y se pierde el aviso — pero
+    // nunca la asignación, que es lo que el usuario pidió hacer.
+    let aviso = null;
+    try {
+      aviso = await comprobarCosto(
+        productId,
+        payload.unit_cost,
+        typeof body?.taxRate === "number" ? body.taxRate : TASA_IVA,
+      );
+    } catch (e) {
+      console.error("[PRODUCT-SUPPLIERS][POST] no se pudo comprobar el costo:", e);
+    }
+
+    return NextResponse.json({ ...data, aviso }, { status: 201 });
   } catch (error) {
     console.error("[PRODUCT-SUPPLIERS][POST] Unexpected:", error);
     return NextResponse.json(

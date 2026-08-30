@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BUSINESS, whatsappLink, getService, type CourierSlug } from "@/lib/seo/business";
+import MapaCobertura from "@/components/MapaCobertura";
 
 /**
  * Bloques de UI compartidos por las landings locales.
@@ -43,22 +44,21 @@ export function HorariosBlock({ className = "" }: { className?: string }) {
   );
 }
 
-/** Mapa embebido. Usa el CID si existe; si no, búsqueda por dirección literal. */
-export function MapEmbed({ title }: { title: string }) {
-  const query = encodeURIComponent(`${BUSINESS.name}, ${BUSINESS.addressFull}`);
-  const src = `https://www.google.com/maps?q=${query}&output=embed`;
-
-  return (
-    <div className="rounded-2xl overflow-hidden border border-gray-200 bg-gray-50">
-      <iframe
-        src={src}
-        title={title}
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-        className="w-full h-72 md:h-80 border-0"
-      />
-    </div>
-  );
+/**
+ * Mapa de ubicación y zona de reparto.
+ *
+ * Antes era un iframe de Google Maps (`output=embed`), que mostraba sólo el pin
+ * del local. Se cambió por el mapa propio porque la pregunta que trae a alguien
+ * a esta parte de la página no es "dónde queda" sino "¿me llegan a mi casa?", y
+ * eso el pin no lo contestaba. De paso deja de cargar scripts de terceros y los
+ * colores salen de la paleta de marca.
+ *
+ * `title` se mantiene por compatibilidad con las páginas que ya lo pasaban; la
+ * etiqueta accesible del mapa la arma el propio componente con los radios
+ * reales, para que no haya dos textos que puedan divergir.
+ */
+export function MapEmbed({ title: _title }: { title: string }) {
+  return <MapaCobertura />;
 }
 
 /** Preguntas frecuentes visibles — obligatorio si se emite FAQPage. */
@@ -200,7 +200,7 @@ export function WhatsappCta({ mensaje, children }: { mensaje: string; children: 
       href={whatsappLink(mensaje)}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 h-12 font-bold text-white transition-colors hover:bg-brand-500"
+      className="inline-flex items-center gap-2 rounded-xl bg-brand-boton px-6 h-12 font-bold text-brand-contraste transition-colors hover:bg-brand-700"
     >
       {children}
     </a>

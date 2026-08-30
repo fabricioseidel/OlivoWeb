@@ -223,6 +223,84 @@ export function diagnosticarPrecio(
   };
 }
 
+export type AvisoCosto = {
+  /** `bajo-costo` pierde plata en cada venta; `bajo-margen` sólo deja poco. */
+  nivel: "bajo-costo" | "bajo-margen";
+  mensaje: string;
+  costoBruto: number;
+  margenActual: number | null;
+  sugerido: number | null;
+};
+
+/**
+ * El aviso que hay que dar en el momento de cargar un costo.
+ *
+ * La pantalla de Precios ya sabe listar lo que se vende bajo costo, pero es un
+ * informe: hay que acordarse de abrirlo. Los seis productos que se estaban
+ * vendiendo a pérdida en agosto de 2026 llevaban meses así, y ninguno se
+ * detectó desde el panel — aparecieron midiendo el catálogo para otra cosa.
+ * Este aviso pone el hallazgo donde se origina el problema: la casilla donde
+ * alguien acaba de escribir el costo.
+ *
+ * Devuelve `null` cuando no hay nada que decir. **No bloquea**: un precio bajo
+ * el costo puede ser deliberado —una liquidación, un producto gancho— y quien
+ * carga el costo no siempre es quien decide el precio. Avisar y dejar pasar es
+ * lo correcto; impedirlo obligaría a inventar un rodeo.
+ *
+ * Es la misma cuenta que hace la pantalla de Precios, por `diagnosticarPrecio`,
+ * para que las dos no puedan discrepar.
+ */
+export function avisoPorCosto(entrada: {
+  precioVenta: number;
+  costoNeto: number;
+  tasa?: number;
+  margen?: number;
+  redondeo?: ModoRedondeo;
+}): AvisoCosto | null {
+  // Sin precio de venta no hay margen que juzgar: el producto todavía no se
+  // vende, y decir "está bajo costo" sería inventar un problema.
+  if (!esFinito(entrada.precioVenta) || entrada.precioVenta <= 0) return null;
+  if (!esFinito(entrada.costoNeto) || entrada.costoNeto <= 0) return null;
+
+  const d = diagnosticarPrecio(entrada);
+  if (d.costoBruto === null) return null;
+
+  const base = {
+    costoBruto: d.costoBruto,
+    margenActual: d.margenActual,
+    sugerido: d.sugerido,
+  };
+
+  if (d.bajoCosto) {
+    return {
+      ...base,
+      nivel: "bajo-costo",
+      mensaje:
+        `Se vende a ${pesos(entrada.precioVenta)} y cuesta ${pesos(d.costoBruto)} con IVA: ` +
+        `se pierde ${pesos(d.costoBruto - entrada.precioVenta)} en cada unidad.` +
+        (d.sugerido !== null ? ` Para el margen de la categoría habría que cobrar ${pesos(d.sugerido)}.` : ""),
+    };
+  }
+
+  if (d.bajoMargen) {
+    return {
+      ...base,
+      nivel: "bajo-margen",
+      mensaje:
+        `Con este costo deja ${formatearMargen(d.margenActual)}, por debajo del ` +
+        `${formatearMargen(d.margen)} de su categoría.` +
+        (d.sugerido !== null ? ` El precio para ese margen sería ${pesos(d.sugerido)}.` : ""),
+    };
+  }
+
+  return null;
+}
+
+/** Pesos chilenos con separador de miles, sin decimales: `1234` → `"$1.234"`. */
+function pesos(valor: number): string {
+  return `$${Math.round(valor).toLocaleString("es-CL")}`;
+}
+
 /** Formatea un margen como porcentaje legible: `0.352` → `"35,2%"`. */
 export function formatearMargen(margen: number | null): string {
   if (margen === null || !esFinito(margen)) return "—";

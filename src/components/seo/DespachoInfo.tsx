@@ -1,5 +1,10 @@
 import { getShippingInfo, formatCLP } from "@/lib/seo/shipping-info";
-import { TOPE_POR_COMUNA, ENTREGA } from "@/lib/shipping-policy";
+import {
+  ENTREGA,
+  RADIO_DESPACHO_KM_DEFAULT,
+  RADIO_ZONA_PLANA_KM,
+  TARIFA_ZONA_PLANA_CLP,
+} from "@/lib/shipping-policy";
 import type { ComunaSlug } from "@/lib/seo/business";
 
 /**
@@ -7,18 +12,25 @@ import type { ComunaSlug } from "@/lib/seo/business";
  * tienda y de las reglas de `shipping-policy`. Es data, no prose: el texto
  * diferenciador de cada comuna vive en su página.
  */
-export default async function DespachoInfo({ comuna }: { comuna?: ComunaSlug }) {
+export default async function DespachoInfo({ comuna: _comuna }: { comuna?: ComunaSlug }) {
   const info = await getShippingInfo();
-  const tope = comuna ? TOPE_POR_COMUNA[comuna] : undefined;
 
   const filas: Array<{ label: string; value: string; destacado?: boolean }> = [];
 
-  if (typeof tope === "number") {
-    // Con tope, la tarifa por km deja de ser la información relevante
-    filas.push({ label: "Despacho en tu comuna", value: `Máximo ${formatCLP(tope)}`, destacado: true });
-  } else if (info.dynamicEnabled && info.baseFee !== null && info.pricePerKm !== null) {
-    filas.push({ label: "Tarifa base", value: formatCLP(info.baseFee) });
-    filas.push({ label: "Por kilómetro", value: formatCLP(info.pricePerKm) });
+  // Las filas se expresan por distancia y no por comuna, porque eso es lo que
+  // el checkout cobra. Publicarlo por comuna prometía la tarifa plana en todo
+  // Ñuñoa, cuando en realidad rige dentro del radio: quien vivía en el mismo
+  // Ñuñoa pero más lejos veía un precio que después no se le respetaba.
+  if (info.dynamicEnabled) {
+    filas.push({
+      label: `Hasta ${RADIO_ZONA_PLANA_KM} km del local`,
+      value: formatCLP(TARIFA_ZONA_PLANA_CLP),
+      destacado: true,
+    });
+    filas.push({
+      label: `Hasta ${RADIO_DESPACHO_KM_DEFAULT} km`,
+      value: "Según distancia",
+    });
   } else if (info.localDeliveryFee !== null) {
     filas.push({ label: "Despacho local", value: formatCLP(info.localDeliveryFee) });
   }

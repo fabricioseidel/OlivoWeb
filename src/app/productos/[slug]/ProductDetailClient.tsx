@@ -68,7 +68,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
         </p>
         <Link
           href="/productos"
-          className="o-focus flex h-12 items-center rounded-xl bg-brand-600 px-7 font-semibold text-white transition-colors hover:bg-brand-700"
+          className="o-focus flex h-12 items-center rounded-xl bg-brand-boton px-7 font-semibold text-brand-contraste transition-colors hover:bg-brand-700"
         >
           Volver a la tienda
         </Link>
@@ -280,7 +280,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
                 <button
                   onClick={handleAddToCart}
                   disabled={outOfStock}
-                  className="o-focus h-13 flex-1 rounded-xl bg-brand-600 text-base font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-500"
+                  className="o-focus h-13 flex-1 rounded-xl bg-brand-boton text-base font-semibold text-brand-contraste transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-500"
                 >
                   {outOfStock ? 'Sin stock' : 'Agregar al carrito'}
                 </button>

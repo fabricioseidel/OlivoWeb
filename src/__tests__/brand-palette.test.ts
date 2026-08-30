@@ -1,8 +1,15 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
   escalaDeMarca,
   leerHex,
   textoLegibleSobre,
+  contraste,
+  ajustarHastaContraste,
+  superficieDeBoton,
+  textoDeMarca,
+  CONTRASTE_AA,
   COLOR_PRIMARIO_DEFECTO,
   PASOS,
 } from '@/lib/brand-palette';
@@ -140,5 +147,78 @@ describe('texto legible', () => {
 
   it('ante un color inválido no deja el texto invisible', () => {
     expect(textoLegibleSobre('no-es-color')).toBe('#ffffff');
+  });
+});
+
+describe('contraste garantizado', () => {
+  // El verde de la marca, el que hay configurado hoy en el panel, un amarillo
+  // (donde el texto tiene que salir negro), un rojo y un azul que ya cumplen
+  // solos, y los extremos.
+  const COLORES = ['#059669', '#10b981', '#facc15', '#e11d48', '#2563eb',
+                   '#ffffff', '#000000', '#7f1d1d', '#a3e635'];
+
+  it('mide el contraste como manda WCAG', () => {
+    expect(contraste('#ffffff', '#000000')).toBeCloseTo(21, 2);
+    expect(contraste('#ffffff', '#ffffff')).toBeCloseTo(1, 2);
+    // El verde de la marca con blanco encima da 3,77:1, por debajo del 4,5 que
+    // pide AA para texto normal. Ese número es la razón de todo lo de abajo.
+    expect(contraste('#059669', '#ffffff')).toBeCloseTo(3.77, 1);
+  });
+
+  it('un color que ya cumple vuelve intacto', () => {
+    // Tocarlo igual sería repintar la marca sin motivo.
+    expect(ajustarHastaContraste('#000000', '#ffffff')).toBe('#000000');
+    expect(superficieDeBoton('#e11d48').fondo).toBe('#e11d48');
+    expect(textoDeMarca('#2563eb')).toBe('#2563eb');
+  });
+
+  it('el botón primario alcanza AA sea cual sea el color elegido', () => {
+    for (const color of COLORES) {
+      const { fondo, texto } = superficieDeBoton(color);
+      expect(contraste(fondo, texto)).toBeGreaterThanOrEqual(CONTRASTE_AA);
+    }
+  });
+
+  it('el color de marca como texto alcanza AA sobre blanco', () => {
+    for (const color of COLORES) {
+      expect(contraste(textoDeMarca(color), '#ffffff')).toBeGreaterThanOrEqual(CONTRASTE_AA);
+    }
+  });
+
+  it('conserva el tono: el resultado sigue siendo el color elegido', () => {
+    // Lo que se mueve es la luminosidad. Si además girara el tono, el panel
+    // diría una cosa y la pantalla mostraría otra.
+    const giro = (hex: string) => {
+      const [r, g, b] = leerHex(hex)!;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      if (max === min) return 0;
+      const d = max - min;
+      const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return (h * 60 + 360) % 360;
+    };
+    for (const color of ['#059669', '#10b981', '#2563eb', '#e11d48']) {
+      const delta = Math.abs(giro(textoDeMarca(color)) - giro(color));
+      expect(Math.min(delta, 360 - delta)).toBeLessThan(6);
+    }
+  });
+
+  it('ante un color inválido no deja el botón sin fondo', () => {
+    expect(superficieDeBoton('no-es-color').fondo).toBe(COLOR_PRIMARIO_DEFECTO);
+    expect(textoDeMarca('no-es-color')).toBe(textoDeMarca(COLOR_PRIMARIO_DEFECTO));
+  });
+
+  it('los defaults del CSS coinciden con lo que calcula el módulo', () => {
+    // globals.css lleva los valores escritos a mano para que el primer render
+    // —antes de que SettingsInjector corra— ya salga legible. Si alguien cambia
+    // el perfil o el mínimo y no toca el CSS, el sitio arrancaría con un tono y
+    // saltaría a otro al hidratar. Esto lo impide.
+    const css = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf-8');
+    const leerToken = (nombre: string) =>
+      css.match(new RegExp(`--color-${nombre}:\\s*(#[0-9a-f]{6})`))?.[1];
+
+    const boton = superficieDeBoton(COLOR_PRIMARIO_DEFECTO);
+    expect(leerToken('brand-boton')).toBe(boton.fondo);
+    expect(leerToken('brand-contraste')).toBe(boton.texto);
+    expect(leerToken('brand-texto')).toBe(textoDeMarca(COLOR_PRIMARIO_DEFECTO));
   });
 });

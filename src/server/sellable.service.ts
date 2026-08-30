@@ -222,8 +222,43 @@ export async function impactoDeLaRegla(): Promise<ImpactoRegla> {
   };
 }
 
-/** Texto para el cliente cuando su carrito tiene algo que no se puede vender. */
-export function mensajeBloqueo(bloqueados: ProductoNoVendible[]): string {
+/**
+ * Productos que no tienen un precio con el que se pueda cobrar.
+ *
+ * Es independiente de la regla de arriba y no se puede apagar. La regla protege
+ * el margen y por eso nace apagada; esto protege de cobrar cero, que no es una
+ * cuestión de margen sino de que el pedido entra gratis.
+ *
+ * La vitrina ya esconde estos productos (`isProductVisible` descarta precio
+ * <= 0), pero esconder no es bloquear: la ruta de checkout recibe códigos de
+ * barra, no lo que se vio en pantalla. Sin esta comprobación, quien conozca el
+ * código de un producto con precio 0 lo suma al pedido y lo paga a $0 —
+ * el checkout multiplica `sale_price * cantidad` y acepta el total.
+ *
+ * Es la misma lección del bloqueo de venta y del webhook de pago: lo que no
+ * valida el servidor, no está validado.
+ */
+export function sinPrecioCobrable(
+  productos: { barcode: string; name: string; sale_price: number | null }[]
+): { barcode: string; nombre: string }[] {
+  return productos
+    .filter((p) => {
+      const precio = Number(p.sale_price);
+      return !Number.isFinite(precio) || precio <= 0;
+    })
+    .map((p) => ({ barcode: String(p.barcode), nombre: p.name }));
+}
+
+/**
+ * Texto para el cliente cuando su carrito tiene algo que no se puede vender.
+ *
+ * Pide sólo `nombre` y no `ProductoNoVendible` entero porque lo usan los dos
+ * bloqueos —la regla de margen y el precio no cobrable— y el cliente tiene que
+ * leer lo mismo en ambos casos: para él es la misma situación, un producto que
+ * no puede comprar ahora. Con dos textos armados por separado, uno de los dos
+ * se queda sin el recorte de la lista la próxima vez que se toque.
+ */
+export function mensajeBloqueo(bloqueados: { nombre: string }[]): string {
   const nombres = bloqueados.map((b) => b.nombre);
   const lista =
     nombres.length <= 3

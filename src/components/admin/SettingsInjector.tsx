@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
-import { escalaDeMarca, textoLegibleSobre, PASOS } from "@/lib/brand-palette";
+import { escalaDeMarca, superficieDeBoton, textoDeMarca, PASOS } from "@/lib/brand-palette";
 
 /**
  * Componente que aplica dinámicamente los colores y configuraciones de la tienda
@@ -45,11 +45,18 @@ function SettingsInjectorInner() {
         for (const paso of PASOS) {
           root.style.setProperty(`--color-brand-${paso}`, escala[paso]);
         }
-        // Para que un botón siga siendo legible si alguien elige un primario
-        // claro: con texto blanco fijo, un amarillo quedaría ilegible.
+        // El botón primario no usa el color elegido tal cual: usa el tono más
+        // cercano que aguanta su propio texto con contraste AA. Con un amarillo
+        // el texto sale negro; con un verde de marca sale blanco pero el fondo
+        // baja un punto, porque el verde de catálogo con blanco encima queda
+        // por debajo del mínimo legible.
+        const boton = superficieDeBoton(settings.appearance.primaryColor);
+        root.style.setProperty("--color-brand-boton", boton.fondo);
+        root.style.setProperty("--color-brand-contraste", boton.texto);
+        // Y el espejo: el mismo color cuando va como texto sobre fondo claro.
         root.style.setProperty(
-          "--color-brand-contraste",
-          textoLegibleSobre(settings.appearance.primaryColor)
+          "--color-brand-texto",
+          textoDeMarca(settings.appearance.primaryColor)
         );
       }
     }

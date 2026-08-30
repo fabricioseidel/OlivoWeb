@@ -42,6 +42,13 @@ export const SITE_COPY_DEFAULTS = {
   'catalog.empty.title': 'No encontramos productos',
   'catalog.empty.body': 'Prueba con otra búsqueda o revisa las categorías.',
   'catalog.outOfStock': 'Sin stock',
+
+  // ── Portada ──
+  // El título, el subtítulo y la descripción del encabezado se editan en
+  // "Textos de la portada" (el constructor de bloques), porque son parte del
+  // bloque `hero`. Este es el único texto de la portada que estaba escrito a
+  // mano en el componente y no se podía tocar sin desplegar.
+  'home.shipping.title': 'También somos punto de envíos en Ñuñoa',
 } as const;
 
 /** Grupos para la UI del admin, para no mostrar una lista plana de 20 campos. */
@@ -88,6 +95,13 @@ export const COPY_GROUPS: Array<{
     label: 'Catálogo',
     description: 'Mensajes del listado de productos.',
     keys: ['catalog.empty.title', 'catalog.empty.body', 'catalog.outOfStock'],
+  },
+  {
+    id: 'home',
+    label: 'Portada',
+    description:
+      'El título y la descripción del encabezado se editan en "Textos de la portada". Acá va lo que no es parte de ese bloque. La dirección, el horario, el teléfono y los nombres de los couriers no se editan en ningún lado a propósito: salen de src/lib/seo/business.ts, que es la fuente única del NAP, y cambiarlos sólo en la web los haría diverger de Google Business Profile.',
+    keys: ['home.shipping.title'],
   },
 ];
 

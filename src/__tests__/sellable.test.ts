@@ -60,6 +60,7 @@ import {
   impactoDeLaRegla,
   reglaActiva,
   mensajeBloqueo,
+  sinPrecioCobrable,
   invalidateSellableRuleCache,
 } from '@/server/sellable.service';
 
@@ -223,5 +224,96 @@ describe('catálogos grandes', () => {
 
     expect(impacto.total).toBeGreaterThan(1000);
     expect(impacto.sinCosto).toBe(0);
+  });
+});
+
+describe('precio cobrable', () => {
+  /**
+   * Medido contra la base el 2026-08-27: 64 productos activos con
+   * `sale_price = 0`, casi todos con stock. El checkout arma el subtotal
+   * multiplicando `sale_price * cantidad`, así que cada uno de esos entraba en
+   * un pedido a $0.
+   *
+   * La vitrina ya los escondía (`isProductVisible` descarta precio <= 0), y
+   * por eso el agujero no se veía: hay que conocer el código de barras y
+   * llamar la ruta. Es exactamente el caso que el comentario del propio
+   * checkout advierte sobre la regla de venta — esconder no es bloquear.
+   */
+  const fila = (sale_price: number | null, barcode = '1', name = 'Algo') => ({
+    barcode,
+    name,
+    sale_price,
+  });
+
+  it('deja pasar un precio normal', () => {
+    expect(sinPrecioCobrable([fila(1500)])).toEqual([]);
+  });
+
+  it('frena el precio en cero', () => {
+    const fuera = sinPrecioCobrable([fila(0, '780', 'Coca-Cola Zero lata 350 ml')]);
+    expect(fuera).toEqual([{ barcode: '780', nombre: 'Coca-Cola Zero lata 350 ml' }]);
+  });
+
+  it('frena el precio nulo', () => {
+    expect(sinPrecioCobrable([fila(null)])).toHaveLength(1);
+  });
+
+  it('frena un precio negativo', () => {
+    expect(sinPrecioCobrable([fila(-100)])).toHaveLength(1);
+  });
+
+  it('frena lo que no es un número', () => {
+    // `sale_price` es numeric en Postgres y PostgREST lo puede entregar como
+    // cadena. `Number("")` es 0 y `Number("hola")` es NaN: ninguno de los dos
+    // puede pasar como precio.
+    expect(sinPrecioCobrable([fila('' as any)])).toHaveLength(1);
+    expect(sinPrecioCobrable([fila('hola' as any)])).toHaveLength(1);
+  });
+
+  it('acepta un precio que viene como cadena numérica', () => {
+    expect(sinPrecioCobrable([fila('1500' as any)])).toEqual([]);
+  });
+
+  it('devuelve sólo los que fallan, no el carrito entero', () => {
+    const fuera = sinPrecioCobrable([
+      fila(1500, 'a', 'Bien'),
+      fila(0, 'b', 'Mal'),
+      fila(2000, 'c', 'Bien también'),
+    ]);
+    expect(fuera).toEqual([{ barcode: 'b', nombre: 'Mal' }]);
+  });
+
+  it('con el carrito sano no devuelve nada', () => {
+    expect(sinPrecioCobrable([fila(100, 'a'), fila(200, 'b')])).toEqual([]);
+  });
+
+  it('el cliente lee el mismo texto que con la regla de margen', () => {
+    // Para el cliente las dos situaciones son una sola: un producto que no
+    // puede comprar ahora. Si cada bloqueo armara su propio texto, el próximo
+    // cambio dejaría a uno de los dos sin el recorte de la lista.
+    const fuera = sinPrecioCobrable([fila(0, 'b', 'Mal')]);
+    expect(mensajeBloqueo(fuera)).toBe(mensajeBloqueo([{ nombre: 'Mal' }]));
+    expect(mensajeBloqueo(fuera)).toMatch(/quitalo del carrito/i);
+  });
+
+  it('con muchos sin precio recorta la lista igual que el otro bloqueo', () => {
+    const muchos = ['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco'].map((n, i) =>
+      fila(0, String(i), n)
+    );
+    const texto = mensajeBloqueo(sinPrecioCobrable(muchos));
+
+    expect(texto).toContain('Uno, Dos, Tres');
+    expect(texto).toContain('2 más');
+    expect(texto).not.toContain('Cuatro');
+  });
+
+  it('no depende de la regla de venta web', async () => {
+    // La regla de margen nace apagada y se puede apagar; esto no. Un producto
+    // sin precio se frena aunque la regla esté apagada, que es el estado real
+    // del sistema hoy.
+    estado.settings = { data: { require_reviewed_price: false }, error: null };
+    invalidateSellableRuleCache();
+    expect(await reglaActiva()).toBe(false);
+    expect(sinPrecioCobrable([fila(0)])).toHaveLength(1);
   });
 });

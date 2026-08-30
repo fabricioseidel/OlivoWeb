@@ -57,7 +57,7 @@ export default function CategoriasClient() {
             </p>
             <Link
               href="/productos"
-              className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+              className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-boton px-6 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-700"
             >
               Ver todos los productos
             </Link>
@@ -86,7 +86,7 @@ export default function CategoriasClient() {
             <div className="mt-10 flex flex-wrap justify-center gap-3 border-t border-neutral-100 pt-10">
               <Link
                 href="/productos"
-                className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+                className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-boton px-6 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-700"
               >
                 Ver catálogo completo
               </Link>

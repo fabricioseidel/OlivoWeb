@@ -97,7 +97,7 @@ export default function DeliverySanJoaquinPage() {
           <div className="flex flex-wrap gap-3 pt-2">
             <Link
               href="/productos"
-              className="inline-flex items-center rounded-xl bg-brand-600 px-6 h-12 font-bold text-white transition-colors hover:bg-brand-500"
+              className="inline-flex items-center rounded-xl bg-brand-boton px-6 h-12 font-bold text-brand-contraste transition-colors hover:bg-brand-700"
             >
               Ver catálogo
             </Link>

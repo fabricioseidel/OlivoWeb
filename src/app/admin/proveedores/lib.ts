@@ -1,6 +1,8 @@
 export type Supplier = {
   id: string;
   name: string;
+  /** RUT tal como figura en su factura. Es lo que permite casar una factura con su proveedor. */
+  rut?: string | null;
   contact_name?: string | null;
   phone?: string | null;
   whatsapp?: string | null;
@@ -36,6 +38,7 @@ export type Assignment = {
 
 export const emptyForm: Partial<Supplier> = {
   name: "",
+  rut: "",
   contact_name: "",
   phone: "",
   whatsapp: "",

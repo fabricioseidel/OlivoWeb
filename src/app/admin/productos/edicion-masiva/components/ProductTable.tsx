@@ -11,8 +11,15 @@ interface ProductTableProps {
 
 export default function ProductTable({ visibleProducts, editedChanges, onChange }: ProductTableProps) {
   return (
+    // `overflow-hidden` en el contenedor exterior es lo que recorta las
+    // esquinas redondeadas, así que se conserva; el scroll horizontal va en un
+    // div propio adentro. Antes estaban en el mismo elemento: las columnas que
+    // no entraban quedaban cortadas y sin forma de llegar a ellas, porque
+    // `overflow-hidden` recorta pero no deja desplazar. Con siete columnas de
+    // ancho fijo la tabla necesita ~1.040 px, y se muestra desde 1.024 px.
     <div className="hidden lg:block bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/40 border border-gray-50 overflow-hidden">
-      <table className="w-full text-left border-collapse">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[1040px] text-left border-collapse">
         <thead>
           <tr className="bg-gray-50/50 border-b border-gray-100">
             <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400">Producto / SKU</th>
@@ -30,6 +37,7 @@ export default function ProductTable({ visibleProducts, editedChanges, onChange 
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

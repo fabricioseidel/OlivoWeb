@@ -99,8 +99,8 @@ export default function Navbar() {
   return (
     <nav className="bg-white/95 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex">
+        <div className="flex justify-between h-16 min-w-0">
+          <div className="flex min-w-0">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="flex items-center gap-3 group">
                 {settings.appearance?.logoUrl ? (
@@ -118,7 +118,7 @@ export default function Navbar() {
                 )}
               </Link>
             </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+            <div className="hidden lg:ml-6 lg:flex lg:space-x-6">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
@@ -134,8 +134,8 @@ export default function Navbar() {
             </div>
           </div>
 
-          <div className="hidden sm:ml-6 sm:flex sm:items-center gap-4">
-            <form onSubmit={submitSearch} className="relative hidden lg:block w-52 xl:w-64">
+          <div className="hidden lg:ml-4 lg:flex lg:items-center gap-3">
+            <form onSubmit={submitSearch} className="relative hidden xl:block w-52 2xl:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               <input
                 type="search"
@@ -152,7 +152,7 @@ export default function Navbar() {
             >
               <ShoppingBag className="h-6 w-6" strokeWidth={2} />
               {itemCount > 0 && (
-                <span className={`absolute -top-1 -right-1 bg-brand-600 text-white text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white ${animateCart ? 'scale-125' : ''}`}>
+                <span className={`absolute -top-1 -right-1 bg-brand-boton text-brand-contraste text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white ${animateCart ? 'scale-125' : ''}`}>
                   {itemCount}
                 </span>
               )}
@@ -176,26 +176,37 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center gap-3">
                 <Link href="/login" className="text-sm font-semibold text-gray-500 hover:text-brand-600 transition-colors">Entrar</Link>
-                <Link href="/registro" className="text-sm font-semibold bg-brand-600 text-white px-5 py-2 rounded-full hover:bg-brand-700 shadow-sm transition-all active:scale-95">Registrarse</Link>
+                <Link href="/registro" className="text-sm font-semibold bg-brand-boton text-brand-contraste px-5 py-2 rounded-full hover:bg-brand-700 shadow-sm transition-all active:scale-95">Registrarse</Link>
               </div>
             )}
           </div>
 
-          <div className="-mr-2 flex items-center gap-1 sm:hidden">
-            <button onClick={() => setMobileSearchOpen(!mobileSearchOpen)} className="p-2 rounded-xl text-gray-400 hover:text-brand-600">
+          <div className="-mr-2 flex items-center gap-1 lg:hidden">
+            <button
+              onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+              aria-label={mobileSearchOpen ? "Cerrar búsqueda" : "Buscar productos"}
+              aria-expanded={mobileSearchOpen}
+              className="p-2 rounded-xl text-gray-400 hover:text-brand-600"
+            >
               <Search className="h-5 w-5" />
             </button>
-            <Link href="/carrito" className={`relative p-2 rounded-xl text-gray-400 hover:text-brand-600 ${animateCart ? 'scale-110 text-brand-600' : ''}`}>
+            <Link
+              href="/carrito"
+              aria-label={itemCount > 0 ? `Carrito, ${itemCount} producto${itemCount === 1 ? '' : 's'}` : 'Carrito, vacío'}
+              className={`relative p-2 rounded-xl text-gray-400 hover:text-brand-600 ${animateCart ? 'scale-110 text-brand-600' : ''}`}
+            >
               <ShoppingBag className="h-5 w-5" strokeWidth={2} />
               {itemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-brand-600 text-white text-xs font-semibold rounded-full h-4.5 w-4.5 flex items-center justify-center ring-2 ring-white">
+                <span className="absolute -top-0.5 -right-0.5 bg-brand-boton text-brand-contraste text-xs font-semibold rounded-full h-4.5 w-4.5 flex items-center justify-center ring-2 ring-white">
                   {itemCount}
                 </span>
               )}
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-xl text-gray-400 hover:text-brand-600 focus:outline-none"
+              aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={mobileMenuOpen}
+              className="o-focus inline-flex items-center justify-center p-2 rounded-xl text-gray-400 hover:text-brand-600"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -204,7 +215,7 @@ export default function Navbar() {
       </div>
 
       {mobileSearchOpen && (
-        <div className="sm:hidden px-4 pb-4 pt-2 border-b border-gray-100 bg-white">
+        <div className="lg:hidden px-4 pb-4 pt-2 border-b border-gray-100 bg-white">
           <form onSubmit={submitSearch} className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -229,7 +240,7 @@ export default function Navbar() {
         leaveFrom="opacity-100 translate-y-0"
         leaveTo="opacity-0 -translate-y-4"
       >
-        <div className="sm:hidden bg-white border-b border-gray-200 overflow-hidden">
+        <div className="lg:hidden bg-white border-b border-gray-200 overflow-hidden">
           <div className="pt-2 pb-3 space-y-1 px-2">
             {navigation.map((item) => (
               <Link
@@ -272,7 +283,7 @@ export default function Navbar() {
                   </Link>
                   <Link
                     href="/registro"
-                    className="block text-center w-full bg-brand-600 text-white py-3 rounded-2xl font-medium shadow-lg shadow-brand-200"
+                    className="block text-center w-full bg-brand-boton text-brand-contraste py-3 rounded-2xl font-medium shadow-lg shadow-brand-200"
                   >
                     Registrarse
                   </Link>

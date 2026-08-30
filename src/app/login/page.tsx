@@ -89,9 +89,9 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="o-h1 mt-6 text-center text-neutral-900">
+          <h1 className="o-h1 mt-6 text-center text-neutral-900">
             Iniciar Sesión
-          </h2>
+          </h1>
           <p className="mt-2 text-center text-sm text-gray-500 font-medium">
             ¿No tienes una cuenta?{" "}
             <Link

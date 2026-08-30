@@ -54,7 +54,7 @@ export default function OfertasClient() {
           </p>
           <Link
             href="/productos"
-            className="o-focus inline-flex h-12 items-center rounded-xl bg-brand-600 px-7 font-semibold text-white transition-colors hover:bg-brand-700"
+            className="o-focus inline-flex h-12 items-center rounded-xl bg-brand-boton px-7 font-semibold text-brand-contraste transition-colors hover:bg-brand-700"
           >
             Ir al catálogo
           </Link>
@@ -136,7 +136,7 @@ export default function OfertasClient() {
               )}
               <Link
                 href="/productos"
-                className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+                className="o-focus inline-flex h-11 items-center rounded-xl bg-brand-boton px-6 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-700"
               >
                 Ver catálogo completo
               </Link>
