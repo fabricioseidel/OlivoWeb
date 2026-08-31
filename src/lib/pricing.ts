@@ -467,11 +467,21 @@ export function calcularFilaCosto(entrada: {
   const venta = entrada.precioVenta;
   const hayVenta = esFinito(venta ?? NaN) && (venta ?? 0) > 0;
 
+  // La comparación va contra el costo redondeado al peso, no contra el valor
+  // exacto: el peso chileno no tiene centavos, así que los decimales del costo
+  // son ruido del cálculo del IVA.
+  //
+  // No es teórico. Las tres leches Surlat tienen costo neto 1.260,50, que por
+  // 1,19 da 1.499,995, y se venden a $1.500. Sin redondear, el sistema las
+  // daba por rentables con medio centavo de margen y las dejaba fuera de la
+  // lista de productos a revisar — cuando en realidad se venden al costo.
+  const brutoEnPesos = Math.round(bruto);
+
   return {
     costoUnitarioNeto: neto,
     costoUnitarioBruto: bruto,
     margenActual: hayVenta ? margenReal(venta as number, bruto) : null,
     precioSugerido: sugerido,
-    aPerdida: hayVenta ? (venta as number) <= bruto : false,
+    aPerdida: hayVenta ? (venta as number) <= brutoEnPesos : false,
   };
 }

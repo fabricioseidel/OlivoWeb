@@ -21,6 +21,24 @@ import {
 } from "@/lib/pricing";
 import { CATEGORIA_POR_DEFECTO } from "@/server/pricing.service";
 
+/**
+ * Orígenes de costo que la base acepta.
+ *
+ * `product_suppliers.cost_source` tiene un CHECK que sólo admite estos cuatro
+ * valores. Está acá escrito para que se vea: la primera versión del taller
+ * guardaba `"taller"` y la base rechazaba el lote entero con un mensaje que no
+ * decía nada útil al que cargaba precios. Agregar un valor nuevo exige una
+ * migración que amplíe el CHECK, no cambiar sólo esta línea.
+ */
+const ORIGENES_DE_COSTO = ["manual", "recepcion", "importacion", "pedido"] as const;
+
+/**
+ * El taller es carga a mano, así que su origen es `manual` —el mismo que la
+ * ficha del producto—. Se nombra en vez de escribirlo suelto para que quede
+ * atado a la lista de arriba.
+ */
+const ORIGEN_TALLER: (typeof ORIGENES_DE_COSTO)[number] = "manual";
+
 /** Qué le falta a una fila. Es el filtro de la pantalla. */
 export type Pendiente =
   | "sin-precio"
@@ -272,7 +290,7 @@ export async function POST(req: Request) {
           if (unitario !== null) {
             payload.unit_cost = unitario;
             payload.cost_updated_at = new Date().toISOString();
-            payload.cost_source = "taller";
+            payload.cost_source = ORIGEN_TALLER;
             // Se guarda el bulto declarado para que la próxima vez se vea de
             // dónde salió el número.
             payload.pack_size =

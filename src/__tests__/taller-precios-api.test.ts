@@ -9,6 +9,13 @@
  *  - Que una fila mala no arrastre a las buenas: quien cargó treinta productos
  *    no debería perder veintinueve por un error en uno.
  *  - Que un costo sin proveedor no se guarde a medias.
+ *  - Que el payload respete los CHECK de la base.
+ *
+ * Ese último punto está porque el mock aceptaba cualquier valor mientras la
+ * base no: la primera versión guardaba `cost_source: "taller"` y Postgres
+ * rechazaba el lote entero. Los tests pasaban igual. Ahora el mock aplica las
+ * mismas restricciones, así que un valor inventado falla acá y no en la cara
+ * del que está cargando precios.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -18,6 +25,25 @@ const estado: { escrituras: Escritura[]; errorEn: string | null } = {
   escrituras: [],
   errorEn: null,
 };
+
+/** Copia literal del CHECK `product_suppliers_cost_source_check`. */
+const ORIGENES_VALIDOS = ["manual", "recepcion", "importacion", "pedido"];
+
+/** Lo que Postgres haría con un payload que viola un CHECK. */
+function violaCheck(tabla: string, payload: any): string | null {
+  if (tabla === "product_suppliers" && payload?.cost_source != null) {
+    if (!ORIGENES_VALIDOS.includes(payload.cost_source)) {
+      return 'new row for relation "product_suppliers" violates check constraint "product_suppliers_cost_source_check"';
+    }
+  }
+  if (tabla === "products" && payload?.margin_override != null) {
+    const m = Number(payload.margin_override);
+    if (!(m >= 0 && m < 1)) {
+      return 'violates check constraint "products_margin_override_check"';
+    }
+  }
+  return null;
+}
 
 vi.mock("@/lib/api-auth", () => ({
   requireApiAdmin: async () => ({ ok: true, userId: "admin-1", role: "ADMIN", session: {} }),
@@ -41,8 +67,14 @@ vi.mock("@/lib/supabase-server", () => ({
         },
         upsert(payload: any) {
           estado.escrituras.push({ tabla, payload });
+          const check = violaCheck(tabla, payload);
           return Promise.resolve({
-            error: estado.errorEn === tabla ? { message: "boom" } : null,
+            error:
+              check != null
+                ? { message: check }
+                : estado.errorEn === tabla
+                  ? { message: "boom" }
+                  : null,
           });
         },
         then(resolve: any) {
@@ -156,5 +188,21 @@ describe("el lote aguanta filas malas", () => {
   it("un lote vacío no pasa por guardado", async () => {
     const { status } = await pedir([]);
     expect(status).toBe(400);
+  });
+});
+
+describe("el payload respeta los CHECK de la base", () => {
+  it("guarda un cost_source que la base acepta", async () => {
+    // El bug real: guardaba "taller" y el CHECK sólo admite manual, recepcion,
+    // importacion o pedido. Nada se guardaba y el mensaje no le decía al
+    // usuario qué hacer.
+    const { body } = await pedir([
+      { barcode: "779", costoBulto: 1000, unidadesPorBulto: 1, proveedorId: "p" },
+    ]);
+
+    const w = estado.escrituras.find((e) => e.tabla === "product_suppliers");
+    expect(ORIGENES_VALIDOS).toContain(w!.payload.cost_source);
+    expect(body.guardadas).toBe(1);
+    expect(body.fallidas).toHaveLength(0);
   });
 });
