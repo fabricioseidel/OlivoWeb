@@ -1216,6 +1216,84 @@ bulto. Ahora las unidades se aplican también sobre el costo ya guardado.
 
 ---
 
+## Carga de precios desde sesión conversacional (2026-08-31)
+
+Primera tanda cargada hablando con el dueño en vez de por pantalla. Se
+pusieron **7 precios** — los productos que ya tenían costo y estaban con
+stock y precio $0, que era la lista corta y accionable sin factura de por
+medio.
+
+| Producto | Costo c/IVA | Precio | Margen |
+|---|---:|---:|---:|
+| Guante renovador de pelo buen amigo | $1.000 | $1.540 | 35,1% |
+| Bolsas para perros 120 u | $1.000 | $1.540 | 35,1% |
+| Galletas para gato salmón con pollo | $1.000 | $1.540 | 35,1% |
+| Galletas para gato salmón | $1.000 | $1.540 | 35,1% |
+| Toallitas húmedas perros y gatos 50 u | $1.600 | $2.470 | 35,2% |
+| Shampoo seco perros happypets 100 g | $3.000 | $4.620 | 35,1% |
+| Pan Salado 7 u (Dulce Pan) | $1.450 | $2.240 | 35,3% |
+
+Margen 35% con redondeo a la decena hacia arriba: es la regla `__default__`
+de `category_margins`, la única que existe hoy. Ninguno tiene
+`margin_override`.
+
+**Los dos datos que se confirmaron antes de escribir**, porque son los que
+rompen el margen en silencio si se contestan mal:
+
+- Los costos de mascotas ($1.000 / $1.600 / $3.000) son lo que se **paga**,
+  no lo que se cobra. Es la trampa de las tres leches Surlat: precio de
+  venta cargado en el campo de costo deja margen 0 y nadie se entera.
+- Los $1.450 del Pan Salado son **la bolsa de 7**, que es la unidad de
+  venta, así que `unit_cost` está bien y `pack_size` queda en NULL. Sale a
+  $320 el pan, coherente con la marraqueta a $300.
+
+`price_reviewed_by` quedó en **NULL**: la escritura se hizo por SQL, no
+desde una sesión de admin logueada, y poner un uuid inventado sería peor
+que el vacío. `price_reviewed_at` sí se marcó, igual que hace el taller.
+
+**Cómo se revierte.** Los 7 estaban en `sale_price = 0` con
+`price_reviewed_at` y `price_reviewed_by` en NULL:
+
+```sql
+update products set sale_price = 0, price_reviewed_at = null,
+                    price_reviewed_by = null, updated_at = now()
+ where barcode in ('7852052610101','737257946149','7852052794146',
+                   '7852052794177','00599726','630606560372','799192124778');
+```
+
+### El estado al 2026-08-31, después de la tanda
+
+| | 30/08 | 31/08 |
+|---|---:|---:|
+| Productos activos | 736 | 736 |
+| Sin proveedor | 458 | 435 |
+| Con costo cargado | 274 | 301 |
+| Con precio revisado | 0 | **35** |
+| Con stock y precio $0 | 64 | **36** |
+| Vendiéndose a pérdida | 9 | **0** |
+| Margen promedio | 27,0% | **36,4%** |
+
+Los 9 a pérdida ya estaban corregidos antes de esta tanda, y por eso el
+promedio saltó de 27,0% a 36,4% — quedó pegado a la mediana (35,3%), que es
+exactamente lo que pasa cuando se sacan los costos de bulto mal cargados.
+
+**Lo que quedó pendiente**, en orden de lo que se convierte en plata más
+rápido:
+
+1. **36 productos con stock y precio $0 a los que les falta el costo.**
+   Necesitan factura o que el dueño diga cuánto pagó. Es plata parada en la
+   góndola que no se puede ni cobrar.
+2. **435 sin proveedor** (59% del catálogo). Sigue siendo el cuello de
+   botella y sigue sin poder resolverlo una sesión sola: requiere las
+   facturas reales.
+3. **106 con margen bajo el 35%** de su categoría, ya con costo cargado.
+   Son decisiones de precio, no digitación.
+4. Los 6 productos de mascotas de esta tanda tienen la **categoría vacía**
+   —son 6 de los únicos 7 del catálogo así— y ya existe una categoría
+   `Mascotas` con 5 productos. No se tocó: no se pidió.
+
+---
+
 ## Doctrinas del proyecto (no romper)
 
 Reglas que este código sostiene a propósito. Romperlas reintroduce errores que
@@ -1274,6 +1352,26 @@ ya costaron trabajo encontrar.
 ---
 
 ## Trampas conocidas
+
+### `product_suppliers.tax_rate` guarda 19, no 0,19
+
+La columna está en **porcentaje**, y `pricing.ts` la usa así en todos lados
+(`aBruto` hace `neto * (1 + tasa/100)`, `TASA_IVA = 19`). Las 342 filas con
+IVA tienen `tax_rate = 19.00`; hay 4 en `0.00`.
+
+Escribir `unit_cost * (1 + tax_rate)` en una consulta SQL multiplica por 20 en
+vez de por 1,19. **Ya pasó el 2026-08-31**: esa consulta devolvió que los 285
+productos con costo se vendían a pérdida — o sea *todos*, que es justamente la
+forma que tiene un error de medición de disfrazarse de hallazgo. La cuenta
+correcta es:
+
+```sql
+round(unit_cost * (1 + coalesce(tax_rate, 19) / 100.0))
+```
+
+El `round` no es cosmético: es el mismo redondeo al peso que hace
+`calcularFilaCosto`, y sin él las tres leches Surlat quedan fuera de la lista
+de productos a revisar por medio centavo de margen.
 
 ### Las tres llaves de producto
 
