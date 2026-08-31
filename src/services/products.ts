@@ -11,14 +11,19 @@ export function hasRealImage(p: { image?: string | null }): boolean {
   return Boolean(p.image) && p.image !== DEFAULT_IMAGE;
 }
 
-// Un producto es visible en la tienda pública solo si tiene los 4 campos mínimos:
-// nombre real, al menos una categoría, precio > 0 y foto distinta al placeholder.
+// Un producto es visible en la tienda pública solo si tiene los 5 campos mínimos:
+// nombre real, al menos una categoría, precio > 0, foto distinta al placeholder,
+// y costo de proveedor confirmado.
 export function isProductVisible(p: ProductUI): boolean {
   const name = (p.name ?? "").trim();
   if (!name || name === "(Sin nombre)") return false;
   if (!Array.isArray(p.categories) || p.categories.length === 0) return false;
   if (!p.price || Number(p.price) <= 0) return false;
   if (!p.image || p.image === DEFAULT_IMAGE) return false;
+  // `purchasePrice` es products.purchase_price, derivado por trigger desde
+  // product_suppliers.unit_cost (doctrina #2): en 0 significa que nadie cargó
+  // el costo de compra, y sin costo no se sabe si el precio deja margen o pierde.
+  if (!p.purchasePrice || Number(p.purchasePrice) <= 0) return false;
   return true;
 }
 
