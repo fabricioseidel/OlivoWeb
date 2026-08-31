@@ -1294,6 +1294,62 @@ rápido:
 
 ---
 
+## Carga de precios desde sesión conversacional, tanda 2 (2026-08-31)
+
+Siguió a la primera tanda del mismo día. Tres movimientos:
+
+**Café Águila Roja 500 g** — costo $9.500 con IVA, proveedor Salazar La Vega
+(existente), precio $11.000 → **$14.620** (35,0%). Fue el único de cinco
+cafés que se tocó: los otros cuatro (Sello Rojo 600g y 212g, Descafeinado
+Nestlé, Águila Roja 250g) quedaron **deliberadamente sin costo ni precio**
+porque el dueño no está importando esos ahora — no hay dato que cargar sin
+inventarlo. Quedan en la lista de pendientes.
+
+**Unificación de las servilletas duplicadas.** `900000000095` (código
+interno, 20 u) y `7804659300817` (EAN real, 9 u) eran el mismo producto —
+confirmado con una foto del catálogo de Smart Price que muestra la
+"Servilleta Cóctel 40u" a $189, igual al costo que ya tenía cargado la
+ficha vieja. Se movieron las 20 unidades por `apply_reception_reverse` +
+`apply_reception` (mismas RPC de `inventory.service.ts`), con referencia
+común `unificacion-servilletas-20260831` para que las dos patas queden
+enlazadas en `inventory_movements`. La ficha que sobrevive es la del EAN
+real, renombrada a "Servilletas Cóctel Smart Price 40 u" (el catálogo del
+proveedor la llama así), con 29 unidades, costo $189 c/IVA vía Central
+Mayorista y precio $300 (37,0% margen — heredado del que ya tenía). La
+ficha vieja quedó **desactivada, no borrada**, con stock en 0.
+
+**Salsa de soya Smart Price 1L** — costo $1.990 c/IVA (Central Mayorista,
+sacado del mismo catálogo), precio $3.070 (35,2%).
+
+Proveedor **Don Julio** creado (`9a4a5ef6-129a-4952-80ea-5cefc97f4579`),
+sin RUT: es un proveedor artesanal que no emite factura. Sus 4 productos
+(camote, chifle, yuca, tocineta mix) siguen sin costo — el dueño confirmó
+que hoy no lo tiene.
+
+### Cómo revertir
+
+```sql
+-- Águila Roja 500g
+update products set sale_price=11000, price_reviewed_at=null where barcode='7702040047009';
+delete from product_suppliers where product_id='7702040047009' and supplier_id='4362138a-5f0f-429a-9a1a-04b415c0e3b1';
+
+-- Salsa de soya
+update products set sale_price=0, price_reviewed_at=null where barcode='7802410004127';
+delete from product_suppliers where product_id='7802410004127' and supplier_id='92415f52-2325-4de6-ac21-b3805dc7b564';
+
+-- Servilletas: reactivar la vieja y devolver las 20 unidades
+update products set is_active=true where barcode='900000000095';
+update products set name='Servilletas Smart price 40 u', sale_price=0, price_reviewed_at=null where barcode='7804659300817';
+delete from product_suppliers where product_id='7804659300817' and supplier_id='92415f52-2325-4de6-ac21-b3805dc7b564';
+-- y devolver el stock con las mismas RPC en sentido inverso:
+-- select apply_reception_reverse('[{"barcode":"7804659300817","qty":20}]'::jsonb, 'c62cc414-f0f2-45dc-b090-54b8b26311f4', 'revert-unificacion-servilletas', null);
+-- select apply_reception('[{"barcode":"900000000095","qty":20}]'::jsonb, 'c62cc414-f0f2-45dc-b090-54b8b26311f4', 'revert-unificacion-servilletas', null);
+
+-- Don Julio
+delete from suppliers where id='9a4a5ef6-129a-4952-80ea-5cefc97f4579';
+```
+---
+
 ## Doctrinas del proyecto (no romper)
 
 Reglas que este código sostiene a propósito. Romperlas reintroduce errores que
