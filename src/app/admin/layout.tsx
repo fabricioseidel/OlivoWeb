@@ -71,6 +71,7 @@ const menuGroupsOlivoTeam: MenuGroup[] = [
       { name: "Productos", href: "/admin/productos", icon: ShoppingBagIcon },
       { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
       { name: "Edición masiva", href: "/admin/productos/edicion-masiva", icon: Squares2X2Icon },
+      { name: "Precios y costos", href: "/admin/precios", icon: BanknotesIcon },
     ],
   },
   {
