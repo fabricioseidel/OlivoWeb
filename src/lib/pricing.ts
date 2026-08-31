@@ -386,3 +386,92 @@ export function esCostoHeredado(dato: {
   if (dato?.cost_source !== "product") return false;
   return Number(dato?.purchase_price) > 0;
 }
+
+/**
+ * Costo de UNA unidad a partir del costo del bulto.
+ *
+ * Es la corrección del error más caro que tiene hoy el catálogo: se carga el
+ * precio de la caja, del pack o del kilo en el campo del costo unitario, y el
+ * producto queda figurando a pérdida. Medido el 2026-08-30: de los 9 productos
+ * que el sistema daba por debajo del costo, 6 eran esto —una marraqueta de
+ * $300 con "costo" $1.690, que es el precio del kilo—.
+ *
+ * `unidadesPorBulto` de 1 (o vacío) devuelve el costo tal cual, que es el caso
+ * de quien compra por unidad y no tiene que pensar en esto.
+ */
+export function costoUnitarioDesdeBulto(
+  costoBulto: number,
+  unidadesPorBulto: number | null | undefined
+): number | null {
+  if (!esFinito(costoBulto) || costoBulto < 0) return null;
+  const unidades =
+    unidadesPorBulto == null || !esFinito(unidadesPorBulto) ? 1 : unidadesPorBulto;
+  // Cero o negativo no es "sin pack", es un dato malo: devolver el costo del
+  // bulto entero escondería el error, que es justamente lo que se quiere evitar.
+  if (unidades <= 0) return null;
+  return costoBulto / unidades;
+}
+
+/**
+ * Todo lo que la grilla de costos necesita saber de una fila, de una vez.
+ *
+ * Existe para que la pantalla no tenga que encadenar `costoUnitarioDesdeBulto`
+ * → `aBruto` → `margenReal` → `precioSugerido` por su cuenta: esa cadena es
+ * exactamente donde se cuelan las copias de la fórmula que la doctrina del
+ * proyecto trata de evitar.
+ */
+export type FilaCosto = {
+  /** Costo neto de una unidad, ya dividido por el bulto. */
+  costoUnitarioNeto: number | null;
+  /** El mismo, con IVA: es contra este que se mide el margen. */
+  costoUnitarioBruto: number | null;
+  /** Margen que deja el precio actual, o `null` si falta algún dato. */
+  margenActual: number | null;
+  /** Precio que dejaría el margen objetivo, ya redondeado. */
+  precioSugerido: number | null;
+  /** `true` si con el precio actual se vende por debajo del costo. */
+  aPerdida: boolean;
+};
+
+export function calcularFilaCosto(entrada: {
+  /** Costo tal como viene de la factura: del bulto si hay bulto. */
+  costoBulto: number | null;
+  unidadesPorBulto?: number | null;
+  /** Precio de venta actual, con IVA. */
+  precioVenta: number | null;
+  tasa?: number;
+  margen?: number;
+  redondeo?: ModoRedondeo;
+}): FilaCosto {
+  const vacio: FilaCosto = {
+    costoUnitarioNeto: null,
+    costoUnitarioBruto: null,
+    margenActual: null,
+    precioSugerido: null,
+    aPerdida: false,
+  };
+
+  if (entrada.costoBulto === null) return vacio;
+
+  const neto = costoUnitarioDesdeBulto(entrada.costoBulto, entrada.unidadesPorBulto);
+  if (neto === null) return vacio;
+
+  const tasa = entrada.tasa ?? TASA_IVA;
+  const bruto = aBruto(neto, tasa);
+  if (bruto === null) return vacio;
+
+  const sugeridoCrudo = precioSugerido(bruto, entrada.margen ?? MARGEN_POR_DEFECTO);
+  const sugerido =
+    sugeridoCrudo === null ? null : redondear(sugeridoCrudo, entrada.redondeo ?? "decena");
+
+  const venta = entrada.precioVenta;
+  const hayVenta = esFinito(venta ?? NaN) && (venta ?? 0) > 0;
+
+  return {
+    costoUnitarioNeto: neto,
+    costoUnitarioBruto: bruto,
+    margenActual: hayVenta ? margenReal(venta as number, bruto) : null,
+    precioSugerido: sugerido,
+    aPerdida: hayVenta ? (venta as number) <= bruto : false,
+  };
+}

@@ -1148,6 +1148,74 @@ Postgres 16 real.
 
 ---
 
+## Taller de precios y costos (2026-08-30)
+
+`/admin/precios`. Nació de medir el catálogo y ver que **el cuello de botella no
+es técnico sino de digitación**: 736 productos activos, 458 sin proveedor, 64
+con stock y precio $0, y **cero** con precio revisado. Cargar eso por la ficha
+de cada producto son cientos de navegaciones, y por eso llevaba semanas sin
+moverse.
+
+Es una grilla tipo planilla: se escriben costo, unidades por bulto y precio de
+varios productos seguidos, el margen se recalcula mientras se teclea y se
+guardan todos juntos.
+
+### Los números al 2026-08-30
+
+| | Cantidad |
+|---|---:|
+| Productos activos | 736 |
+| Sin proveedor | 458 (62%) |
+| Con costo cargado | 274 |
+| Con precio revisado | **0** |
+| Con stock y precio $0 | 64 |
+| Vendiéndose a pérdida | 9 |
+
+**Margen promedio 27,0%, mediana 35,7%.** La brecha importa: la mayoría del
+catálogo tiene buen margen y unos pocos con costo mal cargado arrastran el
+promedio. Los umbrales de envío gratis se calcularon con el promedio, así que
+quedaron del lado conservador.
+
+### El error que motivó la columna "unidades por bulto"
+
+De los 9 productos a pérdida, **6 son el costo del bulto cargado como
+unitario**: una marraqueta de $300 con "costo" $1.690 —que es el precio del
+kilo—, un queso de 75 g con el precio de la caja, un sachet con el precio del
+pack de 24. En todos `pack_size` estaba en NULL y `cost_source` era `manual`.
+Los otros 3 son leches con el costo exactamente igual al precio de venta, que
+parece el precio cargado en el campo equivocado.
+
+Por eso la grilla pide **el costo tal como viene de la factura** más las
+unidades por bulto, y guarda el unitario ya dividido (`costoUnitarioDesdeBulto`
+en `pricing.ts`, testeado). Dividir en el servidor y no en la pantalla evita
+que el día que alguien cargue desde otro lado se vuelva a guardar el bulto.
+
+### Decisiones que no se ven en el diff
+
+- **Poner el precio marca el producto como revisado.** Exigir un segundo clic
+  para `price_reviewed_at` era pedir un gesto que nadie iba a dar, y esa marca
+  es la que traba encender `require_reviewed_price`. Un precio en $0 no cuenta:
+  dejar un producto sin precio no es una decisión revisada.
+- **Una fila mala no tumba el lote.** Quien cargó treinta productos no debería
+  perder veintinueve por un error en uno; las que fallan se quedan escritas en
+  pantalla para corregirlas.
+- **Un costo sin proveedor no se guarda a medias**, y el aviso está arriba de
+  la grilla: enterarse al apretar guardar, después de cargar treinta filas, es
+  la peor forma de saberlo.
+- **El precio sugerido es un botón, no un texto.** Verlo sin poder aplicarlo
+  obliga a copiarlo a mano.
+- El lote se corta en 200 filas: uno más grande deja a medias un guardado que
+  el navegador ya dio por perdido.
+
+### Un bug que encontró el test de la grilla
+
+Si el costo ya estaba cargado y sólo se declaraban las unidades por bulto, la
+grilla **ignoraba el cambio** — y ese es justamente el flujo para arreglar los 6
+productos a pérdida. Se exigía reescribir el costo para poder corregir el
+bulto. Ahora las unidades se aplican también sobre el costo ya guardado.
+
+---
+
 ## Doctrinas del proyecto (no romper)
 
 Reglas que este código sostiene a propósito. Romperlas reintroduce errores que
