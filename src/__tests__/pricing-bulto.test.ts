@@ -93,3 +93,34 @@ describe("la fila de la grilla", () => {
     expect(TASA_IVA).toBe(19);
   });
 });
+
+describe("el borde de la pérdida se mide en pesos, no en centavos", () => {
+  it("vender exactamente al costo cuenta como pérdida", () => {
+    // Caso real: las tres leches Surlat. Costo neto 1.260,50, que por 1,19 da
+    // 1.499,995, y se venden a $1.500. Sin redondear al peso el sistema las
+    // daba por rentables por medio centavo y las escondía de la lista de
+    // productos a revisar.
+    const f = calcularFilaCosto({
+      costoBulto: 1260.5, unidadesPorBulto: 1, precioVenta: 1500,
+    });
+    expect(f.aPerdida).toBe(true);
+  });
+
+  it("un peso de margen ya no es pérdida", () => {
+    // El corte tiene que estar en el peso, no más arriba: si no, marcaría como
+    // problema productos que sí dejan algo.
+    const f = calcularFilaCosto({
+      costoBulto: 1260.5, unidadesPorBulto: 1, precioVenta: 1501,
+    });
+    expect(f.aPerdida).toBe(false);
+  });
+
+  it("el margen sigue calculándose con el costo exacto", () => {
+    // Redondear para decidir "está a pérdida" no debe ensuciar el porcentaje
+    // que se muestra.
+    const f = calcularFilaCosto({
+      costoBulto: 1000, unidadesPorBulto: 1, precioVenta: 2000,
+    });
+    expect(f.costoUnitarioBruto).toBeCloseTo(1190, 5);
+  });
+});
