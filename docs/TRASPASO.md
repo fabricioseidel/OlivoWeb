@@ -1350,6 +1350,50 @@ delete from suppliers where id='9a4a5ef6-129a-4952-80ea-5cefc97f4579';
 ```
 ---
 
+## Carga de precios desde sesión conversacional, tanda 3 (2026-08-31)
+
+Cierre de los 6 pendientes de Central Mayorista y una marca nueva.
+
+**Por comparación con productos ya cargados** (mismo tamaño, misma línea):
+
+| Producto | Costo c/IVA | Referencia | Precio | Margen |
+|---|---:|---|---:|---:|
+| Takis Ranch 49g | $590 | = Takis Fuego 49g | $910 | 35,2% |
+| Salsa Barbecue Carozzi 100g | $490 | = Ketchup Carozzi 100g | $760 | 35,5% |
+| Mostaza Carozzi 100g | $490 | = Ketchup Carozzi 100g | $760 | 35,5% |
+| Yogurt natural Soprole 155g | $360 | dato directo | $560 | 35,7% |
+
+Todos con proveedor Central Mayorista, `cost_source=manual`.
+
+**Proveedor nuevo: Chicharrones GO** (`133cbb1a-4a85-4818-baae-e4faec83c05e`),
+sin RUT ni más datos — el dueño dijo que los pasa cuando los tenga.
+
+| Producto | Costo c/IVA | Precio antes | Precio ahora |
+|---|---:|---:|---:|
+| Chicharrones naturales | $1.650 | $2.400 | **$2.400 (sin tocar)** |
+| Manteca de cerdo GO 700 ml | $3.500 | $0 | **$5.390** (35,1%) |
+
+Los chicharrones ya tenían precio puesto ($2.400) y con el costo nuevo ese
+precio da **31,3%** — bajo el 35% de la regla general, pero no se subió
+porque no se pidió tocarlo. Si se quisiera al 35% sería $2.540.
+
+### Cómo revertir
+
+```sql
+delete from product_suppliers where product_id in
+  ('7500810046869','7802575342676','7802575342706','7802900130114')
+  and supplier_id='92415f52-2325-4de6-ac21-b3805dc7b564';
+update products set sale_price=0, price_reviewed_at=null where barcode in
+  ('7500810046869','7802575342676','7802575342706','7802900130114');
+
+delete from product_suppliers where product_id in ('154555052776','154555052912')
+  and supplier_id='133cbb1a-4a85-4818-baae-e4faec83c05e';
+update products set sale_price=2400, price_reviewed_at=null where barcode='154555052776';
+update products set sale_price=0, price_reviewed_at=null where barcode='154555052912';
+delete from suppliers where id='133cbb1a-4a85-4818-baae-e4faec83c05e';
+```
+---
+
 ## Doctrinas del proyecto (no romper)
 
 Reglas que este código sostiene a propósito. Romperlas reintroduce errores que
