@@ -279,11 +279,16 @@ export default function NewProductPage() {
         gallery: galleryUrls.filter(url => url && url.trim() !== ""),
         features: formData.features.filter(feature => feature.trim() !== ""),
         slug: formData.name.toLowerCase().replace(/[^\w ]+/g, '').replace(/ +/g, '-'),
+        measurementUnit: formData.measurementUnit,
+        measurementValue: parseFloat(formData.measurementValue) || 0,
+        suggestedPrice: parseFloat(formData.suggestedPrice) || 0,
+        offerPrice: formData.offerPrice && formData.offerPrice.trim() !== "" ? (parseFloat(formData.offerPrice) || null) : null,
         measurement_unit: formData.measurementUnit,
         measurement_value: parseFloat(formData.measurementValue) || 0,
         suggested_price: parseFloat(formData.suggestedPrice) || 0,
-        offer_price: parseFloat(formData.offerPrice) || null,
+        offer_price: formData.offerPrice && formData.offerPrice.trim() !== "" ? (parseFloat(formData.offerPrice) || null) : null,
         is_active: formData.isActive,
+        isActive: formData.isActive,
       };
 
       // Usar el contexto para añadir el producto

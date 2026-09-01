@@ -39,7 +39,10 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
   const features = Array.isArray(p.features) ? p.features : undefined;
 
   const rawSalePrice = Number(p.sale_price ?? 0);
-  const rawOfferPrice = p.offer_price ? Number(p.offer_price) : undefined;
+  const rawOfferPrice =
+    p.offer_price !== null && p.offer_price !== undefined && Number(p.offer_price) > 0
+      ? Number(p.offer_price)
+      : undefined;
 
   return {
     id: String(p.barcode),
