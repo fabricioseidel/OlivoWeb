@@ -1394,6 +1394,37 @@ delete from suppliers where id='133cbb1a-4a85-4818-baae-e4faec83c05e';
 ```
 ---
 
+## Apertura de la tienda (2026-08-31 / 2026-09-01)
+
+Se auditó qué faltaba en envío para operar (ver conversación) y se
+encontró el interruptor real de "tienda abierta": `settings.preview_mode`.
+No es un dato informativo — es lo que decide si la vitrina deja comprar.
+Estaba en `true` ("se puede mirar, no comprar") y se pasó a **`false`**.
+La tienda quedó **abierta** con:
+
+- Retiro en tienda y envío agendado: operando.
+- Envío flash (Uber Direct): sin credenciales de producción todavía. El
+  código lo maneja solo — sin `UBER_DIRECT_*` la opción simplemente no
+  aparece, no rompe el checkout. Se agregan a la tarde/noche del 31/08.
+
+**No se pudo verificar desde esta sesión** si `MERCADOPAGO_ACCESS_TOKEN`,
+`MERCADOPAGO_WEBHOOK_SECRET`, `NEXT_PUBLIC_SITE_URL`, `RESEND_API_KEY` y
+`CRON_SECRET` están cargadas en Vercel — no hay forma de leer variables de
+entorno de Vercel con las herramientas de esta sesión, y `get_runtime_logs`
+se cortó por timeout en los intentos de esta sesión. **Ruta para
+confirmarlo sin depender de esto:** `/api/admin/estado-apertura` (ruta ya
+existente, con panel en el admin) hace exactamente este chequeo — token de
+MercadoPago, si es de prueba o producción, webhook secret, URL pública,
+Resend, cron — sin exponer ningún valor. Revisar ahí antes de dar la
+apertura por completa si no se hizo ya.
+
+### Cómo revertir
+
+```sql
+update settings set preview_mode = true where id = true;
+```
+---
+
 ## Doctrinas del proyecto (no romper)
 
 Reglas que este código sostiene a propósito. Romperlas reintroduce errores que
