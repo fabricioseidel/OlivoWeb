@@ -11,6 +11,8 @@ import { getCategoryStyle } from '@/utils/categoryStyles';
 
 import { ProductUI } from '@/types';
 import { formatCLP } from "@/utils/currency";
+import { enTemporadaDieciochera, esProductoDieciochero } from "@/lib/fiestas-patrias";
+import BanderaChile from "@/components/fiestas/BanderaChile";
 
 const formatCurrency = formatCLP;
 
@@ -108,6 +110,12 @@ function ProductCard({ product }: Props) {
 
         {/* Un solo badge por esquina: dos etiquetas compitiendo no comunican nada. */}
         <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-1.5">
+          {enTemporadaDieciochera() && esProductoDieciochero(product) && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-fp-rojo px-2 py-0.5 text-xs font-semibold text-white shadow-sm">
+              <BanderaChile className="h-2.5 w-auto rounded-[1px]" />
+              Especial 18
+            </span>
+          )}
           {hasDiscount && (
             <span className="rounded-md bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">
               −{discountPercent}%

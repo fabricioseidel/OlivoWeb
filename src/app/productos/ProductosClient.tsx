@@ -7,6 +7,8 @@ import { useProducts } from "@/contexts/ProductContext";
 import { slugify } from "@/utils/string-utils";
 import { isProductVisible } from "@/services/products";
 import { useCategories } from "@/hooks/useCategories";
+import { enTemporadaDieciochera, esProductoDieciochero, RUTA_FIESTAS_PATRIAS } from "@/lib/fiestas-patrias";
+import BanderaChile from "@/components/fiestas/BanderaChile";
 import { Search } from "lucide-react";
 
 type SortKey = "name" | "price-asc" | "price-desc" | "offers";
@@ -37,10 +39,14 @@ function ProductsContent() {
     [categories]
   );
 
+  const isDieciocheroCategory = categoriaParam === "fiestas-patrias" || categoriaParam === "dieciocho";
+
   const filteredProducts = useMemo(() => {
     const term = searchText.trim().toLowerCase();
     let list = activeProducts;
-    if (categoriaParam) {
+    if (isDieciocheroCategory) {
+      list = list.filter(esProductoDieciochero);
+    } else if (categoriaParam) {
       list = list.filter(p =>
         (p.categories || []).some(c => slugify(c) === categoriaParam.toLowerCase())
       );
@@ -68,15 +74,16 @@ function ProductsContent() {
         sorted.sort((a, b) => a.name.localeCompare(b.name, "es"));
     }
     return sorted;
-  }, [activeProducts, categoriaParam, searchText, sortKey]);
+  }, [activeProducts, categoriaParam, isDieciocheroCategory, searchText, sortKey]);
 
   const activeCategoryName = useMemo(() => {
+    if (isDieciocheroCategory) return "Especial Fiestas Patrias 🇨🇱";
     if (!categoriaParam) return null;
     const match = categories.find(
       c => (c.slug || slugify(c.name)) === categoriaParam.toLowerCase()
     );
     return match?.name || categoriaParam;
-  }, [categories, categoriaParam]);
+  }, [categories, categoriaParam, isDieciocheroCategory]);
 
   const setCategory = (slug: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -115,7 +122,7 @@ function ProductsContent() {
                 type="search"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Buscar por nombre o categoría..."
+                placeholder={enTemporadaDieciochera() ? "Buscar empanadas de pino, carbón, pebre, choripán..." : "Buscar por nombre o categoría..."}
                 className="w-full h-11 pl-11 pr-4 rounded-2xl bg-gray-50 border border-gray-200 text-sm text-gray-800 focus:outline-none focus:bg-white focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
               />
             </div>
@@ -140,6 +147,19 @@ function ProductsContent() {
             <button onClick={() => setCategory("")} className={chipClass(!categoriaParam)}>
               Todas
             </button>
+            {enTemporadaDieciochera() && (
+              <button
+                onClick={() => setCategory("fiestas-patrias")}
+                className={`shrink-0 px-4 h-9 rounded-full text-xs font-bold transition-all border flex items-center gap-1.5 ${
+                  isDieciocheroCategory
+                    ? "bg-fp-rojo text-white border-fp-rojo shadow-sm"
+                    : "bg-fp-crema text-fp-rojo border-fp-rojo/30 hover:bg-fp-rojo hover:text-white"
+                }`}
+              >
+                <BanderaChile className="h-3 w-auto rounded-[1px]" />
+                Especial 18 🇨🇱
+              </button>
+            )}
             {sortedCategories.map((cat) => {
               const slug = cat.slug || slugify(cat.name);
               return (

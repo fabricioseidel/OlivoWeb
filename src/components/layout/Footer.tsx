@@ -4,6 +4,8 @@ import React from 'react';
 import Link from "next/link";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { BUSINESS } from "@/lib/seo/business";
+import { enTemporadaDieciochera, RUTA_FIESTAS_PATRIAS } from "@/lib/fiestas-patrias";
+import BanderaChile from "@/components/fiestas/BanderaChile";
 
 /** Título de columna. Antes combinaba mayúsculas, tracking ancho e itálica a
  *  la vez, que a 12px vuelve el texto difícil de leer sin aportar jerarquía. */
@@ -32,12 +34,30 @@ const Footer = () => {
   };
 
   return (
-    <footer className="mt-16 o-footer">
+    <footer className="mt-16 o-footer relative">
+      <div className="fp-tricolor absolute inset-x-0 top-0" />
+      {enTemporadaDieciochera() && (
+        <div className="border-b border-white/10 bg-black/20 py-3.5 text-center text-xs sm:text-sm font-medium text-white/90">
+          <div className="o-container flex flex-wrap items-center justify-center gap-2">
+            <BanderaChile className="fp-ondea h-4 w-auto rounded-[1px] shadow" />
+            <span>🇨🇱 ¡Felices Fiestas Patrias te desea Olivo Market! Todo para tu 18 en Ñuñoa 🇨🇱</span>
+            <Link
+              href={RUTA_FIESTAS_PATRIAS}
+              className="ml-2 inline-flex items-center gap-1 text-xs font-bold text-fp-rojo-claro underline hover:text-white"
+            >
+              Ver Especial 18 &rarr;
+            </Link>
+          </div>
+        </div>
+      )}
       <div className="o-container py-12 md:py-16">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           <div>
-            <h2 className="mb-3 text-xl font-bold tracking-tight text-white">
+            <h2 className="mb-3 text-xl font-bold tracking-tight text-white flex items-center gap-2">
               {contactInfo.storeName}
+              {enTemporadaDieciochera() && (
+                <BanderaChile className="h-4 w-auto rounded-[1px]" />
+              )}
             </h2>
             {/* Frase de entidad: idéntica en todo el sitio */}
             <p className="max-w-xs text-sm leading-relaxed o-footer-muted">
@@ -98,6 +118,14 @@ const Footer = () => {
             <ColumnTitle>Tienda</ColumnTitle>
             <ul className="space-y-2.5">
               <li><Link href="/" className={linkClass}>Inicio</Link></li>
+              {enTemporadaDieciochera() && (
+                <li>
+                  <Link href={RUTA_FIESTAS_PATRIAS} className="o-focus rounded text-sm font-semibold text-fp-rojo-claro transition-colors hover:text-white flex items-center gap-1.5">
+                    <BanderaChile className="h-3 w-auto rounded-[1px]" />
+                    Especial Fiestas Patrias
+                  </Link>
+                </li>
+              )}
               <li><Link href="/productos" className={linkClass}>Productos</Link></li>
               <li><Link href="/categorias" className={linkClass}>Categorías</Link></li>
               <li><Link href="/ofertas" className={linkClass}>Ofertas</Link></li>

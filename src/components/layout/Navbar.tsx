@@ -145,7 +145,7 @@ export default function Navbar() {
                 )}
               </Link>
             </div>
-            <div className="hidden lg:ml-6 lg:flex lg:space-x-6">
+            <div className="hidden lg:ml-6 lg:flex lg:items-center lg:space-x-5">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
@@ -158,6 +158,19 @@ export default function Navbar() {
                   {item.name}
                 </Link>
               ))}
+              {enTemporadaDieciochera() && (
+                <Link
+                  href={RUTA_FIESTAS_PATRIAS}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all shadow-sm ${
+                    isActive(RUTA_FIESTAS_PATRIAS)
+                      ? "bg-fp-rojo text-white"
+                      : "bg-fp-crema text-fp-rojo border border-fp-rojo/30 hover:bg-fp-rojo hover:text-white"
+                  }`}
+                >
+                  <BanderaChile className="h-3 w-auto rounded-[1px]" />
+                  <span>Especial 18</span>
+                </Link>
+              )}
             </div>
           </div>
 
@@ -168,7 +181,7 @@ export default function Navbar() {
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar productos..."
+                placeholder={enTemporadaDieciochera() ? "Buscar empanadas, carbón..." : "Buscar productos..."}
                 className="w-full pl-9 pr-3 h-9 rounded-full bg-white border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-100 focus:shadow-sm transition-all"
               />
             </form>

@@ -14,10 +14,12 @@ import { DEFAULT_BLOCKS, type PageBlock } from "@/lib/page-blocks";
 import { BUSINESS } from "@/lib/seo/business";
 import { useSiteCopy } from "@/hooks/useSiteCopy";
 import {
+  RUTA_FIESTAS_PATRIAS,
   enTemporadaDieciochera,
   esProductoDieciochero,
   ordenarDieciocheros,
 } from "@/lib/fiestas-patrias";
+import BanderaChile from "@/components/fiestas/BanderaChile";
 import BannerFiestasPatrias from "@/components/fiestas/BannerFiestasPatrias";
 import VitrinaDieciochera from "@/components/fiestas/VitrinaDieciochera";
 import {
@@ -238,6 +240,15 @@ function HeroBlock({
         <div className="relative max-w-7xl mx-auto px-4 py-8 md:py-10 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 items-center">
           {/* Left: text + search */}
           <div className="text-white">
+            {enTemporadaDieciochera() && (
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-red-400/40 bg-red-950/70 px-3.5 py-1.5 text-xs font-semibold text-red-100 backdrop-blur-sm shadow-sm">
+                <BanderaChile className="fp-ondea h-3.5 w-auto rounded-[1px]" />
+                <span>¡Modo Fiestas Patrias! Anticipa tu pedido dieciochero</span>
+                <Link href={RUTA_FIESTAS_PATRIAS} className="underline text-amber-300 font-bold ml-1 hover:text-white">
+                  Ver sección 18 &rarr;
+                </Link>
+              </div>
+            )}
             <p className="mb-2 text-sm font-medium text-brand-300">
               {block.subtitle || "Minimarket y punto de encomiendas · Ñuñoa"}
             </p>
@@ -254,7 +265,7 @@ function HeroBlock({
                   type="search"
                   value={heroQuery}
                   onChange={(e) => setHeroQuery(e.target.value)}
-                  placeholder="Buscar productos..."
+                  placeholder={enTemporadaDieciochera() ? "Buscar empanadas de pino, carbón, pebre, choripán..." : "Buscar productos..."}
                   className="w-full h-12 pl-11 pr-4 rounded-xl bg-white text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-400"
                 />
               </div>
@@ -269,9 +280,15 @@ function HeroBlock({
               <Link href={buttonLink} className="inline-flex items-center gap-1.5 bg-brand-boton hover:bg-brand-400 text-brand-contraste font-bold text-sm px-5 h-10 rounded-lg transition-colors">
                 {buttonText} <ChevronRight className="w-4 h-4" />
               </Link>
-              <Link href="/ofertas" className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
-                <Tag className="w-4 h-4 text-amber-400" /> Ver ofertas
-              </Link>
+              {enTemporadaDieciochera() ? (
+                <Link href={RUTA_FIESTAS_PATRIAS} className="inline-flex items-center gap-1.5 bg-fp-rojo hover:bg-fp-rojo-claro text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors shadow-sm">
+                  <BanderaChile className="h-3.5 w-auto rounded-[1px]" /> Especial 18
+                </Link>
+              ) : (
+                <Link href="/ofertas" className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
+                  <Tag className="w-4 h-4 text-amber-400" /> Ver ofertas
+                </Link>
+              )}
             </div>
 
             {/* Punto de envíos: couriers, horario y dirección en texto plano.
@@ -309,11 +326,23 @@ function HeroBlock({
 
           {/* Right: promo cards */}
           <div className="hidden lg:grid grid-cols-2 gap-3">
-            <Link href="/ofertas" className="col-span-2 bg-amber-400/20 border border-amber-400/30 rounded-2xl p-5 text-center hover:bg-amber-400/30 transition-colors">
-              <p className="mb-1 text-sm font-medium text-amber-200">Ofertas especiales</p>
-              <p className="text-2xl font-bold text-white">Ver descuentos</p>
-              <p className="text-amber-200/70 text-xs mt-1">en productos seleccionados</p>
-            </Link>
+            {enTemporadaDieciochera() ? (
+              <Link href={RUTA_FIESTAS_PATRIAS} className="col-span-2 bg-gradient-to-r from-red-900/60 to-blue-900/60 border border-red-400/40 rounded-2xl p-5 text-center hover:from-red-900/80 hover:to-blue-900/80 transition-all shadow-md group">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <BanderaChile className="fp-ondea h-4 w-auto rounded-[1px]" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-300">Especial Dieciochero</span>
+                  <BanderaChile className="fp-ondea h-4 w-auto rounded-[1px]" />
+                </div>
+                <p className="text-2xl font-bold text-white group-hover:scale-105 transition-transform">Todo para tu 18</p>
+                <p className="text-white/80 text-xs mt-1">Empanadas de pino, asado, picoteo y abarrotes</p>
+              </Link>
+            ) : (
+              <Link href="/ofertas" className="col-span-2 bg-amber-400/20 border border-amber-400/30 rounded-2xl p-5 text-center hover:bg-amber-400/30 transition-colors">
+                <p className="mb-1 text-sm font-medium text-amber-200">Ofertas especiales</p>
+                <p className="text-2xl font-bold text-white">Ver descuentos</p>
+                <p className="text-amber-200/70 text-xs mt-1">en productos seleccionados</p>
+              </Link>
+            )}
             <div className="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3">
               <Truck className="w-8 h-8 text-brand-400 shrink-0" />
               <div>
@@ -339,6 +368,12 @@ function HeroBlock({
             <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-brand-boton text-brand-contraste text-xs font-bold whitespace-nowrap hover:bg-brand-700 transition-colors">
               Todo
             </Link>
+            {enTemporadaDieciochera() && (
+              <Link href={RUTA_FIESTAS_PATRIAS} className="shrink-0 px-4 py-1.5 rounded-full bg-fp-rojo text-white text-xs font-bold whitespace-nowrap hover:bg-fp-rojo-claro transition-colors flex items-center gap-1.5 shadow-sm">
+                <BanderaChile className="h-3 w-auto rounded-[1px]" />
+                Fiestas Patrias 🇨🇱
+              </Link>
+            )}
             {!categoriesLoading && [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map(cat => (
               <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}
                 className="shrink-0 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-brand-50 hover:text-brand-700 text-gray-700 text-xs font-bold whitespace-nowrap transition-colors">
