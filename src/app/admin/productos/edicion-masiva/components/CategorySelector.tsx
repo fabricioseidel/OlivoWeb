@@ -35,12 +35,16 @@ export default function CategorySelector({ value, isDirty, onChange }: { value: 
       setOpen(false);
     };
     const close = () => setOpen(false);
+    const onScroll = (e: Event) => {
+      if (panelRef.current?.contains(e.target as Node)) return;
+      close();
+    };
     document.addEventListener("mousedown", onClickOutside);
-    window.addEventListener("scroll", close, true);
+    window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", close);
     return () => {
       document.removeEventListener("mousedown", onClickOutside);
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", close);
     };
   }, [open]);
