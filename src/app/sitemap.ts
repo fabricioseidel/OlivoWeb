@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { supabaseServer } from '@/lib/supabase-server';
 import { slugify } from '@/utils/string-utils';
 import { BUSINESS } from '@/lib/seo/business';
+import { RUTA_FIESTAS_PATRIAS, enTemporadaDieciochera } from '@/lib/fiestas-patrias';
 
 export const revalidate = 3600; // regenerar cada hora
 
@@ -31,6 +32,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     { url: `${base}/categorias`, priority: 0.8, changeFrequency: 'weekly', lastModified: now },
     { url: `${base}/ofertas`, priority: 0.8, changeFrequency: 'daily', lastModified: now },
+
+    // La sección dieciochera se declara todo el año —la URL es estable y
+    // conviene que conserve su historial— pero en septiembre sube de
+    // prioridad y de frecuencia, que es cuando el catálogo se mueve a diario.
+    {
+      url: `${base}${RUTA_FIESTAS_PATRIAS}`,
+      priority: enTemporadaDieciochera() ? 0.9 : 0.4,
+      changeFrequency: enTemporadaDieciochera() ? 'daily' : 'yearly',
+      lastModified: now,
+    },
     { url: `${base}/contacto`, priority: 0.6, changeFrequency: 'monthly', lastModified: now },
     { url: `${base}/bienvenidos`, priority: 0.5, changeFrequency: 'monthly', lastModified: now },
 

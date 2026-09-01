@@ -9,6 +9,7 @@ export type PageBlockType =
   | 'offers'
   | 'categories'
   | 'more_products'
+  | 'fiestas_patrias'
   | 'newsletter';
 
 export type PageBlock = {
@@ -35,6 +36,7 @@ export const BLOCK_TYPE_LABELS: Record<PageBlockType, string> = {
   offers: 'Ofertas',
   categories: 'Categorías',
   more_products: 'Más productos',
+  fiestas_patrias: 'Fiestas Patrias (septiembre)',
   newsletter: 'Newsletter',
 };
 
@@ -46,6 +48,8 @@ export const BLOCK_TYPE_DESCRIPTIONS: Record<PageBlockType, string> = {
   offers: 'Grilla de productos con precio de oferta',
   categories: 'Grilla visual de categorías',
   more_products: 'Segunda grilla con el resto del catálogo',
+  fiestas_patrias:
+    'Banner y vitrina dieciochera. Se muestra solo durante septiembre y se apaga sola el 1 de octubre',
   newsletter: 'Formulario de suscripción al newsletter',
 };
 
@@ -68,6 +72,20 @@ export const DEFAULT_BLOCKS: PageBlock[] = [
     buttonLink: '/productos',
   },
   { id: 'b4', type: 'features', enabled: true },
+  // Va inmediatamente bajo el hero: en septiembre la campaña dieciochera es
+  // lo primero que la tienda quiere mostrar. El bloque se auto-oculta fuera
+  // de temporada, así que puede quedar activo todo el año sin molestar.
+  {
+    id: 'b9',
+    type: 'fiestas_patrias',
+    enabled: true,
+    title: '¡Anticipa tu pedido para estas Fiestas Patrias!',
+    description:
+      'Disfruten con nuestras ricas empanadas de pino y todo lo que necesitan para la mesa dieciochera. Encarga con tiempo: el 18 se agota.',
+    buttonText: 'Ver productos dieciocheros',
+    buttonLink: '/fiestas-patrias',
+    itemsToShow: 10,
+  },
   { id: 'b3', type: 'products', enabled: true, title: 'Lo más vendido', itemsToShow: 10 },
   {
     id: 'b6',

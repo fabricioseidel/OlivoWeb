@@ -44,6 +44,7 @@ const EDITABLE_FIELDS: Record<PageBlockType, EditableField[]> = {
   offers: ['title', 'itemsToShow'],
   categories: ['title'],
   more_products: ['title', 'itemsToShow'],
+  fiestas_patrias: ['title', 'description', 'buttonText', 'buttonLink', 'itemsToShow'],
   newsletter: ['title', 'description'],
 };
 
@@ -58,6 +59,11 @@ const FIELD_LABELS: Partial<Record<PageBlockType, Partial<Record<EditableField, 
   banner: {
     subtitle: 'Texto pequeño',
     title: 'Título del banner',
+  },
+  fiestas_patrias: {
+    title: 'Título del banner dieciochero',
+    description: 'Texto de apoyo',
+    itemsToShow: 'Productos dieciocheros a mostrar',
   },
 };
 

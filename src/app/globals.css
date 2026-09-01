@@ -475,3 +475,132 @@ body {
   color: var(--color-footer-text);
   opacity: 0.65;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TEMPORADA DIECIOCHERA (septiembre)
+   ═══════════════════════════════════════════════════════════════════════
+
+   Vestir el sitio de Fiestas Patrias sin romper el sistema de diseño ni el
+   color de marca: todo lo festivo vive detrás del prefijo `fp-` y sólo se
+   monta durante septiembre. Al terminar el mes, los componentes dejan de
+   renderizarse y estas reglas quedan sin efecto — no hay que "desinstalar"
+   nada ni volver a tocar colores.
+
+   Los tonos NO son los del emoji de la bandera. El rojo #EE1C25 y el azul
+   #0033A0 oficiales fallan contraste con texto blanco a tamaño de cuerpo
+   (4,0:1 y 4,4:1). Estos dos son los mismos colores apenas más profundos:
+   se leen igual de patrios y sí pasan AA.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  --color-fp-rojo: #c8102e;       /* 5,9:1 con blanco */
+  --color-fp-rojo-claro: #e8455b;
+  --color-fp-azul: #0f3b8c;       /* 10,4:1 con blanco */
+  --color-fp-azul-claro: #2c5fc4;
+  --color-fp-crema: #fff8ee;
+  --color-fp-tierra: #2a1a12;     /* fondo del asado, no negro puro */
+}
+
+@layer components {
+  /* ── Guirnalda de banderines ─────────────────────────────────────────
+     Los banderines se dibujan con gradientes cónicos en vez de imágenes:
+     escalan a cualquier ancho, pesan cero y siguen viéndose nítidos en
+     pantallas retina. Va como cinta decorativa, siempre aria-hidden. */
+  .fp-guirnalda {
+    height: 14px;
+    background-image:
+      linear-gradient(135deg, transparent 50%, var(--color-fp-rojo) 50%),
+      linear-gradient(225deg, transparent 50%, var(--color-fp-rojo) 50%);
+    background-size: 14px 14px;
+    background-position: 0 0, 7px 0;
+    background-repeat: repeat-x;
+  }
+  .fp-guirnalda-azul {
+    background-image:
+      linear-gradient(135deg, transparent 50%, var(--color-fp-azul) 50%),
+      linear-gradient(225deg, transparent 50%, var(--color-fp-azul) 50%);
+  }
+
+  /* Franja tricolor fina: el recurso más barato para que una sección
+     "se vea de septiembre" sin gritar. */
+  .fp-tricolor {
+    height: 4px;
+    background: linear-gradient(
+      to right,
+      var(--color-fp-azul) 0 33.33%,
+      #f4f6f9 33.33% 66.66%,
+      var(--color-fp-rojo) 66.66% 100%
+    );
+    box-shadow: inset 0 0 0 1px rgb(16 24 40 / 0.05);
+  }
+
+  /* Fondo de la sección: crema cálida con textura de rombos, que recuerda
+     al mantel de la ramada sin caer en la imagen de stock. */
+  .fp-fondo {
+    background-color: var(--color-fp-crema);
+    background-image:
+      linear-gradient(45deg, rgb(200 16 46 / 0.045) 25%, transparent 25%, transparent 75%, rgb(200 16 46 / 0.045) 75%),
+      linear-gradient(45deg, rgb(15 59 140 / 0.045) 25%, transparent 25%, transparent 75%, rgb(15 59 140 / 0.045) 75%);
+    background-size: 36px 36px;
+    background-position: 0 0, 18px 18px;
+  }
+
+  /* Encabezado nocturno de ramada: el asado, la fogata y la noche del 18. */
+  .fp-hero {
+    background:
+      radial-gradient(120% 90% at 12% 0%, rgb(232 69 91 / 0.28) 0%, transparent 55%),
+      radial-gradient(110% 90% at 92% 10%, rgb(44 95 196 / 0.30) 0%, transparent 55%),
+      linear-gradient(160deg, #3a2418 0%, var(--color-fp-tierra) 55%, #1a0f0a 100%);
+  }
+
+  /* Cinta/banderola de titular, como la del afiche impreso. */
+  .fp-cinta {
+    display: inline-block;
+    padding: 0.375rem 1.25rem;
+    background: var(--color-fp-rojo);
+    color: #fff;
+    font-weight: 700;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 50%, 100% 100%, 0 100%, 12px 50%);
+  }
+  .fp-cinta-azul { background: var(--color-fp-azul); }
+
+  /* Estrella solitaria de la bandera, para acentos tipográficos. */
+  .fp-estrella {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background: currentColor;
+    clip-path: polygon(
+      50% 0%, 61.8% 34.5%, 98% 34.5%, 68.8% 55.9%,
+      80.9% 90.5%, 50% 69.1%, 19.1% 90.5%, 31.2% 55.9%,
+      2% 34.5%, 38.2% 34.5%
+    );
+  }
+
+  /* Chip de urgencia de la cuenta regresiva. */
+  .fp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+}
+
+@layer utilities {
+  /* Ondeo suave para la bandera y los banderines. Amplitud corta: un
+     movimiento grande en una cinta fija arriba marea al hacer scroll. */
+  .fp-ondea {
+    animation: fp-ondea 4.5s ease-in-out infinite;
+    transform-origin: top center;
+  }
+}
+
+@keyframes fp-ondea {
+  0%, 100% { transform: rotate(-1.5deg) translateY(0); }
+  50%      { transform: rotate(1.5deg) translateY(1px); }
+}
