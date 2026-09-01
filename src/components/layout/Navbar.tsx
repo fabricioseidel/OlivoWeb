@@ -10,6 +10,8 @@ import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { Transition } from "@headlessui/react";
 import { useCart } from "@/contexts/CartContext";
 import Dropdown from "@/components/ui/Dropdown";
+import { RUTA_FIESTAS_PATRIAS, enTemporadaDieciochera } from "@/lib/fiestas-patrias";
+import BanderaChile from "@/components/fiestas/BanderaChile";
 
 const navigation = [
   { name: "Inicio", href: "/" },
@@ -21,6 +23,28 @@ const navigation = [
 ];
 
 const HIDE_ON = new Set<string>([]);
+
+/**
+ * Enlace de temporada. Se inserta después de "Productos" sólo en septiembre:
+ * el resto del año ocuparía un espacio del menú que no lleva a ninguna parte
+ * viva. La bandera va como icono aparte porque el emoji 🇨🇱 no se dibuja en
+ * Windows.
+ *
+ * Va SOLO en el menú móvil. La fila de escritorio ya venía al límite con seis
+ * enlaces: medido, un séptimo la desborda 76px y "Contacto" se monta encima de
+ * "Entrar" en 1024, 1280 y 1440. En escritorio la campaña se anuncia con la
+ * cinta roja que corona todas las páginas, que además es más visible que un
+ * enlace más del menú.
+ */
+const ENLACE_DIECIOCHERO = { name: "Fiestas Patrias", href: RUTA_FIESTAS_PATRIAS };
+
+function navegacionMovilDeTemporada() {
+  if (!enTemporadaDieciochera()) return navigation;
+  const indice = navigation.findIndex(i => i.href === "/productos");
+  const copia = [...navigation];
+  copia.splice(indice + 1, 0, ENLACE_DIECIOCHERO);
+  return copia;
+}
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -88,6 +112,9 @@ export default function Navbar() {
   if (HIDE_ON.has(pathname)) return null;
 
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+
+  const enlacesMoviles = navegacionMovilDeTemporada();
+  const esDieciochero = (href: string) => href === RUTA_FIESTAS_PATRIAS;
 
   const userMenuItems = [
     { label: 'Mi Perfil', href: '/mi-cuenta', icon: User },
@@ -242,15 +269,22 @@ export default function Navbar() {
       >
         <div className="lg:hidden bg-white border-b border-gray-200 overflow-hidden">
           <div className="pt-2 pb-3 space-y-1 px-2">
-            {navigation.map((item) => (
+            {enlacesMoviles.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`block px-4 py-3 rounded-2xl text-base font-medium transition-all ${isActive(item.href)
-                  ? "bg-brand-50 text-brand-700 font-bold"
-                  : "text-gray-500 hover:bg-gray-50 hover:text-brand-600"
+                className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-base font-medium transition-all ${isActive(item.href)
+                  ? esDieciochero(item.href)
+                    ? "bg-fp-crema text-fp-rojo font-bold"
+                    : "bg-brand-50 text-brand-700 font-bold"
+                  : esDieciochero(item.href)
+                    ? "text-fp-rojo font-semibold hover:bg-fp-crema"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-brand-600"
                   }`}
               >
+                {esDieciochero(item.href) && (
+                  <BanderaChile className="h-4 w-auto rounded-[1px] shadow-sm" />
+                )}
                 {item.name}
               </Link>
             ))}

@@ -14,6 +14,13 @@ import { DEFAULT_BLOCKS, type PageBlock } from "@/lib/page-blocks";
 import { BUSINESS } from "@/lib/seo/business";
 import { useSiteCopy } from "@/hooks/useSiteCopy";
 import {
+  enTemporadaDieciochera,
+  esProductoDieciochero,
+  ordenarDieciocheros,
+} from "@/lib/fiestas-patrias";
+import BannerFiestasPatrias from "@/components/fiestas/BannerFiestasPatrias";
+import VitrinaDieciochera from "@/components/fiestas/VitrinaDieciochera";
+import {
   ChevronRight,
   Truck,
   Shield,
@@ -34,6 +41,12 @@ export default function HomeClient({ initialBlocks = null }: { initialBlocks?: P
   const rest = visible.filter(p => !p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
   const ranked = [...featured, ...rest];
   const offerProducts = visible.filter(p => p.offerPrice && p.offerPrice < p.price);
+
+  // Vitrina dieciochera de la portada. Se calcula siempre pero sólo se
+  // renderiza en septiembre: mantenerlo fuera del `if` evita que el hook de
+  // productos cambie de forma entre temporadas.
+  const dieciocheros = ordenarDieciocheros(visible.filter(esProductoDieciochero));
+  const esTemporadaDieciochera = enTemporadaDieciochera();
 
   // Bloques del Constructor Visual (admin → Laboratorio).
   // Prioridad: los que llegaron del servidor (evitan el cambio de contenido en
@@ -82,6 +95,27 @@ export default function HomeClient({ initialBlocks = null }: { initialBlocks?: P
             );
           case "banner":
             return <BannerBlock key={block.id} block={block} />;
+          // El bloque dieciochero se apaga solo fuera de septiembre, así que
+          // el admin puede dejarlo activo todo el año sin acordarse de nada.
+          case "fiestas_patrias":
+            return esTemporadaDieciochera ? (
+              <div key={block.id}>
+                <BannerFiestasPatrias
+                  title={block.title}
+                  description={block.description}
+                  buttonText={block.buttonText}
+                  buttonLink={block.buttonLink}
+                />
+                {dieciocheros.length > 0 && (
+                  <VitrinaDieciochera
+                    titulo="Lo dieciochero de esta semana"
+                    descripcion="Encarga con tiempo: entre el 16 y el 18 la empanada vuela."
+                    productos={dieciocheros.slice(0, block.itemsToShow ?? 10)}
+                    cargando={productsLoading}
+                  />
+                )}
+              </div>
+            ) : null;
           case "offers":
             return offerProducts.length > 0 ? (
               <ProductSection

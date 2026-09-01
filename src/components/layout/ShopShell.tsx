@@ -5,6 +5,7 @@ import { ReactNode } from "react";
 import Navbar from "./Navbar";
 import BottomNav from "./BottomNav";
 import PreviewBanner from "./PreviewBanner";
+import FranjaDieciochera from "@/components/fiestas/FranjaDieciochera";
 import Footer from "./Footer";
 
 export default function ShopShell({ children }: { children: ReactNode }) {
@@ -28,6 +29,10 @@ export default function ShopShell({ children }: { children: ReactNode }) {
             Saltar al contenido
           </a>
           <PreviewBanner />
+          {/* Cinta de temporada. Va sobre el encabezado y no dentro, para
+              que el navbar siga siendo sticky por su cuenta y la cinta se
+              desplace con la página. Se apaga sola fuera de septiembre. */}
+          <FranjaDieciochera />
           <header className="sticky top-0 z-50 bg-white shadow">
             <Navbar />
           </header>
