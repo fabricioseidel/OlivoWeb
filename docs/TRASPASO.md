@@ -1425,6 +1425,108 @@ update settings set preview_mode = true where id = true;
 ```
 ---
 
+## Cruce contra el catálogo de Don Joaquín (2026-09-01)
+
+El dueño mandó 16 capturas del catálogo online de su proveedor de bebidas
+(Distribuidora Don Joaquín). Se cruzaron marca por marca contra los 736
+productos activos, no sólo contra los que ya tenían proveedor Don Joaquín.
+
+### Hallazgo: dos filas con la misma `priority` no tienen desempate por precio
+
+11 de los productos cruzados **ya tenían una fila de Don Joaquín cargada,
+con `priority = 1`** — al mismo nivel que el proveedor que la consulta
+`order by priority nulls last, updated_at desc limit 1` elegía como
+"preferido". El desempate es por `updated_at`, no por costo: ganaba la
+fila que se había tocado más recientemente, sin importar si era la más
+cara. Score Energy Drinks ($820/u) y Chiper ($1.540/u) aparecían como
+"el" proveedor de varios productos donde Don Joaquín ya estaba cargado
+más barato ($800/u y $1.460/u) desde antes, simplemente porque su fila
+era más vieja.
+
+No hay ninguna regla en el código que impida dos filas en `priority = 1`
+para el mismo producto — el UNIQUE es sobre `(product_id, supplier_id)`,
+no sobre `(product_id, priority)`. Si se quiere que `priority = 1`
+signifique de verdad "el preferido", falta una constraint o un trigger que
+lo haga cumplir. Por ahora se resolvió a mano: se bajó a `priority = 2`
+la fila más cara, dejando `priority = 1` para la más barata.
+
+### Lo que se cargó
+
+**23 productos** quedaron con **Distribuidora Don Joaquín** como proveedor
+preferido, todos entre 35% y 45% de margen, ninguno a pérdida:
+
+- **7 Score** (Bubble Gum, Fruit Punch, Gorila, Mango, Mojito, Original,
+  Radical White) — de Score Energy Drinks ($820/u) a Don Joaquín ($800/u).
+  El proveedor viejo queda en `priority = 2`, no se borró.
+- **6 Monster** (Energy Zero, mango, Original, Pipeline Punch, Ripper, Sin
+  Azúcar Ultra) — de Coca-Cola Andina (~$1.350/u) a Don Joaquín ($1.250/u).
+  Match de sabor razonable pero no exacto en dos casos: "Monster mango"
+  contra la foto "Monster Mango Loco", y "Monster Sin Azúcar Ultra" contra
+  "Monster Ultra" — mismo sabor base, nombre distinto en cada fuente.
+- **5 Néctar Watts 1,5L** (Durazno, Durazno Sin Azúcar, Naranja, Naranja
+  Sin Azúcar, Piña) — de Central Mayorista/Chiper (~$1.470–1.540/u) a Don
+  Joaquín ($1.460/u).
+- **1 Molinova Barbecue** — de Central Mayorista ($900/u) a Don Joaquín
+  ($770/u).
+- **4 sin proveedor previo**, cargados directo: Jumex Guayaba 350ml
+  ($600/u), Papas Molinova Queso 90g ($770/u), Monster Ultra Peachy Keen
+  ($1.250/u), y **Néctar Watts Manzana 1,5L**, que además estaba en la
+  lista de "sin precio" ($0 → $2.250, 35,1%).
+
+**Lo que NO se tocó por ambigüedad de sabor**, aunque la marca coincidía:
+Monster gold/Limón/verde, Score Zero (¿es "Gorila Zero" o un "Original
+Zero" que la foto no muestra?), Néctar Watts Damasco/Naranja
+Manzana/Naranja Plátano/Tuttifrutilla (¿"Tuttifrutilla" es la "Frutilla"
+plana de la foto, o un sabor distinto?), Papas Molinova Original (la foto
+sólo mostró Barbecue y Queso), Pony Malta lata (la foto sólo mostró la
+botella), Postobón 600ml (la foto sólo mostró 400ml y 1,5L). Quedan con
+su proveedor y costo de siempre.
+
+### Cómo revertir
+
+Cada fila de Don Joaquín que ya existía antes de esta tanda (los 11 del
+hallazgo) sólo cambió de `priority`, no de costo — revertir es devolver
+las prioridades:
+
+```sql
+-- Volver a subir el proveedor viejo y bajar Don Joaquín, en los 19 pares que se tocaron
+update product_suppliers set priority = 1
+ where (product_id, supplier_id) in (
+   ('7801620000738','555f93cb-ec53-46c6-a506-6a8ea12d4be3'),
+   ('7801620011611','555f93cb-ec53-46c6-a506-6a8ea12d4be3'),
+   ('7801620011635','555f93cb-ec53-46c6-a506-6a8ea12d4be3'),
+   ('7801620853396','555f93cb-ec53-46c6-a506-6a8ea12d4be3'),
+   ('798190181738','e126abf1-0a37-41a6-94b5-0f1921c3a977'),
+   ('798190225043','e126abf1-0a37-41a6-94b5-0f1921c3a977'),
+   ('798190253701','e126abf1-0a37-41a6-94b5-0f1921c3a977'),
+   ('798190259970','e126abf1-0a37-41a6-94b5-0f1921c3a977'),
+   ('798190259994','e126abf1-0a37-41a6-94b5-0f1921c3a977'),
+   ('798190260020','e126abf1-0a37-41a6-94b5-0f1921c3a977'),
+   ('798190273884','e126abf1-0a37-41a6-94b5-0f1921c3a977'),
+   ('6917554959569','92415f52-2325-4de6-ac21-b3805dc7b564'),
+   ('070847009511','78d8e930-34cd-4b7d-aba0-2b8558257f0a'),
+   ('070847021964','78d8e930-34cd-4b7d-aba0-2b8558257f0a'),
+   ('070847035800','78d8e930-34cd-4b7d-aba0-2b8558257f0a'),
+   ('070847895268','78d8e930-34cd-4b7d-aba0-2b8558257f0a'),
+   ('7798422620137','78d8e930-34cd-4b7d-aba0-2b8558257f0a'),
+   ('7798422620199','78d8e930-34cd-4b7d-aba0-2b8558257f0a'),
+   ('7801620011604','92415f52-2325-4de6-ac21-b3805dc7b564')
+ );
+update product_suppliers set priority = 2
+ where supplier_id = '24859f82-3b61-4cb0-8dd6-bcfb1c6b6508'
+   and product_id in (
+    '798190259994','798190259970','798190253701','798190225043','798190181738',
+    '798190260020','798190273884','7801620011611','7801620000738','7801620011635','7801620853396'
+   );
+
+-- Los 4 sin proveedor previo: borrar directamente
+delete from product_suppliers where supplier_id = '24859f82-3b61-4cb0-8dd6-bcfb1c6b6508'
+  and product_id in ('7501013118063','6917554959590','7798422620168','7801620001902','6917554959569',
+                      '070847009511','070847021964','070847035800','070847895268','7798422620137','7798422620199','7801620011604');
+update products set sale_price=0, price_reviewed_at=null where barcode='7801620001902';
+```
+---
+
 ## Doctrinas del proyecto (no romper)
 
 Reglas que este código sostiene a propósito. Romperlas reintroduce errores que
