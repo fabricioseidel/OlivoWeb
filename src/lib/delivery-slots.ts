@@ -293,3 +293,19 @@ export function tiendaAbierta(dateStr: string, nowMin: number): boolean {
   if (!horario) return false;
   return nowMin >= toMinutes(horario.opens) && nowMin < toMinutes(horario.closes);
 }
+
+/**
+ * Horario de atención del local, en texto, derivado de la fuente única.
+ *
+ * Lo usa el aviso de por qué el envío flash no está disponible: ese envío sólo
+ * existe con el local abierto, así que el horario que se le muestra al cliente
+ * tiene que ser el mismo contra el que decide `tiendaAbierta`.
+ */
+export function horarioDeAtencionPublicable(): { semana: string; finDeSemana: string } {
+  const texto = (dateStr: string) => {
+    const h = openingHoursFor(dateStr);
+    return h ? `de ${h.opens} a ${h.closes}` : "cerrado";
+  };
+  // 2024-01-01 fue lunes y 2024-01-06 sábado.
+  return { semana: texto("2024-01-01"), finDeSemana: texto("2024-01-06") };
+}

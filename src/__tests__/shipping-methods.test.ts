@@ -8,7 +8,11 @@
  * caso para el que el flash existe.
  */
 import { describe, it, expect } from "vitest";
-import { armarOpcionesDeEnvio, type DisponibilidadEnvio } from "@/lib/shipping-methods";
+import {
+  armarOpcionesDeEnvio,
+  avisoFlashNoDisponible,
+  type DisponibilidadEnvio,
+} from "@/lib/shipping-methods";
 
 const RETIRO = [
   { id: "pickup", name: "Retirar en Tienda (Ñuñoa)", price: 0, days: "Te avisamos por correo" },
@@ -103,5 +107,34 @@ describe("lo que dice cada tarjeta", () => {
   it("sin envío gratis no hay precio tachado", () => {
     const [agendado] = armarOpcionesDeEnvio(base({ agendado: cotizado(1500) }), RETIRO);
     expect(agendado.originalPrice).toBeUndefined();
+  });
+});
+
+describe("por qué no está el flash", () => {
+  const horario = { semana: "de 07:45 a 20:30", finDeSemana: "de 10:00 a 18:00" };
+
+  it("con la tienda cerrada le dice el horario, no lo deja adivinando", () => {
+    // Es el caso que hizo perder tiempo: la opción desaparecía y no había cómo
+    // saber que el envío rápido existe. El cliente se iba creyendo que lo más
+    // rápido era la entrega de mañana.
+    const aviso = avisoFlashNoDisponible("tienda-cerrada", horario);
+    expect(aviso).toContain("07:45");
+    expect(aviso).toContain("20:30");
+  });
+
+  it("explica el pico de demanda sin echarle la culpa a Uber", () => {
+    expect(avisoFlashNoDisponible("sobre-el-tope", horario)).toMatch(/alta demanda/i);
+  });
+
+  it("sin cobertura ofrece la alternativa en vez de dejarlo en la nada", () => {
+    expect(avisoFlashNoDisponible("sin-cobertura", horario)).toMatch(/ronda de reparto/i);
+  });
+
+  it("no le nombra el flash a quien no lo tiene configurado", () => {
+    // Si la tienda no tiene Uber, mencionarle un servicio que no existe sólo
+    // genera la pregunta de por qué no puede usarlo.
+    expect(avisoFlashNoDisponible("no-configurado", horario)).toBeNull();
+    expect(avisoFlashNoDisponible(null, horario)).toBeNull();
+    expect(avisoFlashNoDisponible(undefined, horario)).toBeNull();
   });
 });
