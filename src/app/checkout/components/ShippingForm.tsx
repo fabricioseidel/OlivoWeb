@@ -41,6 +41,8 @@ interface ShippingFormProps {
   selectedMethod: string;
   onMethodChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isCalculating?: boolean;
+  /** Por qué no aparece el envío flash, si hay algo que explicar. */
+  avisoFlash?: string | null;
   fieldErrors?: Partial<Record<"fullName" | "email" | "phone" | "address", string>>;
 }
 
@@ -86,6 +88,7 @@ export default function ShippingForm({
   selectedMethod,
   onMethodChange,
   isCalculating,
+  avisoFlash,
   fieldErrors = {}
 }: ShippingFormProps) {
   
@@ -338,6 +341,12 @@ export default function ShippingForm({
         </div>
 
         <div className="space-y-4">
+          {avisoFlash && (
+            <p className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
+              {avisoFlash}
+            </p>
+          )}
+
           {(!shippingMethods.find(m => m.id === 'agendado')) && (
             <div className="flex items-center justify-between p-5 rounded-xl border border-dashed border-neutral-200 bg-neutral-50">
               <div className="flex items-center">

@@ -173,3 +173,18 @@ describe("la excepción de horario para pruebas", () => {
     }
   });
 });
+
+describe("el horario que se le publica al cliente", () => {
+  it("sale del horario real del local, no de un texto escrito a mano", async () => {
+    // Si divergieran, el aviso diría una hora y `tiendaAbierta` decidiría con
+    // otra, que es justo lo que hace que alguien pruebe y no entienda nada.
+    const { horarioDeAtencionPublicable, tiendaAbierta } = await import("@/lib/delivery-slots");
+    const h = horarioDeAtencionPublicable();
+    expect(h.semana).toBe("de 07:45 a 20:30");
+    expect(h.finDeSemana).toBe("de 10:00 a 18:00");
+
+    // Y el borde que publica es el borde que aplica.
+    expect(tiendaAbierta("2024-01-01", 20 * 60 + 29)).toBe(true);
+    expect(tiendaAbierta("2024-01-01", 20 * 60 + 30)).toBe(false);
+  });
+});

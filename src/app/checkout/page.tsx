@@ -26,8 +26,11 @@ import {
   RADIO_ZONA_PLANA_KM,
   TARIFA_ZONA_PLANA_CLP,
 } from "@/lib/shipping-policy";
-import { ventanaEconomicaPublicable } from "@/lib/delivery-slots";
-import { armarOpcionesDeEnvio } from "@/lib/shipping-methods";
+import {
+  ventanaEconomicaPublicable,
+  horarioDeAtencionPublicable,
+} from "@/lib/delivery-slots";
+import { armarOpcionesDeEnvio, avisoFlashNoDisponible } from "@/lib/shipping-methods";
 import { quoteFlash, MINIMO_FLASH_CLP_DEFAULT } from "@/lib/flash-policy";
 
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -680,6 +683,10 @@ export default function CheckoutPage() {
                     selectedMethod={selectedShippingMethod}
                     onMethodChange={(e) => setSelectedShippingMethod(e.target.value)}
                     isCalculating={isCalculatingDistance}
+                    avisoFlash={avisoFlashNoDisponible(
+                      flashUber?.disponible ? null : flashUber?.motivo,
+                      horarioDeAtencionPublicable()
+                    )}
                     fieldErrors={fieldErrors}
                   />
 

@@ -14,6 +14,7 @@ import { format, getHours, getMinutes } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { supabaseServer } from "@/lib/supabase-server";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { esAdmin } from "@/lib/api-auth";
 import { tiendaAbierta } from "@/lib/delivery-slots";
 import { quoteFlash, horarioIgnorado, MINIMO_FLASH_CLP_DEFAULT } from "@/lib/flash-policy";
 import { cotizarFlash, uberDirectConfigurado } from "@/server/uber-direct.service";
@@ -49,9 +50,17 @@ export async function POST(request: NextRequest) {
     // de la llamada, que es el punto de la regla — preguntar y descartar la
     // respuesta gastaría cuota igual.
     const ahora = toZonedTime(new Date(), TIMEZONE);
-    const abierta =
-      tiendaAbierta(format(ahora, "yyyy-MM-dd"), getHours(ahora) * 60 + getMinutes(ahora)) ||
-      horarioIgnorado();
+    const enHorario = tiendaAbierta(
+      format(ahora, "yyyy-MM-dd"),
+      getHours(ahora) * 60 + getMinutes(ahora)
+    );
+
+    // El dueño puede cotizar con el local cerrado: es la única forma de probar
+    // el flash fuera del horario de atención, y probarlo no cuesta nada —la
+    // entrega recién se crea cuando el pago se confirma—. Depende de la sesión
+    // y no de un dato del navegador, así que un cliente no puede activarlo.
+    const probandoComoAdmin = !enHorario && (await esAdmin());
+    const abierta = enHorario || probandoComoAdmin || horarioIgnorado();
 
     if (!abierta) {
       return NextResponse.json({ disponible: false, motivo: "tienda-cerrada" });
@@ -92,7 +101,7 @@ export async function POST(request: NextRequest) {
       ...quote,
       // Se informa para que no pase inadvertido que la tienda está cerrada y
       // el flash se está ofreciendo igual.
-      modoPrueba: horarioIgnorado() || undefined,
+      modoPrueba: probandoComoAdmin || horarioIgnorado() || undefined,
       etaMin: cotizacion?.etaMin ?? null,
       // El id se guarda para crear la entrega con el pago confirmado y para
       // poder revalidar contra la misma cotización.

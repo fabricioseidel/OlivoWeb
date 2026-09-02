@@ -15,6 +15,7 @@ import {
 } from '@/lib/flash-policy';
 import { cotizarFlash, uberDirectConfigurado } from '@/server/uber-direct.service';
 import { tiendaAbierta } from '@/lib/delivery-slots';
+import { esAdmin } from '@/lib/api-auth';
 import {
   MAX_ORDERS_PER_SLOT,
   economicoSlotEsValido,

@@ -67,3 +67,32 @@ export function armarOpcionesDeEnvio(
 
   return [...opciones, ...base];
 }
+
+/**
+ * Por qué el flash no está disponible, en palabras para el cliente.
+ *
+ * Devuelve `null` cuando no hay nada que explicar —el flash está disponible, o
+ * la tienda no lo tiene configurado y entonces no existe—. Existe porque la
+ * opción simplemente desaparecía: quien entraba fuera de horario no tenía cómo
+ * saber que el envío rápido existe, y se iba creyendo que lo más rápido era la
+ * entrega de mañana.
+ */
+export function avisoFlashNoDisponible(
+  motivo: string | null | undefined,
+  horario: { semana: string; finDeSemana: string }
+): string | null {
+  switch (motivo) {
+    case "tienda-cerrada":
+      return `El envío flash está disponible mientras el local está abierto: ${horario.semana} de lunes a viernes y ${horario.finDeSemana} sábados y domingos.`;
+    case "sobre-el-tope":
+      return "Ahora mismo el envío flash está más caro de lo habitual por alta demanda, así que no lo estamos ofreciendo. Podés agendar tu entrega.";
+    case "sin-cobertura":
+      return "El envío flash todavía no llega a esa dirección, pero sí podemos llevártelo en nuestra ronda de reparto.";
+    case "uber-no-responde":
+      return "No pudimos consultar el envío flash en este momento. Podés agendar tu entrega o volver a intentar en un rato.";
+    default:
+      // "no-configurado" incluido: si la tienda no tiene el flash, no hay por
+      // qué nombrarle al cliente un servicio que no existe.
+      return null;
+  }
+}
