@@ -132,24 +132,32 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       String((productData as any).barcode ?? productData.id ?? '').trim();
     if (!barcode) throw new Error('Se requiere un código (barcode)');
 
+    const offerPrice =
+      productData.offerPrice !== undefined
+        ? productData.offerPrice
+        : (productData as any).offer_price !== undefined
+        ? (productData as any).offer_price
+        : null;
+
     await saveProduct({
       barcode,
       name: productData.name ?? '',
       category: Array.isArray(productData.categories)
         ? productData.categories.join(', ')
         : (productData as any).category ?? null,
-      purchase_price: 0,
+      purchase_price: Number(productData.purchasePrice ?? (productData as any).purchase_price ?? 0),
       sale_price: Number(productData.price ?? 0),
       expiry_date: null,
       stock: Number(productData.stock ?? 0),
-      image_url: (productData as any).image ?? null,
+      image_url: (productData as any).image ?? (productData as any).image_url ?? null,
       gallery: (productData as any).gallery ?? null,
       featured: !!productData.featured,
       is_active: (productData as any).isActive ?? (productData as any).is_active ?? false,
-      measurement_unit: (productData as any).measurementUnit ?? null,
-      measurement_value: (productData as any).measurementValue ?? null,
-      suggested_price: (productData as any).suggestedPrice ?? null,
-      offer_price: (productData as any).offerPrice ?? null,
+      measurement_unit: (productData as any).measurementUnit ?? (productData as any).measurement_unit ?? null,
+      measurement_value: (productData as any).measurementValue ?? (productData as any).measurement_value ?? null,
+      suggested_price: (productData as any).suggestedPrice ?? (productData as any).suggested_price ?? null,
+      offer_price: offerPrice && Number(offerPrice) > 0 ? Number(offerPrice) : null,
+      description: productData.description ?? (productData as any).description ?? null,
     } as any);
 
     await load();
@@ -164,8 +172,22 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       throw new Error(`Producto ${id} no encontrado localmente para actualizar.`);
     }
 
+    // Resolucion explicita del precio de oferta:
+    // Si updateData trae offerPrice o offer_price (incluido null o 0), se actualiza.
+    // Si no viene definido en updateData, se conserva el que ya existia.
+    let resolvedOfferPrice = existing.offerPrice ?? null;
+    if (updateData.offerPrice !== undefined) {
+      resolvedOfferPrice = updateData.offerPrice && Number(updateData.offerPrice) > 0 ? Number(updateData.offerPrice) : null;
+    } else if ((updateData as any).offer_price !== undefined) {
+      resolvedOfferPrice = (updateData as any).offer_price && Number((updateData as any).offer_price) > 0 ? Number((updateData as any).offer_price) : null;
+    }
+
     // Combinar datos actuales con los nuevos cambios para evitar pérdida de campos
-    const merged: Product = { ...existing, ...updateData };
+    const merged: Product = {
+      ...existing,
+      ...updateData,
+      offerPrice: resolvedOfferPrice ? Math.round(resolvedOfferPrice) : undefined,
+    };
 
     // El stock viaja SOLO si esta edición lo tocó. `merged.stock` es el valor
     // que el navegador tenía cacheado: mandarlo siempre hacía que guardar
@@ -190,7 +212,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       measurement_unit: merged.measurementUnit,
       measurement_value: merged.measurementValue,
       suggested_price: merged.suggestedPrice,
-      offer_price: merged.offerPrice,
+      offer_price: resolvedOfferPrice ? Math.round(resolvedOfferPrice) : null,
       description: merged.description,
     } as any);
 
@@ -206,9 +228,21 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       const existing = fullProducts.find(p => String(p.id) === barcode);
       if (!existing) return null;
 
-      const merged = { ...existing, ...updates[id] };
+      const upd = updates[id];
+      let resolvedOfferPrice = existing.offerPrice ?? null;
+      if (upd.offerPrice !== undefined) {
+        resolvedOfferPrice = upd.offerPrice && Number(upd.offerPrice) > 0 ? Number(upd.offerPrice) : null;
+      } else if ((upd as any).offer_price !== undefined) {
+        resolvedOfferPrice = (upd as any).offer_price && Number((upd as any).offer_price) > 0 ? Number((upd as any).offer_price) : null;
+      }
+
+      const merged = {
+        ...existing,
+        ...upd,
+        offerPrice: resolvedOfferPrice ? Math.round(resolvedOfferPrice) : undefined,
+      };
       const stockEdit =
-        updates[id].stock === undefined ? {} : { stock: Number(updates[id].stock) };
+        upd.stock === undefined ? {} : { stock: Number(upd.stock) };
       return {
         barcode,
         ...stockEdit,
@@ -225,7 +259,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         measurement_unit: merged.measurementUnit,
         measurement_value: merged.measurementValue,
         suggested_price: merged.suggestedPrice,
-        offer_price: merged.offerPrice,
+        offer_price: resolvedOfferPrice ? Math.round(resolvedOfferPrice) : null,
         description: merged.description,
       };
     }).filter(Boolean) as any[];

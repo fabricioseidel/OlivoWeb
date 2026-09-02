@@ -394,6 +394,13 @@ export default function ShippingForm({
                           </svg>
                         </div>
                       )}
+                      {method.id === 'flash' && (
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                          </svg>
+                        </div>
+                      )}
                       <div>
                         <p className="mb-0.5 text-sm font-semibold leading-snug text-neutral-900">{method.name}</p>
                         <p className="text-xs leading-relaxed text-neutral-500">{method.days}</p>

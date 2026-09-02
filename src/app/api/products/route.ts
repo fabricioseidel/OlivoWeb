@@ -78,6 +78,7 @@ export async function GET() {
       name: p.name,
       slug: p.slug,
       price: p.price,
+      offerPrice: p.offerPrice,
       sale_price: undefined,
       image: p.image, // Use image field from ProductUI
       categories: p.categories,

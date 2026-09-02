@@ -152,18 +152,7 @@ export default function OfertasClient() {
               {filtered.map(product => (
                 <ProductCard
                   key={product.id}
-                  product={{
-                    id: product.id,
-                    name: product.name,
-                    slug: product.slug || product.id,
-                    price: product.price,
-                    offerPrice: product.offerPrice,
-                    image: product.image,
-                    categories: product.categories || [],
-                    description: product.description || "",
-                    featured: product.featured,
-                    stock: product.stock
-                  }}
+                  product={product}
                 />
               ))}
             </div>

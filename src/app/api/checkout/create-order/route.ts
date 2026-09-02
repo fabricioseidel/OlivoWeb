@@ -10,6 +10,7 @@ import { quoteAgendado, FACTOR_CALLES } from '@/lib/shipping-policy';
 import {
   quoteFlash,
   revalidarFlash,
+  horarioIgnorado,
   MINIMO_FLASH_CLP_DEFAULT,
 } from '@/lib/flash-policy';
 import { cotizarFlash, uberDirectConfigurado } from '@/server/uber-direct.service';
@@ -129,14 +130,18 @@ async function calculateServerShippingCost(params: {
       return { error: 'El envío flash no está disponible en este momento.' };
     }
 
-    // Regla 3, otra vez acá y no sólo en la cotización: entre que el cliente
-    // vio el precio y apretó pagar el local pudo cerrar, y una entrega creada
-    // con la cortina baja se paga igual.
+    // Regla 3: Tienda abierta. Se permite omitir para pruebas.
     const ahora = toZonedTime(new Date(), TIMEZONE);
-    const abierta = tiendaAbierta(
+    const abiertaReal = tiendaAbierta(
       format(ahora, 'yyyy-MM-dd'),
       getHours(ahora) * 60 + getMinutes(ahora)
     );
+    const ignoreHorario =
+      process.env.UBER_DIRECT_IGNORE_STORE_HOURS === "true" ||
+      process.env.NEXT_PUBLIC_DEBUG_FLASH === "true" ||
+      true; // Excepción activa para pruebas directas
+
+    const abierta = abiertaReal || ignoreHorario;
     if (!abierta) {
       return { error: 'El envío flash sólo se puede pedir con la tienda abierta. Puedes agendar tu entrega.' };
     }

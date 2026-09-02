@@ -10,6 +10,8 @@ import { useProducts } from "@/contexts/ProductContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { whatsappLink, cartInquiryMessage } from "@/utils/whatsapp";
 import { useSiteCopy } from "@/hooks/useSiteCopy";
+import { enTemporadaDieciochera, RUTA_FIESTAS_PATRIAS } from "@/lib/fiestas-patrias";
+import BanderaChile from "@/components/fiestas/BanderaChile";
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString("es-CL")}`;
 
@@ -79,7 +81,12 @@ export default function CartPage() {
     <div className="o-container o-section">
       <div className="mb-8 flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <h1 className="o-h1 text-neutral-900">Tu carrito</h1>
+          <h1 className="o-h1 text-neutral-900 flex items-center gap-2">
+            Tu carrito
+            {enTemporadaDieciochera() && (
+              <BanderaChile className="h-5 w-auto rounded-[1px] shadow-sm" />
+            )}
+          </h1>
           <p className="o-caption mt-1 text-neutral-500">
             {itemCount} {itemCount === 1 ? "producto" : "productos"}
           </p>
@@ -91,6 +98,24 @@ export default function CartPage() {
           Vaciar carrito
         </button>
       </div>
+
+      {enTemporadaDieciochera() && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-fp-crema p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <BanderaChile className="fp-ondea h-6 w-auto rounded-[1px] shadow-sm shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-fp-rojo">¿Te falta algo para la celebración del 18?</p>
+              <p className="text-xs text-neutral-600">Revisa nuestras empanadas de pino, carbón, pebre y abarrotes dieciocheros.</p>
+            </div>
+          </div>
+          <Link
+            href={RUTA_FIESTAS_PATRIAS}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-fp-rojo px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-fp-rojo-claro shadow-sm"
+          >
+            Ver Especial 18 &rarr;
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* ── Líneas del carrito ── */}

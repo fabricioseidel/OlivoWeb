@@ -284,6 +284,11 @@ export default function CheckoutPage() {
         if (!res.ok || cancelado) return;
         const d = await res.json();
         if (cancelado) return;
+        if (!d.disponible) {
+          console.info("[Envío Flash] No disponible en este momento:", d.motivo || "sin-motivo");
+        } else {
+          console.info("[Envío Flash] Cotizado exitosamente:", { costo: d.rawPrice, etaMin: d.etaMin, quoteId: d.quoteId });
+        }
         setFlashUber({
           disponible: Boolean(d.disponible),
           costo: typeof d.rawPrice === "number" && d.rawPrice > 0 ? d.rawPrice : null,
@@ -291,9 +296,8 @@ export default function CheckoutPage() {
           quoteId: d.quoteId ?? null,
           motivo: d.motivo ?? null,
         });
-      } catch {
-        // Que el flash no cotice no puede frenar el checkout: quedan las otras
-        // dos opciones y el cliente ni se entera.
+      } catch (err) {
+        console.warn("[Envío Flash] Error al consultar cotización:", err);
         if (!cancelado) setFlashUber(null);
       }
     })();
