@@ -27,6 +27,7 @@ import {
   TARIFA_ZONA_PLANA_CLP,
 } from "@/lib/shipping-policy";
 import { ventanaEconomicaPublicable } from "@/lib/delivery-slots";
+import { armarOpcionesDeEnvio } from "@/lib/shipping-methods";
 import { quoteFlash, MINIMO_FLASH_CLP_DEFAULT } from "@/lib/flash-policy";
 
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -164,37 +165,21 @@ export default function CheckoutPage() {
     });
   }, [flashUber, subtotal, storeSettings]);
 
-  const shippingMethods = useMemo(() => {
-    const list = [...baseShippingMethods];
-    if (!agendado?.disponible) return list;
-
-    // El texto sale de las ventanas reales, no se escribe a mano: si mañana
-    // cambia la ronda, cambia solo y no queda prometiendo un horario viejo.
-    const ventana = ventanaEconomicaPublicable();
-    const agendadoMethod: ShippingMethod = {
-      id: "agendado",
-      name: "Envío a domicilio (agendado)",
-      price: agendado.price,
-      // Tarifa antes del envío gratis, para tacharla en la tarjeta.
-      originalPrice: agendado.freeApplied ? agendado.rawPrice : undefined,
-      days: `Lo llevamos nosotros: lunes a viernes de ${ventana.semana}, sábados y domingos de ${ventana.finDeSemana}. Se agenda desde el día siguiente.`,
-    };
-
-    if (!flash?.disponible) return [agendadoMethod, ...list];
-
-    const eta = flashUber?.etaMin;
-    const flashMethod: ShippingMethod = {
-      id: "flash",
-      name: "Envío flash",
-      price: flash.price,
-      originalPrice: flash.freeApplied ? flash.rawPrice : undefined,
-      days: eta
-        ? `Lo lleva un repartidor de Uber, llega en unos ${eta} minutos.`
-        : "Lo lleva un repartidor de Uber, llega en menos de una hora.",
-    };
-
-    return [flashMethod, agendadoMethod, ...list];
-  }, [agendado, flash, flashUber]);
+  const shippingMethods = useMemo(
+    () =>
+      armarOpcionesDeEnvio(
+        {
+          agendado,
+          flash,
+          etaFlashMin: flashUber?.etaMin ?? null,
+          // El texto sale de las ventanas reales, no se escribe a mano: si
+          // mañana cambia la ronda, cambia solo.
+          ventanaAgendado: ventanaEconomicaPublicable(),
+        },
+        baseShippingMethods
+      ),
+    [agendado, flash, flashUber]
+  );
 
   const selectedMethod = shippingMethods.find((method) => method.id === selectedShippingMethod);
 
