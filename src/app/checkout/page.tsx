@@ -83,7 +83,18 @@ export default function CheckoutPage() {
     etaMin: number | null;
     quoteId: string | null;
     motivo: string | null;
+    /** Sólo llega si quien mira es administrador. */
+    diagnostico?: Record<string, unknown>;
   } | null>(null);
+
+  /**
+   * Por qué no se llegó ni a preguntarle a Uber.
+   *
+   * Sin esto, "falta la comuna en la dirección" y "faltan las credenciales" se
+   * ven exactamente igual desde el checkout: no pasa nada. Distinguirlos a ojo
+   * costó una tarde.
+   */
+  const [flashNoConsultado, setFlashNoConsultado] = useState<string | null>(null);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState("pickup");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("mercadopago");
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
@@ -266,8 +277,14 @@ export default function CheckoutPage() {
     const comuna = shippingInfo.city?.trim();
     if (!calle || !comuna) {
       setFlashUber(null);
+      setFlashNoConsultado(
+        !calle
+          ? "todavía no hay dirección"
+          : "la dirección no trae comuna — elegí una sugerencia del buscador"
+      );
       return;
     }
+    setFlashNoConsultado(null);
 
     let cancelado = false;
     (async () => {
@@ -298,6 +315,7 @@ export default function CheckoutPage() {
           etaMin: typeof d.etaMin === "number" ? d.etaMin : null,
           quoteId: d.quoteId ?? null,
           motivo: d.motivo ?? null,
+          diagnostico: d.diagnostico,
         });
       } catch (err) {
         console.warn("[Envío Flash] Error al consultar cotización:", err);
@@ -687,6 +705,13 @@ export default function CheckoutPage() {
                       flashUber?.disponible ? null : flashUber?.motivo,
                       horarioDeAtencionPublicable()
                     )}
+                    diagnosticoFlash={
+                      flashNoConsultado
+                        ? { motivo: "no-consultado", detalle: flashNoConsultado }
+                        : flashUber?.diagnostico
+                          ? { motivo: flashUber.motivo, ...flashUber.diagnostico }
+                          : null
+                    }
                     fieldErrors={fieldErrors}
                   />
 
