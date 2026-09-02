@@ -177,14 +177,26 @@ export async function cotizarFlash(destino: DestinoFlash): Promise<CotizacionFla
 
   if (!r.ok) {
     let code = "";
+    let detalle = "";
     try {
-      code = JSON.parse(texto)?.code || "";
+      const err = JSON.parse(texto);
+      code = err?.code || "";
+      // El `code` solo no alcanza para arreglar nada: `invalid_params` puede
+      // ser el teléfono, la dirección o un customer_id que no corresponde a
+      // las credenciales. Uber dice cuál en `message` y `metadata`, y perder
+      // eso costó una tarde de tanteo.
+      detalle = [err?.message, err?.metadata ? JSON.stringify(err.metadata) : ""]
+        .filter(Boolean)
+        .join(" ");
     } catch {
-      // Cuerpo no-JSON: se trata como error genérico más abajo.
+      // Cuerpo no-JSON: se conserva crudo, recortado.
+      detalle = texto.slice(0, 300);
     }
     // Fuera del área de reparto de Uber. No es una falla: es un "no".
     if (code === "address_undeliverable") return null;
-    throw new Error(`Uber: cotización falló (HTTP ${r.status}) ${code}`);
+    throw new Error(
+      `Uber: cotización falló (HTTP ${r.status}) ${code}${detalle ? ` — ${detalle}` : ""}`
+    );
   }
 
   const q = JSON.parse(texto);
@@ -262,7 +274,7 @@ export async function crearEntregaFlash(params: {
   });
 
   const texto = await r.text();
-  if (!r.ok) throw new Error(`Uber: crear entrega falló (HTTP ${r.status}) ${texto.slice(0, 200)}`);
+  if (!r.ok) throw new Error(`Uber: crear entrega falló (HTTP ${r.status}) ${texto.slice(0, 400)}`);
 
   const d = JSON.parse(texto);
   return { id: d.id, tracking: d.tracking_url ?? null };

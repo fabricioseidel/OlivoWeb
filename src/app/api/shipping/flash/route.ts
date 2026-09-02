@@ -51,6 +51,13 @@ export async function POST(request: NextRequest) {
         ? {
             diagnostico: {
               credencialesCargadas: uberDirectConfigurado(),
+              // Los primeros caracteres alcanzan para reconocer si son las de
+              // producción o las de prueba, que es el error que más cuesta ver
+              // cuando son tres valores y basta con mezclar uno. Nunca se
+              // muestra el secret.
+              customerId: (process.env.UBER_DIRECT_CUSTOMER_ID || "").slice(0, 8) || "(vacío)",
+              clientId: (process.env.UBER_DIRECT_CLIENT_ID || "").slice(0, 8) || "(vacío)",
+              secretCargado: Boolean(process.env.UBER_DIRECT_CLIENT_SECRET),
               ...extra,
             },
           }
