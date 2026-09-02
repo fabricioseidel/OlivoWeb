@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireApiAdmin } from '@/lib/api-auth';
 import { format, getHours, getMinutes } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
@@ -20,7 +20,11 @@ export async function GET() {
   const clientId = process.env.UBER_DIRECT_CLIENT_ID || '';
   const clientSecret = process.env.UBER_DIRECT_CLIENT_SECRET || '';
 
-  // 1. Variables de entorno
+  // 1. Variables de entorno.
+  //
+  // Del customer y del client id se muestran sólo los primeros caracteres, lo
+  // justo para reconocer si son los de producción o los de prueba. El secret
+  // no se muestra nunca: `Check.detail` va al navegador.
   if (!customerId || !clientId || !clientSecret) {
     const missing = [
       !customerId && 'UBER_DIRECT_CUSTOMER_ID',
@@ -32,7 +36,7 @@ export async function GET() {
       id: 'env-vars',
       label: 'Credenciales de Uber Direct',
       status: 'error',
-      detail: Faltan variables en Vercel: ,
+      detail: `Faltan variables en Vercel: ${missing.join(', ')}`,
       hint: 'Agrégalas en Vercel → Settings → Environment Variables y asegúrate de hacer un Redeploy.',
     });
   } else {
@@ -40,7 +44,7 @@ export async function GET() {
       id: 'env-vars',
       label: 'Credenciales de Uber Direct',
       status: 'ok',
-      detail: Configurado. Customer ID: … | Client ID: …,
+      detail: `Configurado. Customer ID: ${customerId.slice(0, 8)}… | Client ID: ${clientId.slice(0, 8)}…`,
     });
   }
 
@@ -56,7 +60,7 @@ export async function GET() {
     id: 'tienda-abierta',
     label: 'Horario comercial (Santiago de Chile)',
     status: abierta ? 'ok' : 'warn',
-    detail: Hora actual en Chile: . Estado: .,
+    detail: `Hora actual en Chile: ${horaStr}. Estado: ${abierta ? 'Abierta' : 'Cerrada'}.`,
     hint: abierta
       ? undefined
       : 'El envío flash se oculta automáticamente cuando la tienda está cerrada (L-V 07:45–20:30, S-D 10:00–18:00) para evitar que Uber cobre viajes sin personal para despachar.',
@@ -76,7 +80,7 @@ export async function GET() {
           id: 'test-quote',
           label: 'Prueba de cotización en vivo (Ñuñoa)',
           status: 'ok',
-          detail: Cotización exitosa. Costo: {q.costoCLP.toLocaleString('es-CL')} CLP · ETA estimado:  min · Quote ID: …,
+          detail: `Cotización exitosa. Costo: $${q.costoCLP.toLocaleString('es-CL')} CLP · ETA estimado: ${q.etaMin ?? '?'} min · Quote ID: ${q.quoteId.slice(0, 12)}…`,
         });
       } else {
         checks.push({
@@ -86,12 +90,12 @@ export async function GET() {
           detail: 'Uber respondió que la dirección de prueba no tiene cobertura.',
         });
       }
-    } catch (err: any) {
+    } catch (err) {
       checks.push({
         id: 'test-quote',
         label: 'Prueba de cotización en vivo',
         status: 'error',
-        detail: Error al conectar con la API de Uber: ,
+        detail: `Error al conectar con la API de Uber: ${err instanceof Error ? err.message : 'error desconocido'}`,
         hint: 'Verifica que el Client ID, Client Secret y Customer ID sean válidos en el portal de desarrolladores de Uber.',
       });
     }

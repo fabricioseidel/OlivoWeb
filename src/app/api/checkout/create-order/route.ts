@@ -10,6 +10,7 @@ import { quoteAgendado, FACTOR_CALLES } from '@/lib/shipping-policy';
 import {
   quoteFlash,
   revalidarFlash,
+  horarioIgnorado,
   MINIMO_FLASH_CLP_DEFAULT,
 } from '@/lib/flash-policy';
 import { cotizarFlash, uberDirectConfigurado } from '@/server/uber-direct.service';

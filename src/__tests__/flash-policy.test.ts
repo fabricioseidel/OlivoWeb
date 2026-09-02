@@ -1,7 +1,7 @@
 /**
  * Reglas del envío flash. Todo lo que decide si se ofrece y a cuánto.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import {
   quoteFlash,
   revalidarFlash,
@@ -140,6 +140,36 @@ describe("tienda abierta (regla 3)", () => {
   it("de madrugada nunca está abierta", () => {
     for (const dia of [LUNES, SABADO]) {
       expect(tiendaAbierta(dia, min(3))).toBe(false);
+    }
+  });
+});
+
+describe("la excepción de horario para pruebas", () => {
+  const original = process.env.UBER_DIRECT_IGNORE_STORE_HOURS;
+  afterEach(() => {
+    if (original === undefined) delete process.env.UBER_DIRECT_IGNORE_STORE_HOURS;
+    else process.env.UBER_DIRECT_IGNORE_STORE_HOURS = original;
+  });
+
+  it("está apagada mientras nadie la encienda", async () => {
+    // Lo importante: por defecto la regla 3 rige. Una versión anterior tenía
+    // un `|| true` fijo que la dejaba desactivada siempre, en producción y
+    // para todos los clientes.
+    delete process.env.UBER_DIRECT_IGNORE_STORE_HOURS;
+    const { horarioIgnorado } = await import("@/lib/flash-policy");
+    expect(horarioIgnorado()).toBe(false);
+  });
+
+  it("se enciende sólo con el valor exacto", async () => {
+    const { horarioIgnorado } = await import("@/lib/flash-policy");
+    process.env.UBER_DIRECT_IGNORE_STORE_HOURS = "true";
+    expect(horarioIgnorado()).toBe(true);
+
+    // Cualquier otra cosa no cuenta: un "1" o un "yes" olvidado en Vercel no
+    // debería desactivar la regla sin que nadie lo note.
+    for (const valor of ["1", "yes", "TRUE", "", "false"]) {
+      process.env.UBER_DIRECT_IGNORE_STORE_HOURS = valor;
+      expect(horarioIgnorado()).toBe(false);
     }
   });
 });

@@ -44,7 +44,12 @@ export type ProductUI = {
   measurementUnit?: string;
   measurementValue?: number;
   suggestedPrice?: number;
-  offerPrice?: number;
+  /**
+   * Precio de oferta. `null` es "sacale la oferta", que no es lo mismo que
+   * `undefined` —"no toques este campo"—: la columna es nullable en la base y
+   * la ficha de producto necesita poder limpiarla.
+   */
+  offerPrice?: number | null;
   isActive?: boolean;
   barcode?: string;
   purchasePrice?: number;
