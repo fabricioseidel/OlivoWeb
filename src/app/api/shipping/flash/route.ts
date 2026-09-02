@@ -15,10 +15,11 @@ import { toZonedTime } from "date-fns-tz";
 import { supabaseServer } from "@/lib/supabase-server";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { tiendaAbierta } from "@/lib/delivery-slots";
-import { quoteFlash, MINIMO_FLASH_CLP_DEFAULT } from "@/lib/flash-policy";
+import { quoteFlash, horarioIgnorado, MINIMO_FLASH_CLP_DEFAULT } from "@/lib/flash-policy";
 import { cotizarFlash, uberDirectConfigurado } from "@/server/uber-direct.service";
 
 const TIMEZONE = "America/Santiago";
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,21 +45,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Falta la dirección de destino." }, { status: 400 });
     }
 
-    // Regla 3: Horario comercial. Se permite omitir para pruebas si viene el flag ignoreStoreHours o variable de entorno.
+    // Regla 3: no se llama a Uber con la tienda cerrada. Se comprueba **antes**
+    // de la llamada, que es el punto de la regla — preguntar y descartar la
+    // respuesta gastaría cuota igual.
     const ahora = toZonedTime(new Date(), TIMEZONE);
-    const abiertaReal = tiendaAbierta(
-      format(ahora, "yyyy-MM-dd"),
-      getHours(ahora) * 60 + getMinutes(ahora)
-    );
-    const ignoreHorario =
-      Boolean((await (async () => {
-        try { return (body as any)?.ignoreStoreHours; } catch { return false; }
-      })())) ||
-      process.env.UBER_DIRECT_IGNORE_STORE_HOURS === "true" ||
-      process.env.NEXT_PUBLIC_DEBUG_FLASH === "true" ||
-      true; // Excepción activa para pruebas directas
+    const abierta =
+      tiendaAbierta(format(ahora, "yyyy-MM-dd"), getHours(ahora) * 60 + getMinutes(ahora)) ||
+      horarioIgnorado();
 
-    const abierta = abiertaReal || ignoreHorario;
     if (!abierta) {
       return NextResponse.json({ disponible: false, motivo: "tienda-cerrada" });
     }
@@ -96,6 +90,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ...quote,
+      // Se informa para que no pase inadvertido que la tienda está cerrada y
+      // el flash se está ofreciendo igual.
+      modoPrueba: horarioIgnorado() || undefined,
       etaMin: cotizacion?.etaMin ?? null,
       // El id se guarda para crear la entrega con el pago confirmado y para
       // poder revalidar contra la misma cotización.

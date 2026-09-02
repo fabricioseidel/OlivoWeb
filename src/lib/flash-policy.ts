@@ -170,3 +170,22 @@ export function revalidarFlash(params: {
     diferenciaAbsorbida: 0,
   };
 }
+
+/**
+ * ¿Se está salteando el horario para poder probar el flash fuera de hora?
+ *
+ * Existe porque el flash sólo se puede ver con la tienda abierta, y eso deja
+ * las pruebas atadas al horario del local. Pero se decide **sólo en el
+ * servidor**: una versión anterior aceptaba un `ignoreStoreHours` que venía en
+ * el cuerpo del pedido, y eso lo puede mandar cualquiera desde el navegador
+ * —con lo cual la regla dejaba de existir para todos, no sólo para quien
+ * prueba—. Además terminaba en un `|| true` fijo, así que quedaba desactivada
+ * siempre.
+ *
+ * Con la variable puesta, un cliente podría pedir un flash de madrugada y no
+ * habría nadie en el local para entregarle el paquete al repartidor, que se
+ * cobra igual. Se enciende para probar y se apaga.
+ */
+export function horarioIgnorado(): boolean {
+  return process.env.UBER_DIRECT_IGNORE_STORE_HOURS === "true";
+}
