@@ -43,6 +43,11 @@ interface ShippingFormProps {
   isCalculating?: boolean;
   /** Por qué no aparece el envío flash, si hay algo que explicar. */
   avisoFlash?: string | null;
+  /**
+   * Detalle técnico del envío flash. Sólo llega cuando quien mira es
+   * administrador; para un cliente siempre es `null`.
+   */
+  diagnosticoFlash?: Record<string, unknown> | null;
   fieldErrors?: Partial<Record<"fullName" | "email" | "phone" | "address", string>>;
 }
 
@@ -89,6 +94,7 @@ export default function ShippingForm({
   onMethodChange,
   isCalculating,
   avisoFlash,
+  diagnosticoFlash,
   fieldErrors = {}
 }: ShippingFormProps) {
   
@@ -345,6 +351,27 @@ export default function ShippingForm({
             <p className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
               {avisoFlash}
             </p>
+          )}
+
+          {/* Sólo para administradores: por qué el envío flash no está. Sin
+              esto, "falta la comuna" y "faltan las credenciales" se ven igual
+              desde acá —no pasa nada— y distinguirlos obliga a leer logs. */}
+          {diagnosticoFlash && (
+            <details className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm">
+              <summary className="cursor-pointer font-semibold text-sky-900">
+                Envío flash: diagnóstico (sólo lo ves vos)
+              </summary>
+              <dl className="mt-2 space-y-1 text-sky-900">
+                {Object.entries(diagnosticoFlash).map(([k, v]) => (
+                  <div key={k} className="flex gap-2">
+                    <dt className="font-medium">{k}:</dt>
+                    <dd className="tabular">
+                      {typeof v === "boolean" ? (v ? "sí" : "NO") : String(v ?? "—")}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </details>
           )}
 
           {(!shippingMethods.find(m => m.id === 'agendado')) && (
