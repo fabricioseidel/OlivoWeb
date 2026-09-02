@@ -13,6 +13,8 @@ import { isProductVisible } from "@/services/products";
 import { buildSingleProductLink } from "@/utils/whatsapp";
 import { WHATSAPP_PHONE } from "@/config/constants";
 import ProductCard from "@/components/ProductCard";
+import { enTemporadaDieciochera, esProductoDieciochero } from "@/lib/fiestas-patrias";
+import BanderaChile from "@/components/fiestas/BanderaChile";
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
 
@@ -150,11 +152,19 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
                 alt={product.name}
                 className="max-h-full max-w-full object-contain"
               />
-              {hasDiscount && (
-                <span className="absolute left-4 top-4 rounded-md bg-red-600 px-2.5 py-1 text-sm font-semibold text-white">
-                  −{discountPercent}%
-                </span>
-              )}
+              <div className="absolute left-4 top-4 z-10 flex flex-col items-start gap-1.5 pointer-events-none">
+                {enTemporadaDieciochera() && esProductoDieciochero(product) && (
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-fp-rojo px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+                    <BanderaChile className="h-3 w-auto rounded-[1px]" />
+                    Especial 18 🇨🇱
+                  </span>
+                )}
+                {hasDiscount && (
+                  <span className="rounded-md bg-red-600 px-2.5 py-1 text-sm font-semibold text-white">
+                    −{discountPercent}%
+                  </span>
+                )}
+              </div>
               {loadingDetails && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/60">
                   <div className="size-7 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
@@ -314,18 +324,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
               {relatedProducts.map((relatedProduct) => (
                 <ProductCard
                   key={relatedProduct.id}
-                  product={{
-                    id: relatedProduct.id,
-                    name: relatedProduct.name,
-                    slug: relatedProduct.slug || relatedProduct.id,
-                    price: relatedProduct.price,
-                    offerPrice: relatedProduct.offerPrice,
-                    image: relatedProduct.image,
-                    categories: relatedProduct.categories || [],
-                    description: relatedProduct.description || "",
-                    featured: relatedProduct.featured,
-                    stock: relatedProduct.stock
-                  }}
+                  product={relatedProduct}
                 />
               ))}
             </div>
