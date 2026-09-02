@@ -2,6 +2,8 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
+import { elegirComuna } from "@/lib/direccion";
+
 export type AddressResult = {
   formattedAddress: string;
   street?: string | null;
@@ -103,7 +105,13 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
     const addr = item.address || {};
     const street = addr.road || addr.pedestrian || addr.street || null;
     const streetNumber = addr.house_number || null;
-    const city = addr.city || addr.town || addr.village || addr.county || null;
+    // La comuna no sale de `city`. En el Gran Santiago, OpenStreetMap pone ahí
+    // la ciudad —"Santiago"— y la comuna queda en `municipality`,
+    // `city_district` o `suburb`, según la dirección. Leer sólo `city` hacía
+    // que toda dirección de Ñuñoa, Macul o Peñalolén se guardara como
+    // "Santiago", y así se le mandaba a Uber y quedaba en el pedido.
+    const comuna = elegirComuna(addr);
+    const city = comuna.nombre;
     const state = addr.state || addr.region || null;
     const postal = addr.postcode || null;
     const countryComp = addr.country || null;
