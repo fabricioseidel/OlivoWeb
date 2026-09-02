@@ -1527,6 +1527,63 @@ update products set sale_price=0, price_reviewed_at=null where barcode='78016200
 ```
 ---
 
+## Poner el envío flash en producción: lo que costó (2026-09-02)
+
+Tres días de "no aparece la opción" que no fueron un bug del flash. Queda
+escrito porque cada causa era invisible desde el checkout: la opción
+simplemente no estaba.
+
+### Las cuatro causas, en el orden en que aparecieron
+
+1. **`main` no compilaba.** Entraron tres errores de sintaxis —backticks
+   perdidos al pegar código, un `body` inexistente, un tipo que no admitía
+   `null`— y Vercel dejó de publicar. Mientras eso pasa, **cargar variables de
+   entorno no cambia nada**: el sitio sigue sirviendo el deploy viejo. Cuatro
+   deploys de producción seguidos en `ERROR` y nadie lo notó, porque el sitio
+   andaba: servía la versión anterior.
+
+2. **El flash estaba atado al agendado.** Un `return` temprano en el `useMemo`
+   del checkout evaluaba el flash sólo si el agendado estaba disponible. Una
+   dirección fuera de la ronda propia pero dentro de la cobertura de Uber no
+   veía ninguna opción de envío.
+
+3. **Se probó con el local cerrado.** A las 20:31 y 20:57, con cierre a las
+   20:30. La regla 3 funcionó exactamente como se diseñó y ocultó la opción.
+   Los logs lo confirmaron: `/api/shipping/flash` respondió **200 sin un solo
+   error**, que es la firma de "la regla cortó antes de llamar a Uber".
+
+4. **Las variables de entorno no llegan sin redeploy.** Vercel las inyecta
+   cuando construye; agregarlas después no toca los deploys existentes. Un
+   deployment `READY` con el código correcto puede no tener las credenciales.
+
+### Cómo diagnosticarlo sin adivinar
+
+- **`/api/admin/uber-direct/diagnostico`** (requiere sesión admin) dice en un
+  solo lugar si las credenciales están cargadas, si la tienda está abierta y si
+  una cotización real a Ñuñoa funciona, con precio y ETA.
+- **Los logs de runtime de Vercel**: un `200` limpio en `/api/shipping/flash`
+  significa que la ruta decidió no ofrecerlo (tienda cerrada, sin cobertura,
+  sobre el tope, sin credenciales). Un `[flash] no se pudo cotizar` significa
+  que Uber falló de verdad.
+- **La hora importa y engaña.** Los logs vienen en UTC y Chile está en UTC-4
+  hasta el primer domingo de septiembre. 00:57 UTC son las 20:57 de Chile, o
+  sea con el local ya cerrado.
+
+### Lo que se agregó para que no vuelva a pasar
+
+- **El checkout dice por qué no está el flash** en vez de esconderlo: horario,
+  pico de demanda, sin cobertura o Uber sin responder. A quien no tiene el
+  flash configurado no se le nombra, para no ofrecerle un servicio inexistente.
+- **Un admin logueado puede cotizar y comprar flash con el local cerrado**, sin
+  variables ni redeploy. Depende de la sesión, no de un dato del navegador, así
+  que un cliente no puede activarlo. Ojo: completar el pedido sí manda un
+  repartidor de verdad.
+- `UBER_DIRECT_IGNORE_STORE_HOURS=true` sigue existiendo para pruebas sin
+  sesión. **Se enciende y se apaga**: con eso puesto, cualquier cliente puede
+  pedir flash de madrugada.
+
+---
+
 ## Doctrinas del proyecto (no romper)
 
 Reglas que este código sostiene a propósito. Romperlas reintroduce errores que
