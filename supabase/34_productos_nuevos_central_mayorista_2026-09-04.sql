@@ -36,7 +36,7 @@ with proveedor as (
 lista(product_id, precio_con_iva, unidades) as (
   values
     ('900000000114'::text, 1690::numeric,  1::numeric),  -- el paquete de 8 se compra y se vende entero
-    ('900000000115',       6390,          20),           -- bolsa de 20 unidades
+    ('900000000115',       5500,          20),           -- bolsa de 20 en promo, lista $6.390
     ('900000000116',        240,           1),
     ('900000000117',        820,           1),
     ('900000000118',        600,           1),
@@ -72,3 +72,18 @@ commit;
 -- Los ocho productos nuevos quedan con stock 0 y sin foto: no aparecen en la
 -- tienda pública hasta que se les cargue imagen (isProductVisible exige foto,
 -- categoría, precio y costo), pero ya se pueden vender en el POS.
+
+-- Costos de promoción: la lista del proveedor muestra el precio completo, pero
+-- el Orly trufa y la bolsa de chokitas se compraron en oferta. Se guarda lo que
+-- efectivamente se pagó (es el costo con el que hay que medir el margen) y el
+-- precio de lista queda en product_suppliers.notes, para que la próxima compra
+-- a precio normal no parezca un alza inexplicada.
+update product_suppliers
+set notes = 'Comprado en promoción a $950 con IVA (lista: $1.300)'
+where product_id = '7802200893498'
+  and supplier_id = (select id from suppliers where name = 'Central Mayorista');
+
+update product_suppliers
+set notes = 'Comprado en promoción a $5.500 la bolsa de 20 con IVA (lista: $6.390)'
+where product_id = '900000000115'
+  and supplier_id = (select id from suppliers where name = 'Central Mayorista');

@@ -11,7 +11,7 @@ lista(product_id, precio_con_iva, unidades) as (
   values
     ('7802810006332'::text,  240::numeric,  1::numeric),  -- Jugo Watts Durazno 200 Ml
     ('400050659638',         810,           1),           -- Atún Lomitos en Agua 160 Gr Smart Price
-    ('7802200893498',       1300,           1),           -- Orly trufa 95g (Ambrosoli)
+    ('7802200893498',        950,           1),           -- Orly trufa 95g (Ambrosoli) - promo, lista $1.300
     ('7802800535569',      15890,          24),           -- Papas Kryspo Original 37g (display 24 tarros)
     ('7622201693152',        650,           1),           -- Galleta Oreo Chocolate 108 Gr
     ('7622201693091',        650,           1),           -- Galleta Oreo Original 108 Gr
