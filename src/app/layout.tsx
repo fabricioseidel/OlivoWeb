@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { unstable_cache } from "next/cache";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import Providers from "./providers";
 import AppShell from "@/components/layout/AppShell";
 import { DevErrorBoundary } from "@/components/debug/DevErrorBoundary";
@@ -42,6 +43,9 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: faviconUrl
       ? { icon: faviconUrl, shortcut: faviconUrl, apple: faviconUrl }
       : undefined,
+    verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+      ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+      : undefined,
   };
 }
 
@@ -52,6 +56,8 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  
   return (
     <html lang="es-CL" className="h-full" suppressHydrationWarning>
       <body className={`${inter.className} h-full bg-gray-50 antialiased`} suppressHydrationWarning>
@@ -63,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </Providers>
         <Analytics />
       </body>
+      {gaId && <GoogleAnalytics gaId={gaId} />}
     </html>
   );
 }
