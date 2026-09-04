@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
+import { precioEfectivo } from "@/lib/pricing";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     const { data: dbProducts, error } = await supabaseServer
       .from("products")
-      .select("id, barcode, name, sale_price, stock, is_active")
+      .select("id, barcode, name, sale_price, offer_price, stock, is_active")
       .in("barcode", itemIds);
 
     if (error) {
@@ -92,11 +93,26 @@ export async function POST(req: NextRequest) {
         updatePayload.availableQty = disponible;
       }
 
-      // Validar Precio
-      if (dbProduct.sale_price !== item.price) {
+      /**
+       * Validar precio contra lo que realmente se cobra.
+       *
+       * Acá se comparaba `sale_price` crudo contra el precio del carrito, y eso
+       * rompía las ofertas: la vitrina agrega al carrito el precio de oferta,
+       * así que todo producto en oferta salía como "cambió de precio" y el
+       * carrito se reescribía con el precio de lista, más caro. El cliente veía
+       * cómo le sacaban el descuento justo antes de pagar.
+       *
+       * `precioEfectivo` es la misma función que usa la vitrina y la que cobra
+       * `create-order`, y redondea a pesos de los dos lados: sin eso, un
+       * `sale_price` con decimales en la base contra el precio ya redondeado
+       * del carrito también inventaba un cambio de precio.
+       */
+      const precioReal = precioEfectivo(dbProduct.sale_price, dbProduct.offer_price);
+      if (precioReal !== Math.round(Number(item.price))) {
         needsUpdate = true;
         updatePayload.priceChanged = true;
-        updatePayload.newPrice = dbProduct.sale_price;
+        updatePayload.newPrice = precioReal;
+        updatePayload.oldPrice = Math.round(Number(item.price));
       }
 
       if (needsUpdate) {

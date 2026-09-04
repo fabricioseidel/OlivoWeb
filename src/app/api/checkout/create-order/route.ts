@@ -7,6 +7,7 @@ import { recordCouponUsage, getCouponByCode, validateCoupon } from '@/server/cou
 import { earnPoints, redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
 import { quoteAgendado, FACTOR_CALLES } from '@/lib/shipping-policy';
+import { precioEfectivo } from '@/lib/pricing';
 import {
   quoteFlash,
   revalidarFlash,
@@ -334,7 +335,7 @@ export async function POST(request: NextRequest) {
     // CartItem.id corresponde al barcode del producto (ver mapSupaToUI en services/products.ts)
     const { data: dbProducts, error: productsErr } = await supabaseServer
       .from('products')
-      .select('id, barcode, stock, name, sale_price, is_active')
+      .select('id, barcode, stock, name, sale_price, offer_price, is_active')
       .in('barcode', items.map((i: any) => i.id));
 
     if (productsErr || !dbProducts) {
@@ -386,11 +387,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Cantidad inválida para ${dbProduct.name}.` }, { status: 400 });
       }
 
-      calculatedSubtotal += dbProduct.sale_price * quantity;
+      // Se cobra el precio efectivo — la oferta si la hay, la lista si no —,
+      // que es el mismo que la vitrina puso en el carrito. Acá se cobraba
+      // `sale_price` a secas, ignorando la oferta: el 14-08-2026 un pedido real
+      // salió $800 por encima de lo que el cliente vio en pantalla.
+      const precioUnitario = precioEfectivo(dbProduct.sale_price, dbProduct.offer_price);
+
+      calculatedSubtotal += precioUnitario * quantity;
       validatedOrderItems.push({
         product_id: dbProduct.id,
         name: dbProduct.name,
-        price: dbProduct.sale_price,
+        price: precioUnitario,
         quantity,
         image: item.image
       });

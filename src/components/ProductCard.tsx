@@ -13,6 +13,7 @@ import { ProductUI } from '@/types';
 import { formatCLP } from "@/utils/currency";
 import { enTemporadaDieciochera, esProductoDieciochero } from "@/lib/fiestas-patrias";
 import BanderaChile from "@/components/fiestas/BanderaChile";
+import { precioEfectivo, hayOferta } from "@/lib/pricing";
 
 const formatCurrency = formatCLP;
 
@@ -42,8 +43,11 @@ function ProductCard({ product }: Props) {
 
   const basePrice = product.price;
   const offerPrice = product.offerPrice;
-  const hasDiscount = !!(offerPrice && offerPrice > 0 && offerPrice < basePrice);
-  const effectivePrice = hasDiscount ? offerPrice : basePrice;
+  // La regla de qué precio se cobra vive en `pricing`, no acá: es la misma que
+  // aplican /api/cart/validate y create-order. Cuando estaba escrita en cada
+  // pantalla, el carrito y el pedido terminaban en otro número que la vitrina.
+  const effectivePrice = precioEfectivo(basePrice, offerPrice);
+  const hasDiscount = hayOferta(basePrice, offerPrice);
 
   const discountPercent = hasDiscount
     ? Math.round(((basePrice - offerPrice!) / basePrice) * 100)
