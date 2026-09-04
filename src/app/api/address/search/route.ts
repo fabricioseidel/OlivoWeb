@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { BUSINESS } from "@/lib/seo/business";
+import { autocompletar, googlePlacesConfigurado } from "@/server/google-places.service";
 
 // Simple in-memory cache to reduce load on Nominatim
 // Key: query string, Value: { timestamp: number, data: any }
@@ -117,6 +118,10 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const q = searchParams.get("q");
   const country = searchParams.get("country") || "cl";
+  // Identifica la sesión de tipeo. Con él, Google cobra todo lo que el cliente
+  // escriba más el detalle del lugar que elija como UNA sola búsqueda, en vez
+  // de un cobro por cada tecla.
+  const session = searchParams.get("session") || "";
 
   if (!q) {
     return NextResponse.json({ error: "Query parameter 'q' is required" }, { status: 400 });
@@ -147,6 +152,21 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Google primero cuando hay clave: es el único de los dos que tiene la
+    // numeración domiciliaria chilena. Si falla —cuota agotada, clave mal
+    // puesta, caída— se sigue con Nominatim en vez de dejar el checkout sin
+    // buscador de direcciones.
+    if (googlePlacesConfigurado() && session) {
+      try {
+        const sugerencias = await autocompletar(q, session);
+        if (sugerencias.length > 0) {
+          cache.set(cacheKey, { timestamp: now, data: sugerencias });
+          return NextResponse.json(sugerencias);
+        }
+      } catch (e) {
+        console.warn("[address] Google Places falló, se usa Nominatim:", e);
+      }
+    }
 
     // La política de uso de Nominatim exige un User-Agent que identifique a la
     // aplicación con un contacto real y alcanzable. Antes decía
@@ -179,7 +199,10 @@ export async function GET(request: NextRequest) {
       consultas[1] ?? Promise.resolve([] as any[]),
     ]);
 
-    const data = ordenarPorCercania(dedupe([...estructurados, ...libres])).slice(0, 6);
+    const data = ordenarPorCercania(dedupe([...estructurados, ...libres]))
+      .slice(0, 6)
+      // Nominatim ya trae comuna y coordenadas: no hace falta pedir el detalle.
+      .map((item) => ({ ...item, fuente: "nominatim" as const }));
 
     // Update cache
     cache.set(cacheKey, { timestamp: now, data });

@@ -4,6 +4,12 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { componerLineaDeCalle, elegirComuna } from "@/lib/direccion";
 
+/** Identificador de sesión para el cobro por sesión de Google Places. */
+function nuevoToken(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `s-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export type AddressResult = {
   formattedAddress: string;
   street?: string | null;
@@ -33,6 +39,20 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  /**
+   * Token de la sesión de tipeo, para el cobro de Google.
+   *
+   * Google factura el autocompletado **por sesión** —todo lo que el cliente
+   * escribe más el detalle del lugar que elige— siempre que las llamadas
+   * lleguen con el mismo token. Sin token, cada tecla es un cobro aparte. El
+   * token se renueva al elegir una dirección: ahí se cierra la sesión.
+   */
+  const sessionRef = useRef<string>("");
+  const sessionToken = () => {
+    if (!sessionRef.current) sessionRef.current = nuevoToken();
+    return sessionRef.current;
+  };
 
   const onChangeRef = useRef(onChange);
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
@@ -72,6 +92,7 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
           const url = new URL("/api/address/search", window.location.origin);
           url.searchParams.set("q", q);
           url.searchParams.set("country", country.toLowerCase());
+          url.searchParams.set("session", sessionToken());
 
           const res = await fetch(url.toString(), { signal: control.signal });
           if (!res.ok) throw new Error("Search failed");
@@ -102,6 +123,27 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
 
   const handleSelectSuggestion = async (item: any) => {
     const escrito = typeof value === "string" ? value : "";
+
+    // Las predicciones de Google traen sólo texto: la comuna y las coordenadas
+    // se piden acá, una sola vez, recién cuando el cliente ya eligió. El mismo
+    // token cierra la sesión de cobro que abrió el autocompletado.
+    let elegido = item;
+    if (item?.necesitaDetalle && item?.place_id) {
+      try {
+        const url = new URL("/api/address/details", window.location.origin);
+        url.searchParams.set("placeId", String(item.place_id));
+        url.searchParams.set("session", sessionToken());
+        const res = await fetch(url.toString());
+        if (res.ok) elegido = await res.json();
+      } catch (e) {
+        // Sin detalle se sigue con el texto de la predicción: el cliente
+        // completa comuna y ciudad a mano, que es mejor que perder lo escrito.
+        console.warn("AddressAutocomplete: detalle no disponible", e);
+      }
+    }
+    // La sesión termina con la elección, valga o no el detalle.
+    sessionRef.current = "";
+    item = elegido;
     // OpenStreetMap casi no tiene numeración de calles en Chile: la sugerencia
     // es la calle completa. Guardar su `display_name` tal cual borraba el
     // número que el cliente acababa de escribir y dejaba la dirección de

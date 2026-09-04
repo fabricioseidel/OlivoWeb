@@ -26,10 +26,14 @@ const CALLE_SANTIAGO = lugar(3, 'San Isidro 292, Santiago, Región Metropolitana
 
 const llamadas: string[] = [];
 
-function responder(urls: Record<string, unknown[]>) {
-  return vi.fn(async (input: any) => {
+function responder(urls: Record<string, unknown[]>, google?: { falla?: boolean; suggestions?: unknown[] }) {
+  return vi.fn(async (input: any, init?: any) => {
     const url = String(input);
     llamadas.push(url);
+    if (url.includes('places.googleapis.com')) {
+      if (google?.falla) return { ok: false, status: 429, text: async () => 'RESOURCE_EXHAUSTED' } as any;
+      return { ok: true, json: async () => ({ suggestions: google?.suggestions ?? [] }) } as any;
+    }
     const clave = url.includes('street=') ? 'estructurada' : 'libre';
     return {
       ok: true,
@@ -38,11 +42,20 @@ function responder(urls: Record<string, unknown[]>) {
   });
 }
 
-const pedir = (q: string) =>
+const pedir = (q: string, session = '') =>
   GET({
-    nextUrl: new URL(`http://localhost/api/address/search?q=${encodeURIComponent(q)}`),
+    nextUrl: new URL(
+      `http://localhost/api/address/search?q=${encodeURIComponent(q)}${session ? `&session=${session}` : ''}`
+    ),
     headers: new Headers(),
   } as any);
+
+const PREDICCION_GOOGLE = {
+  placePrediction: {
+    placeId: 'ChIJ-google-1',
+    text: { text: 'San Isidro 292, Santiago, Región Metropolitana' },
+  },
+};
 
 describe('API /address/search', () => {
   beforeEach(() => {
@@ -51,6 +64,7 @@ describe('API /address/search', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    delete process.env.GOOGLE_MAPS_API_KEY;
   });
 
   it('sesga la búsqueda hacia Santiago en vez de pedir sólo "país = Chile"', async () => {
@@ -121,5 +135,61 @@ describe('API /address/search', () => {
     const data = await res.json();
 
     expect(data).toHaveLength(1);
+  });
+
+  describe('con Google Places configurado', () => {
+    it('usa Google y no gasta una llamada a Nominatim', async () => {
+      process.env.GOOGLE_MAPS_API_KEY = 'clave-de-prueba';
+      vi.stubGlobal('fetch', responder({ libre: [CALLE_SANTIAGO] }, { suggestions: [PREDICCION_GOOGLE] }));
+
+      const res = await pedir('San Isidro google uno', 'sesion-1');
+      const data = await res.json();
+
+      expect(llamadas.every((u) => u.includes('places.googleapis.com'))).toBe(true);
+      expect(data[0].fuente).toBe('google');
+      // El detalle se pide sólo al elegir, nunca por predicción.
+      expect(data[0].necesitaDetalle).toBe(true);
+    });
+
+    it('manda el token de sesión, que es lo que hace que se cobre por sesión', async () => {
+      process.env.GOOGLE_MAPS_API_KEY = 'clave-de-prueba';
+      const fetchMock = responder({}, { suggestions: [PREDICCION_GOOGLE] });
+      vi.stubGlobal('fetch', fetchMock);
+
+      await pedir('San Isidro google token', 'sesion-abc');
+
+      const cuerpo = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(cuerpo.sessionToken).toBe('sesion-abc');
+      expect(cuerpo.includedRegionCodes).toEqual(['cl']);
+    });
+
+    it('cae a Nominatim si Google falla: el checkout no se queda sin buscador', async () => {
+      // El caso que importa: cuota agotada o clave mal puesta.
+      process.env.GOOGLE_MAPS_API_KEY = 'clave-de-prueba';
+      vi.stubGlobal('fetch', responder({ libre: [CALLE_SANTIAGO] }, { falla: true }));
+
+      const res = await pedir('San Isidro google falla', 'sesion-2');
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data).toHaveLength(1);
+      expect(data[0].fuente).toBe('nominatim');
+    });
+
+    it('cae a Nominatim si Google no encuentra nada', async () => {
+      process.env.GOOGLE_MAPS_API_KEY = 'clave-de-prueba';
+      vi.stubGlobal('fetch', responder({ libre: [CALLE_SANTIAGO] }, { suggestions: [] }));
+
+      const data = await (await pedir('San Isidro google vacio', 'sesion-3')).json();
+      expect(data[0].fuente).toBe('nominatim');
+    });
+
+    it('sin clave sigue usando Nominatim, sin tocar Google', async () => {
+      vi.stubGlobal('fetch', responder({ libre: [CALLE_SANTIAGO] }));
+
+      const data = await (await pedir('San Isidro sin clave', 'sesion-4')).json();
+      expect(llamadas.some((u) => u.includes('places.googleapis.com'))).toBe(false);
+      expect(data[0].fuente).toBe('nominatim');
+    });
   });
 });
