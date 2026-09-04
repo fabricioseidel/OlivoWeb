@@ -19,18 +19,44 @@ vi.mock('@/lib/api-auth', () => ({
   requireApiAdmin: async () => ({ ok: true, session: {}, userId: '1', role: 'ADMIN' }),
 }));
 
+/**
+ * El mock respeta la lista de columnas del `select`.
+ *
+ * Un mock que devuelve la fila entera pase lo que pase no puede detectar la
+ * clase de error más común contra Supabase: **olvidarse una columna**. Fue
+ * exactamente lo que dejó pasar el bug de `purchase_price` — el panel no la
+ * pedía, así que en producción llegaba `undefined` y todo producto parecía
+ * tener costo. En el test, en cambio, el objeto completo estaba ahí y todo
+ * pasaba en verde.
+ *
+ * Proyectando como proyecta Postgres, un `select` incompleto vuelve a fallar
+ * acá antes de llegar a producción.
+ */
+const proyectar = (filas: any[], columnas: string) => {
+  const pedidas = columnas.split(',').map((c) => c.trim()).filter(Boolean);
+  if (pedidas.includes('*')) return filas;
+  return filas.map((fila) =>
+    Object.fromEntries(pedidas.filter((c) => c in fila).map((c) => [c, fila[c]]))
+  );
+};
+
 vi.mock('@/lib/supabase-server', () => ({
   supabaseServer: {
     from: (tabla: string) => {
+      let columnas = '*';
       const api: any = {
-        select: () => api,
+        select: (cols?: string) => {
+          columnas = cols ?? '*';
+          return api;
+        },
         eq: () => api,
+        range: () => api,
         maybeSingle: async () => state.settings,
         then: (resolve: any) =>
           resolve(
             tabla === 'products'
-              ? { data: state.products, error: null }
-              : { data: state.branchStock, error: null }
+              ? { data: proyectar(state.products, columnas), error: null }
+              : { data: proyectar(state.branchStock, columnas), error: null }
           ),
       };
       return api;
@@ -116,11 +142,22 @@ describe('base de datos', () => {
 });
 
 describe('catálogo', () => {
+  /** Un producto que la tienda sí muestra: le tienen que sobrar los cinco datos. */
+  const visible = (barcode: string, name: string) => ({
+    barcode,
+    name,
+    category: 'Abarrotes',
+    sale_price: 2500,
+    image_url: 'x.jpg',
+    purchase_price: 1800,
+    is_active: true,
+  });
+
   it('cuenta los productos que no se ven y dice por qué', async () => {
     state.products = [
-      { barcode: '1', name: 'Harina PAN', category: 'Abarrotes', sale_price: 2500, image_url: 'x.jpg', is_active: true },
-      { barcode: '2', name: 'Sin foto', category: 'Abarrotes', sale_price: 1000, image_url: '', is_active: true },
-      { barcode: '3', name: 'Sin precio', category: 'Abarrotes', sale_price: 0, image_url: 'y.jpg', is_active: true },
+      visible('1', 'Harina PAN'),
+      { ...visible('2', 'Sin foto'), image_url: '' },
+      { ...visible('3', 'Sin precio'), sale_price: 0 },
       // Inactivo: no cuenta, no está a la venta a propósito.
       { barcode: '4', name: 'Descatalogado', category: '', sale_price: 0, image_url: '', is_active: false },
     ];
@@ -132,14 +169,38 @@ describe('catálogo', () => {
     expect(buscar(body, 'sin-precio').detail).toContain('Sin precio');
   });
 
-  it('no inventa problemas cuando el catálogo está completo', async () => {
+  /**
+   * El agujero que tenía este panel el día que la tienda salió en vivo.
+   *
+   * La vitrina esconde todo producto sin costo de proveedor —sin costo no se
+   * sabe si el precio deja margen o pierde plata— pero el panel no miraba ese
+   * campo. Informaba 78 productos invisibles cuando eran 457: decía "listo
+   * para abrir" con el 62% del catálogo apagado.
+   */
+  it('cuenta como invisible al producto sin costo de proveedor', async () => {
     state.products = [
-      { barcode: '1', name: 'Harina PAN', category: 'Abarrotes', sale_price: 2500, image_url: 'x.jpg', is_active: true },
+      visible('1', 'Harina PAN'),
+      { ...visible('2', 'Sin costo cargado'), purchase_price: 0 },
+      { ...visible('3', 'Costo en null'), purchase_price: null },
     ];
+
+    const body = await leer();
+
+    expect(buscar(body, 'visibles').detail).toContain('2 de 3');
+    expect(buscar(body, 'sin-costo').detail).toContain('Sin costo cargado');
+    expect(buscar(body, 'sin-costo').detail).toContain('Costo en null');
+    // No se le echa la culpa a la foto ni al precio, que están bien.
+    expect(buscar(body, 'sin-foto')).toBeUndefined();
+    expect(buscar(body, 'sin-precio')).toBeUndefined();
+  });
+
+  it('no inventa problemas cuando el catálogo está completo', async () => {
+    state.products = [visible('1', 'Harina PAN')];
 
     const body = await leer();
     expect(buscar(body, 'visibles').status).toBe('ok');
     expect(buscar(body, 'sin-foto')).toBeUndefined();
+    expect(buscar(body, 'sin-costo')).toBeUndefined();
   });
 });
 

@@ -8,6 +8,14 @@ import {
   type Check,
   type CheckGroup,
 } from "@/lib/admin/checks";
+import { isProductVisible, mapSupaToUI } from "@/services/products";
+
+/**
+ * Lo que `mapSupaToUI` necesita para que `isProductVisible` responda bien.
+ * `purchase_price` es el que faltaba y el que apagaba 413 productos.
+ */
+const COLUMNAS_VISIBILIDAD =
+  "barcode, name, category, sale_price, offer_price, image_url, is_active, purchase_price, stock";
 
 export const dynamic = "force-dynamic";
 
@@ -174,14 +182,39 @@ function grupoCorreoYTareas(): CheckGroup {
 /**
  * Productos que no se ven en la tienda.
  *
- * Un producto aparece solo si tiene nombre, categoría, precio mayor a 0 y foto
- * propia. La foto es la que más suele faltar, y desde el panel no se nota:
- * el producto existe, se edita, pero ningún cliente lo ve.
+ * Quién se ve y quién no lo decide `isProductVisible`, la misma función que
+ * filtran la portada, /productos, /categorias, /ofertas, el upselling y la API
+ * pública. Este panel la reimplementaba a mano y se le había quedado afuera la
+ * condición del **costo de compra**: informaba 78 productos invisibles cuando
+ * en realidad eran 457, porque 413 no tienen costo de proveedor cargado. Un
+ * panel de "estás listo para abrir" que dice que estás listo cuando el 62% del
+ * catálogo está apagado es peor que no tenerlo.
+ *
+ * De acá en más no se copia la regla: se llama.
  */
 async function grupoCatalogo(): Promise<CheckGroup> {
-  const { data, error } = await supabaseServer
-    .from("products")
-    .select("barcode, name, category, sale_price, image_url, is_active");
+  // Supabase corta en 1.000 filas por consulta. Sin paginar, el día que el
+  // catálogo pase ese número el panel volvería a contar de menos en silencio.
+  const productos: any[] = [];
+  const TAMANO = 1000;
+  let error: any = null;
+
+  for (let desde = 0; ; desde += TAMANO) {
+    const r = await supabaseServer
+      .from("products")
+      .select(COLUMNAS_VISIBILIDAD)
+      .range(desde, desde + TAMANO - 1);
+
+    if (r.error) {
+      error = r.error;
+      break;
+    }
+    const lote = r.data ?? [];
+    productos.push(...lote);
+    if (lote.length < TAMANO) break;
+  }
+
+  const data = productos;
 
   if (error) {
     return {
@@ -198,18 +231,34 @@ async function grupoCatalogo(): Promise<CheckGroup> {
   }
 
   const activos = (data ?? []).filter((p) => p.is_active !== false);
-  const faltantes = { nombre: [] as string[], categoria: [] as string[], precio: [] as string[], foto: [] as string[] };
+  const faltantes = {
+    nombre: [] as string[],
+    categoria: [] as string[],
+    precio: [] as string[],
+    foto: [] as string[],
+    costo: [] as string[],
+  };
 
   for (const p of activos) {
+    // Se pregunta lo mismo que la tienda, con la misma función.
+    if (isProductVisible(mapSupaToUI(p as any))) continue;
+
+    // El motivo se desglosa aparte para poder decir qué completar. El orden
+    // importa: se reporta una sola causa por producto, la más de fondo.
     const id = String(p.name || p.barcode);
     if (!String(p.name ?? "").trim()) faltantes.nombre.push(String(p.barcode));
     else if (!String(p.category ?? "").trim()) faltantes.categoria.push(id);
     else if (!(Number(p.sale_price) > 0)) faltantes.precio.push(id);
     else if (!String(p.image_url ?? "").trim()) faltantes.foto.push(id);
+    else faltantes.costo.push(id);
   }
 
   const invisibles =
-    faltantes.nombre.length + faltantes.categoria.length + faltantes.precio.length + faltantes.foto.length;
+    faltantes.nombre.length +
+    faltantes.categoria.length +
+    faltantes.precio.length +
+    faltantes.foto.length +
+    faltantes.costo.length;
 
   const checks: Check[] = [
     {
@@ -228,6 +277,7 @@ async function grupoCatalogo(): Promise<CheckGroup> {
   ];
 
   const motivos: Array<[string, string, string[]]> = [
+    ["sin-costo", "Sin costo de proveedor", faltantes.costo],
     ["sin-foto", "Sin foto", faltantes.foto],
     ["sin-precio", "Sin precio", faltantes.precio],
     ["sin-categoria", "Sin categoría", faltantes.categoria],
