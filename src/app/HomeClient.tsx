@@ -426,6 +426,8 @@ function BannerBlock({ block }: { block: PageBlock }) {
   );
 }
 
+const CATEGORIAS_EN_PORTADA = 12;
+
 function CategoriesBlock({
   title,
   categories,
@@ -435,24 +437,41 @@ function CategoriesBlock({
   categories: any[];
   loading: boolean;
 }) {
+  // Una categoría sin productos visibles no lleva a ninguna parte: mostrarla
+  // solo gasta un espacio de la grilla (así aparecían "Pruebas" o categorías
+  // duplicadas con 0 artículos).
+  const visibles = (c: any) => c.visibleProductsCount ?? c.productsCount ?? 0;
+  const conProductos = categories.filter(c => visibles(c) > 0);
+
+  // Se ordena por catálogo y no alfabéticamente: antes la portada mostraba
+  // siempre las seis primeras de la A a la B y las categorías grandes
+  // quedaban escondidas detrás de "Ver todas".
+  const destacadas = [...conProductos]
+    .sort((a, b) => visibles(b) - visibles(a) || a.name.localeCompare(b.name, "es"))
+    .slice(0, CATEGORIAS_EN_PORTADA);
+
+  if (!loading && destacadas.length === 0) return null;
+
   return (
     <section className="py-8 bg-white">
       <div className="max-w-7xl mx-auto px-4">
-        <SectionHeader title={title} icon={null} href="/productos" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <SectionHeader title={title} icon={null} href="/categorias" linkLabel="Ver todas" />
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 lg:grid-cols-6">
           {loading
-            ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-28 bg-gray-100 animate-pulse rounded-2xl" />)
-            : [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).slice(0, 6).map(cat => (
+            ? Array.from({ length: CATEGORIAS_EN_PORTADA }).map((_, i) => (
+                <div key={i} className="h-[124px] animate-pulse rounded-2xl bg-gray-100 sm:h-[136px]" />
+              ))
+            : destacadas.map(cat => (
                 <CategoryCard
                   key={cat.id}
                   href={`/productos?categoria=${cat.slug || cat.id}`}
-                  category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null }}
+                  category={{ ...cat, slug: cat.slug || cat.id, image: cat.image || null, productsCount: visibles(cat) }}
                 />
               ))
           }
         </div>
-        {categories.length > 6 && (
-          <div className="text-center mt-4">
+        {conProductos.length > destacadas.length && (
+          <div className="text-center mt-5">
             <Link href="/categorias" className="o-focus inline-flex items-center gap-1 rounded text-sm font-medium text-brand-700 hover:text-brand-800">
               Ver todas las categorías <ChevronRight className="w-4 h-4" />
             </Link>
@@ -465,15 +484,25 @@ function CategoriesBlock({
 
 /* ── Helpers ── */
 
-function SectionHeader({ title, icon, href }: { title: string; icon: React.ReactNode; href: string }) {
+function SectionHeader({
+  title,
+  icon,
+  href,
+  linkLabel = "Ver todos",
+}: {
+  title: string;
+  icon: React.ReactNode;
+  href: string;
+  linkLabel?: string;
+}) {
   return (
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-2">
         {icon}
         <h2 className="o-h2 text-neutral-900">{title}</h2>
       </div>
-      <Link href={href} className="o-focus flex items-center gap-1 rounded text-sm font-medium text-brand-700 hover:text-brand-800">
-        Ver todos <ChevronRight className="w-4 h-4" />
+      <Link href={href} className="o-focus flex shrink-0 items-center gap-1 rounded text-sm font-medium text-brand-700 hover:text-brand-800">
+        {linkLabel} <ChevronRight className="w-4 h-4" />
       </Link>
     </div>
   );

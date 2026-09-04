@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { supabaseServer } from "@/lib/supabase-server";
 import { slugify } from "@/utils/string-utils";
+import { DEFAULT_IMAGE } from "@/services/products";
 
 // GET /api/categories -> { categories: string[] }
 export async function GET() {
@@ -21,9 +22,17 @@ export async function GET() {
   // Fetch product counts
   const { data: productsData, error: productsError } = await supabase
     .from("products")
-    .select("category");
+    .select("category, name, is_active, image_url, sale_price, purchase_price");
 
+  // Dos conteos distintos porque se usan para cosas distintas:
+  // - `productCounts`: todo lo que existe en la tabla. El admin lo necesita
+  //   para no dejar borrar una categoría que todavía tiene productos colgando.
+  // - `visibleCounts`: solo lo que la tienda realmente muestra (mismos
+  //   requisitos que `isProductVisible`). La portada anunciaba "141 productos"
+  //   en Abarrotes cuando el catálogo público mostraba 16, porque contaba
+  //   inactivos, sin foto y sin costo de proveedor cargado.
   const productCounts: Record<string, number> = {};
+  const visibleCounts: Record<string, number> = {};
   if (!productsError && productsData) {
     productsData.forEach((p: any) => {
       if (p.category) {
@@ -32,15 +41,26 @@ export async function GET() {
         // ella, así que la comparación cruda daba 0 productos en categorías
         // que sí tenían. slugify normaliza tildes, espacios y mayúsculas.
         const cats = String(p.category).split(/[,/|]/).map((c) => slugify(c.trim())).filter(Boolean);
+        const nombre = String(p.name ?? "").trim();
+        const visible =
+          Boolean(nombre) &&
+          nombre !== "(Sin nombre)" &&
+          p.is_active !== false &&
+          Boolean(p.image_url) &&
+          p.image_url !== DEFAULT_IMAGE &&
+          Number(p.sale_price ?? 0) > 0 &&
+          Number(p.purchase_price ?? 0) > 0;
         cats.forEach(cat => {
           productCounts[cat] = (productCounts[cat] || 0) + 1;
+          if (visible) visibleCounts[cat] = (visibleCounts[cat] || 0) + 1;
         });
       }
     });
   }
 
   const mapped = (data || []).map((c: any) => {
-    const count = productCounts[slugify(c.name || "")] || 0;
+    const key = slugify(c.name || "");
+    const count = productCounts[key] || 0;
 
     return {
       id: String(c.id ?? ""),
@@ -56,6 +76,7 @@ export async function GET() {
             ? c.isActive
             : true,
       productsCount: count,
+      visibleProductsCount: visibleCounts[key] || 0,
     };
   }); // Mostrar TODAS las categorías en admin (sin filtrar por productsCount)
 
@@ -106,6 +127,7 @@ export async function POST(req: Request) {
     image: c.image ?? c.img ?? c.image_url ?? undefined,
     isActive: typeof c.is_active === 'boolean' ? c.is_active : true,
     productsCount: 0,
+    visibleProductsCount: 0,
   };
   return NextResponse.json(mapped);
 }

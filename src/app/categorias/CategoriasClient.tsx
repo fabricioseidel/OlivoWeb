@@ -30,7 +30,12 @@ export default function CategoriasClient() {
     </div>
   );
 
-  const sorted = [...categories].sort((a, b) => a.name.localeCompare(b.name, "es"));
+  // Mismo criterio que la portada: el número que se anuncia es el de productos
+  // realmente visibles, y las categorías vacías no ocupan un espacio muerto.
+  const visibles = (c: typeof categories[number]) => c.visibleProductsCount ?? c.productsCount ?? 0;
+  const sorted = [...categories]
+    .filter((c) => visibles(c) > 0)
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
 
   return (
     <div className="min-h-screen bg-white">
@@ -64,7 +69,7 @@ export default function CategoriasClient() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5">
+            <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 lg:grid-cols-6">
               {sorted.map((category) => {
                 const slug = category.slug || category.name.toLowerCase().replace(/[^a-z0-9]+/gi, "-");
                 return (
@@ -76,7 +81,7 @@ export default function CategoriasClient() {
                       name: category.name,
                       slug,
                       image: category.image,
-                      productsCount: category.productsCount
+                      productsCount: visibles(category)
                     }}
                   />
                 );

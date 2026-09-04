@@ -7,7 +7,10 @@ export type Category = {
   description?: string;
   image?: string;
   isActive?: boolean;
+  /** Todo lo que existe en la tabla (lo usa el admin). */
   productsCount?: number;
+  /** Solo lo que la tienda muestra de verdad; es el número que ve el cliente. */
+  visibleProductsCount?: number;
 };
 
 export function useCategories() {
