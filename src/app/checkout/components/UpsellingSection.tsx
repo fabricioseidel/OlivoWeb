@@ -6,6 +6,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { isProductVisible } from "@/services/products";
 import { PlusIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import { precioEfectivo } from "@/lib/pricing";
 
 export default function UpsellingSection() {
   const { cartItems, addToCart } = useCart();
@@ -55,7 +56,9 @@ export default function UpsellingSection() {
       </h4>
       <div className="space-y-3">
         {recommendations.map((product) => {
-           const price = product.offerPrice || product.price;
+           // `offerPrice || price` tomaba la oferta aunque fuera más cara que
+           // el precio de lista. `precioEfectivo` sólo la aplica si baja.
+           const price = precioEfectivo(product.price, product.offerPrice);
            return (
              <div key={product.id} className="group relative flex items-center gap-3 rounded-xl border border-neutral-200 p-3 transition-colors hover:border-neutral-300">
                 <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-white shadow-sm shrink-0">
@@ -69,7 +72,7 @@ export default function UpsellingSection() {
                   onClick={() => addToCart({
                       id: product.id,
                       name: product.name,
-                      price: product.offerPrice || product.price,
+                      price,
                       image: product.image || '',
                       slug: product.id // Fallback if slug missing
                   }, 1)}

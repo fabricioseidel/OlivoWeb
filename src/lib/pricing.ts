@@ -17,6 +17,10 @@
  *    no `×1.35` — son cosas distintas y confundirlas cuesta plata.
  * 3. **El redondeo comercial siempre sube.** Redondear hacia abajo se come
  *    margen en silencio, producto por producto, sin que nadie lo note.
+ * 4. **Lo que se le cobra al cliente sale de `precioEfectivo`**, nunca de leer
+ *    `sale_price` a secas: ahí es donde se aplica la oferta. Vitrina, carrito
+ *    y creación del pedido tienen que usar la misma función o el cliente ve un
+ *    precio y paga otro.
  *
  * Todo acá es puro: sin acceso a base de datos, sin fechas, sin `Math.random`.
  * Es lo que permite que tenga tests de verdad.
@@ -71,6 +75,41 @@ export function aNeto(bruto: number, tasa: number = TASA_IVA): number | null {
 export function aBruto(neto: number, tasa: number = TASA_IVA): number | null {
   if (!esFinito(neto) || !esFinito(tasa) || tasa <= -100) return null;
   return neto * (1 + tasa / 100);
+}
+
+/**
+ * El precio que se le cobra al cliente por una unidad: la oferta si hay, el
+ * precio de lista si no.
+ *
+ * Existe porque esta regla estaba escrita cuatro veces y no decían lo mismo.
+ * La vitrina agregaba al carrito la oferta; `/api/cart/validate` comparaba
+ * contra `sale_price` a secas, así que **todo producto en oferta disparaba
+ * "el precio cambió" y el carrito se reescribía con el precio de lista, más
+ * caro**; y `create-order` cobraba `sale_price`. El 14-08-2026 un pedido real
+ * salió $800 por encima por esto (tres harinas de maíz en oferta cobradas a
+ * lista). Dos de las cuatro copias además usaban `offerPrice || price`, que
+ * toma la oferta aunque sea MÁS CARA que el precio de lista.
+ *
+ * Reglas:
+ * - La oferta manda sólo si es un número positivo y **menor** que el precio de
+ *   lista. Una "oferta" más cara no es una oferta; se ignora.
+ * - Devuelve pesos redondeados. La vitrina redondea al mapear (`mapSupaToUI`)
+ *   y la base guarda `numeric`: comparar un lado redondeado contra otro sin
+ *   redondear inventa cambios de precio que no existen.
+ */
+export function precioEfectivo(
+  precioVenta: unknown,
+  precioOferta?: unknown
+): number {
+  const lista = esFinito(Number(precioVenta)) ? Math.round(Number(precioVenta)) : 0;
+  const oferta = esFinito(Number(precioOferta)) ? Math.round(Number(precioOferta)) : null;
+  if (oferta !== null && oferta > 0 && oferta < lista) return oferta;
+  return lista;
+}
+
+/** ¿Hay una oferta vigente que efectivamente baja el precio? */
+export function hayOferta(precioVenta: unknown, precioOferta?: unknown): boolean {
+  return precioEfectivo(precioVenta, precioOferta) < precioEfectivo(precioVenta);
 }
 
 /**

@@ -15,6 +15,7 @@ import { WHATSAPP_PHONE } from "@/config/constants";
 import ProductCard from "@/components/ProductCard";
 import { enTemporadaDieciochera, esProductoDieciochero } from "@/lib/fiestas-patrias";
 import BanderaChile from "@/components/fiestas/BanderaChile";
+import { precioEfectivo, hayOferta } from "@/lib/pricing";
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
 
@@ -92,8 +93,8 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
 
   const basePrice = product.price;
   const offerPrice = product.offerPrice;
-  const hasDiscount = !!(offerPrice && offerPrice > 0 && offerPrice < basePrice);
-  const effectivePrice = hasDiscount ? offerPrice : basePrice;
+  const effectivePrice = precioEfectivo(basePrice, offerPrice);
+  const hasDiscount = hayOferta(basePrice, offerPrice);
   const discountPercent = hasDiscount
     ? Math.round(((basePrice - offerPrice!) / basePrice) * 100)
     : 0;
