@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { elegirComuna } from "@/lib/direccion";
+import { componerLineaDeCalle, elegirComuna } from "@/lib/direccion";
 
 export type AddressResult = {
   formattedAddress: string;
@@ -101,10 +101,15 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
   );
 
   const handleSelectSuggestion = async (item: any) => {
-    const formatted = item.display_name || "";
+    const escrito = typeof value === "string" ? value : "";
+    // OpenStreetMap casi no tiene numeración de calles en Chile: la sugerencia
+    // es la calle completa. Guardar su `display_name` tal cual borraba el
+    // número que el cliente acababa de escribir y dejaba la dirección de
+    // entrega sin altura.
+    const { linea: formatted, numero } = componerLineaDeCalle(item, escrito);
     const addr = item.address || {};
     const street = addr.road || addr.pedestrian || addr.street || null;
-    const streetNumber = addr.house_number || null;
+    const streetNumber = numero;
     // La comuna no sale de `city`. En el Gran Santiago, OpenStreetMap pone ahí
     // la ciudad —"Santiago"— y la comuna queda en `municipality`,
     // `city_district` o `suburb`, según la dirección. Leer sólo `city` hacía

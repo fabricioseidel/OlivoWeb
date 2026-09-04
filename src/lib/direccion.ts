@@ -71,3 +71,45 @@ export function elegirComuna(address: DireccionOSM | null | undefined): ComunaEl
     ? { nombre: primero.valor, campo: primero.campo, reconocida: false }
     : { nombre: null, campo: null, reconocida: false };
 }
+
+/**
+ * Arma la línea de calle a partir de una sugerencia de Nominatim.
+ *
+ * Antes se guardaba `display_name` tal cual, que para "San Isidro 292"
+ * devuelve "San Isidro, Santiago, Provincia de Santiago, Región Metropolitana
+ * de Santiago, 8320000, Chile". Dos problemas: **el 292 desaparecía** —
+ * OpenStreetMap casi nunca tiene la numeración de las calles chilenas, así que
+ * la sugerencia es la calle entera — y esa tira completa se mandaba a Uber
+ * como `street_address`, con la comuna, la región, el código postal y el país
+ * repetidos dentro del campo de la calle.
+ *
+ * Acá se conserva el número que escribió el cliente cuando la sugerencia no
+ * trae uno propio, y se deja sólo la calle: la comuna, la región y el código
+ * postal viajan en sus propios campos.
+ */
+export function componerLineaDeCalle(
+  item: { display_name?: string; name?: string; address?: DireccionOSM | null } | null | undefined,
+  textoEscrito?: string | null
+): { linea: string; numero: string | null } {
+  const addr = (item?.address ?? {}) as Record<string, unknown>;
+  const texto = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+
+  const via =
+    texto(addr.road) || texto(addr.pedestrian) || texto(addr.street) || texto(item?.name);
+  const numero = texto(addr.house_number) || numeroEscrito(textoEscrito);
+
+  // Sin calle no hay línea que componer: la sugerencia es un pueblo o una
+  // comuna, y ahí `display_name` es lo único que hay.
+  if (!via) {
+    return { linea: item?.display_name?.trim() || "", numero };
+  }
+
+  return { linea: [via, numero].filter(Boolean).join(" "), numero };
+}
+
+/** El número final de lo que el cliente escribió: "San Isidro 292" → "292". */
+export function numeroEscrito(texto?: string | null): string | null {
+  if (!texto) return null;
+  const m = texto.trim().match(/(?:^|[\s,])(\d{1,6})[a-zA-Z]?$/);
+  return m ? m[1] : null;
+}
