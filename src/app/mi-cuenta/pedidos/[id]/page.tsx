@@ -41,6 +41,7 @@ type Pedido = {
   direccionEnvio: DatosDireccion;
   metodoPago: string;
   numeroSeguimiento?: string;
+  urlSeguimiento?: string;
 };
 
 export default function DetallePedidoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -77,8 +78,8 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
           }));
 
           const subtotal = Number(found.subtotal) || productos.reduce((s, p) => s + p.precio * p.cantidad, 0);
-          const envio = Number(found.shipping_cost) || 10;
-          const impuestos = subtotal * 0.19;
+          const envio = Number(found.shipping_cost) || 0;
+          const impuestos = Number(found.tax) || 0;
 
           const direccion = found.shipping_address || {};
           // normalize address
@@ -122,7 +123,8 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
             productos,
             direccionEnvio,
             metodoPago: found.payment_method || found.paymentMethod || 'No especificado',
-            numeroSeguimiento: undefined
+            numeroSeguimiento: found.tracking_number || found.trackingNumber || undefined,
+            urlSeguimiento: found.tracking_url || found.trackingUrl || undefined
           };
           setPedido(pedidoObj);
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -139,18 +141,58 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
   // Generar pedido de prueba
   // Eliminada simulación
 
+  // Obtener la etiqueta legible según estado
+  const getEstadoLabel = (estado: string): string => {
+    const norm = (estado || '').toLowerCase().trim();
+    switch (norm) {
+      case "entregado":
+      case "delivered":
+      case "completado":
+      case "completed":
+        return "Entregado";
+      case "enviado":
+      case "shipped":
+        return "Enviado";
+      case "en proceso":
+      case "processing":
+      case "procesando":
+      case "preparando":
+        return "En preparación";
+      case "cancelado":
+      case "cancelled":
+      case "canceled":
+        return "Cancelado";
+      case "pendiente":
+      case "pending":
+        return "Pendiente";
+      default:
+        return estado || "En proceso";
+    }
+  };
+
   // Obtener el color de badge según estado
   const getEstadoColor = (estado: string): string => {
-    switch (estado) {
-      case "Entregado":
+    const norm = (estado || '').toLowerCase().trim();
+    switch (norm) {
+      case "entregado":
+      case "delivered":
+      case "completado":
+      case "completed":
         return "bg-green-100 text-green-800";
-      case "En proceso":
-        return "bg-yellow-100 text-yellow-800";
-      case "Enviado":
+      case "en proceso":
+      case "processing":
+      case "procesando":
+      case "preparando":
+        return "bg-amber-100 text-amber-800";
+      case "enviado":
+      case "shipped":
         return "bg-blue-100 text-blue-800";
-      case "Cancelado":
+      case "cancelado":
+      case "cancelled":
+      case "canceled":
         return "bg-red-100 text-red-800";
-      case "Pendiente":
+      case "pendiente":
+      case "pending":
         return "bg-purple-100 text-purple-800";
       default:
         return "bg-gray-100 text-gray-800";
@@ -239,7 +281,7 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
               </div>
               <div className="mt-4 md:mt-0">
                 <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getEstadoColor(pedido.estado)}`}>
-                  {pedido.estado}
+                  {getEstadoLabel(pedido.estado)}
                 </span>
               </div>
             </div>
@@ -257,12 +299,10 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
                 </div>
                 <div className="mt-3 md:mt-0">
                   <a
-                    href="#"
-                    className="text-blue-700 hover:text-blue-900 text-sm font-medium"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      alert("Esta función estaría conectada con el proveedor de logística real");
-                    }}
+                    href={pedido.urlSeguimiento || `https://seguimiento.chilexpress.cl/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition"
                   >
                     Seguir envío →
                   </a>
@@ -311,13 +351,13 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">${producto.precio.toFixed(2)}</div>
+                          <div className="text-sm text-gray-900">${Math.round(producto.precio).toLocaleString('es-CL')}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{producto.cantidad}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">${(producto.precio * producto.cantidad).toFixed(2)}</div>
+                          <div className="text-sm text-gray-900">${Math.round(producto.precio * producto.cantidad).toLocaleString('es-CL')}</div>
                         </td>
                       </tr>
                     ))}
@@ -330,20 +370,24 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Subtotal</span>
-                    <span className="text-sm text-gray-900">${pedido.subtotal.toFixed(2)}</span>
+                    <span className="text-sm text-gray-900">${Math.round(pedido.subtotal).toLocaleString('es-CL')}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Envío</span>
-                    <span className="text-sm text-gray-900">${pedido.envio.toFixed(2)}</span>
+                    <span className="text-sm text-gray-900">
+                      {pedido.envio > 0 ? `$${Math.round(pedido.envio).toLocaleString('es-CL')}` : 'Gratis'}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Impuestos</span>
-                    <span className="text-sm text-gray-900">${pedido.impuestos.toFixed(2)}</span>
-                  </div>
+                  {pedido.impuestos > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Impuestos</span>
+                      <span className="text-sm text-gray-900">${Math.round(pedido.impuestos).toLocaleString('es-CL')}</span>
+                    </div>
+                  )}
                   <div className="border-t border-gray-200 pt-2 mt-2">
                     <div className="flex justify-between font-medium">
                       <span className="text-base text-gray-900">Total</span>
-                      <span className="text-base text-gray-900">${pedido.total.toFixed(2)}</span>
+                      <span className="text-base text-gray-900 font-bold">${Math.round(pedido.total).toLocaleString('es-CL')}</span>
                     </div>
                   </div>
                 </div>

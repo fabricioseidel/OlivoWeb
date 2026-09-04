@@ -13,7 +13,11 @@ export async function GET() {
       .order("slug", { ascending: true });
 
     if (error) throw error;
-    return NextResponse.json(data);
+    const normalized = (data || []).map((t: any) => ({
+      ...t,
+      body_html: t.body_html || t.html_body || "",
+    }));
+    return NextResponse.json(normalized);
   } catch (error: any) {
     console.error("[API Email] GET error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -32,17 +36,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const { data, error } = await supabaseServer
+    let { data, error } = await supabaseServer
       .from("email_templates")
       .upsert({
         slug,
         subject,
         body_html,
-        description,
+        description: description || null,
         updated_at: new Date().toISOString(),
       })
       .select()
-      .single();
+      .maybeSingle();
+
+    // Si falló por columna body_html inexistente, reintentar con html_body
+    if (error && String(error.message).includes("body_html")) {
+      const retry = await supabaseServer
+        .from("email_templates")
+        .upsert({
+          slug,
+          subject,
+          html_body: body_html,
+          description: description || null,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .maybeSingle();
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error) throw error;
     return NextResponse.json(data);

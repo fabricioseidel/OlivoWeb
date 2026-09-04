@@ -22,15 +22,33 @@ type Pedido = {
   pagable: boolean;
 };
 
-const STATUS_MAP: Record<string, string> = {
-  pending: "Pendiente",
-  processing: "En proceso",
-  shipped: "Enviado",
-  delivered: "Entregado",
-  cancelled: "Cancelado",
+const mapStatus = (s: string) => {
+  const norm = (s || "").toLowerCase().trim();
+  switch (norm) {
+    case "pending":
+    case "pendiente":
+      return "Pendiente";
+    case "processing":
+    case "procesando":
+    case "preparando":
+    case "en proceso":
+      return "En proceso";
+    case "shipped":
+    case "enviado":
+      return "Enviado";
+    case "delivered":
+    case "entregado":
+    case "completado":
+    case "completed":
+      return "Entregado";
+    case "cancelled":
+    case "cancelado":
+    case "canceled":
+      return "Cancelado";
+    default:
+      return s || "Pendiente";
+  }
 };
-
-const mapStatus = (s: string) => STATUS_MAP[s] || s;
 
 const FILTROS = ["Todos", "Pendiente", "En proceso", "Enviado", "Entregado", "Cancelado"];
 

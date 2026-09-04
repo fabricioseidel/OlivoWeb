@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { sendEmail, sendOrderConfirmation, sendPOSReceipt, sendWelcomeEmail } from "@/server/email.service";
+import {
+  sendEmail,
+  sendOrderConfirmation,
+  sendPOSReceipt,
+  sendWelcomeEmail,
+  sendOrderPreparingEmail,
+  sendOrderShippedEmail,
+  sendOrderDeliveredEmail,
+  sendOrderCancelledEmail,
+  sendOrderStatusEmail,
+} from "@/server/email.service";
 
 /**
  * POST /api/email/send
@@ -37,6 +47,76 @@ export async function POST(request: NextRequest) {
           itemCount: body.itemCount || body.items?.length || 0,
           paymentMethod: body.paymentMethod || "N/A",
           items: body.items || [],
+          pointsEarned: body.pointsEarned,
+          pointsBalance: body.pointsBalance,
+          whatsappPhone: body.whatsappPhone,
+        });
+        break;
+
+      case "order_preparing":
+        result = await sendOrderPreparingEmail({
+          to: body.to,
+          customerName: body.customerName || "Cliente",
+          orderId: body.orderId,
+          address: body.address,
+          shippingMethod: body.shippingMethod,
+          whatsappPhone: body.whatsappPhone,
+        });
+        break;
+
+      case "order_shipped":
+        result = await sendOrderShippedEmail({
+          to: body.to,
+          customerName: body.customerName || "Cliente",
+          orderId: body.orderId,
+          address: body.address,
+          shippingMethod: body.shippingMethod,
+          trackingUrl: body.trackingUrl,
+          trackingNumber: body.trackingNumber,
+          whatsappPhone: body.whatsappPhone,
+        });
+        break;
+
+      case "order_delivered":
+        result = await sendOrderDeliveredEmail({
+          to: body.to,
+          customerName: body.customerName || "Cliente",
+          orderId: body.orderId,
+          address: body.address,
+          pointsEarned: body.pointsEarned,
+          pointsBalance: body.pointsBalance,
+          whatsappPhone: body.whatsappPhone,
+        });
+        break;
+
+      case "order_cancelled":
+        result = await sendOrderCancelledEmail({
+          to: body.to,
+          customerName: body.customerName || "Cliente",
+          orderId: body.orderId,
+          cancelReason: body.cancelReason,
+          pointsRefunded: body.pointsRefunded,
+          paymentRefunded: body.paymentRefunded,
+          whatsappPhone: body.whatsappPhone,
+        });
+        break;
+
+      case "order_status_update":
+        result = await sendOrderStatusEmail({
+          to: body.to,
+          customerName: body.customerName || "Cliente",
+          orderId: body.orderId,
+          status: body.status || "Actualizado",
+          address: body.address,
+          shippingMethod: body.shippingMethod,
+          trackingUrl: body.trackingUrl,
+          trackingNumber: body.trackingNumber,
+          pointsEarned: body.pointsEarned,
+          pointsBalance: body.pointsBalance,
+          pointsRefunded: body.pointsRefunded,
+          paymentRefunded: body.paymentRefunded,
+          cancelReason: body.cancelReason,
+          whatsappPhone: body.whatsappPhone,
         });
         break;
 

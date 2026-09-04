@@ -62,27 +62,49 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         // Trigger email notification if status changed
         if (status) {
             try {
-                // Fetch customer details for the email
-                const { data: order, error: fetchError } = await supabaseServer
-                    .from('orders')
-                    .select('*, shipping_address')
-                    .eq('id', id)
-                    .single();
+                const norm = String(status).toLowerCase();
+                const isCancellation = ['cancelled', 'cancelado', 'rechazado'].includes(norm);
+                const isShipping = ['shipped', 'enviado', 'en_camino'].includes(norm);
 
-                if (!fetchError && order) {
-                    const addressData = typeof order.shipping_address === 'string' 
-                        ? JSON.parse(order.shipping_address) 
-                        : order.shipping_address;
-                    
-                    const fullAddress = `${addressData.address}, ${addressData.city}`;
+                // Fetch store settings to check toggles if configured
+                const { data: storeSettings } = await supabaseServer
+                  .from('settings')
+                  .select('shipping_confirmation_enabled, order_cancellation_enabled')
+                  .maybeSingle();
 
-                    await sendOrderStatusEmail({
-                        to: addressData.email,
-                        customerName: addressData.fullName || 'Cliente',
-                        orderId: id,
-                        status: status,
-                        address: fullAddress
-                    });
+                const skipEmail =
+                  (isCancellation && storeSettings?.order_cancellation_enabled === false) ||
+                  (isShipping && storeSettings?.shipping_confirmation_enabled === false);
+
+                if (!skipEmail) {
+                    // Fetch customer details for the email
+                    const { data: order, error: fetchError } = await supabaseServer
+                        .from('orders')
+                        .select('*, shipping_address')
+                        .eq('id', id)
+                        .single();
+
+                    if (!fetchError && order) {
+                        const addressData = typeof order.shipping_address === 'string' 
+                            ? JSON.parse(order.shipping_address) 
+                            : (order.shipping_address || {});
+                        
+                        const fullAddress = addressData.formattedAddress 
+                          || (addressData.address ? `${addressData.address}${addressData.city ? `, ${addressData.city}` : ''}` : 'Dirección registrada');
+
+                        if (addressData.email) {
+                            await sendOrderStatusEmail({
+                                to: addressData.email,
+                                customerName: addressData.fullName || 'Cliente',
+                                orderId: id,
+                                status: status,
+                                address: fullAddress,
+                                shippingMethod: order.shipping_method,
+                                trackingNumber: order.tracking_number,
+                                trackingUrl: order.tracking_url,
+                            });
+                        }
+                    }
                 }
             } catch (emailError) {
                 console.warn('[Email] Failed to send status update email:', emailError);

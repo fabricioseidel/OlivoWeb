@@ -4,6 +4,8 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { auditLog } from '@/server/audit.service';
 import { restoreOrderStock } from '@/server/inventory.service';
 import { crearEntregaFlash } from '@/server/uber-direct.service';
+import { addBonusPoints } from '@/server/loyalty.service';
+import { sendOrderCancelledEmail } from '@/server/email.service';
 import crypto from 'crypto';
 
 /**
@@ -145,6 +147,47 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString()
           })
           .eq('id', orderId);
+
+        // 2b. Revertir puntos redimidos y notificar cancelación al cliente
+        try {
+          const { data: orderData } = await supabaseServer
+            .from('orders')
+            .select('shipping_address')
+            .eq('id', orderId)
+            .maybeSingle();
+
+          if (orderData?.shipping_address) {
+            const addr = typeof orderData.shipping_address === 'string'
+              ? JSON.parse(orderData.shipping_address)
+              : orderData.shipping_address;
+
+            const customerEmail = addr.email;
+            const pointsRedeemed = Number(addr.pointsRedeemed) || 0;
+
+            if (customerEmail && pointsRedeemed > 0) {
+              await addBonusPoints({
+                customerEmail,
+                points: pointsRedeemed,
+                description: `Reverso de ${pointsRedeemed} puntos por orden #${orderId} cancelada`,
+                referenceType: 'order_cancellation',
+              });
+              console.log(`[MP Webhook] 🌟 Se revirtieron ${pointsRedeemed} puntos a ${customerEmail}`);
+            }
+
+            if (customerEmail) {
+              await sendOrderCancelledEmail({
+                to: customerEmail,
+                customerName: addr.fullName || 'Cliente',
+                orderId,
+                cancelReason: status === 'refunded' ? 'Pago reembolsado en Mercado Pago' : 'Pago no completado o rechazado en Mercado Pago',
+                pointsRefunded: pointsRedeemed > 0 ? pointsRedeemed : undefined,
+                paymentRefunded: status === 'refunded',
+              });
+            }
+          }
+        } catch (postCancelErr) {
+          console.warn('[MP Webhook] Error en post-procesamiento de cancelación (puntos/email):', postCancelErr);
+        }
 
         // 3. Informar lo que pasó de verdad. Este log decía siempre "stock
         //    restaurado", incluso cuando no se había devuelto nada — que era

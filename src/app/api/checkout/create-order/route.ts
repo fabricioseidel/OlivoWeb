@@ -479,7 +479,11 @@ export async function POST(request: NextRequest) {
         subtotal: calculatedSubtotal,
         shipping_cost: serverShippingCost,
         shipping_method: shippingMethod,
-        shipping_address: quoteIdFlash ? { ...shippingInfo, uberQuoteId: quoteIdFlash } : shippingInfo,
+        shipping_address: {
+          ...(typeof shippingInfo === 'object' && shippingInfo !== null ? shippingInfo : {}),
+          ...(quoteIdFlash ? { uberQuoteId: quoteIdFlash } : {}),
+          ...(pointsToRedeem > 0 ? { pointsRedeemed: pointsToRedeem } : {}),
+        },
         payment_method: paymentMethod,
         payment_status: 'pending',
         coupon_code: couponCode || null,
@@ -566,22 +570,7 @@ export async function POST(request: NextRequest) {
     const customerName = shippingInfo?.fullName || 'Cliente';
 
     if (customerEmail) {
-      // Send confirmation email
-      sendOrderConfirmation({
-        to: customerEmail,
-        customerName,
-        orderId: order.id,
-        total: serverTotal,
-        itemCount: validatedOrderItems.length,
-        paymentMethod: paymentMethod || 'N/A',
-        items: validatedOrderItems.map((item) => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price * item.quantity,
-        })),
-      }).catch(err => console.warn('[Checkout] Email send failed:', err));
-
-      // Handle Loyalty and Customer Upsert in background
+      // Handle Loyalty, Customer Upsert and Confirmation Email
       (async () => {
          try {
             // Redeem points if opted
@@ -607,15 +596,50 @@ export async function POST(request: NextRequest) {
               }, { onConflict: 'email' });
 
             // Earn points for current purchase
-            await earnPoints({
+            const loyaltyResult = await earnPoints({
                customerEmail,
                amount: serverTotal,
                referenceType: 'order',
                referenceId: order.id
             });
+
+            // Send confirmation email with correct unit price and loyalty points
+            await sendOrderConfirmation({
+              to: customerEmail,
+              customerName,
+              orderId: order.id,
+              total: serverTotal,
+              itemCount: validatedOrderItems.length,
+              paymentMethod: paymentMethod || 'N/A',
+              items: validatedOrderItems.map((item) => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price,
+              })),
+              pointsEarned: loyaltyResult?.pointsEarned,
+              pointsBalance: loyaltyResult?.newBalance,
+            });
             
          } catch (err) {
-            console.warn('[Checkout] Loyalty background task failed:', err);
+            console.warn('[Checkout] Loyalty / Email task error:', err);
+            // Fallback: asegurarse de enviar el correo si falló la fidelización
+            try {
+              await sendOrderConfirmation({
+                to: customerEmail,
+                customerName,
+                orderId: order.id,
+                total: serverTotal,
+                itemCount: validatedOrderItems.length,
+                paymentMethod: paymentMethod || 'N/A',
+                items: validatedOrderItems.map((item) => ({
+                  name: item.name,
+                  quantity: item.quantity,
+                  price: item.price,
+                })),
+              });
+            } catch (emailErr) {
+              console.warn('[Checkout] Fallback email send failed:', emailErr);
+            }
          }
       })();
     }

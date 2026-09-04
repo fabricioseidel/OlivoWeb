@@ -34,6 +34,34 @@ function _OrderStatusBadge({ status }: { status: string }) {
   return <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>{status}</span>;
 }
 
+const normalizeAdminStatus = (s: string): string => {
+  const norm = (s || '').toLowerCase().trim();
+  switch (norm) {
+    case 'processing':
+    case 'procesando':
+    case 'preparando':
+    case 'en proceso':
+      return 'Procesando';
+    case 'shipped':
+    case 'enviado':
+      return 'Enviado';
+    case 'delivered':
+    case 'completado':
+    case 'entregado':
+    case 'completed':
+      return 'Completado';
+    case 'cancelled':
+    case 'cancelado':
+    case 'canceled':
+      return 'Cancelado';
+    case 'pending':
+    case 'pendiente':
+      return 'Pendiente';
+    default:
+      return s || 'Procesando';
+  }
+};
+
 export default function OrderDetailClient({ params }: { params: { id: string } }) {
   const { showToast } = useToast();
   const { id } = params;
@@ -193,7 +221,7 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
             transactionId: found.transactionId || 'LOCAL-' + found.id,
             status: found.payment_status || 'pending'
           },
-          status: found.status || found.estado || 'En proceso',
+          status: normalizeAdminStatus(found.status || found.estado || 'Procesando'),
           items,
           subtotal,
           shippingCost,

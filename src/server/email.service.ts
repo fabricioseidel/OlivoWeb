@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { supabaseServer } from "@/lib/supabase-server";
 import { logger } from "@/utils/logger";
+import { whatsappLink, normalizeWhatsAppPhone } from "@/utils/whatsapp";
 
 // ── Lazy-initialized Resend client ───────────────────────────────────────
 let _resend: Resend | null = null;
@@ -13,6 +14,12 @@ function getResend() {
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 const FROM_NAME = process.env.RESEND_FROM_NAME || "OlivoMarket";
+const DEFAULT_WHATSAPP_PHONE = process.env.NEXT_PUBLIC_STORE_WHATSAPP || process.env.STORE_WHATSAPP_PHONE || "56984527980";
+
+function resolveWhatsAppLink(phone?: string | null, message = "Hola OlivoMarket! Tengo una consulta sobre mi pedido."): string {
+  const target = normalizeWhatsAppPhone(phone) || normalizeWhatsAppPhone(DEFAULT_WHATSAPP_PHONE) || "56984527980";
+  return whatsappLink(target, message);
+}
 
 // ── Types ───────────────────────────────────────────────────────────────
 export type EmailPayload = {
@@ -106,16 +113,20 @@ export async function getTemplate(slug: string, fallbackSubject: string, fallbac
   try {
     const { data, error } = await supabaseServer
       .from("email_templates")
-      .select("subject, body_html")
+      .select("*")
       .eq("slug", slug)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       logger.warn(`[Email] Template slug "${slug}" not found in DB. Using fallback.`);
       return { subject: fallbackSubject, html: fallbackHtml };
     }
 
-    return { subject: data.subject, html: data.body_html };
+    const row = data as Record<string, any>;
+    const html = row.body_html || row.html_body || row.content || fallbackHtml;
+    const subject = row.subject || fallbackSubject;
+
+    return { subject, html };
   } catch (err) {
     logger.error(`[Email] Error fetching template "${slug}":`, err);
     return { subject: fallbackSubject, html: fallbackHtml };
@@ -170,6 +181,8 @@ const ORDER_CONFIRMATION_TEMPLATE = `<!DOCTYPE html>
       <p style="margin:5px 0 0; font-size:36px; font-weight:900; color:#064E3B;">{{total}}</p>
       <p style="margin:10px 0 0; font-size:12px; color:#059669;">Vía {{paymentMethod}}</p>
     </div>
+
+    {{pointsBlock}}
 
     <div class="divider"></div>
 
@@ -341,6 +354,163 @@ const ORDER_STATUS_TEMPLATE = `<!DOCTYPE html>
 </div>
 </body></html>`;
 
+const ORDER_PREPARING_TEMPLATE = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
+<body>
+<div class="container">
+  <div class="header" style="background: linear-gradient(135deg, #065F46 0%, #0D9488 100%);">
+    <div style="background:rgba(255,255,255,0.2); padding:6px 14px; border-radius:100px; display:inline-block; font-size:12px; font-weight:bold; margin-bottom:15px; letter-spacing:1px;">EN PREPARACIÓN</div>
+    <h1 style="margin:0; font-size:28px; letter-spacing:-1px;">👨‍🍳 Estamos preparando tu pedido</h1>
+  </div>
+  <div class="content">
+    <p style="font-size:18px; font-weight:bold; color:#111827;">Hola {{customerName}},</p>
+    <p>Tu pedido <strong>#{{orderId}}</strong> ya está en manos de nuestro equipo en OlivoMarket. Estamos seleccionando cada producto gourmet con la máxima dedicación y cuidando rigurosamente la frescura de tus alimentos.</p>
+    
+    <div style="margin:25px 0; border:1px solid #e5e7eb; border-radius:16px; padding:22px; background-color:#f9fafb;">
+      <p style="margin:0; font-size:12px; color:#6b7280; text-transform:uppercase; font-weight:bold; letter-spacing:0.5px;">Detalles de Entrega</p>
+      <p style="margin:8px 0 0; font-size:15px; color:#1f2937;"><strong>Dirección:</strong> {{address}}</p>
+      {{deliveryMethodBlock}}
+    </div>
+
+    <div style="background-color:#ecfdf5; border-left:4px solid #10b981; padding:16px; border-radius:8px; margin:20px 0;">
+      <p style="margin:0; font-size:13px; color:#065f46;">❄️ <strong>Cadena de Frío Garantizada:</strong> Tus productos perecibles permanecen refrigerados hasta el momento de su entrega.</p>
+    </div>
+
+    <div style="text-align:center; margin-top:30px;">
+      <a href="https://olivomarket.cl/mi-cuenta/pedidos/{{orderId}}" class="button" style="background-color:#059669;">Ver estado del pedido</a>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="text-align:center;">
+      <p style="font-size:13px; color:#6b7280; margin:0 0 8px;">¿Necesitas agregar algo de último minuto a tu orden?</p>
+      <a href="{{whatsappLink}}" style="color:#059669; font-weight:bold; text-decoration:none; font-size:14px;">Escríbenos por WhatsApp de inmediato →</a>
+    </div>
+  </div>
+  <div class="footer">
+    <p style="font-weight:bold; color:#374151;">OlivoMarket Gourmet</p>
+    <p style="font-size:11px; color:#9ca3af;">© {{year}} OlivoMarket. Todos los derechos reservados.</p>
+  </div>
+</div>
+</body></html>`;
+
+const ORDER_SHIPPED_TEMPLATE = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
+<body>
+<div class="container">
+  <div class="header" style="background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);">
+    <div style="background:rgba(255,255,255,0.2); padding:6px 14px; border-radius:100px; display:inline-block; font-size:12px; font-weight:bold; margin-bottom:15px; letter-spacing:1px;">EN CAMINO</div>
+    <h1 style="margin:0; font-size:28px; letter-spacing:-1px;">🚚 ¡Tu pedido va en camino!</h1>
+  </div>
+  <div class="content">
+    <p style="font-size:18px; font-weight:bold; color:#111827;">Hola {{customerName}},</p>
+    <p>¡Excelentes noticias! Tu pedido <strong>#{{orderId}}</strong> ha salido de nuestra tienda y está en ruta hacia tu destino.</p>
+    
+    <div style="margin:25px 0; border:1px solid #dbeafe; border-radius:16px; padding:22px; background-color:#eff6ff;">
+      <p style="margin:0; font-size:12px; color:#1e40af; text-transform:uppercase; font-weight:bold;">Destino del Despacho</p>
+      <p style="margin:8px 0 0; font-size:15px; color:#1e3a8a;"><strong>Dirección:</strong> {{address}}</p>
+      {{shippingMethodBlock}}
+    </div>
+
+    {{trackingBlock}}
+
+    <div style="background-color:#fffbeb; border:1px solid #fde68a; padding:16px; border-radius:12px; margin:20px 0;">
+      <p style="margin:0; font-size:13px; color:#92400e;">💡 <strong>Recomendación:</strong> Por favor asegúrate de estar atento/a a tu teléfono o timbre para recibir al repartidor.</p>
+    </div>
+
+    <div style="text-align:center; margin-top:30px;">
+      <a href="{{trackingUrlFallback}}" class="button" style="background-color:#2563eb;">Seguir mi pedido</a>
+    </div>
+  </div>
+  <div class="footer">
+    <p style="font-weight:bold; color:#374151;">OlivoMarket Gourmet</p>
+    <div style="margin:15px 0;">
+      <a href="{{whatsappLink}}" class="social-link" style="color:#2563eb; border-color:#bfdbfe;">Contactar soporte</a>
+    </div>
+    <p style="font-size:11px; color:#9ca3af;">© {{year}} OlivoMarket. Todos los derechos reservados.</p>
+  </div>
+</div>
+</body></html>`;
+
+const ORDER_DELIVERED_TEMPLATE = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
+<body>
+<div class="container">
+  <div class="header" style="background: linear-gradient(135deg, #064E3B 0%, #10B981 100%);">
+    <div style="background:rgba(255,255,255,0.2); padding:6px 14px; border-radius:100px; display:inline-block; font-size:12px; font-weight:bold; margin-bottom:15px; letter-spacing:1px;">ENTREGADO CON ÉXITO</div>
+    <h1 style="margin:0; font-size:28px; letter-spacing:-1px;">🎉 ¡Tu pedido ha sido entregado!</h1>
+  </div>
+  <div class="content">
+    <p style="font-size:18px; font-weight:bold; color:#111827;">Hola {{customerName}},</p>
+    <p>Confirmamos que tu pedido <strong>#{{orderId}}</strong> fue entregado con éxito en <strong>{{address}}</strong>. Esperamos que disfrutes tus productos.</p>
+    
+    {{loyaltyPointsBlock}}
+
+    <div style="background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:24px; text-align:center; margin:25px 0;">
+      <p style="margin:0; font-size:15px; font-weight:bold; color:#1e293b;">¿Cómo estuvo tu experiencia de hoy?</p>
+      <p style="margin:6px 0 15px; font-size:13px; color:#64748b;">Tu opinión nos ayuda a perfeccionar nuestro servicio gourmet.</p>
+      <div style="font-size:28px; letter-spacing:8px;">
+        <a href="{{reviewLink}}?rating=5" style="text-decoration:none;">⭐</a>
+        <a href="{{reviewLink}}?rating=5" style="text-decoration:none;">⭐</a>
+        <a href="{{reviewLink}}?rating=5" style="text-decoration:none;">⭐</a>
+        <a href="{{reviewLink}}?rating=5" style="text-decoration:none;">⭐</a>
+        <a href="{{reviewLink}}?rating=5" style="text-decoration:none;">⭐</a>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="text-align:center;">
+      <p style="font-size:13px; color:#6b7280; margin:0 0 10px;">¿Tuviste algún problema o producto faltante?</p>
+      <a href="{{whatsappLink}}" style="color:#059669; font-weight:bold; text-decoration:none; font-size:14px;">Escríbenos por WhatsApp y lo resolvemos en minutos →</a>
+    </div>
+  </div>
+  <div class="footer">
+    <p style="font-weight:bold; color:#374151;">OlivoMarket Gourmet</p>
+    <p style="font-size:11px; color:#9ca3af;">© {{year}} OlivoMarket. Todos los derechos reservados.</p>
+  </div>
+</div>
+</body></html>`;
+
+const ORDER_CANCELLED_TEMPLATE = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
+<body>
+<div class="container">
+  <div class="header" style="background: linear-gradient(135deg, #881337 0%, #E11D48 100%);">
+    <div style="background:rgba(255,255,255,0.2); padding:6px 14px; border-radius:100px; display:inline-block; font-size:12px; font-weight:bold; margin-bottom:15px; letter-spacing:1px;">PEDIDO CANCELADO</div>
+    <h1 style="margin:0; font-size:28px; letter-spacing:-1px;">Información de tu pedido #{{orderId}}</h1>
+  </div>
+  <div class="content">
+    <p style="font-size:18px; font-weight:bold; color:#111827;">Hola {{customerName}},</p>
+    <p>Te informamos que tu pedido <strong>#{{orderId}}</strong> ha sido cancelado.</p>
+    
+    <div style="background-color:#fff1f2; border:1px solid #fecdd3; border-radius:12px; padding:18px; margin:20px 0;">
+      <p style="margin:0; font-size:12px; color:#9f1239; font-weight:bold; text-transform:uppercase;">Motivo:</p>
+      <p style="margin:6px 0 0; font-size:14px; color:#881337;">{{cancelReason}}</p>
+    </div>
+
+    {{pointsRefundNotice}}
+
+    {{paymentRefundNotice}}
+
+    <div style="text-align:center; margin-top:30px;">
+      <a href="https://olivomarket.cl/productos" class="button" style="background-color:#111827;">Explorar el catálogo</a>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="text-align:center;">
+      <p style="font-size:13px; color:#6b7280; margin:0 0 10px;">Si crees que esto fue un error o necesitas ayuda personalizada:</p>
+      <a href="{{whatsappLink}}" class="social-link" style="color:#e11d48; border-color:#fecdd3; font-weight:bold;">Atención al cliente vía WhatsApp</a>
+    </div>
+  </div>
+  <div class="footer">
+    <p style="font-weight:bold; color:#374151;">OlivoMarket Gourmet</p>
+    <p style="font-size:11px; color:#9ca3af;">© {{year}} OlivoMarket. Todos los derechos reservados.</p>
+  </div>
+</div>
+</body></html>`;
+
 const REVIEW_REQUEST_TEMPLATE = `<!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
 <body>
@@ -408,6 +578,9 @@ export async function sendOrderConfirmation(data: {
   itemCount: number;
   paymentMethod: string;
   items: Array<{ name: string; quantity: number; price: number }>;
+  pointsEarned?: number;
+  pointsBalance?: number;
+  whatsappPhone?: string;
 }): Promise<EmailResult> {
   const itemsHtml = data.items
     .map(
@@ -424,11 +597,21 @@ export async function sendOrderConfirmation(data: {
     )
     .join("");
 
+  const pointsBlock = data.pointsEarned && data.pointsEarned > 0
+    ? `<div style="background-color:#ecfdf5;border:1px dashed #10b981;border-radius:12px;padding:15px;text-align:center;margin:20px 0;">
+        <p style="margin:0;font-size:14px;font-weight:bold;color:#065f46;">🌟 ¡Sumaste ${data.pointsEarned.toLocaleString("es-CL")} puntos con este pedido!</p>
+        ${data.pointsBalance ? `<p style="margin:4px 0 0;font-size:12px;color:#059669;">Tu saldo acumulado es de <strong>${data.pointsBalance.toLocaleString("es-CL")} puntos</strong> en el Club OlivoMarket</p>` : ""}
+      </div>`
+    : "";
+
   const { subject: dbSubject, html: dbHtml } = await getTemplate(
     "order_confirmation",
     `✅ Pedido confirmado #${data.orderId}`,
     ORDER_CONFIRMATION_TEMPLATE
   );
+
+  const whatsappMessage = `Hola OlivoMarket! Consulta sobre mi pedido #${data.orderId}`;
+  const whatsappUrl = resolveWhatsAppLink(data.whatsappPhone, whatsappMessage);
 
   const html = renderTemplate(dbHtml, {
     customerName: data.customerName,
@@ -437,7 +620,8 @@ export async function sendOrderConfirmation(data: {
     itemCount: data.itemCount,
     paymentMethod: data.paymentMethod,
     itemsTable: itemsHtml,
-    whatsappLink: `https://wa.me/56912345678?text=Hola%20OlivoMarket!%20Pedido%20%23${data.orderId}`,
+    pointsBlock,
+    whatsappLink: whatsappUrl,
     year: new Date().getFullYear(),
   });
 
@@ -447,7 +631,7 @@ export async function sendOrderConfirmation(data: {
     subject: renderTemplate(dbSubject, { orderId: data.orderId }),
     html,
     templateSlug: "order_confirmation",
-    metadata: { orderId: data.orderId, total: data.total },
+    metadata: { orderId: data.orderId, total: data.total, pointsEarned: data.pointsEarned },
   });
 }
 
@@ -609,11 +793,16 @@ export async function sendReviewRequest(data: {
   customerName: string;
   orderId: string;
 }): Promise<EmailResult> {
+  const whatsappLink = resolveWhatsAppLink(
+    undefined,
+    `Hola OlivoMarket! Tengo un comentario o duda sobre mi pedido #${data.orderId}`
+  );
+
   const html = renderTemplate(REVIEW_REQUEST_TEMPLATE, {
     customerName: data.customerName,
     orderId: data.orderId,
     reviewLink: `https://olivomarket.cl/feedback/${data.orderId}`,
-    whatsappLink: "https://wa.me/56912345678",
+    whatsappLink,
     year: new Date().getFullYear(),
   });
 
@@ -626,14 +815,265 @@ export async function sendReviewRequest(data: {
   });
 }
 
-/** Order Status Update */
-export async function sendOrderStatusEmail(data: {
+/** Send Order Preparing Email (Etapa: En preparación) */
+export async function sendOrderPreparingEmail(data: {
+  to: string;
+  customerName: string;
+  orderId: string;
+  address?: string;
+  shippingMethod?: string;
+  whatsappPhone?: string;
+}): Promise<EmailResult> {
+  const { subject: dbSubject, html: dbHtml } = await getTemplate(
+    "order_preparing",
+    `👨‍🍳 Tu pedido #${data.orderId} se está preparando con cuidado`,
+    ORDER_PREPARING_TEMPLATE
+  );
+
+  const deliveryMethodBlock = data.shippingMethod
+    ? `<p style="margin:6px 0 0; font-size:14px; color:#4b5563;"><strong>Método:</strong> ${data.shippingMethod}</p>`
+    : "";
+
+  const html = renderTemplate(dbHtml, {
+    customerName: data.customerName,
+    orderId: data.orderId,
+    address: data.address || "Dirección registrada",
+    deliveryMethodBlock,
+    whatsappLink: resolveWhatsAppLink(data.whatsappPhone, `Hola OlivoMarket! Consulta sobre la preparación de mi pedido #${data.orderId}`),
+    year: new Date().getFullYear(),
+  });
+
+  return sendEmail({
+    to: data.to,
+    toName: data.customerName,
+    subject: renderTemplate(dbSubject, { orderId: data.orderId }),
+    html,
+    templateSlug: "order_preparing",
+    metadata: { orderId: data.orderId, stage: "preparing" },
+  });
+}
+
+/** Send Order Shipped Email (Etapa: En camino / Despachado) */
+export async function sendOrderShippedEmail(data: {
+  to: string;
+  customerName: string;
+  orderId: string;
+  address?: string;
+  shippingMethod?: string;
+  trackingUrl?: string;
+  trackingNumber?: string;
+  whatsappPhone?: string;
+}): Promise<EmailResult> {
+  const { subject: dbSubject, html: dbHtml } = await getTemplate(
+    "order_shipped",
+    `🚚 ¡Tu pedido #${data.orderId} va en camino!`,
+    ORDER_SHIPPED_TEMPLATE
+  );
+
+  const trackingBlock = data.trackingUrl
+    ? `<div style="background-color:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:18px; margin:20px 0; text-align:center;">
+        <p style="margin:0 0 10px; font-size:13px; color:#1e40af; font-weight:bold;">Seguimiento en tiempo real</p>
+        <a href="${data.trackingUrl}" class="button" style="background-color:#2563eb; margin:5px 0;">Ver ubicación del repartidor</a>
+        ${data.trackingNumber ? `<p style="margin:10px 0 0; font-size:12px; color:#6b7280;">Nº seguimiento: <strong>${data.trackingNumber}</strong></p>` : ""}
+      </div>`
+    : (data.trackingNumber
+        ? `<div style="background-color:#f3f4f6; border-radius:8px; padding:12px; margin:15px 0; font-size:13px; color:#374151;">Número de seguimiento: <strong>${data.trackingNumber}</strong></div>`
+        : "");
+
+  const shippingMethodBlock = data.shippingMethod
+    ? `<p style="margin:6px 0 0; font-size:14px; color:#1e40af;"><strong>Modalidad:</strong> ${data.shippingMethod}</p>`
+    : "";
+
+  const trackingUrlFallback = data.trackingUrl || `https://olivomarket.cl/mi-cuenta/pedidos/${data.orderId}`;
+
+  const html = renderTemplate(dbHtml, {
+    customerName: data.customerName,
+    orderId: data.orderId,
+    address: data.address || "Dirección registrada",
+    shippingMethodBlock,
+    trackingBlock,
+    trackingUrlFallback,
+    whatsappLink: resolveWhatsAppLink(data.whatsappPhone, `Hola OlivoMarket! Consulta sobre el despacho de mi pedido #${data.orderId}`),
+    year: new Date().getFullYear(),
+  });
+
+  return sendEmail({
+    to: data.to,
+    toName: data.customerName,
+    subject: renderTemplate(dbSubject, { orderId: data.orderId }),
+    html,
+    templateSlug: "order_shipped",
+    metadata: { orderId: data.orderId, stage: "shipped", trackingUrl: data.trackingUrl },
+  });
+}
+
+/** Send Order Delivered Email (Etapa: Entregado / Completado) */
+export async function sendOrderDeliveredEmail(data: {
+  to: string;
+  customerName: string;
+  orderId: string;
+  address?: string;
+  pointsEarned?: number;
+  pointsBalance?: number;
+  whatsappPhone?: string;
+}): Promise<EmailResult> {
+  const { subject: dbSubject, html: dbHtml } = await getTemplate(
+    "order_delivered",
+    `🎉 ¡Tu pedido #${data.orderId} ha sido entregado!`,
+    ORDER_DELIVERED_TEMPLATE
+  );
+
+  const loyaltyPointsBlock = data.pointsEarned && data.pointsEarned > 0
+    ? `<div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border:1px solid #a7f3d0; border-radius:16px; padding:20px; text-align:center; margin:20px 0;">
+        <p style="margin:0; font-size:13px; color:#065f46; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px;">Club OlivoMarket</p>
+        <p style="margin:6px 0 0; font-size:26px; font-weight:900; color:#047857;">+${data.pointsEarned.toLocaleString("es-CL")} pts</p>
+        <p style="margin:6px 0 0; font-size:13px; color:#065f46;">Acreditados en tu cuenta${data.pointsBalance ? ` (Saldo: <strong>${data.pointsBalance.toLocaleString("es-CL")} pts</strong>)` : ""}</p>
+        <p style="margin:8px 0 0; font-size:11px; color:#059669;">Úsalos como descuento en tu próxima compra gourmet.</p>
+      </div>`
+    : "";
+
+  const html = renderTemplate(dbHtml, {
+    customerName: data.customerName,
+    orderId: data.orderId,
+    address: data.address || "tu domicilio",
+    loyaltyPointsBlock,
+    reviewLink: `https://olivomarket.cl/feedback/${data.orderId}`,
+    whatsappLink: resolveWhatsAppLink(data.whatsappPhone, `Hola OlivoMarket! Necesito ayuda con mi pedido entregado #${data.orderId}`),
+    year: new Date().getFullYear(),
+  });
+
+  return sendEmail({
+    to: data.to,
+    toName: data.customerName,
+    subject: renderTemplate(dbSubject, { orderId: data.orderId }),
+    html,
+    templateSlug: "order_delivered",
+    metadata: { orderId: data.orderId, stage: "delivered", pointsEarned: data.pointsEarned },
+  });
+}
+
+/** Send Order Cancelled Email (Etapa: Cancelado / Rechazado) */
+export async function sendOrderCancelledEmail(data: {
+  to: string;
+  customerName: string;
+  orderId: string;
+  cancelReason?: string;
+  pointsRefunded?: number;
+  paymentRefunded?: boolean;
+  whatsappPhone?: string;
+}): Promise<EmailResult> {
+  const { subject: dbSubject, html: dbHtml } = await getTemplate(
+    "order_cancelled",
+    `Actualización sobre tu pedido #${data.orderId} en OlivoMarket`,
+    ORDER_CANCELLED_TEMPLATE
+  );
+
+  const pointsRefundNotice = data.pointsRefunded && data.pointsRefunded > 0
+    ? `<div style="background-color:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:16px; margin:15px 0;">
+        <p style="margin:0; font-size:13px; color:#166534;">🌟 <strong>Puntos restablecidos:</strong> Se han devuelto <strong>${data.pointsRefunded.toLocaleString("es-CL")} puntos</strong> a tu cuenta del Club OlivoMarket.</p>
+      </div>`
+    : "";
+
+  const paymentRefundNotice = data.paymentRefunded
+    ? `<div style="background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin:15px 0;">
+        <p style="margin:0; font-size:13px; color:#334155;">💳 <strong>Reembolso:</strong> El pago ha sido reversado. El plazo de reflejo dependerá de tu medio de pago.</p>
+      </div>`
+    : "";
+
+  const html = renderTemplate(dbHtml, {
+    customerName: data.customerName,
+    orderId: data.orderId,
+    cancelReason: data.cancelReason || "No pudimos completar el procesamiento de tu orden.",
+    pointsRefundNotice,
+    paymentRefundNotice,
+    whatsappLink: resolveWhatsAppLink(data.whatsappPhone, `Hola OlivoMarket! Consulta sobre la cancelación de mi pedido #${data.orderId}`),
+    year: new Date().getFullYear(),
+  });
+
+  return sendEmail({
+    to: data.to,
+    toName: data.customerName,
+    subject: renderTemplate(dbSubject, { orderId: data.orderId }),
+    html,
+    templateSlug: "order_cancelled",
+    metadata: { orderId: data.orderId, stage: "cancelled", cancelReason: data.cancelReason },
+  });
+}
+
+export type OrderStatusEmailPayload = {
   to: string;
   customerName: string;
   orderId: string;
   status: string;
-  address: string;
-}): Promise<EmailResult> {
+  address?: string;
+  shippingMethod?: string;
+  trackingUrl?: string;
+  trackingNumber?: string;
+  pointsEarned?: number;
+  pointsBalance?: number;
+  pointsRefunded?: number;
+  paymentRefunded?: boolean;
+  cancelReason?: string;
+  whatsappPhone?: string;
+};
+
+/** Order Status Update (Intelligent router by stage) */
+export async function sendOrderStatusEmail(data: OrderStatusEmailPayload): Promise<EmailResult> {
+  const norm = String(data.status || "").toLowerCase().trim();
+
+  // En preparación
+  if (norm === "processing" || norm === "procesando" || norm === "preparando" || norm.includes("prepar")) {
+    return sendOrderPreparingEmail({
+      to: data.to,
+      customerName: data.customerName,
+      orderId: data.orderId,
+      address: data.address,
+      shippingMethod: data.shippingMethod,
+      whatsappPhone: data.whatsappPhone,
+    });
+  }
+
+  // En camino / despachado
+  if (norm === "shipped" || norm === "enviado" || norm === "en_camino" || norm.includes("camino") || norm.includes("despach")) {
+    return sendOrderShippedEmail({
+      to: data.to,
+      customerName: data.customerName,
+      orderId: data.orderId,
+      address: data.address,
+      shippingMethod: data.shippingMethod,
+      trackingUrl: data.trackingUrl,
+      trackingNumber: data.trackingNumber,
+      whatsappPhone: data.whatsappPhone,
+    });
+  }
+
+  // Entregado / completado
+  if (norm === "delivered" || norm === "entregado" || norm === "completado") {
+    return sendOrderDeliveredEmail({
+      to: data.to,
+      customerName: data.customerName,
+      orderId: data.orderId,
+      address: data.address,
+      pointsEarned: data.pointsEarned,
+      pointsBalance: data.pointsBalance,
+      whatsappPhone: data.whatsappPhone,
+    });
+  }
+
+  // Cancelado / rechazado / reembolsado
+  if (norm === "cancelled" || norm === "cancelado" || norm === "rechazado" || norm === "refunded" || norm === "reembolsado") {
+    return sendOrderCancelledEmail({
+      to: data.to,
+      customerName: data.customerName,
+      orderId: data.orderId,
+      cancelReason: data.cancelReason || (norm === "refunded" || norm === "reembolsado" ? "Pedido reembolsado" : "Pedido cancelado"),
+      pointsRefunded: data.pointsRefunded,
+      paymentRefunded: data.paymentRefunded || norm === "refunded" || norm === "reembolsado",
+      whatsappPhone: data.whatsappPhone,
+    });
+  }
+
+  // Fallback genérico para otros estados
   const { subject: dbSubject, html: dbHtml } = await getTemplate(
     "order_status_update",
     `📦 Actualización de tu pedido #${data.orderId}`,
@@ -644,7 +1084,7 @@ export async function sendOrderStatusEmail(data: {
     customerName: data.customerName,
     orderId: data.orderId,
     status: data.status,
-    address: data.address,
+    address: data.address || "Dirección registrada",
     year: new Date().getFullYear(),
   });
 
