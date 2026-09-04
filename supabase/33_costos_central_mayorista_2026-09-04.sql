@@ -64,21 +64,21 @@ where ps.product_id in ('7802810006752','7802900120016','7802900121013')
   and ps.supplier_id <> (select id from suppliers where name = 'Central Mayorista')
   and ps.priority = 1;
 
--- Productos del pedido que NO existen en el catálogo y por lo tanto no se
--- tocaron (la instrucción fue actualizar, no crear):
+-- Productos del pedido que NO existían en el catálogo. Los marcados [CREADO] se
+-- dieron de alta en 34_productos_nuevos_central_mayorista_2026-09-04.sql.
 --   VASO PLASTICO TRANSPAR 50UNX300CC CHEAP      $1.420
---   BOLSA CHOKITA 20UN NESTLE                    $6.390
+--   BOLSA CHOKITA 20UN NESTLE                    $6.390  [CREADO]
 --   CARNE MOLIDA VACUNO 1KG KARMAC               $5.690
---   CHORIZO PARRILLERO 400 GRAMOS                $3.190
+--   CHORIZO PARRILLERO 400 GRAMOS                $3.190  [CREADO]
 --   CROCANTE SP 100GR                              $550
 --   HAMBURGUESA SUPER BEEF 100GR                   $660
---   JARABE GRANADINA 900CC MITJANS                $5.270
---   JUGO PIÑA 200ML WATTS                          $240
---   LONGANICILLA DE CAMPO 280GR LA CRIANZA        $2.220
+--   JARABE GRANADINA 900CC MITJANS                $5.270  [CREADO]
+--   JUGO PIÑA 200ML WATTS                          $240  [CREADO]
+--   LONGANICILLA DE CAMPO 280GR LA CRIANZA        $2.220  [CREADO]
 --   NUGGETS DE POLLO IN OUT SP 275 GRS             $950
 --   PAN BLANCO XL 770GR CASTAÑO                   $2.390  (el catálogo tiene Ideal 750 gr, otro producto)
 --   POSTRE MANJARATE 80GR SOPROLE                  $570
---   QUESO CREMA NATURAL 100GR COLUN                $600  (el catálogo tiene Soprole, otra marca)
---   SALCHICHA TRAD CERDO 250GR SAN JORGE           $820
+--   QUESO CREMA NATURAL 100GR COLUN                $600  (el catálogo tiene Soprole, otra marca)  [CREADO]
+--   SALCHICHA TRAD CERDO 250GR SAN JORGE           $820  [CREADO]
 --   DISPLAY BARRA CHOCOLATE 21,5GR SNICKERS     $11.690  (existe "Snickers 21.5 Gr" pero falta saber
 --                                                         cuántas unidades trae el display)
