@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
-import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useSession } from "next-auth/react";
 import { MessageCircle, Mail, Phone, MapPin, User, FileText, Send } from "lucide-react";
 import OlivoButton from "@/components/OlivoButton";
 import OlivoInput from "@/components/OlivoInput";
+import { BUSINESS, whatsappLink } from "@/lib/seo/business";
 
 interface FormState {
   name: string;
@@ -17,7 +17,6 @@ interface FormState {
 
 export default function ContactoClient() {
   const { showToast } = useToast();
-  const { settings } = useStoreSettings();
   const { data: session } = useSession();
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -69,12 +68,16 @@ export default function ContactoClient() {
     }
   };
 
+  // El NAP sale de BUSINESS, no de `settings`, igual que en el pie del sitio.
+  // La configuración de la tienda guarda el teléfono personal del dueño y el
+  // remitente transaccional (pedidos@send.olivomarket.cl, un buzón que nadie
+  // lee), así que esta página publicaba dos vías de contacto equivocadas. Los
+  // respaldos inventados ('+56 9 1234 5678', 'Av. Principal 123') tampoco
+  // deberían haber podido llegar a producción.
   const handleWhatsApp = () => {
-    const phone = settings.storePhone?.replace(/\D/g, '') || '56912345678';
     const name = session?.user?.name || "un cliente";
-    const message = `Hola, mi nombre es ${name} y necesito atención.`;
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    const url = whatsappLink(`Hola, mi nombre es ${name} y necesito atención.`);
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -103,21 +106,21 @@ export default function ContactoClient() {
             <Mail className="size-6" />
           </div>
           <h2 className="font-semibold text-gray-900 mb-1">Email</h2>
-          <p className="text-sm text-gray-600 break-all">{settings.emailFromAddress || settings.storeEmail || 'contacto@olivomarket.cl'}</p>
+          <a href={`mailto:${BUSINESS.email}`} className="o-focus rounded text-sm text-gray-600 break-all hover:text-brand-700">{BUSINESS.email}</a>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
           <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-600">
             <Phone className="size-6" />
           </div>
           <h2 className="font-semibold text-gray-900 mb-1">Teléfono</h2>
-          <p className="text-sm text-gray-600">{settings.storePhone || '+56 9 1234 5678'}</p>
+          <a href={`tel:${BUSINESS.phoneE164}`} className="o-focus rounded text-sm text-gray-600 hover:text-brand-700">{BUSINESS.phoneDisplay}</a>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
           <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-600">
             <MapPin className="size-6" />
           </div>
           <h2 className="font-semibold text-gray-900 mb-1">Dirección</h2>
-          <p className="text-sm text-gray-600">{settings.storeAddress || 'Av. Principal 123, Santiago'}</p>
+          <p className="text-sm text-gray-600">{BUSINESS.addressFull}</p>
         </div>
       </div>
 

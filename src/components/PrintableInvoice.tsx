@@ -1,5 +1,6 @@
 import React from 'react';
 import { StoreSettings } from "@/app/api/admin/settings/route";
+import { BUSINESS } from "@/lib/seo/business";
 
 interface PrintableInvoiceProps {
   order: {
@@ -34,12 +35,15 @@ interface PrintableInvoiceProps {
 }
 
 export default function PrintableInvoice({ order, settings }: PrintableInvoiceProps) {
-  const storeName = settings?.storeName || "OLIVO MARKET";
-  const storeAddress = settings?.storeAddress || "Av. Principal 123";
-  const storeCity = settings?.storeCity || "Santiago";
+  // Los respaldos salen de BUSINESS y no de datos de relleno: la boleta que
+  // imprime un cliente desde "Mis pedidos" se renderiza sin `settings`, así que
+  // salía con la dirección "Av. Principal 123" y un correo que no existe.
+  const storeName = settings?.storeName || BUSINESS.name;
+  const storeAddress = settings?.storeAddress || BUSINESS.address.streetAddress;
+  const storeCity = settings?.storeCity || BUSINESS.address.addressLocality;
   const storeCountry = settings?.storeCountry || "Chile";
-  const storeEmail = settings?.storeEmail || "contacto@olivomarket.com";
-  const storePhone = settings?.storePhone || "";
+  const storeEmail = settings?.storeEmail || BUSINESS.email;
+  const storePhone = settings?.storePhone || BUSINESS.phoneDisplay;
 
   return (
     <div className="hidden print:block bg-white text-black max-w-[210mm] mx-auto font-sans relative">

@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
 
 import { getCategoryStyle } from '@/utils/categoryStyles';
 
@@ -26,29 +25,32 @@ type Props = {
 export default function CategoryCard({ category, href, onClick }: Props) {
     const style = getCategoryStyle(category.name, category.image || undefined);
     const Icon = style.icon;
+    const count = category.productsCount;
 
-    const className = `o-focus group relative flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border ${style.bg} ${style.border} p-6 text-center transition-colors hover:border-brand-400`;
+    // Tarjeta compacta: el color va en la pastilla del icono y no en todo el
+    // bloque. Antes cada tarjeta era un rectángulo tintado de 250 px de alto
+    // con un enlace "Ver catálogo" redundante, así que en el teléfono entraban
+    // dos categorías por pantalla y la grilla quedaba desordenada de color.
+    const className =
+        'o-focus group flex h-full w-full flex-col items-center justify-start gap-2 rounded-2xl border border-neutral-200 bg-white p-3 text-center transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[0_6px_20px_-8px_rgba(0,0,0,0.18)] sm:gap-2.5 sm:p-4';
 
     const content = (
         <>
-            <span className="mb-4 flex size-16 items-center justify-center rounded-xl bg-white">
-                <Icon className={`size-8 ${style.color}`} />
+            <span
+                className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${style.bg} transition-transform duration-200 group-hover:scale-105 sm:size-12`}
+            >
+                <Icon className={`size-5 ${style.color} sm:size-6`} strokeWidth={2} />
             </span>
 
-            <span className="mb-1 block text-base font-semibold tracking-tight text-neutral-900 transition-colors group-hover:text-brand-700">
+            <span className="line-clamp-2 text-[13px] font-semibold leading-tight tracking-tight text-neutral-900 transition-colors group-hover:text-brand-700 sm:text-sm">
                 {category.name}
             </span>
 
-            {category.productsCount !== undefined && (
-                <span className="block text-sm text-neutral-500">
-                    {category.productsCount} {category.productsCount === 1 ? 'producto' : 'productos'}
+            {count !== undefined && (
+                <span className="text-[11px] leading-none text-neutral-500 sm:text-xs">
+                    {count} {count === 1 ? 'producto' : 'productos'}
                 </span>
             )}
-
-            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand-700">
-                Ver catálogo
-                <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-            </span>
         </>
     );
 

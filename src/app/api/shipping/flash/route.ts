@@ -22,7 +22,7 @@ import {
   MINIMO_FLASH_CLP_DEFAULT,
   TOPE_FLASH_CLP,
 } from "@/lib/flash-policy";
-import { cotizarFlash, uberDirectConfigurado } from "@/server/uber-direct.service";
+import { cotizarFlash, telefonoE164, uberDirectConfigurado } from "@/server/uber-direct.service";
 
 const TIMEZONE = "America/Santiago";
 
@@ -129,6 +129,10 @@ export async function POST(request: NextRequest) {
         motivo: "uber-no-responde",
         ...diagnostico({
           error: e instanceof Error ? e.message : "error desconocido",
+          // El teléfono es la causa más frecuente de `invalid_params`, y desde
+          // el mensaje de Uber no se ve cuál se mandó.
+          telefonoEnviado: telefonoE164(telefono),
+          destinoEnviado: `${calle}, ${comuna}`,
           queHacer:
             "Uber rechazó la conexión. Suele ser un Client ID, Client Secret o Customer ID incorrecto, o credenciales de prueba usadas contra el entorno de producción.",
         }),

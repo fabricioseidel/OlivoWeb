@@ -604,3 +604,33 @@ body {
   0%, 100% { transform: rotate(-1.5deg) translateY(0); }
   50%      { transform: rotate(1.5deg) translateY(1px); }
 }
+
+/* ── Impresión ─────────────────────────────────────────────────────────────
+   Una boleta impresa debe traer el pedido y nada más. `window.print()` imprime
+   la página completa, así que además de ocultar la cabecera y el pie (ver
+   ShopShell) hay que sacar el fondo gris, los márgenes de pantalla y los
+   elementos flotantes: avisos, tostadas y botones fijos, que si no aparecen
+   estampados encima del documento. */
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Nada fijo o pegajoso: en papel no hay scroll, así que se imprime en el
+     lugar donde quedó y tapa el contenido. */
+  [class*="fixed"],
+  [class*="sticky"] {
+    position: static !important;
+  }
+
+  /* Diálogos, tostadas y widgets flotantes no son parte del documento. */
+  [role="dialog"],
+  [role="alert"],
+  [role="status"],
+  [data-print="hidden"] {
+    display: none !important;
+  }
+}
