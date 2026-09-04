@@ -29,6 +29,14 @@ export type EmailPayload = {
   html: string;
   templateSlug?: string;
   metadata?: Record<string, unknown>;
+  /**
+   * A quién le contesta el "Responder" del cliente de correo.
+   *
+   * Los correos salen desde el remitente transaccional de la tienda. Cuando lo
+   * que se reenvía es el mensaje de un cliente, responder a ese remitente no
+   * llega a nadie: hace falta apuntar la respuesta al cliente.
+   */
+  replyTo?: string;
 };
 
 export type EmailResult = {
@@ -39,7 +47,7 @@ export type EmailResult = {
 
 // ── Main send function ──────────────────────────────────────────────────
 export async function sendEmail(payload: EmailPayload): Promise<EmailResult> {
-  const { to, toName, subject, html, templateSlug, metadata } = payload;
+  const { to, toName, subject, html, templateSlug, metadata, replyTo } = payload;
 
   try {
     const { data, error } = await getResend().emails.send({
@@ -47,6 +55,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailResult> {
       to: [to],
       subject,
       html,
+      ...(replyTo ? { replyTo } : {}),
     });
 
     if (error) {

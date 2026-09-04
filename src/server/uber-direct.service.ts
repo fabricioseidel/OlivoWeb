@@ -114,6 +114,31 @@ const ORIGEN = {
   codigoPostal: BUSINESS.address.postalCode,
 };
 
+/**
+ * Teléfono en E.164, que es lo único que Uber Direct acepta.
+ *
+ * El checkout manda el teléfono tal como lo escribe el cliente: en Chile eso
+ * es "933030295" o "9 3303 0295". Uber responde `invalid_params` y la
+ * cotización entera se cae, así que el envío flash desaparecía del checkout
+ * apenas el cliente llenaba su teléfono — con el local abierto y las
+ * credenciales bien. Cuando el número no se puede interpretar se usa el de la
+ * tienda: es preferible una entrega que llega a un teléfono de contacto válido
+ * a no ofrecer el servicio.
+ */
+export function telefonoE164(raw?: string | null): string {
+  const digitos = String(raw ?? "").replace(/\D/g, "");
+  if (!digitos) return BUSINESS.phoneE164;
+  // Ya viene con código de país.
+  if (digitos.startsWith("56") && digitos.length >= 11) return `+${digitos}`;
+  // Móvil chileno sin código de país: 9XXXXXXXX.
+  if (digitos.length === 9 && digitos.startsWith("9")) return `+56${digitos}`;
+  // Fijo de Santiago sin código de país: 2XXXXXXXX.
+  if (digitos.length === 9 && digitos.startsWith("2")) return `+56${digitos}`;
+  // Escrito con el 0 de larga distancia: 09XXXXXXXX.
+  if (digitos.length === 10 && digitos.startsWith("09")) return `+56${digitos.slice(1)}`;
+  return BUSINESS.phoneE164;
+}
+
 export type DestinoFlash = {
   calle: string;
   comuna: string;
@@ -161,7 +186,7 @@ export async function cotizarFlash(destino: DestinoFlash): Promise<CotizacionFla
       region: BUSINESS.address.addressRegion,
       codigoPostal: destino.codigoPostal || BUSINESS.address.postalCode,
     }),
-    dropoff_phone_number: destino.telefono || BUSINESS.phoneE164,
+    dropoff_phone_number: telefonoE164(destino.telefono),
   };
   if (typeof destino.lat === "number") cuerpo.dropoff_latitude = destino.lat;
   if (typeof destino.lng === "number") cuerpo.dropoff_longitude = destino.lng;
@@ -255,7 +280,7 @@ export async function crearEntregaFlash(params: {
         region: BUSINESS.address.addressRegion,
         codigoPostal: params.destino.codigoPostal || BUSINESS.address.postalCode,
       }),
-      dropoff_phone_number: params.telefonoCliente,
+      dropoff_phone_number: telefonoE164(params.telefonoCliente),
       ...(params.instrucciones ? { dropoff_notes: params.instrucciones } : {}),
       manifest_reference: params.referenciaPedido,
       // El valor va en la unidad mínima, igual que el `fee` que Uber devuelve.

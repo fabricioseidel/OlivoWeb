@@ -13,7 +13,7 @@ export default function ShopShell({ children }: { children: ReactNode }) {
   const isAdmin = pathname?.startsWith("/admin");
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col print:block print:min-h-0">
       {!isAdmin && (
         <>
           {/* Saltar al contenido. Sin esto, quien navega con teclado tiene que
@@ -28,17 +28,25 @@ export default function ShopShell({ children }: { children: ReactNode }) {
           >
             Saltar al contenido
           </a>
-          <PreviewBanner />
+          <div className="print:hidden">
+            <PreviewBanner />
+          </div>
           {/* Cinta de temporada. Va sobre el encabezado y no dentro, para
               que el navbar siga siendo sticky por su cuenta y la cinta se
               desplace con la página. Se apaga sola fuera de septiembre. */}
-          <FranjaDieciochera />
-          <header className="sticky top-0 z-50 bg-white shadow">
+          <div className="print:hidden">
+            <FranjaDieciochera />
+          </div>
+          {/* Al imprimir un pedido, `window.print()` imprime la página entera:
+              el navbar, la cinta de temporada y el pie con sus cuatro columnas
+              de enlaces salían en el papel y la boleta terminaba ocupando
+              cuatro hojas. La boleta se imprime sola. */}
+          <header className="sticky top-0 z-50 bg-white shadow print:hidden">
             <Navbar />
           </header>
         </>
       )}
-      <main id="contenido" tabIndex={-1} className={`flex-1 outline-none ${isAdmin ? "" : "bg-white"}`}>
+      <main id="contenido" tabIndex={-1} className={`flex-1 outline-none print:flex-none ${isAdmin ? "" : "bg-white"}`}>
         {children}
       </main>
       {/* El pie existía desde hace tiempo y no lo montaba nadie: el sitio se
@@ -48,10 +56,12 @@ export default function ShopShell({ children }: { children: ReactNode }) {
           el que tapa contenido es el pie, no el <main>. */}
       {!isAdmin && (
         <>
-          <div className="pb-20 md:pb-0">
+          <div className="pb-20 md:pb-0 print:hidden">
             <Footer />
           </div>
-          <BottomNav />
+          <div className="print:hidden">
+            <BottomNav />
+          </div>
         </>
       )}
     </div>
