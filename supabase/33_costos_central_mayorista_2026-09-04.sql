@@ -31,7 +31,8 @@ lista(product_id, precio_con_iva, unidades) as (
     ('7802810006752',        240,           1),           -- Jugo Watts Naranja 200 Ml
     ('7801907004305',        520,           1),           -- Paté ternera San Jorge 125 Gr
     ('7801305004099',       1000,           1),           -- Porotos Negros Listos Wasil 380 Gr
-    ('900000000042',         550,           1)            -- Yogurt 1+1 Zucaritas 140 Gr Soprole
+    ('900000000042',         550,           1),           -- Yogurt 1+1 Zucaritas 140 Gr Soprole
+    ('7506174502645',      11690,          24)            -- Snickers 21,5 Gr (display de 24 unidades)
 )
 insert into product_suppliers (
   product_id, supplier_id, priority, unit_cost, pack_size,
@@ -80,5 +81,11 @@ where ps.product_id in ('7802810006752','7802900120016','7802900121013')
 --   POSTRE MANJARATE 80GR SOPROLE                  $570
 --   QUESO CREMA NATURAL 100GR COLUN                $600  (el catálogo tiene Soprole, otra marca)  [CREADO]
 --   SALCHICHA TRAD CERDO 250GR SAN JORGE           $820  [CREADO]
---   DISPLAY BARRA CHOCOLATE 21,5GR SNICKERS     $11.690  (existe "Snickers 21.5 Gr" pero falta saber
---                                                         cuántas unidades trae el display)
+
+
+-- El display de Snickers se cargó junto al resto: $11.690 con IVA por 24
+-- unidades, sobre el producto "Snickers 21.5 Gr" que ya existía.
+update product_suppliers
+set notes = 'Display de 24 unidades a $11.690 con IVA'
+where product_id = '7506174502645'
+  and supplier_id = (select id from suppliers where name = 'Central Mayorista');
