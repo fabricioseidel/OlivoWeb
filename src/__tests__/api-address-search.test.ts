@@ -6,8 +6,9 @@ import { GET } from '@/app/api/address/search/route';
 const lugar = (
   place_id: number,
   display_name: string,
-  address: Record<string, string>
-) => ({ place_id, display_name, address, lat: '-33.4', lon: '-70.6' });
+  address: Record<string, string>,
+  osm_id = place_id
+) => ({ place_id, osm_type: 'way', osm_id, display_name, address, lat: '-33.4', lon: '-70.6' });
 
 const PUEBLO_QUILLOTA = lugar(1, 'San Isidro, Quillota, Región de Valparaíso', {
   village: 'San Isidro',
@@ -92,6 +93,31 @@ describe('API /address/search', () => {
       responder({ libre: [CALLE_SANTIAGO], estructurada: [CALLE_SANTIAGO] })
     );
     const res = await pedir('San Isidro 294');
+    const data = await res.json();
+
+    expect(data).toHaveLength(1);
+  });
+
+  it('reconoce el mismo objeto de OSM aunque cambie el place_id', async () => {
+    // Nominatim asigna un `place_id` distinto por consulta al mismo objeto:
+    // "Av. José Pedro Alessandri 2010" aparecía cuatro veces en la lista.
+    const mismoObjeto = { ...CALLE_SANTIAGO, place_id: 99999 };
+    vi.stubGlobal(
+      'fetch',
+      responder({ libre: [CALLE_SANTIAGO], estructurada: [mismoObjeto] })
+    );
+    const res = await pedir('San Isidro 295');
+    const data = await res.json();
+
+    expect(data).toHaveLength(1);
+  });
+
+  it('no muestra dos veces la misma dirección escrita igual', async () => {
+    // Dos portales del mismo edificio: distinto osm_id, misma dirección para
+    // quien tiene que elegir una.
+    const otroPortal = { ...CALLE_SANTIAGO, place_id: 4242, osm_id: 4242 };
+    vi.stubGlobal('fetch', responder({ libre: [CALLE_SANTIAGO, otroPortal] }));
+    const res = await pedir('San Isidro portales');
     const data = await res.json();
 
     expect(data).toHaveLength(1);

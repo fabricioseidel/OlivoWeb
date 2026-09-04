@@ -62,13 +62,30 @@ function urlBusquedaEstructurada(q: string, country: string): URL | null {
   return url;
 }
 
+/**
+ * Clave de identidad de un resultado.
+ *
+ * No sirve `place_id`: es un id interno del índice de Nominatim y el **mismo**
+ * objeto de OpenStreetMap vuelve con un `place_id` distinto en cada consulta.
+ * Al fusionar la búsqueda libre con la estructurada, "Av. José Pedro
+ * Alessandri 2010" salía cuatro veces en la lista. El par osm_type + osm_id sí
+ * identifica al objeto; el `display_name` cubre el resto, porque dos portales
+ * distintos del mismo edificio son, para quien elige, la misma dirección.
+ */
+function claveDeIdentidad(item: any): string {
+  if (item?.osm_type && item?.osm_id) return `${item.osm_type}:${item.osm_id}`;
+  return String(item?.display_name ?? item?.place_id ?? "");
+}
+
 function dedupe(items: any[]): any[] {
   const vistos = new Set<string>();
   const out: any[] = [];
   for (const item of items) {
-    const clave = String(item?.place_id ?? item?.osm_id ?? item?.display_name ?? "");
-    if (!clave || vistos.has(clave)) continue;
+    const clave = claveDeIdentidad(item);
+    const nombre = String(item?.display_name ?? "").trim().toLowerCase();
+    if (!clave || vistos.has(clave) || (nombre && vistos.has(nombre))) continue;
     vistos.add(clave);
+    if (nombre) vistos.add(nombre);
     out.push(item);
   }
   return out;
