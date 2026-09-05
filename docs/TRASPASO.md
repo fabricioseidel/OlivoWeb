@@ -1859,6 +1859,61 @@ Ordenado por lo que cuesta plata.
 
 ---
 
+## Seguimiento del envío flash (2026-09-05)
+
+Hasta acá el flash funcionaba a ciegas: la entrega de Uber se creaba sola con el
+pago confirmado y el `tracking_url` se guardaba dentro del JSON de
+`shipping_address`, pero **no lo leía nadie**. Ni el panel, ni la página del
+cliente, ni el correo de despacho. El estado del repartidor no entraba nunca:
+había que moverlo a mano adivinando, o abrir el panel de Uber Direct.
+
+### Qué se agregó
+
+| Pieza | Dónde | Qué hace |
+|---|---|---|
+| Traducción de estados | `src/lib/uber-status.ts` | Módulo puro: qué significa cada estado de Uber, si mueve el pedido y si necesita que alguien intervenga. Probado en `src/__tests__/uber-status.test.ts`. |
+| Guardado del seguimiento | webhook de MercadoPago | Al crear la entrega escribe `express_delivery_id`, `express_tracking_url`, `express_status`, `express_fee` y `express_fee_paid_by`. Antes sólo iba al JSON. |
+| Avisos de Uber | `/api/webhooks/uber` | Recibe los cambios de estado, avanza el pedido a `shipped`/`delivered` y le manda el correo al cliente. |
+| Panel | `OrderDetailClient` | Tarjeta con el estado y el botón "Ver repartidor en vivo". En rojo cuando la entrega falló. |
+| Cliente | `/mi-cuenta/pedidos/[id]` | El mismo estado en lenguaje de cliente, con el link en vivo. |
+| Correo | `sendOrderShippedEmail` | Ya tenía el bloque de seguimiento; ahora le llega la URL. |
+
+### Lo que hay que configurar para que ande
+
+1. **La URL del webhook en el panel de Uber Direct** (Webhooks → Delivery
+   status): `https://<dominio>/api/webhooks/uber`.
+2. **`UBER_DIRECT_WEBHOOK_SECRET`** en Vercel, con el secreto que da ese mismo
+   panel. Sin la variable el endpoint rechaza todo en producción —fail-closed,
+   igual que el de MercadoPago— y el estado se queda en el inicial. Acordarse de
+   **redesplegar**: Vercel inyecta las variables al construir (ver "Poner el
+   envío flash en producción").
+3. **La migración `20260825000000`** tiene que estar aplicada. En producción las
+   columnas ya existen (se aplicaron a mano en el PR #56); en una base nueva las
+   crea la migración.
+
+Sin el paso 1 y 2 el pedido igual se despacha y el link de seguimiento igual se
+ve: lo único que falta es que el estado avance solo.
+
+### Decisiones que no son obvias
+
+- **`pending` y `pickup` no despachan el pedido.** "Estoy buscando repartidor"
+  no es "va en camino", y el correo de despacho es difícil de desmentir.
+- **Los avisos se ordenan antes de aplicarlos** (`esAvance`). Uber los reenvía y
+  llegan desordenados; sin eso un `pickup` rezagado desentregaba un pedido ya
+  entregado.
+- **El endpoint nunca devuelve 500.** Un error nuestro haría que Uber reintente,
+  y el reintento no lo arregla. Sólo el 401 de firma inválida corta.
+- **`express_status = 'failed'`** no viene de Uber: lo escribe el webhook de pago
+  cuando la entrega no se pudo crear. Es el caso "pagado y sin repartidor", que
+  se despacha a mano. Al cliente se le muestra "estamos coordinando tu entrega".
+
+### Lo que sigue sin hacer
+
+- **La tienda no recibe una alerta** cuando una entrega falla: hay que estar
+  mirando el panel. El tablero de recepción refresca cada 30 s y no suena.
+
+---
+
 ## Documentos relacionados
 
 - `docs/PLAN_PRECIOS.md` — la auditoría completa del módulo de precios, costos

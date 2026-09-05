@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         // Verificar que el monto pagado coincide con el total de la orden
         const { data: order } = await supabaseServer
           .from('orders')
-          .select('total, shipping_method, shipping_address')
+          .select('total, shipping_cost, shipping_method, shipping_address, express_delivery_id')
           .eq('id', orderId)
           .single();
 
@@ -247,12 +247,19 @@ export async function POST(request: NextRequest) {
  */
 async function crearEntregaDePedidoPagado(
   orderId: string,
-  order: { shipping_address?: unknown; total?: number | string | null }
+  order: {
+    shipping_address?: unknown;
+    total?: number | string | null;
+    shipping_cost?: number | string | null;
+    express_delivery_id?: string | null;
+  }
 ): Promise<void> {
   const dir = (order.shipping_address ?? {}) as Record<string, unknown>;
 
-  // Idempotencia: MercadoPago reenvía el mismo webhook más de una vez.
-  if (dir.uberDeliveryId) {
+  // Idempotencia: MercadoPago reenvía el mismo webhook más de una vez. Se mira
+  // la columna y el JSON: la columna es la fuente nueva, el JSON cubre las
+  // órdenes creadas antes de que existiera.
+  if (order.express_delivery_id || dir.uberDeliveryId) {
     console.log(`[MP Webhook] La orden ${orderId} ya tiene entrega de Uber; no se crea otra.`);
     return;
   }
@@ -260,6 +267,10 @@ async function crearEntregaDePedidoPagado(
   const quoteId = dir.uberQuoteId ? String(dir.uberQuoteId) : null;
   if (!quoteId) {
     console.error(`[MP Webhook] ❌ Orden flash ${orderId} sin uberQuoteId: hay que despacharla a mano.`);
+    await supabaseServer
+      .from('orders')
+      .update({ express_status: 'failed', updated_at: new Date().toISOString() })
+      .eq('id', orderId);
     await auditLog({
       action: 'UBER_DELIVERY_FAILED',
       entity: 'orders',
@@ -287,9 +298,20 @@ async function crearEntregaDePedidoPagado(
       valorPedidoCLP: Number(order.total) || 0,
     });
 
+    // El seguimiento va a columnas propias y no sólo al JSON: es lo que leen
+    // el panel, la página del cliente y el webhook de Uber, y `express_delivery_id`
+    // tiene índice único, así que dos entregas de la misma orden no entran.
     await supabaseServer
       .from('orders')
       .update({
+        express_delivery_id: entrega.id,
+        express_tracking_url: entrega.tracking,
+        express_status: entrega.estado || 'pending',
+        express_fee: entrega.feeCLP,
+        // Lo que el cliente pagó por el envío. En $0 el envío iba de regalo y
+        // la tarifa de Uber la absorbe la tienda.
+        express_fee_paid_by: Number(order.shipping_cost) > 0 ? 'customer' : 'store',
+        // El JSON se mantiene por compatibilidad con las órdenes ya despachadas.
         shipping_address: { ...dir, uberDeliveryId: entrega.id, uberTracking: entrega.tracking },
         updated_at: new Date().toISOString(),
       })
@@ -301,12 +323,18 @@ async function crearEntregaDePedidoPagado(
       entity: 'orders',
       entityId: orderId,
       actor: 'mp-webhook',
-      details: { deliveryId: entrega.id, quoteId },
+      details: { deliveryId: entrega.id, quoteId, tracking: entrega.tracking },
     });
   } catch (e) {
     // El pedido queda pagado y sin repartidor. Se registra fuerte para que se
     // note y se despache a mano: es preferible a no cobrar o a duplicar.
     console.error(`[MP Webhook] ❌ No se pudo crear la entrega de Uber de la orden ${orderId}:`, e);
+    // Queda marcado en la orden, no sólo en los logs: el panel lo muestra en
+    // rojo y la tienda se entera sin tener que mirar la auditoría.
+    await supabaseServer
+      .from('orders')
+      .update({ express_status: 'failed', updated_at: new Date().toISOString() })
+      .eq('id', orderId);
     await auditLog({
       action: 'UBER_DELIVERY_FAILED',
       entity: 'orders',

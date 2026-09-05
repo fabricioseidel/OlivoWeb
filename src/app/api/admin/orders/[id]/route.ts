@@ -101,7 +101,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
                                 address: fullAddress,
                                 shippingMethod: order.shipping_method,
                                 trackingNumber: order.tracking_number,
-                                trackingUrl: order.tracking_url,
+                                // En el flash el seguimiento es el link en vivo
+                                // de Uber, que vive en su propia columna.
+                                trackingUrl:
+                                    order.tracking_url ||
+                                    order.express_tracking_url ||
+                                    addressData.uberTracking ||
+                                    undefined,
                             });
                         }
                     }
