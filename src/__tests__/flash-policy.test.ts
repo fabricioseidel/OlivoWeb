@@ -56,6 +56,12 @@ describe("cuándo se ofrece el flash", () => {
     expect(q.motivo).toBe("sin-cobertura");
   });
 
+  it("un costo NaN no se ofrece: sería una opción disponible y sin precio", () => {
+    const q = quoteFlash({ ...base, costoUber: NaN });
+    expect(q.disponible).toBe(false);
+    expect(q.motivo).toBe("sin-cobertura");
+  });
+
   it("sobre el tope no se ofrece: es la protección contra los picos", () => {
     const q = quoteFlash({ ...base, costoUber: TOPE_FLASH_CLP + 1 });
     expect(q.disponible).toBe(false);
