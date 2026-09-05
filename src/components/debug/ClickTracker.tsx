@@ -31,6 +31,13 @@ export function ClickTracker() {
   const lastRef = useRef<{ msg: string; t: number }>({ msg: "", t: 0 });
 
   useEffect(() => {
+    // Esto es instrumentación de desarrollo y `/api/debug/client-error` sólo
+    // acepta en desarrollo: en producción cada click de cada cliente gastaba
+    // una invocación serverless para recibir un 403, y los cientos de errores
+    // en la consola tapaban los que sí importan. `DevErrorBoundary` ya se
+    // guardaba así; acá faltaba. Sin listeners no hay nada que reportar.
+    if (process.env.NODE_ENV !== "development") return;
+
     const report = (payload: Record<string, unknown>) => {
       fetch("/api/debug/client-error", {
         method: "POST",

@@ -107,7 +107,9 @@ export function quoteFlash(params: {
   if (!params.tiendaAbierta) {
     return { disponible: false, ...vacio, motivo: "tienda-cerrada" };
   }
-  if (params.costoUber === null) {
+  // `!Number.isFinite` y no sólo `=== null`: un NaN pasaría también la
+  // comparación con el tope de abajo y saldría como disponible sin precio.
+  if (params.costoUber === null || !Number.isFinite(params.costoUber)) {
     return { disponible: false, ...vacio, motivo: "sin-cobertura" };
   }
 
