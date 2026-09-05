@@ -40,6 +40,14 @@ import { whatsappLink, checkoutInquiryMessage } from "@/utils/whatsapp";
 
 const clpFormat = (n: number) => `$${Math.round(n).toLocaleString("es-CL")}`;
 
+/**
+ * Espera antes de pedirle una cotización a Uber.
+ *
+ * Es el tiempo que se deja pasar sin que el cliente escriba. Medio segundo
+ * alcanza para no cotizar letra por letra y no se nota al terminar de tipear.
+ */
+const ESPERA_COTIZACION_MS = 500;
+
 const paymentMethods: PaymentMethod[] = [
   { id: "mercadopago", name: "MercadoPago" },
 ];
@@ -286,8 +294,13 @@ export default function CheckoutPage() {
     }
     setFlashNoConsultado(null);
 
+    // Cada cotización es una llamada real a Uber. Sin esta espera, el efecto
+    // corre por cada tecla que el cliente escribe en dirección, comuna o
+    // teléfono: en los logs de producción hay 30 cotizaciones de un mismo
+    // cliente en 10 segundos. El `cancelado` de abajo sólo evitaba pintar la
+    // respuesta vieja, no impedía que la petición saliera.
     let cancelado = false;
-    (async () => {
+    const temporizador = setTimeout(async () => {
       try {
         const res = await fetch("/api/shipping/flash", {
           method: "POST",
@@ -321,10 +334,11 @@ export default function CheckoutPage() {
         console.warn("[Envío Flash] Error al consultar cotización:", err);
         if (!cancelado) setFlashUber(null);
       }
-    })();
+    }, ESPERA_COTIZACION_MS);
 
     return () => {
       cancelado = true;
+      clearTimeout(temporizador);
     };
   }, [shippingInfo.address, shippingInfo.city, shippingInfo.phone, coords]);
 
