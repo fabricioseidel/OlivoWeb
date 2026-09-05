@@ -7,6 +7,7 @@ import { crearEntregaFlash } from '@/server/uber-direct.service';
 import { addBonusPoints } from '@/server/loyalty.service';
 import { sendOrderCancelledEmail } from '@/server/email.service';
 import crypto from 'crypto';
+import { montoCobrado } from '@/lib/mercadopago-monto';
 
 /**
  * Valida la firma HMAC-SHA256 del webhook de MercadoPago.
@@ -87,10 +88,13 @@ export async function POST(request: NextRequest) {
           .eq('id', orderId)
           .single();
 
-        const paidAmount = paymentData.transaction_amount ?? 0;
+        const paidAmount = montoCobrado(paymentData);
         if (order && Math.abs(Number(order.total) - paidAmount) > 1) {
+          // El desglose va en el log a propósito: la vez que esto falló de
+          // verdad, el número suelto no decía que la diferencia era exactamente
+          // el envío, y por ahí pasaba el error.
           console.error(
-            `[MP Webhook] ❌ Monto pagado (${paidAmount}) no coincide con el total de la orden ${orderId} (${order.total}) — no se marca como pagada`
+            `[MP Webhook] ❌ Monto pagado (${paidAmount} = ítems ${paymentData.transaction_amount ?? 0} + envío ${(paymentData as { shipping_amount?: number }).shipping_amount ?? 0}) no coincide con el total de la orden ${orderId} (${order.total}) — no se marca como pagada`
           );
           return NextResponse.json({ received: true, flagged: 'amount_mismatch' }, { status: 200 });
         }
@@ -235,6 +239,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
+
 
 /**
  * Despacha la entrega de Uber de un pedido flash ya pagado.
