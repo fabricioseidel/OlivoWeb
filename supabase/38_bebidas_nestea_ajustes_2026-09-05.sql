@@ -33,9 +33,31 @@ where barcode in ('7591016005965','7591016003671');
 
 commit;
 
--- PENDIENTE, no es un error del script: con costo $9.500 y venta $10.000, los dos
--- Nestéa de 450 gr quedan al 5,0% de margen. Además cuestan lo mismo que el de
--- 1 kg, que se vende a $14.000. Uno de los dos datos tiene que estar mal: o el
--- "1 kg" es en realidad otro 450 gr (y entonces sí eran duplicados), o el costo
--- de los de 450 gr no es 9.500. Queda cargado tal como se indicó, a la espera de
--- revisar la factura de Salazar La Vega.
+-- 4. El Nestéa de 1 kg no existe: era el de 450 gr cargado con otro nombre y
+-- otro código. Se unifica y el formato grande queda a $14.000, que es el precio
+-- al que se vende. A los $10.000 que tenía habría quedado al 5% de margen.
+begin;
+
+update branch_stock bs set stock = bs.stock + d.stock, updated_at = now()
+from branch_stock d
+where d.branch_id = bs.branch_id and d.stock > 0
+  and d.product_barcode = '7591016203033' and bs.product_barcode = '7591016022474';
+
+delete from branch_stock where product_barcode = '7591016203033';
+
+update products set stock = 20, sale_price = 14000, price_reviewed_at = now(), updated_at = now()
+where barcode = '7591016022474';  -- limón 450 gr: 10 + 10
+
+update products set sale_price = 14000, price_reviewed_at = now(), updated_at = now()
+where barcode = '7591016022481';  -- durazno 450 gr
+
+update products set name = 'Nestea Limón 1 kg [duplicado, unificado 05/09/2026]',
+       stock = 0, is_active = false, updated_at = now()
+where barcode = '7591016203033';
+
+-- El vínculo con el proveedor se borra en vez de dejarse colgando: el producto
+-- ya no se compra, y un vínculo vivo lo seguiría trayendo a las pantallas de
+-- reposición.
+delete from product_suppliers where product_id = '7591016203033';
+
+commit;
