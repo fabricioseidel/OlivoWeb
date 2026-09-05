@@ -136,11 +136,9 @@ puede prometer una cosa mientras el sistema cobra otra.
 
 **Lo que falta de tu parte:**
 
-1. **El RUT de Inversiones El Olivo SpA.** Va en `BUSINESS.rut`
-   (`src/lib/seo/business.ts`). Mientras sea `null` la línea simplemente no se
-   muestra — no se inventa —, pero los términos de un comercio chileno deben
-   identificar al proveedor, así que es lo único que falta para que estén
-   completos.
+1. ~~**El RUT de Inversiones El Olivo SpA.**~~ **Entregado el 2026-09-05**:
+   `78.002.865-3`, cargado en `BUSINESS.rut` (`src/lib/seo/business.ts`). Ya
+   aparece al pie de las tres páginas legales.
 
 2. **Léelos y confirma que describen tu operación.** Escribí lo que hace el
    sistema hoy, pero hay decisiones de negocio que son tuyas y conviene que

@@ -132,18 +132,29 @@ async function calculateServerShippingCost(params: {
       return { error: 'El envío flash no está disponible en este momento.' };
     }
 
-    // Regla 3: Tienda abierta. Se permite omitir para pruebas.
+    // Regla 3: la entrega flash sólo se pide con la tienda abierta.
+    //
+    // Acá es donde de verdad importa: la cotización sólo esconde la opción,
+    // pero este punto cobra y dispara al repartidor. Tenía un `|| true` puesto
+    // para pruebas directas que anulaba la comprobación entera, así que un
+    // checkout abierto a las 17:50 y confirmado a las 18:05 mandaba un
+    // repartidor —que se cobra igual— a un local ya cerrado.
+    //
+    // La excepción para probar se conserva, pero acotada a quien administra la
+    // tienda, igual que en `/api/shipping/flash`: depende de la sesión y un
+    // cliente no puede activarla.
     const ahora = toZonedTime(new Date(), TIMEZONE);
     const abiertaReal = tiendaAbierta(
       format(ahora, 'yyyy-MM-dd'),
       getHours(ahora) * 60 + getMinutes(ahora)
     );
-    const ignoreHorario =
-      process.env.UBER_DIRECT_IGNORE_STORE_HOURS === "true" ||
-      process.env.NEXT_PUBLIC_DEBUG_FLASH === "true" ||
-      true; // Excepción activa para pruebas directas
-
-    const abierta = abiertaReal || ignoreHorario;
+    // `horarioIgnorado()` es el mismo interruptor que usa la cotización, y su
+    // comentario ya documenta este `|| true`. Antes acá se leían las variables
+    // a mano, y una de ellas era `NEXT_PUBLIC_DEBUG_FLASH`: pública, o sea
+    // visible en el navegador, que es un mal lugar del que colgar una regla de
+    // servidor. La cotización nunca la respetó; ahora los dos puntos deciden
+    // igual.
+    const abierta = abiertaReal || horarioIgnorado() || (await esAdmin());
     if (!abierta) {
       return { error: 'El envío flash sólo se puede pedir con la tienda abierta. Puedes agendar tu entrega.' };
     }

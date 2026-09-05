@@ -52,10 +52,11 @@ export const BUSINESS = {
   /**
    * RUT de la sociedad, para identificar al proveedor en los documentos
    * legales. Se omite del texto mientras sea null — no se inventa.
-   * // TODO-HUMANO: entregar el RUT de Inversiones El Olivo SpA. Los términos
-   * y condiciones de un comercio chileno deben identificar al proveedor.
+   *
+   * Entregado por el dueño el 2026-09-05. Va con puntos y guión, que es como
+   * se escribe en un documento y como lo espera quien lo lea.
    */
-  rut: null as string | null,
+  rut: "78.002.865-3" as string | null,
 
   /**
    * Frase de entidad — debe aparecer idéntica en todo el sitio.
