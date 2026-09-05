@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import PrintableInvoice from "@/components/PrintableInvoice";
+import { leerEstadoUber } from "@/lib/uber-status";
 
 // Tipos
 type ProductoEnPedido = {
@@ -42,7 +43,45 @@ type Pedido = {
   metodoPago: string;
   numeroSeguimiento?: string;
   urlSeguimiento?: string;
+  /** Estado del repartidor, sólo en los pedidos con envío flash. */
+  flash?: { etiqueta: string; trackingUrl: string | null };
 };
+
+/**
+ * El estado del repartidor, como se lo cuenta al cliente.
+ *
+ * Las etiquetas no son las mismas que ve la tienda: al cliente no le sirve
+ * "no se pudo crear la entrega", le sirve saber que su pedido igual va a
+ * llegar. Los pedidos despachados antes de que existieran las columnas
+ * `express_*` se leen del JSON de la dirección.
+ */
+function leerFlash(found: any, addr: any): { etiqueta: string; trackingUrl: string | null } | undefined {
+  const esFlash = (found.shipping_method || '').toLowerCase() === 'flash';
+  const deliveryId = found.express_delivery_id || addr?.uberDeliveryId || null;
+  if (!esFlash && !deliveryId) return undefined;
+
+  const trackingUrl = found.express_tracking_url || addr?.uberTracking || null;
+  const estadoCrudo = found.express_status || (deliveryId ? 'pending' : '');
+
+  const etiquetas: Record<string, string> = {
+    pending: 'Estamos asignando un repartidor a tu pedido.',
+    pickup: 'El repartidor va camino al local a buscar tu pedido.',
+    pickup_complete: 'El repartidor ya tiene tu pedido.',
+    dropoff: 'Tu pedido va en camino.',
+    delivered: 'Tu pedido fue entregado.',
+    canceled: 'Hubo un problema con el repartidor. Estamos reorganizando tu entrega.',
+    returned: 'Tu pedido volvió al local. Nos vamos a contactar contigo.',
+    // Lo escribe el webhook de pago cuando Uber no aceptó la entrega: el pedido
+    // está pagado y la tienda lo despacha igual.
+    failed: 'Estamos coordinando tu entrega. Te avisamos apenas salga.',
+  };
+
+  const etiqueta =
+    etiquetas[estadoCrudo] ||
+    (deliveryId ? leerEstadoUber(estadoCrudo).etiqueta : 'Preparando tu envío flash.');
+
+  return { etiqueta, trackingUrl };
+}
 
 export default function DetallePedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -124,7 +163,11 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
             direccionEnvio,
             metodoPago: found.payment_method || found.paymentMethod || 'No especificado',
             numeroSeguimiento: found.tracking_number || found.trackingNumber || undefined,
-            urlSeguimiento: found.tracking_url || found.trackingUrl || undefined
+            urlSeguimiento: found.tracking_url || found.trackingUrl || undefined,
+            // La dirección cruda y no la normalizada: el normalizador arma
+            // un objeto con campos elegidos a mano y deja fuera el seguimiento
+            // de Uber, que es justo lo que hace falta acá.
+            flash: leerFlash(found, direccion)
           };
           setPedido(pedidoObj);
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -286,6 +329,30 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
           </div>
+
+          {/* Envío flash: el estado del repartidor, en vivo */}
+          {pedido.flash && (
+            <div className="bg-blue-50 px-6 py-4 border-b border-blue-100">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                <div>
+                  <h2 className="text-md font-medium text-blue-800">Tu pedido con envío flash</h2>
+                  <p className="text-sm text-blue-700 mt-1">{pedido.flash.etiqueta}</p>
+                </div>
+                {pedido.flash.trackingUrl && (
+                  <div className="mt-3 md:mt-0">
+                    <a
+                      href={pedido.flash.trackingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition"
+                    >
+                      Ver repartidor en vivo →
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Información de seguimiento (si está disponible) */}
           {pedido.numeroSeguimiento && (

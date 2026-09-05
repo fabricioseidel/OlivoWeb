@@ -240,7 +240,15 @@ export async function cotizarFlash(destino: DestinoFlash): Promise<CotizacionFla
   };
 }
 
-export type EntregaCreada = { id: string; tracking: string | null };
+export type EntregaCreada = {
+  id: string;
+  /** URL de seguimiento en vivo del repartidor, para mostrarle al cliente. */
+  tracking: string | null;
+  /** Estado inicial de la entrega, normalmente `pending`. */
+  estado: string | null;
+  /** Lo que Uber le cobra a la tienda, en CLP. Puede diferir de lo cotizado. */
+  feeCLP: number | null;
+};
 
 /**
  * Crea la entrega. Se llama **sólo con el pago ya confirmado** (regla 4).
@@ -302,5 +310,10 @@ export async function crearEntregaFlash(params: {
   if (!r.ok) throw new Error(`Uber: crear entrega falló (HTTP ${r.status}) ${texto.slice(0, 400)}`);
 
   const d = JSON.parse(texto);
-  return { id: d.id, tracking: d.tracking_url ?? null };
+  return {
+    id: d.id,
+    tracking: d.tracking_url ?? null,
+    estado: d.status ?? null,
+    feeCLP: typeof d.fee === "number" ? feeUberACLP(d.fee) : null,
+  };
 }

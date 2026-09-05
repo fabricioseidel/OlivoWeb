@@ -1,8 +1,31 @@
 "use client";
 
-import { useMemo } from "react";
+/**
+ * El tablero con el que la tienda atiende los pedidos.
+ *
+ * Rehecho siguiendo el panel de Uber Eats, que es el que la tienda ya sabe
+ * usar: pestañas con el número al lado, una lista sola por vez y un botón
+ * grande por pedido. Antes eran tres columnas simultáneas: en el teléfono
+ * —que es donde se atiende— quedaban una debajo de otra y había que
+ * desplazarse para saber si había algo nuevo.
+ */
+
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ClockIcon, ArrowRightIcon, EyeIcon } from "@heroicons/react/24/outline";
+import {
+  ClockIcon,
+  BellAlertIcon,
+  BellSlashIcon,
+  ArrowPathIcon,
+  TruckIcon,
+} from "@heroicons/react/24/outline";
+import {
+  agruparPorEtapa,
+  esperaEnTexto,
+  estaAtrasado,
+  type Etapa,
+} from "@/lib/admin/pedidos-nuevos";
+import { leerEstadoUber } from "@/lib/uber-status";
 
 export interface LiveOrder {
   id: string;
@@ -13,135 +36,254 @@ export interface LiveOrder {
   customer?: string;
   paymentStatus?: string;
   paymentMethod?: string;
+  shippingMethod?: string;
+  expressStatus?: string | null;
+  expressTrackingUrl?: string | null;
   items?: any[];
 }
 
 interface LiveReceptionBoardProps {
   orders: LiveOrder[];
   onUpdateStatus: (id: string, newStatus: string) => void;
+  /** Estado de la campanilla, para el interruptor del encabezado. */
+  alertaActivada?: boolean;
+  onAlternarAlerta?: () => void;
+  onRefrescar?: () => void;
+  /** Hora del último refresco, sólo informativa. */
+  ultimoSync?: string;
 }
 
-export default function LiveReceptionBoard({ orders, onUpdateStatus }: LiveReceptionBoardProps) {
-  // Sort orders by oldest first (since it's a queue)
-  const sortedOrders = useMemo(() => {
-    return [...orders].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
-  }, [orders]);
+/** Qué hace el botón grande de cada etapa. */
+const ACCION: Record<Etapa, { texto: string; siguiente: string }> = {
+  nuevos: { texto: "Aceptar y preparar", siguiente: "processing" },
+  preparando: { texto: "Marcar como listo", siguiente: "shipped" },
+  listos: { texto: "Marcar entregado", siguiente: "delivered" },
+};
 
-  const newOrders = sortedOrders.filter(o => o.estado === "pending");
-  const inPrepOrders = sortedOrders.filter(o => o.estado === "processing");
-  const readyOrders = sortedOrders.filter(o => o.estado === "shipped" || o.estado === "delivered");
+const VACIO: Record<Etapa, string> = {
+  nuevos: "No hay pedidos nuevos",
+  preparando: "No hay pedidos en preparación",
+  listos: "No hay pedidos listos",
+};
 
-  const getElapsedTime = (dateString?: string) => {
-    if (!dateString) return "Desconocido";
-    const minDiff = Math.floor((new Date().getTime() - new Date(dateString).getTime()) / 60000);
-    if (minDiff < 1) return "Recién llegado";
-    if (minDiff < 60) return `${minDiff} min`;
-    const h = Math.floor(minDiff / 60);
-    const m = minDiff % 60;
-    return `${h}h ${m}m`;
-  };
+const TITULO: Record<Etapa, string> = {
+  nuevos: "Nuevos",
+  preparando: "Preparando",
+  listos: "Listos",
+};
 
-  const OrderCard = ({ order, nextAction, nextStatus, isWarning = false }: { order: LiveOrder, nextAction: string, nextStatus: string, isWarning?: boolean }) => {
-    const timeColor = isWarning ? "text-red-600 bg-red-50" : "text-brand-700 bg-brand-50";
+/** Cómo se despacha, en una palabra. */
+function etiquetaEnvio(metodo?: string): string | null {
+  switch (String(metodo ?? "").toLowerCase()) {
+    case "flash":
+      return "Envío flash";
+    case "pickup":
+    case "retiro":
+      return "Retiro en tienda";
+    case "delivery":
+    case "scheduled":
+    case "agendado":
+      return "Envío agendado";
+    default:
+      return metodo ? String(metodo) : null;
+  }
+}
 
-    return (
-      <div className={`bg-white rounded-3xl p-5 border-2 ${isWarning ? 'border-amber-200 shadow-amber-100/50' : 'border-gray-100 shadow-gray-200/50'} shadow-xl flex flex-col gap-4 transition-all hover:scale-[1.02] group`}>
-        <div className="flex justify-between items-start">
-          <div className="flex gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-black text-lg shadow-sm">
-              {(order.customer || 'C')[0].toUpperCase()}
-            </div>
-            <div>
-              <h4 className="font-black text-gray-900 text-base leading-tight truncate w-32">{order.customer || 'Invitado'}</h4>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">#{order.id.substring(0,6)}</p>
-            </div>
-          </div>
-          <div className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 ${timeColor}`}>
-            <ClockIcon className="w-4 h-4 outline-2" />
-            <span className="text-xs font-black tracking-widest uppercase">{getElapsedTime(order.createdAt)}</span>
-          </div>
+function TarjetaPedido({
+  order,
+  etapa,
+  onUpdateStatus,
+}: {
+  order: LiveOrder;
+  etapa: Etapa;
+  onUpdateStatus: (id: string, nuevo: string) => void;
+}) {
+  const atrasado = etapa === "nuevos" && estaAtrasado(order.createdAt);
+  const pagado = order.paymentStatus === "paid";
+  const envio = etiquetaEnvio(order.shippingMethod);
+  const esFlash = String(order.shippingMethod ?? "").toLowerCase() === "flash";
+  const accion = ACCION[etapa];
+
+  return (
+    <div
+      className={`bg-white rounded-2xl border ${
+        atrasado ? "border-red-300 ring-1 ring-red-200" : "border-gray-200"
+      } p-4 sm:p-5`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-lg font-semibold text-gray-900 truncate">
+            {order.customer || "Invitado"}
+          </h3>
+          <p className="text-sm text-gray-500 mt-0.5">
+            #{order.id.substring(0, 6)} · {order.productos ?? 0}{" "}
+            {order.productos === 1 ? "producto" : "productos"}
+          </p>
         </div>
-
-        <div className="bg-gray-50 rounded-2xl p-4 flex justify-between items-center border border-gray-100">
-          <div>
-            <p className="text-[10px] text-gray-500 font-black tracking-widest uppercase mb-1">Total</p>
-            <p className="font-black text-xl text-brand-600">${Number(order.total || 0).toLocaleString('es-CL')}</p>
-          </div>
-          <div className="text-right">
-             <p className="text-[10px] text-gray-500 font-black tracking-widest uppercase mb-1">{order.productos} Items</p>
-             <div className="flex items-center justify-end gap-1">
-                <span className={`w-2 h-2 rounded-full ${order.paymentStatus === 'paid' ? 'bg-brand-500' : 'bg-amber-500'}`}></span>
-                <span className="text-xs font-bold text-gray-700">{order.paymentStatus === 'paid' ? 'Pagado' : 'Pago Pendiente'}</span>
-             </div>
-          </div>
+        <div
+          className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium ${
+            atrasado ? "bg-red-50 text-red-700" : "bg-gray-100 text-gray-700"
+          }`}
+        >
+          <ClockIcon className="w-4 h-4" />
+          {esperaEnTexto(order.createdAt)}
         </div>
+      </div>
 
-        <div className="flex gap-2 mt-auto pt-2">
-          <Link href={`/admin/pedidos/${order.id}`} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[11px] font-black uppercase tracking-widest py-3 rounded-2xl transition-colors flex items-center justify-center gap-1">
-             <EyeIcon className="w-4 h-4" /> Ver
-          </Link>
-          <button onClick={() => onUpdateStatus(order.id, nextStatus)} className="flex-[2] bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-black uppercase tracking-widest py-3 rounded-2xl shadow-lg shadow-brand-600/30 transition-all active:scale-95 flex items-center justify-center gap-2">
-            {nextAction} <ArrowRightIcon className="w-4 h-4" />
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="text-2xl font-semibold text-gray-900">
+          ${Number(order.total || 0).toLocaleString("es-CL")}
+        </span>
+        <span
+          className={`inline-flex items-center gap-1.5 text-sm font-medium ${
+            pagado ? "text-green-700" : "text-amber-700"
+          }`}
+        >
+          <span className={`w-2 h-2 rounded-full ${pagado ? "bg-green-600" : "bg-amber-500"}`} />
+          {pagado ? "Pagado" : "Pago pendiente"}
+        </span>
+        {envio && (
+          <span className="text-sm text-gray-500 border border-gray-200 rounded-lg px-2 py-0.5">
+            {envio}
+          </span>
+        )}
+      </div>
+
+      {/* En el flash el repartidor lo maneja Uber: lo que la tienda necesita
+          saber es si ya viene en camino, sin salir del tablero. */}
+      {esFlash && order.expressStatus && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-blue-800">
+            {order.expressStatus === "failed"
+              ? "Uber no tomó la entrega — despachar a mano"
+              : leerEstadoUber(order.expressStatus).etiqueta}
+          </span>
+          {order.expressTrackingUrl && (
+            <a
+              href={order.expressTrackingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-blue-700 font-medium underline underline-offset-2"
+            >
+              <TruckIcon className="w-4 h-4" />
+              Ver repartidor
+            </a>
+          )}
+        </div>
+      )}
+
+      <div className="mt-4 flex items-center gap-2">
+        <Link
+          href={`/admin/pedidos/${order.id}`}
+          className="px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 min-h-[48px] flex items-center"
+        >
+          Ver
+        </Link>
+        <button
+          onClick={() => onUpdateStatus(order.id, accion.siguiente)}
+          className="flex-1 px-4 py-3 rounded-xl bg-gray-900 text-white font-semibold hover:bg-black active:scale-[0.99] transition min-h-[48px]"
+        >
+          {accion.texto}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function LiveReceptionBoard({
+  orders,
+  onUpdateStatus,
+  alertaActivada,
+  onAlternarAlerta,
+  onRefrescar,
+  ultimoSync,
+}: LiveReceptionBoardProps) {
+  const [etapa, setEtapa] = useState<Etapa>("nuevos");
+  const grupos = useMemo(() => agruparPorEtapa(orders), [orders]);
+  const lista = grupos[etapa];
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      {/* Barra superior: el estado de la alerta se ve sin buscarlo, porque una
+          alerta apagada que nadie nota es peor que no tenerla. */}
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-200 flex-wrap">
+        <button
+          onClick={onAlternarAlerta}
+          className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold min-h-[44px] transition ${
+            alertaActivada
+              ? "bg-green-50 text-green-800 ring-1 ring-green-200"
+              : "bg-amber-50 text-amber-900 ring-1 ring-amber-300"
+          }`}
+        >
+          {alertaActivada ? (
+            <BellAlertIcon className="w-5 h-5" />
+          ) : (
+            <BellSlashIcon className="w-5 h-5" />
+          )}
+          {alertaActivada ? "Alerta activada" : "Activar alerta sonora"}
+        </button>
+
+        <div className="flex items-center gap-3">
+          {ultimoSync && <span className="text-sm text-gray-400">Actualizado {ultimoSync}</span>}
+          <button
+            onClick={onRefrescar}
+            aria-label="Actualizar pedidos"
+            className="p-2.5 rounded-full hover:bg-gray-100 text-gray-500 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          >
+            <ArrowPathIcon className="w-5 h-5" />
           </button>
         </div>
       </div>
-    );
-  };
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pb-10">
-      
-      {/* Columna 1: Nuevos */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
-            NUEVOS
-          </h2>
-          <span className="bg-gray-100 text-gray-600 font-bold px-3 py-1 rounded-full text-xs">{newOrders.length}</span>
-        </div>
-        
-        {newOrders.length === 0 ? (
-          <div className="bg-white/50 border-2 border-dashed border-gray-200 rounded-3xl h-32 flex items-center justify-center text-gray-400 font-medium text-sm">Sin pedidos nuevos</div>
-        ) : (
-          newOrders.map(order => <OrderCard key={order.id} order={order} nextAction="A Preparación" nextStatus="processing" isWarning={true} />)
-        )}
+      {/* Pestañas con el número al lado, como el panel de Uber Eats. */}
+      <div className="flex border-b border-gray-200">
+        {(Object.keys(TITULO) as Etapa[]).map((k) => {
+          const activa = k === etapa;
+          const cantidad = grupos[k].length;
+          return (
+            <button
+              key={k}
+              onClick={() => setEtapa(k)}
+              aria-current={activa ? "page" : undefined}
+              className={`flex-1 flex items-center justify-center gap-2 px-2 py-4 text-base font-medium border-b-2 -mb-px transition ${
+                activa
+                  ? "border-gray-900 text-gray-900"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <span className="truncate">{TITULO[k]}</span>
+              <span
+                className={`min-w-[28px] px-1.5 py-0.5 rounded-md border text-sm ${
+                  // Los nuevos sin atender se marcan: es la columna en la que
+                  // un descuido se nota tarde.
+                  k === "nuevos" && cantidad > 0
+                    ? "border-red-200 bg-red-50 text-red-700 font-semibold"
+                    : "border-gray-200 text-gray-600"
+                }`}
+              >
+                {cantidad}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Columna 2: Preparando */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-            EN PREPARACIÓN
-          </h2>
-          <span className="bg-gray-100 text-gray-600 font-bold px-3 py-1 rounded-full text-xs">{inPrepOrders.length}</span>
-        </div>
-        
-        {inPrepOrders.length === 0 ? (
-          <div className="bg-white/50 border-2 border-dashed border-gray-200 rounded-3xl h-32 flex items-center justify-center text-gray-400 font-medium text-sm">Nada en preparación</div>
+      <div className="p-4 space-y-3 bg-gray-50 min-h-[220px]">
+        {lista.length === 0 ? (
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-8 text-gray-500">
+            {VACIO[etapa]}
+          </div>
         ) : (
-          inPrepOrders.map(order => <OrderCard key={order.id} order={order} nextAction="Marcar Listo" nextStatus="shipped" />)
+          lista.map((order) => (
+            <TarjetaPedido
+              key={order.id}
+              order={order}
+              etapa={etapa}
+              onUpdateStatus={onUpdateStatus}
+            />
+          ))
         )}
       </div>
-
-      {/* Columna 3: Listos o Enviados */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-brand-500"></span>
-            LISTOS / ENVIADOS
-          </h2>
-          <span className="bg-gray-100 text-gray-600 font-bold px-3 py-1 rounded-full text-xs">{readyOrders.length}</span>
-        </div>
-        
-        {readyOrders.length === 0 ? (
-          <div className="bg-white/50 border-2 border-dashed border-gray-200 rounded-3xl h-32 flex items-center justify-center text-gray-400 font-medium text-sm">Nada listo aún</div>
-        ) : (
-          readyOrders.map(order => <OrderCard key={order.id} order={order} nextAction="Cerrar Pedido" nextStatus="delivered" />)
-        )}
-      </div>
-
     </div>
   );
 }

@@ -48,6 +48,28 @@ export async function GET() {
     });
   }
 
+  // 1b. Secreto del webhook de estados.
+  //
+  // Es aparte de las credenciales a propósito: sin él el flash despacha igual,
+  // sólo que el estado del repartidor no avanza solo. Es un aviso, no un error.
+  checks.push(
+    process.env.UBER_DIRECT_WEBHOOK_SECRET
+      ? {
+          id: 'webhook-secret',
+          label: 'Seguimiento de la entrega',
+          status: 'ok',
+          detail: 'UBER_DIRECT_WEBHOOK_SECRET configurado: los estados de Uber entran solos.',
+        }
+      : {
+          id: 'webhook-secret',
+          label: 'Seguimiento de la entrega',
+          status: 'warn',
+          detail:
+            'Falta UBER_DIRECT_WEBHOOK_SECRET. Los pedidos se despachan igual y el link de seguimiento se ve, pero el estado del repartidor no avanza solo.',
+          hint: 'En direct.uber.com → Webhooks apunta el "Delivery status" a https://<dominio>/api/webhooks/uber, copia el secreto a Vercel y haz Redeploy.',
+        }
+  );
+
   // 2. Horario comercial (Tienda abierta)
   const ahora = toZonedTime(new Date(), TIMEZONE);
   const horaStr = format(ahora, 'HH:mm');
