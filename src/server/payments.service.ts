@@ -1,5 +1,6 @@
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { logger } from '@/utils/logger';
+import { urlPublica } from '@/lib/site-url';
 
 // ── Preference Creation ────────────────────────────────────────────────────────
 
@@ -39,7 +40,10 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
 
   // ── Read env vars at runtime (critical for Vercel) ──
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://olivomarket.cl';
+  // Pasa por `urlPublica()` y no se lee la variable directo: el dominio raíz
+  // responde 307 y MercadoPago no sigue redirecciones, así que un
+  // `notification_url` sin `www` se pierde y el pedido nunca se marca pagado.
+  const siteUrl = urlPublica();
 
   // ── Validate token ──
   if (!accessToken) {

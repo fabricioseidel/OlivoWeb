@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createPasswordResetToken } from '@/server/password-reset.service';
 import { sendPasswordResetEmail } from '@/server/email.service';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { urlPublica } from '@/lib/site-url';
 
 const schema = z.object({
   email: z.string().email('Correo electrónico inválido'),
@@ -43,7 +44,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(GENERIC_OK, { status: 200 });
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://olivomarket.cl';
+    // Mismo motivo que en los pagos: el enlace tiene que salir al dominio
+    // canónico, no al raíz que redirige.
+    const siteUrl = urlPublica();
     const resetUrl = `${siteUrl}/recuperar-password/restablecer?token=${result.token}`;
 
     try {
