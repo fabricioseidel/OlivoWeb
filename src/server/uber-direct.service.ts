@@ -232,9 +232,19 @@ export async function cotizarFlash(destino: DestinoFlash): Promise<CotizacionFla
         ? q.duration
         : null;
 
+  // Sin esta comprobación un `fee` ausente o no numérico se propaga como NaN:
+  // `feeUberACLP` devuelve NaN, y en `quoteFlash` ni `=== null` ni `> tope` lo
+  // atrapan, así que el flash se ofrecería como disponible y sin precio (NaN
+  // viaja como `null` al serializarse a JSON). Preferimos fallar acá, donde el
+  // llamador ya sabe degradar y el mensaje queda en el diagnóstico del admin.
+  const fee = Number(q.fee);
+  if (!Number.isFinite(fee)) {
+    throw new Error(`Uber: la cotización no trae un fee usable (${JSON.stringify(q.fee)})`);
+  }
+
   return {
     quoteId: q.id,
-    costoCLP: feeUberACLP(q.fee),
+    costoCLP: feeUberACLP(fee),
     etaMin,
     expira: q.expires ?? null,
   };
