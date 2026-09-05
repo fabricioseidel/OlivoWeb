@@ -1,31 +1,37 @@
-# TODO-HUMANO — lo que falta para abrir
+# TODO-HUMANO — lo que falta
 
 Este archivo consolida lo que **solo tú puedes hacer**: datos reales que no se
-pueden inventar, cuentas que hay que crear y decisiones de negocio. Mientras
-falten, el sitio funciona, pero no se puede abrir con seguridad.
+pueden inventar, cuentas que hay que crear y decisiones de negocio.
 
 Al resolver cada punto, edita el archivo indicado y borra el comentario
 `TODO-HUMANO` correspondiente.
 
----
-
-## 🚦 Estado actual: la tienda está en MODO VITRINA
-
-El sitio se puede publicar ya. Los clientes ven el catálogo completo, las
-fichas, las landings de comuna y el punto de envíos, y Google puede indexarlo
-todo — pero **nadie puede pagar ni dejar un pedido**: las rutas de cobro
-responden 503 con un aviso.
-
-El bloqueo es del servidor, no un botón escondido, así que tampoco se puede
-saltar llamando la API a mano.
-
-**Para abrir:** panel → Configuración → Políticas → desactivar *"Modo vitrina"*.
-Surte efecto en segundos, sin desplegar. Ahí mismo puedes editar el aviso que
-se muestra mientras tanto.
-
-No lo desactives hasta cerrar los puntos 🔴 de abajo.
+> **Verificado contra la base y los logs de producción el 5-sep-2026.** Lo que
+> antes decía este archivo sobre el modo vitrina, las migraciones, el stock y
+> Uber Direct estaba desactualizado y llevaba a conclusiones equivocadas. Cada
+> punto de abajo dice ahora si se comprobó y cómo.
 
 ---
+
+## 🚦 Estado actual: la tienda está ABIERTA
+
+`preview_mode` está en `false`: el checkout acepta pedidos y cobra de verdad.
+El modo vitrina ya no está puesto.
+
+Eso cambia cómo se lee este archivo. Lo que queda pendiente no es "falta esto
+para poder abrir", es **"esto está corriendo así ahora mismo"**.
+
+Para volver a cerrar las ventas sin bajar el sitio: panel → Configuración →
+Políticas → activar *"Modo vitrina"*. Surte efecto en segundos, sin desplegar.
+
+### Cuántas ventas reales van
+
+Una: la prueba de $500 del 30-jul, pagada con tarjeta propia. Pasó de creada a
+`paid` en **2 minutos con 6 segundos**, que es el webhook de MercadoPago
+confirmando — no se movió a mano.
+
+Los otros 8 pedidos de la base son pruebas y carritos abandonados. Ninguno
+tiene plata de un cliente comprometida.
 
 ## 🧭 El panel te dice en qué vas
 
@@ -37,47 +43,29 @@ activo, qué variables faltan en Vercel, cuántos productos no se ven y por qué
 y si el stock del catálogo cuadra con el de la sucursal. Este archivo explica
 *qué* hay que hacer; el panel dice *qué falta ahora mismo*, que cambia cada día.
 
-Lo único que no puede comprobar es la prueba de compra real (punto G): pagar,
-recibir el correo y ver el pedido marcado como pagado.
+Lo que no puede comprobar es la prueba de compra real (punto G) ni el
+historial de webhooks de MercadoPago, que vive en el panel de MP.
 
 ---
 
-## 🔴 Bloquea la apertura — sin esto no se puede cobrar
+## 🔴 Crítico — está corriendo así ahora mismo
 
-### A. Aplicar las migraciones pendientes a la base
+### A. ~~Aplicar las migraciones pendientes a la base~~ ✅ HECHO
 
-```
-supabase db push
-```
+Todas las migraciones del repo están aplicadas. Se comprobó una por una contra
+el historial de la base el 5-sep-2026.
 
-Esto lo tienes que correr tú: yo no tengo credenciales de Supabase ni salida
-de red hacia allá desde donde trabajo. Lo que sí hice fue **probar las dos
-migraciones contra un PostgreSQL 16 real** antes de que las corras, partiendo
-de una base que ya tenía la tabla `settings` con datos, como la tuya:
+Faltaban dos que nunca se habían corrido, y ya se aplicaron:
 
-- Aplican limpias, sin errores.
-- Son idempotentes: se aplicaron tres veces seguidas y a partir de la segunda
-  solo avisan "ya existe, se omite". Si dudas de si ya las corriste, correrlas
-  de nuevo no rompe nada.
-- **Tus datos quedan intactos**: la fila de configuración conserva todo y solo
-  gana las columnas nuevas.
-- `preview_mode` queda en `true` en la fila que ya existía, que es lo seguro:
-  aplicar la migración **no abre la tienda**, la deja en vitrina hasta que tú
-  la abras desde el panel.
-- El índice único de `express_delivery_id` hace lo que promete: rechaza un
-  segundo envío con el mismo id —que es lo que impide pedir dos repartidores
-  cuando el webhook de pago reintenta— y a la vez permite tantas órdenes sin
-  envío inmediato como quieras.
+- **`audit_logs`** — la tabla no existía, pero `src/server/audit.service.ts`
+  escribe en ella. Toda la auditoría de pedidos pagados, cambios de estado y
+  bootstrap de admin se estaba perdiendo en silencio (el servicio traga el
+  error a propósito, para no romper la operación de negocio). Ya creada y con
+  RLS; a las pocas horas tenía 77 filas.
+- **`harden_orders_rls`** — faltaban las 6 políticas RESTRICTIVE que bloquean
+  insert/update/delete de `anon`/`authenticated` en `orders` y `order_items`.
 
-Las migraciones nuevas son:
-
-- `20260825000000_document_express_delivery_columns.sql` — registra columnas que
-  ya existían en la base sin archivo. No cambia nada, solo alinea el historial.
-- `20260825010000_add_store_preview_mode.sql` — agrega el modo vitrina.
-
-Sin la segunda, la columna `preview_mode` no existe y la tienda **queda en
-vitrina de todos modos** (el código cierra ante la duda), así que el sitio no
-vendería aunque desactives el interruptor.
+`preview_mode` existe y está en `false`.
 
 ### B. Confirmar qué token de MercadoPago está cargado
 
@@ -101,25 +89,43 @@ prueba y los pedidos que entren no te van a pagar nada. Decide con cuál abres.
 | `RESEND_API_KEY` | No sale ningún correo: ni confirmación de pedido ni recuperación de contraseña. |
 | `NEXT_PUBLIC_SITE_URL` | MercadoPago vuelve a un dominio equivocado tras pagar. |
 
-La URL del webhook de MercadoPago debe registrarse **con `www`**: el dominio
-raíz responde 307 y los webhooks no siguen redirecciones. Es exactamente lo que
-hizo que los eventos de Resend no llegaran nunca.
+La URL del webhook de MercadoPago debe registrarse **con `www`**, y la ruta es
+`/api/payments/webhook` — no `/api/webhooks/mercadopago`. El dominio raíz
+responde 307 y los webhooks no siguen redirecciones: es exactamente lo que hizo
+que los eventos de Resend no llegaran nunca.
 
-### D. Reconciliar el stock antes de vender
+**Qué se pudo comprobar desde afuera** (5-sep-2026). No tengo acceso a los
+valores de las variables en Vercel, así que esto se deduce del comportamiento:
 
-> El panel de **Estado de apertura** te lista exactamente qué productos están
-> descuadrados y cuáles no tienen stock de sucursal, así que no hace falta
-> consultar la base a mano.
+| Variable | Evidencia |
+|---|---|
+| `RESEND_API_KEY` | ✅ Cargada. Hay correos entregados el 4-sep, segundos después del pedido. |
+| `MERCADOPAGO_ACCESS_TOKEN` | ✅ Presente. El checkout crea pagos; si faltara, fallaría al crear la preferencia. |
+| `MERCADOPAGO_WEBHOOK_SECRET` | ❓ **Sin comprobar.** Funcionó el 30-jul; desde entonces no hay un pago real que lo pruebe. |
+| `UBER_DIRECT_*` | ⚠️ Presentes pero con algo mal — ver la sección de Uber Direct. |
+| `CRON_SECRET` | ❓ Sin comprobar. |
+| `NEXT_PUBLIC_SITE_URL` | ❓ Sin comprobar. |
 
-El catálogo y el carrito leen el stock de la sucursal, que es de donde se
-descuenta. Hasta ahora había cuatro caminos que escribían el stock con
-criterios distintos y se pisaban entre sí; ya quedó uno solo, pero **los
-números que dejaron los caminos viejos siguen ahí**.
+Para el `MERCADOPAGO_WEBHOOK_SECRET` no hace falta adivinar: **MP → Tus
+integraciones → Webhooks** tiene el historial de entregas con el código de
+respuesta de cada notificación. Si aparecen con 401, el secret no coincide; si
+no aparece ninguna, la URL no está registrada.
 
-Antes de abrir conviene hacer un conteo y dejarlos correctos, o vas a vender lo
-que no tienes. Después de la primera recepción y la primera venta, mira la
-tabla `inventory_movements`: cada movimiento debe aparecer con su motivo
-(`RECEPTION`, `POS_SALE`, `WEB_SALE`, `MANUAL_ADJUSTMENT`).
+> El plan Hobby de Vercel guarda los logs de runtime **1 hora**, así que un
+> problema de ayer ya no se puede mirar ahí. La tabla de errores agrupados sí
+> llega a 7 días, pero sólo recoge excepciones, no un 401 devuelto a propósito.
+
+### D. ~~Reconciliar el stock antes de vender~~ ✅ CUADRA
+
+Comprobado el 5-sep-2026: **715 productos activos, todos cuadran** entre
+`products.stock` y la suma de `branch_stock`. Cero desalineados y cero
+productos con stock pero sin fila de sucursal.
+
+Los movimientos salen con su motivo, como corresponde: `RECEPTION` 656,
+`WEB_SALE` 62, `MANUAL_ADJUSTMENT` 1.
+
+Esto se descuadra solo con el uso, así que conviene volver a mirarlo desde
+**Estado de apertura** cada tanto, no darlo por resuelto para siempre.
 
 ### E. Revisar los documentos legales y entregar el RUT
 
@@ -157,32 +163,51 @@ puede prometer una cosa mientras el sistema cobra otra.
 ### F. Revisar que los productos se vean
 
 > El panel de **Estado de apertura** te dice cuántos productos no aparecen y
-> los agrupa por lo que les falta: foto, precio, categoría o nombre.
+> los agrupa por lo que les falta.
 
-Un producto **no aparece en la tienda** si le falta cualquiera de estas cuatro
-cosas: nombre, categoría, precio mayor a 0, o **foto propia**. La foto es la
-que más suele faltar.
+Un producto **no aparece en la tienda** si le falta cualquiera de estas cinco
+cosas: nombre, categoría, precio mayor a 0, foto propia, **o costo de
+proveedor**. El costo es el que más apaga y el que menos se nota, porque el
+producto se ve completo en el panel.
+
+Medido el 5-sep-2026 sobre 734 productos activos:
+
+| Motivo | Productos |
+|---|---|
+| Sin costo de proveedor | **349** |
+| Sin foto | 42 |
+| Sin precio | 28 |
+| **Visibles en la tienda** | **315** |
+
+Los 349 sin costo tienen nombre, categoría, precio y foto: les falta sólo
+`purchase_price`, que se deriva de `product_suppliers.unit_cost`. Es la
+diferencia entre mostrar 315 productos y mostrar 664.
 
 Panel → Productos → Edición masiva permite ver de una pasada cuáles están
 incompletos y arreglarlos ahí mismo.
 
----
 
-## 🟡 Antes de la primera campaña, no antes de abrir
+## 🟡 Importante, no urgente
 
-### G. Prueba de compra real, de punta a punta
+### G. Prueba de compra real — hecha una vez, conviene repetirla
 
-Con la tienda recién abierta, hazte un pedido de verdad con tu propia tarjeta,
-por el monto más bajo posible, y comprueba la cadena completa:
+Ya se hizo: el pedido de $500 del 30-jul con tarjeta propia. La cadena completa
+funcionó, incluido el paso 3, que es el que no se puede simular.
+
+Vale la pena repetirla **ahora**, por dos razones: han pasado cinco semanas y
+las variables de Vercel pudieron cambiar, y desde entonces se agregó el envío
+flash, que crea una entrega de Uber con el pago confirmado y no estaba en esa
+prueba.
+
+Qué mirar:
 
 1. El pedido aparece en el panel.
 2. Llega el correo de confirmación.
-3. El estado pasa a pagado solo (eso confirma que el webhook está bien).
+3. El estado pasa a pagado solo (eso confirma que el webhook sigue bien).
 4. El stock del producto bajó.
 5. El cobro aparece en tu cuenta de MercadoPago.
-
-Es la única prueba que no se puede simular desde el código: yo no tengo acceso
-ni a tu base ni a tu cuenta de MercadoPago.
+6. Si elegiste flash: llega el `tracking_url` y el pedido se mueve con los
+   estados de Uber.
 
 ### H. Cuenta de correo verificada en Resend
 
@@ -191,7 +216,7 @@ El dominio del remitente tiene que estar verificado o los correos caen en spam
 
 ---
 
-## 🟢 No bloquea abrir — mejora el posicionamiento local
+## 🟢 Mejora el posicionamiento local
 
 ### 1. CID de Google Business Profile
 - **Archivo:** `src/lib/seo/business.ts` (`BUSINESS.googleCid`)
@@ -204,7 +229,7 @@ El dominio del remitente tiene que estar verificado o los correos caen en spam
 
 ---
 
-## 🟢 No bloquea abrir — mejora conversión y contenido
+## 🟢 Mejora conversión y contenido
 
 ### 2. Foto real de la fachada
 - **Archivo:** `src/lib/seo/business.ts` (`BUSINESS.facadePhoto`)
@@ -244,7 +269,8 @@ El dominio del remitente tiene que estar verificado o los correos caen en spam
   entrega el mismo día, y retiro en tienda confirmado por correo en menos de una hora.
   Aplicado en las 4 landings de comuna y en el checkout.
 - **Tarifas de despacho**: tope de $1.500 para Ñuñoa y Macul, y envío gratis sobre
-  $35.000 en las comunas con cobertura. Implementado en `src/lib/shipping-policy.ts`,
+  el mínimo configurado en las comunas con cobertura (hoy $30.000; el valor vive
+  en la base, no en el código). Implementado en `src/lib/shipping-policy.ts`,
   con 15 tests, y conectado al checkout (antes el envío gratis por monto estaba
   configurado en la base de datos pero **el checkout nunca lo aplicaba**).
 - **Coordenadas exactas del local**: `-33.472904287482656, -70.59850517606597`.
@@ -280,34 +306,63 @@ Plan completo en [`docs/PLAN_PRECIOS.md`](docs/PLAN_PRECIOS.md).
 
 ---
 
-## 🔵 Planificado a futuro (no publicado)
+## 🟠 Uber Direct — PUBLICADO y funcionando, con credenciales a revisar
 
-### Uber Direct
-- **Estado:** mencionado como plan, **no** aparece en el sitio. No se publica un
-  servicio que todavía no existe: marcarlo en schema o prometerlo en una landing sin
-  tenerlo operativo daña la confianza y contradice las guías de Google.
-- **Hay código escrito y sin mergear** en el [PR #56](https://github.com/fabricioseidel/OlivoWeb/pull/56):
-  cliente de la API, regla de subsidio con tests, recotización al confirmar, webhook
-  firmado y la opción en el checkout. Nadie lo revisó (solo comentaron los bots).
-- **Para retomarlo hay que hacer, en este orden:**
-  1. **Rebasarlo sobre `main`.** Su base es del 31 de julio y choca en tres archivos:
-     `api/checkout/create-order/route.ts`, `checkout/page.tsx` y
-     `checkout/components/ShippingForm.tsx`. Los tres se reescribieron en #63 y #64
-     (envío gratis por distancia, motivo cuando no aplica, método de envío inválido),
-     así que los conflictos son sobre lógica de cobro y hay que resolverlos a mano.
-  2. **Probar contra la API real** con las credenciales de prueba. Es lo único que
-     confirma el manejo de montos en CLP, que la propia descripción del PR deja
-     pendiente.
-  3. **Cargar las cinco variables en Vercel** y registrar el webhook **con `www`**:
-     el dominio raíz responde 307 y los webhooks no siguen redirecciones.
-- **Ya resuelto:** las columnas `express_*` de `orders` existían en la base pero no
-  tenían archivo de migración. Se agregó
-  `supabase/migrations/20260825000000_document_express_delivery_columns.sql`, que es
-  idempotente: no cambia nada sobre la base actual y deja el mismo esquema en una
-  base nueva.
-- **Cuando esté operativo:** avísame y lo agrego como servicio con su propia sección en
-  las landings de comuna y en el schema (`GroceryStore.makesOffer`), además de ajustar
-  los plazos de entrega, que pasarían de "día siguiente 08:00–14:00" a minutos.
+Esto ya no es un plan: **el envío flash está vivo en el checkout**. El código
+del PR #56 se mergeó y se desplegó.
+
+**Funciona.** Probado el 5-sep-2026 en producción: cotizó **$2.515 y 37
+minutos**, con `fee` y ETA completos. Se crea la entrega sólo con el pago
+confirmado, y `express_delivery_id` tiene índice único, así que un webhook que
+reintenta no pide dos repartidores.
+
+**Lo que hay que revisar:**
+
+1. **Las credenciales.** En los logs de producción del 2 al 4 de septiembre hay
+   62 errores `Invalid customer token` y 5 de autenticación HTTP 401. O el
+   `UBER_DIRECT_CUSTOMER_ID` no corresponde a las claves cargadas, o están
+   mezcladas las de prueba con las de producción. Se revisa en el panel de Uber
+   Direct → Desarrollador. Mientras no cotice, el cliente ve desaparecer la
+   opción sin explicación.
+
+2. **El tope de $6.500 no está medido de verdad.** La prueba que salió $2.515
+   fue a una dirección a 60 metros del local: es tarifa mínima. Falta cotizar a
+   una dirección lejana, en hora punta y con lluvia, que es cuando Uber sube.
+
+3. **Si no se puede arreglar pronto, apagarlo.** Sin las tres variables de
+   entorno, `uberDirectConfigurado()` devuelve `false` y la opción desaparece
+   sola. Ofrecer un servicio que falla es peor que no ofrecerlo.
+
+**Ojo con el conteo de errores:** hasta el PR #89 el checkout cotizaba **una
+vez por cada tecla** que el cliente escribía en dirección, comuna o teléfono.
+Los 62 errores no son 62 intentos de compra: son unas 5 personas escribiendo su
+dirección. Con el debounce puesto, los números de los logs pasan a ser
+comparables con la realidad.
+
+**Cuando esté sólido:** avísame y lo agrego como servicio con su propia sección
+en las landings de comuna y en el schema (`GroceryStore.makesOffer`), además de
+ajustar los plazos de entrega, que pasarían de "día siguiente 08:00–14:00" a
+minutos. Hoy no está declarado en el schema, y está bien que así sea hasta que
+las credenciales estén firmes.
+
+
+## 🔍 Abierto y sin diagnosticar
+
+### Error de hidratación de React (#418) en el checkout
+
+Aparece en la consola del navegador al abrir `/checkout` en producción: el HTML
+que arma el servidor no coincide con el que arma el navegador. Todavía no sé
+qué componente lo causa — el stack viene minificado y averiguarlo desde ahí es
+adivinar.
+
+Estaba enterrado entre cientos de errores 403 que generaba `ClickTracker`
+(corregido en el PR #89). Con ese ruido apagado, el error queda visible y se
+puede diagnosticar con datos.
+
+No sé qué rompe, si es que rompe algo. Un fallo de hidratación puede ir desde
+"no se nota" hasta "un botón no responde en la primera carga".
+
+---
 
 ## Decisiones tomadas que conviene revisar
 
@@ -341,11 +396,13 @@ Plan completo en [`docs/PLAN_PRECIOS.md`](docs/PLAN_PRECIOS.md).
   "Olivo Market Ñuñoa — Productos venezolanos y punto de envíos". Si se edita y se le
   quita "Ñuñoa", se pierde la señal local más fuerte de la home.
 - **La comuna La Reina** está declarada en `areaServed` del schema y **sí recibe el
-  envío gratis sobre $35.000**, pero no tiene landing propia (el spec pedía 4 landings
+  envío gratis por monto**, pero no tiene landing propia (el spec pedía 4 landings
   de comuna, no 5). Si se quiere posicionar, replicar el patrón de las otras cuatro.
 - **El tope de $1.500 aplica solo a Ñuñoa y Macul**, según lo indicado. Vive en
   `TOPE_POR_COMUNA` (`src/lib/shipping-policy.ts`); agregar otra comuna es una línea.
 - **Si no se puede determinar la comuna** de la dirección, el checkout cobra la tarifa
   por distancia sin tope. Es deliberado: ante la duda nunca cobra de menos.
-- **`free_shipping_minimum` pasó de $25.000 a $35.000** en la configuración de la
-  tienda, según lo pedido.
+- **`free_shipping_minimum` quedó en $30.000**, no en los $35.000 que este
+  archivo afirmaba. Comprobado en la base el 5-sep-2026. El mínimo del flash es
+  aparte y está en $40.000 (`free_shipping_minimum_flash`). Si querías $35.000,
+  se corrige desde el panel, no desde el código.
