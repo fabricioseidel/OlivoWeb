@@ -19,6 +19,10 @@ import type { StoreSettings } from "@/app/api/admin/settings/route";
 import {
   BLOCK_TYPE_LABELS,
   BLOCK_TYPE_DESCRIPTIONS,
+  MAX_CAROUSEL_SLIDES,
+  nuevaSlideId,
+  slidesPublicables,
+  type CarouselSlide,
   type PageBlock,
   type PageBlockType,
 } from "@/lib/page-blocks";
@@ -45,6 +49,9 @@ const EDITABLE_FIELDS: Record<PageBlockType, EditableField[]> = {
   categories: ['title'],
   more_products: ['title', 'itemsToShow'],
   fiestas_patrias: ['title', 'description', 'buttonText', 'buttonLink', 'itemsToShow'],
+  // El carrusel no usa los campos sueltos: cada banner trae los suyos y se
+  // editan en su propio panel, más abajo.
+  carousel: ['title'],
   newsletter: ['title', 'description'],
 };
 
@@ -55,6 +62,9 @@ const FIELD_LABELS: Partial<Record<PageBlockType, Partial<Record<EditableField, 
     subtitle: 'Texto sobre el título',
     title: 'Título principal (H1)',
     description: 'Descripción',
+  },
+  carousel: {
+    title: 'Nombre del carrusel (no se muestra)',
   },
   banner: {
     subtitle: 'Texto pequeño',
@@ -129,6 +139,252 @@ function HeroTitleHint({ value }: { value?: string }) {
   );
 }
 
+
+/**
+ * Editor de los banners del carrusel.
+ *
+ * Los banners se guardan a medida que se editan, igual que el resto del
+ * constructor, así que se crean vacíos y se les sube la foto después. Por eso
+ * el contador de abajo no cuenta los banners cargados sino los *publicables*
+ * (`slidesPublicables`): es la misma cuenta que hace la portada, y así el panel
+ * no promete un banner que la tienda no va a mostrar.
+ */
+function CarouselEditor({
+  block,
+  onChange,
+  onUploadImage,
+  busy,
+}: {
+  block: PageBlock;
+  onChange: (data: Partial<PageBlock>) => void;
+  onUploadImage: (dataUrl: string, oldUrl?: string | null) => Promise<string | null>;
+  busy: boolean;
+}) {
+  const slides = block.slides ?? [];
+  const publicables = slidesPublicables(slides).length;
+  const [subiendo, setSubiendo] = useState<string | null>(null);
+
+  const escribirSlides = (nuevas: CarouselSlide[]) => onChange({ slides: nuevas });
+
+  const actualizar = (id: string, data: Partial<CarouselSlide>) =>
+    escribirSlides(slides.map(s => (s.id === id ? { ...s, ...data } : s)));
+
+  const agregar = () => {
+    if (slides.length >= MAX_CAROUSEL_SLIDES) return;
+    escribirSlides([...slides, { id: nuevaSlideId(), textTheme: 'light' }]);
+  };
+
+  const eliminar = (slide: CarouselSlide, indice: number) => {
+    if (!window.confirm(`¿Eliminar el banner ${indice + 1}?`)) return;
+    escribirSlides(slides.filter(s => s.id !== slide.id));
+  };
+
+  const mover = (indice: number, direccion: -1 | 1) => {
+    const destino = indice + direccion;
+    if (destino < 0 || destino >= slides.length) return;
+    const copia = [...slides];
+    [copia[indice], copia[destino]] = [copia[destino], copia[indice]];
+    escribirSlides(copia);
+  };
+
+  const subir = async (slide: CarouselSlide, dataUrl: string) => {
+    if (!dataUrl.startsWith('data:image')) {
+      actualizar(slide.id, { imageUrl: dataUrl });
+      return;
+    }
+    setSubiendo(slide.id);
+    try {
+      const url = await onUploadImage(dataUrl, slide.imageUrl);
+      if (url) actualizar(slide.id, { imageUrl: url });
+    } finally {
+      setSubiendo(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h4 className="font-bold text-gray-900">Banners del carrusel</h4>
+          <p className="text-xs text-gray-500 font-medium mt-0.5">
+            Hasta {MAX_CAROUSEL_SLIDES}. Con uno solo se ve como un banner fijo, sin flechas ni
+            puntos. El texto y el botón son opcionales: si tu imagen ya trae el mensaje, déjalos
+            vacíos y se mostrará limpia.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <label className="block text-xs font-black uppercase tracking-widest text-gray-400">
+            Segundos por banner
+          </label>
+          <input
+            type="number"
+            min={0}
+            max={30}
+            defaultValue={block.autoplaySeconds ?? 6}
+            onBlur={e => {
+              const n = parseInt(e.target.value);
+              onChange({ autoplaySeconds: Number.isFinite(n) ? Math.min(30, Math.max(0, n)) : 6 });
+            }}
+            className="w-40 bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-brand-500/20"
+          />
+          <p className="text-[11px] text-gray-400">0 = no avanza solo.</p>
+        </div>
+      </div>
+
+      {slides.length === 0 && (
+        <p className="rounded-2xl bg-gray-50 px-5 py-4 text-sm font-medium text-gray-500">
+          Todavía no hay banners. Agrega el primero y súbele una imagen.
+        </p>
+      )}
+
+      {slides.map((slide, i) => (
+        <div key={slide.id} className="rounded-2xl border border-gray-200 p-5 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-black uppercase tracking-widest text-gray-400">
+              Banner {i + 1}
+              {!slide.imageUrl && (
+                <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-700 normal-case tracking-normal">
+                  Sin imagen: no se publica
+                </span>
+              )}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => mover(i, -1)}
+                disabled={i === 0 || busy}
+                className="p-1 text-gray-400 hover:text-brand-600 disabled:opacity-20"
+                title="Subir"
+              >
+                <ChevronUpIcon className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => mover(i, 1)}
+                disabled={i === slides.length - 1 || busy}
+                className="p-1 text-gray-400 hover:text-brand-600 disabled:opacity-20"
+                title="Bajar"
+              >
+                <ChevronDownIcon className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => eliminar(slide, i)}
+                disabled={busy}
+                className="p-1 text-gray-400 hover:text-red-600"
+                title="Eliminar banner"
+              >
+                <TrashIcon className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <SingleImageUpload
+                label={slide.imageUrl ? 'Cambiar imagen' : 'Subir imagen de fondo'}
+                value={slide.imageUrl || ''}
+                onChange={dataUrl => subir(slide, dataUrl)}
+              />
+              {subiendo === slide.id && (
+                <p className="text-[11px] font-bold text-brand-600">Subiendo imagen...</p>
+              )}
+              <p className="text-[11px] text-gray-400">
+                Ideal: apaisada, 1600×450 aprox. Se recorta al centro, así que deja lo importante
+                lejos de los bordes.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-xs font-black uppercase tracking-widest text-gray-400">
+                  Título (opcional)
+                </label>
+                <input
+                  type="text"
+                  defaultValue={slide.title || ''}
+                  onBlur={e => actualizar(slide.id, { title: e.target.value })}
+                  className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-black uppercase tracking-widest text-gray-400">
+                  Descripción (opcional)
+                </label>
+                <input
+                  type="text"
+                  defaultValue={slide.description || ''}
+                  onBlur={e => actualizar(slide.id, { description: e.target.value })}
+                  className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-black uppercase tracking-widest text-gray-400">
+                Texto del botón (opcional)
+              </label>
+              <input
+                type="text"
+                placeholder="Ver ofertas"
+                defaultValue={slide.buttonText || ''}
+                onBlur={e => actualizar(slide.id, { buttonText: e.target.value })}
+                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-brand-500/20"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-black uppercase tracking-widest text-gray-400">
+                Enlace del banner
+              </label>
+              <input
+                type="text"
+                placeholder="/ofertas"
+                defaultValue={slide.href || slide.buttonLink || ''}
+                onBlur={e => actualizar(slide.id, { href: e.target.value, buttonLink: e.target.value })}
+                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-brand-500/20"
+              />
+              <p className="text-[11px] text-gray-400">
+                Se abre al tocar cualquier parte del banner. Vacío = no es clickeable.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-black uppercase tracking-widest text-gray-400">
+                Color del texto
+              </label>
+              <select
+                value={slide.textTheme || 'light'}
+                onChange={e =>
+                  actualizar(slide.id, { textTheme: e.target.value as CarouselSlide['textTheme'] })
+                }
+                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-brand-500/20"
+              >
+                <option value="light">Claro (para imágenes oscuras)</option>
+                <option value="dark">Oscuro (para imágenes claras)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs font-medium text-gray-500">
+          {publicables === 0
+            ? 'Ningún banner se publicará todavía: falta subirles imagen.'
+            : `${publicables} de ${slides.length} se publicarán en la portada.`}
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={agregar}
+          disabled={busy || slides.length >= MAX_CAROUSEL_SLIDES}
+        >
+          <PlusIcon className="w-4 h-4 mr-2" />
+          {slides.length >= MAX_CAROUSEL_SLIDES ? `Máximo ${MAX_CAROUSEL_SLIDES} banners` : 'Agregar banner'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function ConstructorPage() {
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [blocks, setBlocks] = useState<PageBlock[]>([]);
@@ -154,6 +410,19 @@ export default function ConstructorPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Sube una imagen y devuelve su URL definitiva. El carrusel la necesita
+  // suelta —la guarda dentro de su propia diapositiva, no en `appearance`—, así
+  // que la subida vive aparte de `saveAppearanceImage`.
+  const subirImagen = async (dataUrl: string, oldUrl?: string | null): Promise<string | null> => {
+    const resp = await uploadImageServerAction(dataUrl, oldUrl || undefined);
+    if (!resp.ok || !resp.url) {
+      console.error("Error subiendo imagen:", resp.error);
+      window.alert(`No se pudo subir la imagen: ${resp.error ?? "error desconocido"}`);
+      return null;
+    }
+    return resp.url;
   };
 
   const saveAppearanceImage = async (field: "logoUrl" | "faviconUrl", dataUrl: string) => {
@@ -465,6 +734,17 @@ export default function ConstructorPage() {
                     </div>
                   )}
                 </div>
+                {block.type === 'carousel' && (
+                  <div className="mt-6 border-t border-gray-100 pt-6">
+                    <CarouselEditor
+                      block={block}
+                      busy={saving}
+                      onChange={data => updateBlockData(block.id, data)}
+                      onUploadImage={subirImagen}
+                    />
+                  </div>
+                )}
+
                 <div className="mt-6 flex justify-end">
                    <Button onClick={() => setEditingBlockId(null)} size="sm">
                      Cerrar Editor

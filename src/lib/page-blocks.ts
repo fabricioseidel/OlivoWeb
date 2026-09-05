@@ -10,7 +10,32 @@ export type PageBlockType =
   | 'categories'
   | 'more_products'
   | 'fiestas_patrias'
+  | 'carousel'
   | 'newsletter';
+
+/** Cuántos banners admite el carrusel. Más de cinco nadie los llega a ver. */
+export const MAX_CAROUSEL_SLIDES = 5;
+
+/**
+ * Una diapositiva del carrusel de la portada.
+ *
+ * La imagen es lo único obligatorio: el texto y el botón son opcionales porque
+ * un banner suele traer ya el mensaje dibujado, y superponerle un título lo
+ * arruina. Cuando no hay texto tampoco se pinta el velo oscuro, así la imagen
+ * se ve tal cual se subió.
+ */
+export type CarouselSlide = {
+  id: string;
+  imageUrl?: string;
+  title?: string;
+  description?: string;
+  buttonText?: string;
+  buttonLink?: string;
+  /** Destino al tocar el banner completo. Sin él, el banner no es un enlace. */
+  href?: string;
+  /** Texto claro sobre imagen oscura (por defecto) u oscuro sobre imagen clara. */
+  textTheme?: 'light' | 'dark';
+};
 
 export type PageBlock = {
   id: string;
@@ -25,6 +50,10 @@ export type PageBlock = {
   backgroundColor?: string;
   textColor?: string;
   itemsToShow?: number;
+  /** Sólo para el bloque `carousel`. */
+  slides?: CarouselSlide[];
+  /** Segundos entre banners del carrusel. 0 apaga el avance automático. */
+  autoplaySeconds?: number;
   config?: Record<string, unknown>;
 };
 
@@ -37,6 +66,7 @@ export const BLOCK_TYPE_LABELS: Record<PageBlockType, string> = {
   categories: 'Categorías',
   more_products: 'Más productos',
   fiestas_patrias: 'Fiestas Patrias (septiembre)',
+  carousel: 'Carrusel de banners',
   newsletter: 'Newsletter',
 };
 
@@ -50,6 +80,8 @@ export const BLOCK_TYPE_DESCRIPTIONS: Record<PageBlockType, string> = {
   more_products: 'Segunda grilla con el resto del catálogo',
   fiestas_patrias:
     'Banner y vitrina dieciochera. Se muestra solo durante septiembre y se apaga sola el 1 de octubre',
+  carousel:
+    'Hasta cinco banners con imagen de fondo que rotan solos. Con uno solo se comporta como un banner fijo',
   newsletter: 'Formulario de suscripción al newsletter',
 };
 
@@ -107,3 +139,23 @@ export const DEFAULT_BLOCKS: PageBlock[] = [
     description: 'Recibe ofertas exclusivas, cupones de descuento y novedades directamente en tu email.',
   },
 ];
+
+/** Un id de diapositiva que no choca aunque se agreguen dos seguidas. */
+export function nuevaSlideId(): string {
+  return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
+/**
+ * Las diapositivas que el carrusel puede mostrar de verdad.
+ *
+ * Filtra las que no tienen imagen y recorta al máximo. El bloque guarda
+ * diapositivas a medio llenar mientras el admin las edita —se crean vacías y se
+ * les sube la foto después—, y sin este filtro la portada mostraría un hueco
+ * negro. Se aplica en la portada y también en el editor, para que el contador
+ * de "listas para publicar" diga lo mismo que se ve en la tienda.
+ */
+export function slidesPublicables(slides?: CarouselSlide[] | null): CarouselSlide[] {
+  if (!Array.isArray(slides)) return [];
+  return slides.filter(s => typeof s?.imageUrl === 'string' && s.imageUrl.trim() !== '')
+    .slice(0, MAX_CAROUSEL_SLIDES);
+}

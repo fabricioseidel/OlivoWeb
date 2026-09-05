@@ -10,7 +10,7 @@ import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
 import NewsletterWidget from "@/components/NewsletterWidget";
 import { useCategories } from "@/hooks/useCategories";
-import { DEFAULT_BLOCKS, type PageBlock } from "@/lib/page-blocks";
+import { DEFAULT_BLOCKS, slidesPublicables, type PageBlock } from "@/lib/page-blocks";
 import { BUSINESS } from "@/lib/seo/business";
 import { useSiteCopy } from "@/hooks/useSiteCopy";
 import {
@@ -21,6 +21,7 @@ import {
 } from "@/lib/fiestas-patrias";
 import BanderaChile from "@/components/fiestas/BanderaChile";
 import BannerFiestasPatrias from "@/components/fiestas/BannerFiestasPatrias";
+import BannerCarousel from "@/components/home/BannerCarousel";
 import VitrinaDieciochera from "@/components/fiestas/VitrinaDieciochera";
 import {
   ChevronRight,
@@ -97,6 +98,20 @@ export default function HomeClient({ initialBlocks = null }: { initialBlocks?: P
             );
           case "banner":
             return <BannerBlock key={block.id} block={block} />;
+          // Un carrusel sin imágenes cargadas no es un carrusel vacío: es una
+          // franja negra a media pantalla. Mejor que no exista hasta que tenga
+          // al menos un banner con foto.
+          case "carousel": {
+            const slides = slidesPublicables(block.slides);
+            return slides.length > 0 ? (
+              <BannerCarousel
+                key={block.id}
+                slides={slides}
+                autoplaySeconds={block.autoplaySeconds ?? 6}
+                ariaLabel={block.title || "Promociones destacadas"}
+              />
+            ) : null;
+          }
           // El bloque dieciochero se apaga solo fuera de septiembre, así que
           // el admin puede dejarlo activo todo el año sin acordarse de nada.
           case "fiestas_patrias":
