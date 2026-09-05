@@ -1914,6 +1914,78 @@ ve: lo único que falta es que el estado avance solo.
 
 ---
 
+## El tablero de pedidos y la alerta sonora (2026-09-05)
+
+### La alerta nunca sonó
+
+El panel tenía esta línea desde hacía meses:
+
+```js
+new Audio("/notification.mp3").play().catch(() => {});
+```
+
+**Ese archivo no existe en `public/`.** El `catch` vacío se comía el 404, así
+que no había ni un error en la consola: la tienda creía tener alerta y no la
+tenía.
+
+Debajo había un segundo error, peor, porque habría seguido fallando aunque el
+archivo existiera: la alerta sonaba **sólo si subía la cantidad de pedidos
+`pending`**. Un pedido pagado entra como `processing` —así lo marca el webhook
+de MercadoPago—, o sea que **el pedido que más importa era justamente el único
+que no sonaba**. Y si entraba uno mientras se despachaba otro, el total quedaba
+igual y tampoco sonaba.
+
+Ahora se compara **por id** (`detectarNuevos`, en `src/lib/admin/pedidos-nuevos.ts`):
+suena cualquier pedido que no se había visto antes y que todavía necesita que
+alguien haga algo. La primera carga sólo siembra los ids, para que abrir el
+panel no dispare la campanilla por lo que ya estaba ahí.
+
+### El sonido se genera, no se descarga
+
+La campanilla son tres notas con la Web Audio API (`src/hooks/useAlertaPedidos.ts`),
+no un archivo: así no se puede volver a perder en un despliegue. En el teléfono
+además vibra, y si el panel quedó en otra pestaña sale una notificación del
+sistema.
+
+**Hay que activarla una vez por navegador.** El navegador no deja sonar nada
+hasta que la persona toca la página —política de autoplay, no se puede
+esquivar—, así que el botón del tablero cumple dos funciones: guarda la
+preferencia y da el gesto que desbloquea el audio. Mientras está apagada, el
+panel lo dice arriba de todo: una alerta apagada que nadie nota es peor que no
+tener alerta.
+
+### El tablero, rehecho sobre el panel de Uber Eats
+
+Eran tres columnas simultáneas. En el teléfono —que es donde se atiende—
+quedaban una debajo de otra y había que desplazarse para saber si había algo
+nuevo. Ahora es lo mismo que la tienda ya usa en Uber Eats: pestañas con el
+número al lado (**Nuevos · Preparando · Listos**), una lista sola por vez, un
+botón grande por pedido y "No hay pedidos" cuando está vacía.
+
+Aparte del cambio de forma:
+
+- **El contador de "Nuevos" se marca en rojo** cuando hay alguno, y el pedido
+  que lleva más de 10 minutos sin atender se pinta el borde. Es la columna
+  donde un descuido se nota tarde.
+- **La cola se ordena del más viejo al más nuevo.** Antes también, pero ahora
+  está probado: el que espera hace 40 minutos no puede quedar enterrado bajo
+  los recién llegados.
+- **Los pedidos flash muestran el estado del repartidor** y el link para verlo
+  en vivo, sin salir del tablero.
+- **`etapaDe` entiende las dos escrituras** que conviven en la base, inglés del
+  código y español de cargas viejas. Comparar contra una sola dejaba pedidos
+  fuera de las tres columnas: existían y no se veían en ninguna parte.
+
+### Un cambio en la configuración de los tests
+
+`vitest.config.ts` ahora usa `esbuild: { jsx: 'automatic' }`. Next compila así,
+pero vitest usaba el runtime clásico, y por eso cualquier test de componente
+fallaba con "React is not defined" salvo que el componente tuviera un
+`import React` de adorno. Con esto los componentes se prueban como están
+escritos.
+
+---
+
 ## Documentos relacionados
 
 - `docs/PLAN_PRECIOS.md` — la auditoría completa del módulo de precios, costos
