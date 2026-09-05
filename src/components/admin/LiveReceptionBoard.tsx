@@ -21,6 +21,7 @@ import {
 } from "@heroicons/react/24/outline";
 import {
   agruparPorEtapa,
+  esperandoPago,
   esperaEnTexto,
   estaAtrasado,
   type Etapa,
@@ -55,20 +56,17 @@ interface LiveReceptionBoardProps {
 
 /** Qué hace el botón grande de cada etapa. */
 const ACCION: Record<Etapa, { texto: string; siguiente: string }> = {
-  nuevos: { texto: "Aceptar y preparar", siguiente: "processing" },
-  preparando: { texto: "Marcar como listo", siguiente: "shipped" },
+  preparar: { texto: "Marcar como listo", siguiente: "shipped" },
   listos: { texto: "Marcar entregado", siguiente: "delivered" },
 };
 
 const VACIO: Record<Etapa, string> = {
-  nuevos: "No hay pedidos nuevos",
-  preparando: "No hay pedidos en preparación",
+  preparar: "No hay pedidos por preparar",
   listos: "No hay pedidos listos",
 };
 
 const TITULO: Record<Etapa, string> = {
-  nuevos: "Nuevos",
-  preparando: "Preparando",
+  preparar: "Por preparar",
   listos: "Listos",
 };
 
@@ -98,8 +96,7 @@ function TarjetaPedido({
   etapa: Etapa;
   onUpdateStatus: (id: string, nuevo: string) => void;
 }) {
-  const atrasado = etapa === "nuevos" && estaAtrasado(order.createdAt);
-  const pagado = order.paymentStatus === "paid";
+  const atrasado = etapa === "preparar" && estaAtrasado(order.createdAt);
   const envio = etiquetaEnvio(order.shippingMethod);
   const esFlash = String(order.shippingMethod ?? "").toLowerCase() === "flash";
   const accion = ACCION[etapa];
@@ -133,14 +130,6 @@ function TarjetaPedido({
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-2xl font-semibold text-gray-900">
           ${Number(order.total || 0).toLocaleString("es-CL")}
-        </span>
-        <span
-          className={`inline-flex items-center gap-1.5 text-sm font-medium ${
-            pagado ? "text-green-700" : "text-amber-700"
-          }`}
-        >
-          <span className={`w-2 h-2 rounded-full ${pagado ? "bg-green-600" : "bg-amber-500"}`} />
-          {pagado ? "Pagado" : "Pago pendiente"}
         </span>
         {envio && (
           <span className="text-sm text-gray-500 border border-gray-200 rounded-lg px-2 py-0.5">
@@ -198,8 +187,9 @@ export default function LiveReceptionBoard({
   onRefrescar,
   ultimoSync,
 }: LiveReceptionBoardProps) {
-  const [etapa, setEtapa] = useState<Etapa>("nuevos");
+  const [etapa, setEtapa] = useState<Etapa>("preparar");
   const grupos = useMemo(() => agruparPorEtapa(orders), [orders]);
+  const sinPagar = useMemo(() => esperandoPago(orders), [orders]);
   const lista = grupos[etapa];
 
   return (
@@ -254,9 +244,9 @@ export default function LiveReceptionBoard({
               <span className="truncate">{TITULO[k]}</span>
               <span
                 className={`min-w-[28px] px-1.5 py-0.5 rounded-md border text-sm ${
-                  // Los nuevos sin atender se marcan: es la columna en la que
+                  // Lo que está por preparar se marca: es la columna en la que
                   // un descuido se nota tarde.
-                  k === "nuevos" && cantidad > 0
+                  k === "preparar" && cantidad > 0
                     ? "border-red-200 bg-red-50 text-red-700 font-semibold"
                     : "border-gray-200 text-gray-600"
                 }`}
@@ -282,6 +272,26 @@ export default function LiveReceptionBoard({
               onUpdateStatus={onUpdateStatus}
             />
           ))
+        )}
+
+        {/* Los que quedaron esperando el pago no son trabajo, así que no
+            ocupan pestaña ni suenan. Pero se cuentan: un abandono suelto es
+            normal, y muchos acumulándose son el síntoma de que las
+            confirmaciones de pago dejaron de llegar. */}
+        {sinPagar.length > 0 && (
+          <p className="pt-1 text-sm text-gray-500">
+            {sinPagar.length === 1
+              ? "1 pedido quedó esperando el pago."
+              : `${sinPagar.length} pedidos quedaron esperando el pago.`}{" "}
+            <Link href="/admin/pedidos" className="underline underline-offset-2 hover:text-gray-700">
+              Verlos
+            </Link>
+            {sinPagar.length >= 5 && (
+              <span className="text-amber-700">
+                {" "}— si se siguen acumulando, revisa que las confirmaciones de pago estén llegando.
+              </span>
+            )}
+          </p>
         )}
       </div>
     </div>

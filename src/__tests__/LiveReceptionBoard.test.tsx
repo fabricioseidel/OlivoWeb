@@ -15,7 +15,7 @@ const PEDIDOS: LiveOrder[] = [
     customer: "Ana",
     total: 24990,
     productos: 3,
-    estado: "pending",
+    estado: "processing",
     paymentStatus: "paid",
     shippingMethod: "flash",
     expressStatus: "dropoff",
@@ -27,21 +27,46 @@ const PEDIDOS: LiveOrder[] = [
     customer: "Beto",
     total: 8000,
     productos: 1,
-    estado: "processing",
-    paymentStatus: "pending",
+    estado: "shipped",
+    paymentStatus: "paid",
     shippingMethod: "pickup",
     createdAt: new Date().toISOString(),
   },
+  // Sin pagar: no es trabajo, así que no ocupa ninguna pestaña.
+  {
+    id: "dddddd-4",
+    customer: "Dani",
+    total: 5000,
+    productos: 1,
+    estado: "pending",
+    paymentStatus: "pending",
+    createdAt: new Date().toISOString(),
+  },
   // Entregado: no es trabajo pendiente y no debe ocupar ninguna pestaña.
-  { id: "cccccc-3", customer: "Carla", estado: "delivered", createdAt: new Date().toISOString() },
+  {
+    id: "cccccc-3",
+    customer: "Carla",
+    estado: "delivered",
+    paymentStatus: "paid",
+    createdAt: new Date().toISOString(),
+  },
 ];
 
 describe("el tablero de recepción", () => {
-  it("abre en los pedidos nuevos y no muestra los de otras etapas", () => {
+  it("abre en lo que hay que preparar y no muestra las otras etapas", () => {
     render(<LiveReceptionBoard orders={PEDIDOS} onUpdateStatus={() => {}} />);
     expect(screen.getByText("Ana")).toBeTruthy();
     expect(screen.queryByText("Beto")).toBeNull();
     expect(screen.queryByText("Carla")).toBeNull();
+  });
+
+  it("no pone en ninguna pestaña al que no pagó, pero lo cuenta aparte", () => {
+    // El checkout sólo cobra por MercadoPago: sin pago no hay nada que
+    // preparar, y ocupar con eso la pestaña que abre por defecto convertía el
+    // contador en ruido.
+    render(<LiveReceptionBoard orders={PEDIDOS} onUpdateStatus={() => {}} />);
+    expect(screen.queryByText("Dani")).toBeNull();
+    expect(screen.getByText(/1 pedido quedó esperando el pago/)).toBeTruthy();
   });
 
   it("deja ver el estado del repartidor sin salir del tablero", () => {
@@ -51,24 +76,23 @@ describe("el tablero de recepción", () => {
     expect(link?.getAttribute("href")).toBe("https://uber.example/seguimiento");
   });
 
-  it("cambia de pestaña y ahí sí aparece el que estaba en preparación", () => {
+  it("cambia de pestaña y ahí sí aparece el que ya salió", () => {
     render(<LiveReceptionBoard orders={PEDIDOS} onUpdateStatus={() => {}} />);
-    fireEvent.click(screen.getByText("Preparando"));
+    fireEvent.click(screen.getByText("Listos"));
     expect(screen.getByText("Beto")).toBeTruthy();
     expect(screen.queryByText("Ana")).toBeNull();
   });
 
   it("dice que no hay nada cuando la pestaña está vacía", () => {
-    render(<LiveReceptionBoard orders={PEDIDOS} onUpdateStatus={() => {}} />);
-    fireEvent.click(screen.getByText("Listos"));
-    expect(screen.getByText("No hay pedidos listos")).toBeTruthy();
+    render(<LiveReceptionBoard orders={[]} onUpdateStatus={() => {}} />);
+    expect(screen.getByText("No hay pedidos por preparar")).toBeTruthy();
   });
 
   it("el botón manda el estado siguiente de la etapa", () => {
     const onUpdateStatus = vi.fn();
     render(<LiveReceptionBoard orders={PEDIDOS} onUpdateStatus={onUpdateStatus} />);
-    fireEvent.click(screen.getByText("Aceptar y preparar"));
-    expect(onUpdateStatus).toHaveBeenCalledWith("aaaaaa-1", "processing");
+    fireEvent.click(screen.getByText("Marcar como listo"));
+    expect(onUpdateStatus).toHaveBeenCalledWith("aaaaaa-1", "shipped");
   });
 
   it("el interruptor de la alerta dice si está encendida", () => {

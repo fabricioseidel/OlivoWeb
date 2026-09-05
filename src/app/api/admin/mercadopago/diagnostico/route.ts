@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireApiAdmin } from '@/lib/api-auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import type { Check } from '@/lib/admin/checks';
+import { urlPublica } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,11 @@ export async function GET() {
   const checks: Check[] = [];
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
   const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET || '';
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
+  const siteUrlCrudo = process.env.NEXT_PUBLIC_SITE_URL || '';
+  // La que de verdad se le manda a MercadoPago, ya corregida al dominio
+  // canónico. Mostrar la cruda escondía el problema: decía `olivomarket.cl` y
+  // parecía correcta, pero el webhook salía contra un 307.
+  const siteUrl = urlPublica();
 
   // ── 1. Token presente y de qué tipo ──
   if (!accessToken) {
@@ -123,7 +128,13 @@ export async function GET() {
     id: 'site-url',
     label: 'URL pública del sitio',
     status: siteUrl.startsWith('https://') ? 'ok' : 'error',
-    detail: siteUrl || 'NEXT_PUBLIC_SITE_URL no está definida.',
+    detail:
+      siteUrl +
+      (siteUrlCrudo && siteUrlCrudo.replace(/\/+$/, '') !== siteUrl
+        ? ` (corregida: NEXT_PUBLIC_SITE_URL dice "${siteUrlCrudo}", que redirige con 307 y perdería los webhooks)`
+        : siteUrlCrudo
+          ? ''
+          : ' (NEXT_PUBLIC_SITE_URL no está definida; se usa el dominio canónico)'),
     hint: siteUrl.startsWith('https://')
       ? undefined
       : 'Debe ser HTTPS. Sin esto, MercadoPago no puede devolver al cliente ni notificar el pago.',
