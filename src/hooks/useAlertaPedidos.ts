@@ -61,12 +61,24 @@ export type AlertaPedidos = {
 export function useAlertaPedidos(): AlertaPedidos {
   const [activada, setActivada] = useState(false);
   const ctxRef = useRef<AudioContext | null>(null);
+  /**
+   * El mismo valor que `activada`, pero legible desde una función estable.
+   *
+   * `sonar` tiene que conservar su identidad entre renders: quien la llama lo
+   * hace desde un `setInterval` creado una sola vez, y una versión de `sonar`
+   * que dependa de `activada` queda congelada con el `false` del montaje. Ese
+   * era el modo de fallar: la alerta se encendía, el panel decía que estaba
+   * activada y el temporizador seguía llamando a la función muda.
+   */
+  const activadaRef = useRef(false);
 
   // La preferencia se lee después del montaje: en el servidor no hay
   // localStorage y leerlo durante el render rompe la hidratación.
   useEffect(() => {
     try {
-      setActivada(localStorage.getItem(CLAVE) === "on");
+      const guardada = localStorage.getItem(CLAVE) === "on";
+      activadaRef.current = guardada;
+      setActivada(guardada);
     } catch {
       // Navegador con el almacenamiento bloqueado: la alerta arranca apagada.
     }
@@ -103,33 +115,38 @@ export function useAlertaPedidos(): AlertaPedidos {
   }, [contexto]);
 
   const alternar = useCallback(() => {
-    setActivada((prev) => {
-      const siguiente = !prev;
+    // El cambio se calcula acá y no dentro del `setActivada`: un updater tiene
+    // que ser puro, y React lo invoca dos veces en desarrollo. Adentro, la
+    // campanilla sonaba pisada consigo misma y el permiso de notificaciones se
+    // pedía dos veces.
+    const siguiente = !activadaRef.current;
+    activadaRef.current = siguiente;
+    setActivada(siguiente);
+
+    try {
+      localStorage.setItem(CLAVE, siguiente ? "on" : "off");
+    } catch {
+      // Sin almacenamiento la alerta vale para esta sesión y nada más.
+    }
+
+    if (siguiente) {
+      // Este clic es el gesto que desbloquea el audio, y tiene que ocurrir en
+      // la pila del propio clic: desde el render el navegador no lo acepta. De
+      // paso suena una vez, que confirma que el volumen del equipo está arriba.
+      reproducir();
       try {
-        localStorage.setItem(CLAVE, siguiente ? "on" : "off");
-      } catch {
-        // Sin almacenamiento la alerta vale para esta sesión y nada más.
-      }
-      if (siguiente) {
-        // Este clic es el gesto que desbloquea el audio. Se aprovecha para
-        // dejar el contexto abierto y sonar una vez, que además confirma que
-        // el volumen del equipo está arriba.
-        reproducir();
-        try {
-          if (typeof Notification !== "undefined" && Notification.permission === "default") {
-            Notification.requestPermission().catch(() => {});
-          }
-        } catch {
-          // Sin API de notificaciones: queda sólo el sonido.
+        if (typeof Notification !== "undefined" && Notification.permission === "default") {
+          Notification.requestPermission().catch(() => {});
         }
+      } catch {
+        // Sin API de notificaciones: queda sólo el sonido.
       }
-      return siguiente;
-    });
+    }
   }, [reproducir]);
 
   const sonar = useCallback(
     (titulo?: string, cuerpo?: string) => {
-      if (!activada) return;
+      if (!activadaRef.current) return;
       reproducir();
       // La notificación del sistema es para cuando el panel quedó en otra
       // pestaña o el teléfono con la pantalla apagada: ahí el sonido solo no
@@ -146,7 +163,9 @@ export function useAlertaPedidos(): AlertaPedidos {
         // Notificación rechazada por el navegador: el sonido ya avisó.
       }
     },
-    [activada, reproducir]
+    // Sin `activada` en las dependencias a propósito: se lee del ref, y así la
+    // función mantiene su identidad para el temporizador que la capturó.
+    [reproducir]
   );
 
   return { activada, alternar, sonar, probar: reproducir };

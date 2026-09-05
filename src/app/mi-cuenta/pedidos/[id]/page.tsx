@@ -164,7 +164,10 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
             metodoPago: found.payment_method || found.paymentMethod || 'No especificado',
             numeroSeguimiento: found.tracking_number || found.trackingNumber || undefined,
             urlSeguimiento: found.tracking_url || found.trackingUrl || undefined,
-            flash: leerFlash(found, normalizedAddr)
+            // La dirección cruda y no la normalizada: el normalizador arma
+            // un objeto con campos elegidos a mano y deja fuera el seguimiento
+            // de Uber, que es justo lo que hace falta acá.
+            flash: leerFlash(found, direccion)
           };
           setPedido(pedidoObj);
           // eslint-disable-next-line @typescript-eslint/no-unused-vars

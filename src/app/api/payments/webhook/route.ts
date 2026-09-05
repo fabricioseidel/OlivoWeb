@@ -301,7 +301,7 @@ async function crearEntregaDePedidoPagado(
     // El seguimiento va a columnas propias y no sólo al JSON: es lo que leen
     // el panel, la página del cliente y el webhook de Uber, y `express_delivery_id`
     // tiene índice único, así que dos entregas de la misma orden no entran.
-    await supabaseServer
+    const { error: errorGuardado } = await supabaseServer
       .from('orders')
       .update({
         express_delivery_id: entrega.id,
@@ -316,6 +316,31 @@ async function crearEntregaDePedidoPagado(
         updated_at: new Date().toISOString(),
       })
       .eq('id', orderId);
+
+    if (errorGuardado) {
+      // El repartidor ya está pedido y se cobra igual, pero la orden no quedó
+      // marcada: `express_delivery_id` es lo único que impide que un reintento
+      // de MercadoPago pida un segundo repartidor, y sin él el webhook de Uber
+      // tampoco puede encontrar esta orden. Se registra como fallo aunque la
+      // entrega exista, porque lo que hay que hacer es intervenir a mano.
+      console.error(
+        `[MP Webhook] ❌ Entrega ${entrega.id} creada pero NO guardada en la orden ${orderId}:`,
+        errorGuardado
+      );
+      await auditLog({
+        action: 'UBER_DELIVERY_FAILED',
+        entity: 'orders',
+        entityId: orderId,
+        actor: 'mp-webhook',
+        details: {
+          motivo: 'entrega-creada-sin-guardar',
+          deliveryId: entrega.id,
+          tracking: entrega.tracking,
+          error: errorGuardado.message,
+        },
+      });
+      return;
+    }
 
     console.log(`[MP Webhook] 🛵 Entrega de Uber creada para la orden ${orderId}: ${entrega.id}`);
     await auditLog({
