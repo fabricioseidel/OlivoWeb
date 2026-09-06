@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/config/auth.config';
 import { sendOrderConfirmation } from '@/server/email.service';
 import { recordCouponUsage, getCouponByCode, validateCoupon } from '@/server/coupon.service';
-import { earnPoints, redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
+import { redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
 import { quoteAgendado, FACTOR_CALLES } from '@/lib/shipping-policy';
 import { precioEfectivo } from '@/lib/pricing';
@@ -73,7 +73,10 @@ async function calculateServerShippingCost(params: {
   shippingInfo: Record<string, unknown> | null | undefined;
   /** Lo que el cliente vio al elegir el flash, para poder revalidarlo. */
   precioFlashMostrado: number | null;
-}): Promise<{ cost: number; quoteIdFlash?: string | null } | { error: string; recotizado?: number }> {
+}): Promise<
+  | { cost: number; quoteIdFlash?: string | null; quoteExpiraFlash?: string | null }
+  | { error: string; recotizado?: number }
+> {
   const { shippingMethod, coords, subtotal, ciudad } = params;
   if (shippingMethod === 'pickup') return { cost: 0 };
 
@@ -211,13 +214,17 @@ async function calculateServerShippingCost(params: {
     // Un envío gratis no necesita revalidarse: el cliente paga 0 igual, y la
     // diferencia la absorbe la tienda por definición.
     if (quote.freeApplied) {
-      return { cost: 0, quoteIdFlash: cotizacion?.quoteId ?? null };
+      return { cost: 0, quoteIdFlash: cotizacion?.quoteId ?? null,
+        quoteExpiraFlash: cotizacion?.expira ?? null,
+      };
     }
 
     // Sin precio mostrado no hay contra qué comparar (por ejemplo, alguien que
     // llama la ruta directo). Se cobra lo que Uber cotiza ahora.
     if (params.precioFlashMostrado === null) {
-      return { cost: quote.price, quoteIdFlash: cotizacion?.quoteId ?? null };
+      return { cost: quote.price, quoteIdFlash: cotizacion?.quoteId ?? null,
+        quoteExpiraFlash: cotizacion?.expira ?? null,
+      };
     }
 
     const revalidacion = revalidarFlash({
@@ -234,7 +241,9 @@ async function calculateServerShippingCost(params: {
       };
     }
 
-    return { cost: revalidacion.precioACobrar, quoteIdFlash: cotizacion?.quoteId ?? null };
+    return { cost: revalidacion.precioACobrar, quoteIdFlash: cotizacion?.quoteId ?? null,
+        quoteExpiraFlash: cotizacion?.expira ?? null,
+      };
   }
 
   return { error: 'Método de envío no válido.' };
@@ -285,6 +294,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No items in order' }, { status: 400 });
     }
 
+    // El checkout ofrece MercadoPago y sólo MercadoPago. Sin esta comprobación,
+    // cualquier otro valor creaba una orden que ya había consumido stock y no
+    // tenía forma de pagarse nunca: el link de pago sólo se genera para
+    // `mercadopago`.
+    if (paymentMethod !== 'mercadopago') {
+      return NextResponse.json(
+        { error: 'Método de pago no disponible.' },
+        { status: 400 }
+      );
+    }
+
     const userId = (session?.user as any)?.id || null;
 
     // La entrega a domicilio se agenda: hay una sola ronda de reparto por
@@ -310,7 +330,19 @@ export async function POST(request: NextRequest) {
         .select('shipping_address')
         .neq('status', 'cancelled');
 
-      if (!slotErr && slotOrders) {
+      // Si la consulta falla no se puede saber cuántos pedidos hay en el
+      // bloque, y aceptar ante la duda es lo que llena una ronda por encima de
+      // lo que el reparto propio puede cubrir. Se rechaza y el cliente elige
+      // otro bloque.
+      if (slotErr || !slotOrders) {
+        console.error('[Checkout] No se pudo verificar la capacidad del bloque:', slotErr);
+        return NextResponse.json(
+          { error: 'No pudimos verificar la disponibilidad de ese bloque. Intenta de nuevo o elige otro.' },
+          { status: 503 }
+        );
+      }
+
+      {
         const count = slotOrders.filter(o => {
           const addr = o.shipping_address as any;
           return addr && addr.deliveryDate === deliveryDate && slotMatches(slot, addr.deliveryTimeSlot);
@@ -493,6 +525,12 @@ export async function POST(request: NextRequest) {
         shipping_address: {
           ...(typeof shippingInfo === 'object' && shippingInfo !== null ? shippingInfo : {}),
           ...(quoteIdFlash ? { uberQuoteId: quoteIdFlash } : {}),
+          // Cuándo caduca esa cotización. Sin esto el despacho redimía una
+          // cotización de edad desconocida y un checkout lento terminaba en un
+          // pedido pagado que Uber rechazaba.
+          ...(shippingResult.quoteExpiraFlash
+            ? { uberQuoteExpira: shippingResult.quoteExpiraFlash }
+            : {}),
           ...(pointsToRedeem > 0 ? { pointsRedeemed: pointsToRedeem } : {}),
         },
         payment_method: paymentMethod,
@@ -515,6 +553,28 @@ export async function POST(request: NextRequest) {
     // recalcula products.stock y registra inventory_movements con
     // reference_id = order.id.
     const successfullSubtractions: any[] = [];
+
+    /**
+     * Deshace la orden: devuelve el stock ya descontado y la borra.
+     *
+     * Estaba escrito sólo dentro del `catch` de la reserva de stock, así que
+     * los pasos siguientes fallaban dejando la orden viva y el stock
+     * descontado: el producto desaparecía del inventario sin que nadie lo
+     * hubiera comprado, y no había forma de recuperarlo salvo a mano.
+     */
+    const revertirOrden = async () => {
+      for (const item of successfullSubtractions) {
+        await supabaseServer.rpc('increment_product_stock', {
+          p_barcode: String(item.id),
+          p_quantity: item.quantity,
+          p_branch_id: branchId,
+          p_reference: String(order.id),
+          p_reason: 'WEB_SALE_ROLLBACK'
+        });
+      }
+      await supabaseServer.from('orders').delete().eq('id', order.id);
+    };
+
     try {
       for (const item of items) {
         const { data: success, error: rpcErr } = await supabaseServer.rpc('decrement_stock_atomic', {
@@ -531,17 +591,7 @@ export async function POST(request: NextRequest) {
         successfullSubtractions.push(item);
       }
     } catch (err: any) {
-      // ROLLBACK: devolver el stock de lo que ya descontamos y eliminar la orden.
-      for (const item of successfullSubtractions) {
-        await supabaseServer.rpc('increment_product_stock', {
-          p_barcode: String(item.id),
-          p_quantity: item.quantity,
-          p_branch_id: branchId,
-          p_reference: String(order.id),
-          p_reason: 'WEB_SALE_ROLLBACK'
-        });
-      }
-      await supabaseServer.from('orders').delete().eq('id', order.id);
+      await revertirOrden();
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
 
@@ -556,6 +606,9 @@ export async function POST(request: NextRequest) {
       .insert(finalOrderItems);
 
     if (itemsError) {
+      // Sin esto la orden quedaba creada, sin líneas y con el stock ya
+      // descontado: inventario perdido y una orden imposible de atender.
+      await revertirOrden();
       return NextResponse.json({ error: 'Failed to create order items', details: itemsError }, { status: 500 });
     }
 
@@ -580,19 +633,33 @@ export async function POST(request: NextRequest) {
     const customerEmail = shippingInfo?.email;
     const customerName = shippingInfo?.fullName || 'Cliente';
 
+    // El canje se descuenta antes de responder, y no dentro de la tarea suelta
+    // de abajo. El descuento ya está aplicado al total que el cliente va a
+    // pagar: si el canje se queda colgado —en serverless la ejecución puede
+    // cortarse apenas se responde— el cliente paga menos y conserva los
+    // puntos, y dos checkouts a la vez podían gastar los mismos puntos dos
+    // veces.
+    if (customerEmail && pointsToRedeem > 0) {
+      try {
+        await redeemPoints({
+          customerEmail,
+          points: pointsToRedeem,
+          description: `Pago parcial de orden ${order.id}`,
+        });
+      } catch (err) {
+        console.error('[Checkout] No se pudieron canjear los puntos:', err);
+        await revertirOrden();
+        return NextResponse.json(
+          { error: 'No pudimos aplicar tus puntos. Intenta de nuevo.' },
+          { status: 409 }
+        );
+      }
+    }
+
     if (customerEmail) {
-      // Handle Loyalty, Customer Upsert and Confirmation Email
+      // Handle Customer Upsert and Confirmation Email
       (async () => {
          try {
-            // Redeem points if opted
-            if (pointsToRedeem > 0) {
-               await redeemPoints({
-                  customerEmail,
-                  points: pointsToRedeem,
-                  description: `Pago parcial de orden ${order.id}`
-               });
-            }
-
             // Upsert customer
             await supabaseServer
               .from('customers')
@@ -606,15 +673,13 @@ export async function POST(request: NextRequest) {
                 last_purchase_at: new Date().toISOString(),
               }, { onConflict: 'email' });
 
-            // Earn points for current purchase
-            const loyaltyResult = await earnPoints({
-               customerEmail,
-               amount: serverTotal,
-               referenceType: 'order',
-               referenceId: order.id
-            });
+            // Los puntos ganados NO se acreditan acá. Se acreditaban al crear
+            // el pedido, o sea antes de pagar y sin nada que los revirtiera:
+            // bastaba llegar al checkout y abandonar el pago para acumular
+            // puntos gastables. Ahora los da el webhook de MercadoPago cuando
+            // el pago está confirmado.
 
-            // Send confirmation email with correct unit price and loyalty points
+            // Send confirmation email with correct unit price
             await sendOrderConfirmation({
               to: customerEmail,
               customerName,
@@ -627,8 +692,6 @@ export async function POST(request: NextRequest) {
                 quantity: item.quantity,
                 price: item.price,
               })),
-              pointsEarned: loyaltyResult?.pointsEarned,
-              pointsBalance: loyaltyResult?.newBalance,
             });
             
          } catch (err) {
@@ -657,6 +720,20 @@ export async function POST(request: NextRequest) {
 
     // 8. Create MercadoPago Preference (only if payment method is mercadopago)
     let initPoint = null;
+    // MercadoPago no acepta un cobro de $0. Con un cupón o unos puntos que
+    // cubran todo, la preferencia lanzaba y la orden quedaba creada, con el
+    // stock ya descontado y sin ninguna forma de pagarse.
+    if (serverTotal <= 0) {
+      await revertirOrden();
+      return NextResponse.json(
+        {
+          error:
+            'El total quedó en $0 y el pago no se puede procesar. Quita parte del descuento o agrega un producto.',
+        },
+        { status: 400 }
+      );
+    }
+
     if (paymentMethod === 'mercadopago') {
       try {
         console.log(`[Checkout] 💳 Iniciando creación de preferencia MP para orden ${order.id}`);

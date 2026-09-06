@@ -102,6 +102,16 @@ describe("el aviso de Uber no puede retroceder el pedido", () => {
     expect(avanzaElPedido("Procesando", "shipped")).toBe(true);
   });
 
+  it("un pedido cancelado o reembolsado no se reabre nunca", () => {
+    // Un aviso rezagado de Uber devolvía a "en camino" un pedido ya
+    // reembolsado, y le mandaba al cliente el correo de despacho de algo que
+    // ya se le había devuelto.
+    expect(avanzaElPedido("cancelled", "shipped")).toBe(false);
+    expect(avanzaElPedido("Cancelado", "delivered")).toBe(false);
+    expect(avanzaElPedido("refunded", "shipped")).toBe(false);
+    expect(avanzaElPedido("reembolsado", "delivered")).toBe(false);
+  });
+
   it("ante un estado que no reconoce, deja pasar", () => {
     // Preferible avanzar de más que dejar un pedido congelado por una
     // escritura que nadie previó.

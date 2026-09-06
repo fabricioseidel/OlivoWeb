@@ -3,8 +3,8 @@ import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { supabaseServer } from '@/lib/supabase-server';
 import { auditLog } from '@/server/audit.service';
 import { restoreOrderStock } from '@/server/inventory.service';
-import { crearEntregaFlash } from '@/server/uber-direct.service';
-import { addBonusPoints } from '@/server/loyalty.service';
+import { despacharPedidoFlash } from '@/server/entrega-flash.service';
+import { addBonusPoints, earnPoints } from '@/server/loyalty.service';
 import { sendOrderCancelledEmail } from '@/server/email.service';
 import crypto from 'crypto';
 import { montoCobrado } from '@/lib/mercadopago-monto';
@@ -99,58 +99,114 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ received: true, flagged: 'amount_mismatch' }, { status: 200 });
         }
 
-        // Update Order Status in Supabase to PAID
-        const { error } = await supabaseServer
+        // Marcar como pagada, una sola vez. MercadoPago reenvía la misma
+        // notificación varias veces —hoy llegaron siete del mismo pago—, y sin
+        // el filtro dentro del UPDATE cada reintento volvía a acreditar los
+        // puntos de fidelidad y a duplicar el registro de auditoría.
+        const { data: acreditadas, error } = await supabaseServer
           .from('orders')
-          .update({ 
+          .update({
             payment_status: 'paid',
             status: 'processing',
             updated_at: new Date().toISOString()
           })
-          .eq('id', orderId);
+          .eq('id', orderId)
+          .neq('payment_status', 'paid')
+          .select('id');
 
         if (error) {
           console.error('[MP Webhook] Error updating order:', error);
           return NextResponse.json({ error: 'DB update failed' }, { status: 500 });
         }
 
-        console.log(`[MP Webhook] ✅ Order ${orderId} marked as PAID`);
-        await auditLog({
-          action: 'ORDER_PAID',
-          entity: 'orders',
-          entityId: orderId,
-          actor: 'mp-webhook',
-          details: { paymentId: String(paymentId), amount: paidAmount, mpStatus: status },
-        });
+        const primeraVez = (acreditadas?.length ?? 0) > 0;
+
+        if (primeraVez) {
+          console.log(`[MP Webhook] ✅ Order ${orderId} marked as PAID`);
+          await auditLog({
+            action: 'ORDER_PAID',
+            entity: 'orders',
+            entityId: orderId,
+            actor: 'mp-webhook',
+            details: { paymentId: String(paymentId), amount: paidAmount, mpStatus: status },
+          });
+
+          // Los puntos se ganan acá y no al crear el pedido. Antes se daban al
+          // apretar comprar, sin nada que los revirtiera: bastaba llegar al
+          // checkout y abandonar el pago para acumular puntos gastables.
+          try {
+            const dirPuntos = (order?.shipping_address ?? {}) as Record<string, any>;
+            if (dirPuntos.email) {
+              await earnPoints({
+                customerEmail: dirPuntos.email,
+                amount: Number(order?.total) || 0,
+                referenceType: 'order',
+                referenceId: orderId,
+              });
+            }
+          } catch (e) {
+            console.warn('[MP Webhook] No se pudieron acreditar los puntos:', e);
+          }
+        } else {
+          console.log(`[MP Webhook] La orden ${orderId} ya estaba pagada; no se acredita dos veces.`);
+        }
 
         // Regla 4 del envío flash: la entrega de Uber se crea acá y en ningún
         // otro lado. Al apretar comprar todavía no: un pago que después se
         // rechaza dejaría un repartidor en camino a buscar un pedido que nadie
         // pagó, y esa entrega se cobra igual.
         if (order?.shipping_method === 'flash') {
-          await crearEntregaDePedidoPagado(orderId, order);
+          await despacharPedidoFlash({ id: orderId, ...order }, 'mp-webhook');
         }
-      } else if (orderId && (status === 'rejected' || status === 'cancelled' || status === 'refunded' || status === 'in_mediation')) {
+      } else if (orderId && status === 'in_mediation') {
+        // Una disputa abierta **no** es un pago fallido: la plata sigue ahí
+        // mientras MercadoPago decide. Tratarla como rechazo cancelaba un
+        // pedido ya pagado y devolvía al inventario stock que muy
+        // probablemente ya salió del local. Se registra y se deja quieto.
+        console.warn(`[MP Webhook] ⚠️ Orden ${orderId} en mediación — no se toca el pedido`);
+        await auditLog({
+          action: 'ORDER_IN_MEDIATION',
+          entity: 'orders',
+          entityId: orderId,
+          actor: 'mp-webhook',
+          details: { paymentId: String(paymentId) },
+        });
+        return NextResponse.json({ received: true, flagged: 'in_mediation' }, { status: 200 });
+      } else if (orderId && (status === 'rejected' || status === 'cancelled' || status === 'refunded')) {
+        // Toma la orden en exclusiva antes de deshacer nada. MercadoPago
+        // reenvía la misma notificación, y sin este filtro dentro del UPDATE
+        // cada reintento devolvía el stock **otra vez** —inflando el
+        // inventario—, regalaba de nuevo los puntos redimidos y mandaba un
+        // segundo correo de cancelación.
+        const { data: tomadas, error: errorTomar } = await supabaseServer
+          .from('orders')
+          .update({
+            payment_status: status,
+            status: status === 'refunded' ? 'refunded' : 'cancelled',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', orderId)
+          .not('payment_status', 'in', '("rejected","cancelled","refunded")')
+          .select('id');
+
+        if (errorTomar) {
+          console.error(`[MP Webhook] Error marcando la orden ${orderId}:`, errorTomar);
+          return NextResponse.json({ received: true, flagged: 'update_failed' }, { status: 200 });
+        }
+        if (!tomadas || tomadas.length === 0) {
+          console.log(`[MP Webhook] La orden ${orderId} ya estaba cancelada; no se deshace dos veces.`);
+          return NextResponse.json({ received: true, flagged: 'ya_cancelada' }, { status: 200 });
+        }
+
         console.log(`[MP Webhook] 🔄 Restaurando stock para orden ${orderId} debido a estado: ${status}`);
 
-        // 1. Devolver al inventario lo que la orden tenía reservado.
-        //    La traducción de `order_items.product_id` (que guarda `products.id`)
-        //    al código de barras que usan las RPC vive en el servicio de
-        //    inventario; acá sólo se informa el resultado.
+        // Devolver al inventario lo que la orden tenía reservado.
+        // La traducción de `order_items.product_id` (que guarda `products.id`)
+        // al código de barras que usan las RPC vive en el servicio de
+        // inventario; acá sólo se informa el resultado.
         const devolucion = await restoreOrderStock(orderId, {
           reason: `MP_${status.toUpperCase()}`,
         });
-
-        // 2. Marcar orden como cancelada/fallida. Se hace pase lo que pase con
-        //    el stock: el pago se rechazó y la orden no puede quedar viva.
-        await supabaseServer
-          .from('orders')
-          .update({ 
-            payment_status: status,
-            status: status === 'refunded' ? 'refunded' : 'cancelled',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', orderId);
 
         // 2b. Revertir puntos redimidos y notificar cancelación al cliente
         try {
@@ -237,140 +293,5 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[MP Webhook] Error processing webhook:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
-}
-
-
-/**
- * Despacha la entrega de Uber de un pedido flash ya pagado.
- *
- * Nunca lanza: el pago ya está confirmado y el pedido ya quedó marcado. Si
- * Uber falla, este webhook igual tiene que responder 200 — si devolviera error,
- * MercadoPago reintentaría y cada reintento crearía otra entrega. Un pedido
- * pagado sin repartidor asignado se resuelve a mano; tres repartidores
- * cobrados por el mismo pedido, no.
- */
-async function crearEntregaDePedidoPagado(
-  orderId: string,
-  order: {
-    shipping_address?: unknown;
-    total?: number | string | null;
-    shipping_cost?: number | string | null;
-    express_delivery_id?: string | null;
-  }
-): Promise<void> {
-  const dir = (order.shipping_address ?? {}) as Record<string, unknown>;
-
-  // Idempotencia: MercadoPago reenvía el mismo webhook más de una vez. Se mira
-  // la columna y el JSON: la columna es la fuente nueva, el JSON cubre las
-  // órdenes creadas antes de que existiera.
-  if (order.express_delivery_id || dir.uberDeliveryId) {
-    console.log(`[MP Webhook] La orden ${orderId} ya tiene entrega de Uber; no se crea otra.`);
-    return;
-  }
-
-  const quoteId = dir.uberQuoteId ? String(dir.uberQuoteId) : null;
-  if (!quoteId) {
-    console.error(`[MP Webhook] ❌ Orden flash ${orderId} sin uberQuoteId: hay que despacharla a mano.`);
-    await supabaseServer
-      .from('orders')
-      .update({ express_status: 'failed', updated_at: new Date().toISOString() })
-      .eq('id', orderId);
-    await auditLog({
-      action: 'UBER_DELIVERY_FAILED',
-      entity: 'orders',
-      entityId: orderId,
-      actor: 'mp-webhook',
-      details: { motivo: 'sin-quote-id' },
-    });
-    return;
-  }
-
-  try {
-    const entrega = await crearEntregaFlash({
-      quoteId,
-      destino: {
-        calle: String(dir.address || ''),
-        comuna: String(dir.city || ''),
-        codigoPostal: dir.zipCode ? String(dir.zipCode) : undefined,
-        lat: (dir.coords as { lat?: number })?.lat ?? null,
-        lng: (dir.coords as { lng?: number })?.lng ?? null,
-      },
-      nombreCliente: String(dir.fullName || 'Cliente'),
-      telefonoCliente: String(dir.phone || ''),
-      referenciaPedido: String(orderId),
-      // Valor declarado, para el seguro de Uber ante pérdida o daño.
-      valorPedidoCLP: Number(order.total) || 0,
-    });
-
-    // El seguimiento va a columnas propias y no sólo al JSON: es lo que leen
-    // el panel, la página del cliente y el webhook de Uber, y `express_delivery_id`
-    // tiene índice único, así que dos entregas de la misma orden no entran.
-    const { error: errorGuardado } = await supabaseServer
-      .from('orders')
-      .update({
-        express_delivery_id: entrega.id,
-        express_tracking_url: entrega.tracking,
-        express_status: entrega.estado || 'pending',
-        express_fee: entrega.feeCLP,
-        // Lo que el cliente pagó por el envío. En $0 el envío iba de regalo y
-        // la tarifa de Uber la absorbe la tienda.
-        express_fee_paid_by: Number(order.shipping_cost) > 0 ? 'customer' : 'store',
-        // El JSON se mantiene por compatibilidad con las órdenes ya despachadas.
-        shipping_address: { ...dir, uberDeliveryId: entrega.id, uberTracking: entrega.tracking },
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', orderId);
-
-    if (errorGuardado) {
-      // El repartidor ya está pedido y se cobra igual, pero la orden no quedó
-      // marcada: `express_delivery_id` es lo único que impide que un reintento
-      // de MercadoPago pida un segundo repartidor, y sin él el webhook de Uber
-      // tampoco puede encontrar esta orden. Se registra como fallo aunque la
-      // entrega exista, porque lo que hay que hacer es intervenir a mano.
-      console.error(
-        `[MP Webhook] ❌ Entrega ${entrega.id} creada pero NO guardada en la orden ${orderId}:`,
-        errorGuardado
-      );
-      await auditLog({
-        action: 'UBER_DELIVERY_FAILED',
-        entity: 'orders',
-        entityId: orderId,
-        actor: 'mp-webhook',
-        details: {
-          motivo: 'entrega-creada-sin-guardar',
-          deliveryId: entrega.id,
-          tracking: entrega.tracking,
-          error: errorGuardado.message,
-        },
-      });
-      return;
-    }
-
-    console.log(`[MP Webhook] 🛵 Entrega de Uber creada para la orden ${orderId}: ${entrega.id}`);
-    await auditLog({
-      action: 'UBER_DELIVERY_CREATED',
-      entity: 'orders',
-      entityId: orderId,
-      actor: 'mp-webhook',
-      details: { deliveryId: entrega.id, quoteId, tracking: entrega.tracking },
-    });
-  } catch (e) {
-    // El pedido queda pagado y sin repartidor. Se registra fuerte para que se
-    // note y se despache a mano: es preferible a no cobrar o a duplicar.
-    console.error(`[MP Webhook] ❌ No se pudo crear la entrega de Uber de la orden ${orderId}:`, e);
-    // Queda marcado en la orden, no sólo en los logs: el panel lo muestra en
-    // rojo y la tienda se entera sin tener que mirar la auditoría.
-    await supabaseServer
-      .from('orders')
-      .update({ express_status: 'failed', updated_at: new Date().toISOString() })
-      .eq('id', orderId);
-    await auditLog({
-      action: 'UBER_DELIVERY_FAILED',
-      entity: 'orders',
-      entityId: orderId,
-      actor: 'mp-webhook',
-      details: { motivo: e instanceof Error ? e.message : String(e), quoteId },
-    });
   }
 }

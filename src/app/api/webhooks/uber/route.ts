@@ -110,10 +110,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, ignored: 'estado-no-avanza' });
     }
 
-    const cambios: Record<string, unknown> = {
-      express_status: lectura.estado === 'unknown' ? String(estadoCrudo ?? '') : lectura.estado,
-      updated_at: new Date().toISOString(),
-    };
+    const cambios: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    // Un estado desconocido se guarda tal cual sólo si trae algo. Escribir una
+    // cadena vacía encima de un `delivered` borraba el final de la entrega y
+    // volvía a abrir la puerta a los avisos rezagados.
+    const crudoLimpio = String(estadoCrudo ?? '').trim();
+    if (lectura.estado !== 'unknown') {
+      cambios.express_status = lectura.estado;
+    } else if (crudoLimpio) {
+      cambios.express_status = crudoLimpio;
+    }
     // Uber puede mandar el link recién en el primer aviso, si al crear la
     // entrega todavía no lo tenía.
     const trackingNuevo = evento.data?.tracking_url || evento.tracking_url;

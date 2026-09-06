@@ -40,12 +40,15 @@ export interface LiveOrder {
   shippingMethod?: string;
   expressStatus?: string | null;
   expressTrackingUrl?: string | null;
+  expressError?: string | null;
   items?: any[];
 }
 
 interface LiveReceptionBoardProps {
   orders: LiveOrder[];
   onUpdateStatus: (id: string, newStatus: string) => void;
+  /** Vuelve a pedirle el repartidor a Uber. */
+  onReintentarEntrega?: (id: string) => Promise<void> | void;
   /** Estado de la campanilla, para el interruptor del encabezado. */
   alertaActivada?: boolean;
   onAlternarAlerta?: () => void;
@@ -87,15 +90,43 @@ function etiquetaEnvio(metodo?: string): string | null {
   }
 }
 
+/**
+ * El error de Uber, en algo que se pueda accionar.
+ *
+ * Los códigos vienen en inglés y en jerga de la API. `authorization_hold`, que
+ * es el que apareció en producción, significa que Uber no pudo retener el
+ * cobro de la tarifa en la cuenta de la tienda — o sea que se arregla en la
+ * facturación de Uber, no acá.
+ */
+function motivoLegible(crudo: string): string {
+  const t = crudo.toLowerCase();
+  if (t.includes("authorization_hold")) {
+    return "Uber no pudo retener el cobro de la tarifa: revisa el método de pago de tu cuenta de Uber Direct.";
+  }
+  if (t.includes("address_undeliverable") || t.includes("no está llegando")) {
+    return "Uber no está llegando a esa dirección en este momento.";
+  }
+  if (t.includes("expired") || t.includes("quote")) {
+    return "La cotización de Uber venció. Reintentar pide una nueva.";
+  }
+  if (t.includes("customer") && t.includes("token")) {
+    return "Las credenciales de Uber Direct no son válidas: revísalas en Vercel.";
+  }
+  return crudo;
+}
+
 function TarjetaPedido({
   order,
   etapa,
   onUpdateStatus,
+  onReintentarEntrega,
 }: {
   order: LiveOrder;
   etapa: Etapa;
   onUpdateStatus: (id: string, nuevo: string) => void;
+  onReintentarEntrega?: (id: string) => Promise<void> | void;
 }) {
+  const [reintentando, setReintentando] = useState(false);
   const atrasado = etapa === "preparar" && estaAtrasado(order.createdAt);
   const envio = etiquetaEnvio(order.shippingMethod);
   const esFlash = String(order.shippingMethod ?? "").toLowerCase() === "flash";
@@ -140,13 +171,9 @@ function TarjetaPedido({
 
       {/* En el flash el repartidor lo maneja Uber: lo que la tienda necesita
           saber es si ya viene en camino, sin salir del tablero. */}
-      {esFlash && order.expressStatus && (
+      {esFlash && order.expressStatus && order.expressStatus !== "failed" && (
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-blue-800">
-            {order.expressStatus === "failed"
-              ? "Uber no tomó la entrega — despachar a mano"
-              : leerEstadoUber(order.expressStatus).etiqueta}
-          </span>
+          <span className="text-blue-800">{leerEstadoUber(order.expressStatus).etiqueta}</span>
           {order.expressTrackingUrl && (
             <a
               href={order.expressTrackingUrl}
@@ -157,6 +184,38 @@ function TarjetaPedido({
               <TruckIcon className="w-4 h-4" />
               Ver repartidor
             </a>
+          )}
+        </div>
+      )}
+
+      {/* El motivo, no sólo el fallo. Antes decía "Uber no tomó la entrega" y
+          la razón quedaba enterrada en la auditoría: la primera vez que pasó
+          —Uber no pudo retener el cobro de la tarifa— costó una investigación
+          entera para leer una línea que ya estaba guardada. */}
+      {esFlash && order.expressStatus === "failed" && (
+        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
+          <p className="text-sm font-medium text-red-800">Uber no tomó la entrega</p>
+          {order.expressError && (
+            <p className="mt-1 text-sm text-red-700 break-words">
+              {motivoLegible(order.expressError)}
+            </p>
+          )}
+          {onReintentarEntrega && (
+            <button
+              onClick={async () => {
+                setReintentando(true);
+                try {
+                  await onReintentarEntrega(order.id);
+                } finally {
+                  setReintentando(false);
+                }
+              }}
+              disabled={reintentando}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-red-700 px-3 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60"
+            >
+              <ArrowPathIcon className={`w-4 h-4 ${reintentando ? "animate-spin" : ""}`} />
+              {reintentando ? "Pidiendo repartidor…" : "Reintentar entrega"}
+            </button>
           )}
         </div>
       )}
@@ -182,6 +241,7 @@ function TarjetaPedido({
 export default function LiveReceptionBoard({
   orders,
   onUpdateStatus,
+  onReintentarEntrega,
   alertaActivada,
   onAlternarAlerta,
   onRefrescar,
@@ -270,6 +330,7 @@ export default function LiveReceptionBoard({
               order={order}
               etapa={etapa}
               onUpdateStatus={onUpdateStatus}
+              onReintentarEntrega={onReintentarEntrega}
             />
           ))
         )}
