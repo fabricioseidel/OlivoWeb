@@ -18,6 +18,16 @@ const API_BASE = "https://api.uber.com/v1/customers";
 /** Si Uber no contesta en este tiempo, el checkout sigue sin el flash. */
 const TIMEOUT_MS = 8000;
 
+/**
+ * Crear la entrega espera más que cotizar, y por un motivo distinto.
+ *
+ * Cotizar es idempotente: si se corta, no pasó nada. Crear la entrega no —si
+ * Uber alcanzó a procesarla y nosotros cortamos a los 8 segundos, queda un
+ * repartidor pedido y cobrado que nuestro lado da por fallido, e invita a
+ * pedir un segundo. Es preferible esperar de más.
+ */
+const TIMEOUT_ENTREGA_MS = 30000;
+
 type Credenciales = { customerId: string; clientId: string; clientSecret: string };
 
 function leerCredenciales(): Credenciales | null {
@@ -316,7 +326,7 @@ export async function crearEntregaFlash(params: {
       // No se vende alcohol por la web, así que la verificación de edad de
       // Uber no aplica y no se pide.
     }),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(TIMEOUT_ENTREGA_MS),
   });
 
   const texto = await r.text();

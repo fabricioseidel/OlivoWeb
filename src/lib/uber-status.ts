@@ -138,6 +138,15 @@ export function esAvance(estadoActual: unknown, estadoNuevo: unknown): boolean {
  * `'Completado'` nunca coincidía con `'delivered'` y un aviso rezagado de Uber
  * volvía a poner el pedido "en camino" —con su correo— después de entregado.
  */
+const CERRADOS = new Set([
+  "cancelled",
+  "canceled",
+  "cancelado",
+  "rechazado",
+  "refunded",
+  "reembolsado",
+]);
+
 const ORDEN_PEDIDO: Record<string, number> = {
   pending: 0,
   pendiente: 0,
@@ -160,7 +169,12 @@ const ORDEN_PEDIDO: Record<string, number> = {
  * que Uber informe, y en ese caso el aviso no tiene que deshacerlo.
  */
 export function avanzaElPedido(estadoActual: unknown, estadoNuevo: "shipped" | "delivered"): boolean {
-  const actual = ORDEN_PEDIDO[String(estadoActual ?? "").toLowerCase().trim()];
+  const clave = String(estadoActual ?? "").toLowerCase().trim();
+  // Un pedido cancelado o reembolsado está cerrado para siempre. Sin esto, un
+  // aviso rezagado de Uber lo devolvía a "en camino" y le mandaba al cliente un
+  // correo de despacho de algo que ya se le había devuelto.
+  if (CERRADOS.has(clave)) return false;
+  const actual = ORDEN_PEDIDO[clave];
   if (actual === undefined) return true;
   return ORDEN_PEDIDO[estadoNuevo] > actual;
 }

@@ -68,6 +68,7 @@ export default function AdminDashboard() {
             shippingMethod: o.shipping_method || "",
             expressStatus: o.express_status || null,
             expressTrackingUrl: o.express_tracking_url || null,
+            expressError: o.express_error || null,
           }));
           // La primera carga sólo siembra los ids: al abrir el panel no tiene
           // que sonar por los pedidos que ya estaban ahí.
@@ -192,6 +193,23 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleReintentarEntrega = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/orders/${id}/reintentar-entrega`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast("Repartidor pedido. Uber ya tiene la entrega.", "success");
+      } else {
+        // El motivo de Uber tal cual: es lo que dice qué hay que arreglar.
+        showToast(data?.error || "No se pudo pedir el repartidor", "error");
+      }
+    } catch {
+      showToast("Error de red al pedir el repartidor", "error");
+    } finally {
+      loadOrders();
+    }
+  };
+
   const tabs: Tab[] = [
     { key: "reception", label: "Live Reception" },
     { key: "analytics", label: "Analytics" },
@@ -236,6 +254,7 @@ export default function AdminDashboard() {
             onUpdateStatus={handleUpdateOrderStatus}
             alertaActivada={alerta.activada}
             onAlternarAlerta={alerta.alternar}
+            onReintentarEntrega={handleReintentarEntrega}
             onRefrescar={loadOrders}
             ultimoSync={lastSync}
           />

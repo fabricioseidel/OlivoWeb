@@ -6,6 +6,10 @@ import { createPaymentPreference } from '@/server/payments.service';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { assertOrdersEnabled } from '@/server/store-status.service';
 import { PREVIEW_HTTP_STATUS } from '@/lib/store-status';
+import { toZonedTime } from 'date-fns-tz';
+import { format, getHours, getMinutes } from 'date-fns';
+import { tiendaAbierta } from '@/lib/delivery-slots';
+import { horarioIgnorado } from '@/lib/flash-policy';
 
 /**
  * Regenera el link de pago de MercadoPago para una orden que quedó pendiente.
@@ -53,7 +57,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { data: order, error } = await supabaseServer
       .from('orders')
-      .select('id, user_id, total, shipping_cost, discount_amount, status, payment_status, payment_method, shipping_address, order_items(name, quantity, price, product_id)')
+      .select('id, user_id, total, shipping_cost, discount_amount, status, payment_status, payment_method, shipping_method, shipping_address, order_items(name, quantity, price, product_id)')
       .eq('id', id)
       .maybeSingle();
 
@@ -97,6 +101,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const total = Number(order.total);
     if (!Number.isFinite(total) || total <= 0) {
       return NextResponse.json({ error: 'El total del pedido no es válido.' }, { status: 400 });
+    }
+
+    // Regla 3, también acá. Este link se puede abrir horas después: si el pago
+    // se confirma con el local cerrado, el webhook manda un repartidor a una
+    // puerta cerrada y esa entrega se cobra igual.
+    if (order.shipping_method === 'flash') {
+      const ahora = toZonedTime(new Date(), 'America/Santiago');
+      const abierta = tiendaAbierta(
+        format(ahora, 'yyyy-MM-dd'),
+        getHours(ahora) * 60 + getMinutes(ahora)
+      );
+      if (!abierta && !horarioIgnorado()) {
+        return NextResponse.json(
+          {
+            error:
+              'El envío flash sólo se puede pagar con la tienda abierta. Vuelve a intentarlo en el horario de atención.',
+          },
+          { status: 409 }
+        );
+      }
     }
 
     const customerEmail =
