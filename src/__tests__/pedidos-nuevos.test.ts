@@ -11,6 +11,7 @@ import {
   etapaDe,
   esperandoPago,
   idsDe,
+  idsParaRecordar,
   esperaEnTexto,
   estaAtrasado,
   MINUTOS_URGENTE,
@@ -58,10 +59,29 @@ describe("en qué columna cae cada pedido pagado", () => {
     expect(etapaDe(pedido("d", "enviado"))).toBe("listos");
   });
 
-  it("saca del tablero lo que ya terminó", () => {
+  it("un pedido pagado que quedó en `pending` es trabajo, no un fantasma", () => {
+    // Pasa cuando desde el panel se cambia sólo el estado del pago. Antes no
+    // salía en ninguna pestaña y tampoco en el conteo de los que esperan pago:
+    // desaparecía del tablero con el dinero ya cobrado.
+    expect(etapaDe(pedido("a", "pending"))).toBe("preparar");
+    expect(etapaDe(pedido("b", "Pendiente"))).toBe("preparar");
+    expect(esperandoPago([pedido("a", "pending")])).toEqual([]);
+  });
+
+  it("saca del tablero lo que ya terminó, en las dos escrituras", () => {
     expect(etapaDe(pedido("a", "delivered"))).toBeNull();
     expect(etapaDe(pedido("b", "cancelled"))).toBeNull();
-    expect(etapaDe(pedido("c", ""))).toBeNull();
+    expect(etapaDe(pedido("c", "Completado"))).toBeNull();
+    expect(etapaDe(pedido("d", "refunded"))).toBeNull();
+  });
+
+  it("ante un estado inesperado, un pedido pagado se muestra igual", () => {
+    // La regla está escrita al revés a propósito: sólo desaparece lo que se
+    // reconoce como terminado. Al enumerar los estados "de trabajo", un pedido
+    // pagado con una escritura imprevista se esfumaba del tablero con el
+    // dinero ya cobrado.
+    expect(etapaDe(pedido("a", "en-espera-de-algo"))).toBe("preparar");
+    expect(etapaDe(pedido("b", ""))).toBe("preparar");
   });
 
   it("pone primero al que lleva más tiempo esperando", () => {
@@ -112,8 +132,21 @@ describe("cuándo suena la campanilla", () => {
     expect(detectarNuevos(new Set(), [pedido("z", "delivered")])).toEqual([]);
   });
 
-  it("recuerda todos los ids, terminados y sin pagar incluidos", () => {
-    // Si no quedaran registrados, volverían a aparecer como nuevos.
+  it("no memoriza el pedido sin pagar, o no sonaría al pagarse", () => {
+    // Ésta es la regresión que dejaba la alerta muda en toda compra real: el
+    // pedido se crea antes de pagar, el panel recarga cada 30 segundos y lo
+    // memorizaba sin pagar. Cuando el pago llegaba un minuto después ya no era
+    // nuevo y no sonaba nada.
+    const sinPagar = pedido("z", "pending", { pago: "pending" });
+    expect(idsParaRecordar([pedido("a", "processing"), sinPagar])).toEqual(new Set(["a"]));
+
+    // Y al pagarse, suena: no estaba memorizado.
+    const vistos = idsParaRecordar([sinPagar]);
+    const yaPagado = pedido("z", "processing");
+    expect(detectarNuevos(vistos, [yaPagado]).map((p) => p.id)).toEqual(["z"]);
+  });
+
+  it("idsDe sigue devolviendo todo, sin filtrar", () => {
     expect(
       idsDe([pedido("a", "processing"), pedido("z", "pending", { pago: "pending" })])
     ).toEqual(new Set(["a", "z"]));
