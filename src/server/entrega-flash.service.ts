@@ -109,7 +109,13 @@ export async function despacharPedidoFlash(
     // dejar el pedido sin despachar: el cliente ya pagó.
     let quoteId = dir.uberQuoteId ? String(dir.uberQuoteId) : null;
     const vence = dir.uberQuoteExpira ? Date.parse(String(dir.uberQuoteExpira)) : NaN;
-    const vencida = Number.isFinite(vence) && vence <= Date.now();
+    // Sin fecha de vencimiento no se puede saber la edad de la cotización, y
+    // una cotización vieja es rechazada por Uber igual que una vencida. Se
+    // recotiza ante la duda: pedir una cotización es una llamada barata y no
+    // compromete nada, mientras que reutilizar una muerta deja al pedido sin
+    // despachar. Las órdenes creadas antes de que se guardara este dato caen
+    // todas acá.
+    const vencida = !Number.isFinite(vence) || vence <= Date.now();
 
     if (!quoteId || vencida) {
       const nueva = await cotizarFlash(destino);
