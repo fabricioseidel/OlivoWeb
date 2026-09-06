@@ -129,3 +129,38 @@ export function esAvance(estadoActual: unknown, estadoNuevo: unknown): boolean {
   if (iNuevo === -1) return false;
   return iNuevo > iActual;
 }
+
+/**
+ * Orden de las etapas del pedido, para no retroceder.
+ *
+ * Se compara normalizado porque en la base conviven las dos escrituras: el
+ * código escribe en inglés y el panel guarda en español. Sin normalizar,
+ * `'Completado'` nunca coincidía con `'delivered'` y un aviso rezagado de Uber
+ * volvía a poner el pedido "en camino" —con su correo— después de entregado.
+ */
+const ORDEN_PEDIDO: Record<string, number> = {
+  pending: 0,
+  pendiente: 0,
+  processing: 1,
+  procesando: 1,
+  preparando: 1,
+  shipped: 2,
+  enviado: 2,
+  en_camino: 2,
+  delivered: 3,
+  entregado: 3,
+  completado: 3,
+  completed: 3,
+};
+
+/**
+ * `true` si el aviso de Uber debe mover el pedido al estado nuevo.
+ *
+ * Sólo hacia adelante: la tienda puede haber cerrado el pedido a mano antes de
+ * que Uber informe, y en ese caso el aviso no tiene que deshacerlo.
+ */
+export function avanzaElPedido(estadoActual: unknown, estadoNuevo: "shipped" | "delivered"): boolean {
+  const actual = ORDEN_PEDIDO[String(estadoActual ?? "").toLowerCase().trim()];
+  if (actual === undefined) return true;
+  return ORDEN_PEDIDO[estadoNuevo] > actual;
+}

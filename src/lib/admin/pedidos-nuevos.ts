@@ -26,6 +26,20 @@ export type PedidoRecepcion = {
  */
 export type Etapa = "preparar" | "listos";
 
+/** Estados en los que el pedido ya terminó, en las dos escrituras de la base. */
+const TERMINALES = new Set([
+  "delivered",
+  "entregado",
+  "completado",
+  "completed",
+  "cancelled",
+  "canceled",
+  "cancelado",
+  "rechazado",
+  "refunded",
+  "reembolsado",
+]);
+
 /** `true` si el pedido está pagado y por lo tanto es trabajo de verdad. */
 export function estaPagado(pedido: PedidoRecepcion): boolean {
   return String(pedido.paymentStatus ?? "").toLowerCase().trim() === "paid";
@@ -40,13 +54,19 @@ export function estaPagado(pedido: PedidoRecepcion): boolean {
  */
 function etapaDelEstado(estado?: string): Etapa | null {
   const s = String(estado ?? "").toLowerCase().trim();
-  if (s === "processing" || s === "procesando" || s === "preparando" || s === "en proceso")
-    return "preparar";
+  // Terminados: el pedido ya se cerró y dejarlo en el tablero llenaría la
+  // pantalla de trabajo hecho.
+  if (TERMINALES.has(s)) return null;
   if (s === "shipped" || s === "enviado" || s === "en_camino") return "listos";
-  // Entregado y cancelado no son etapas del tablero: el pedido ya terminó y
-  // dejarlos ahí llenaría la pantalla de trabajo hecho. `pending` tampoco: sin
-  // el pago confirmado no hay nada que preparar.
-  return null;
+  // Cualquier otra cosa en un pedido pagado es trabajo por hacer.
+  //
+  // La regla está escrita al revés a propósito: sólo desaparece lo que se
+  // reconoce como terminado. Enumerar los estados "de trabajo" hacía que un
+  // pedido pagado con un estado inesperado —`pending` tras cambiar sólo el
+  // pago desde el panel, o una escritura que nadie previó— no saliera en
+  // ninguna pestaña **ni** en el conteo de los que esperan pago: se esfumaba
+  // del tablero con el dinero ya cobrado. Ante la duda se muestra.
+  return "preparar";
 }
 
 /** En qué columna va un pedido, o `null` si no va en ninguna. */
@@ -109,9 +129,23 @@ export function detectarNuevos<T extends PedidoRecepcion>(
   return pedidos.filter((p) => !vistos.has(p.id) && etapaDe(p) !== null);
 }
 
-/** Todos los ids que ya se conocen, para la próxima comparación. */
+/** Todos los ids de la lista, sin filtrar. */
 export function idsDe(pedidos: PedidoRecepcion[]): Set<string> {
   return new Set(pedidos.map((p) => p.id));
+}
+
+/**
+ * Los ids que hay que recordar para no volver a anunciarlos.
+ *
+ * Sólo los que ya son trabajo. Recordarlos todos rompía la alerta entera: el
+ * pedido se crea **antes** de que el cliente pague, el panel recarga cada 30
+ * segundos, así que el id quedaba memorizado mientras el pedido todavía no
+ * estaba pagado —correctamente en silencio— y cuando el pago llegaba uno o dos
+ * minutos después ya no era nuevo. La campanilla no sonaba en ninguna compra
+ * real: sólo habría sonado con un pedido que naciera pagado, que no existe.
+ */
+export function idsParaRecordar(pedidos: PedidoRecepcion[]): Set<string> {
+  return new Set(pedidos.filter((p) => etapaDe(p) !== null).map((p) => p.id));
 }
 
 /** Cuánto lleva esperando un pedido, en texto corto. */

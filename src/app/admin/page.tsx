@@ -9,7 +9,7 @@ import LiveReceptionBoard, {
   LiveOrder,
 } from "@/components/admin/LiveReceptionBoard";
 import { useAlertaPedidos } from "@/hooks/useAlertaPedidos";
-import { detectarNuevos, idsDe } from "@/lib/admin/pedidos-nuevos";
+import { detectarNuevos, idsParaRecordar } from "@/lib/admin/pedidos-nuevos";
 import {
   PageShell,
   HeroHeader,
@@ -72,10 +72,10 @@ export default function AdminDashboard() {
           // La primera carga sólo siembra los ids: al abrir el panel no tiene
           // que sonar por los pedidos que ya estaban ahí.
           if (idsVistos.current === null) {
-            idsVistos.current = idsDe(mapped);
+            idsVistos.current = idsParaRecordar(mapped);
           } else {
             const nuevos = detectarNuevos(idsVistos.current, mapped);
-            idsVistos.current = idsDe(mapped);
+            idsVistos.current = idsParaRecordar(mapped);
             if (nuevos.length > 0) {
               const primero = nuevos[0];
               alerta.sonar(

@@ -19,7 +19,7 @@ import crypto from 'crypto';
 import { supabaseServer } from '@/lib/supabase-server';
 import { auditLog } from '@/server/audit.service';
 import { sendOrderStatusEmail } from '@/server/email.service';
-import { leerEstadoUber, esAvance } from '@/lib/uber-status';
+import { leerEstadoUber, esAvance, avanzaElPedido } from '@/lib/uber-status';
 
 /**
  * Valida la firma del aviso.
@@ -100,7 +100,13 @@ export async function POST(request: NextRequest) {
 
     // Los avisos llegan desordenados y repetidos. Sin esto un `pickup` rezagado
     // podría desentregar un pedido ya entregado.
-    if (!esAvance(order.express_status, estadoCrudo)) {
+    //
+    // Un estado que Uber invente después no avanza —no sabemos qué significa—
+    // pero igual se guarda: descartarlo entero perdía también el `tracking_url`
+    // que pudiera venir en ese mismo aviso, y dejaba a la tienda sin saber que
+    // pasó algo.
+    const avanza = esAvance(order.express_status, estadoCrudo);
+    if (!avanza && lectura.estado !== 'unknown') {
       return NextResponse.json({ received: true, ignored: 'estado-no-avanza' });
     }
 
@@ -112,7 +118,13 @@ export async function POST(request: NextRequest) {
     // entrega todavía no lo tenía.
     const trackingNuevo = evento.data?.tracking_url || evento.tracking_url;
     if (trackingNuevo && !order.express_tracking_url) cambios.express_tracking_url = trackingNuevo;
-    if (lectura.estadoPedido) cambios.status = lectura.estadoPedido;
+    // El estado del pedido sólo va hacia adelante. La tienda puede haberlo
+    // cerrado a mano antes de que Uber informe, y un aviso rezagado no tiene
+    // que deshacer eso ni disparar un segundo correo de "va en camino" después
+    // del de entregado.
+    const mueveElPedido =
+      lectura.estadoPedido !== null && avanzaElPedido(order.status, lectura.estadoPedido);
+    if (mueveElPedido) cambios.status = lectura.estadoPedido;
 
     const { error } = await supabaseServer.from('orders').update(cambios).eq('id', order.id);
     if (error) {
@@ -130,9 +142,15 @@ export async function POST(request: NextRequest) {
     });
 
     // El aviso al cliente sale sólo cuando el pedido cambia de etapa de verdad:
-    // "buscando repartidor" no es un correo que nadie quiera recibir.
-    if (lectura.estadoPedido && lectura.estadoPedido !== order.status) {
-      await avisarAlCliente(order, lectura.estadoPedido, trackingNuevo || order.express_tracking_url);
+    // "buscando repartidor" no es un correo que nadie quiera recibir. Y sólo si
+    // el estado avanzó: comparar contra `order.status` a secas mandaba el
+    // correo otra vez cuando el panel había guardado el estado en español.
+    if (mueveElPedido) {
+      await avisarAlCliente(
+        order,
+        lectura.estadoPedido as 'shipped' | 'delivered',
+        trackingNuevo || order.express_tracking_url
+      );
     }
 
     return NextResponse.json({ received: true, estado: lectura.estado });
