@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/config/auth.config';
-import { sendOrderConfirmation } from '@/server/email.service';
 import { recordCouponUsage, getCouponByCode, validateCoupon } from '@/server/coupon.service';
 import { redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
@@ -702,41 +701,17 @@ export async function POST(request: NextRequest) {
             // puntos gastables. Ahora los da el webhook de MercadoPago cuando
             // el pago está confirmado.
 
-            // Send confirmation email with correct unit price
-            await sendOrderConfirmation({
-              to: customerEmail,
-              customerName,
-              orderId: order.id,
-              total: serverTotal,
-              itemCount: validatedOrderItems.length,
-              paymentMethod: paymentMethod || 'N/A',
-              items: validatedOrderItems.map((item) => ({
-                name: item.name,
-                quantity: item.quantity,
-                price: item.price,
-              })),
-            });
-            
+            // El correo de "orden confirmada" **no** sale acá.
+            //
+            // Salía al crear el pedido, o sea antes de pagar, y dice "ORDEN
+            // CONFIRMADA — ¡Gracias por tu pedido!". Quien abandonaba el pago
+            // recibía igual la confirmación de una compra que nunca ocurrió, y
+            // el pedido le aparecía en su historial como si estuviera todo
+            // bien. Lo manda el webhook de MercadoPago cuando el pago está
+            // confirmado, que es cuando la frase es cierta.
+
          } catch (err) {
-            console.warn('[Checkout] Loyalty / Email task error:', err);
-            // Fallback: asegurarse de enviar el correo si falló la fidelización
-            try {
-              await sendOrderConfirmation({
-                to: customerEmail,
-                customerName,
-                orderId: order.id,
-                total: serverTotal,
-                itemCount: validatedOrderItems.length,
-                paymentMethod: paymentMethod || 'N/A',
-                items: validatedOrderItems.map((item) => ({
-                  name: item.name,
-                  quantity: item.quantity,
-                  price: item.price,
-                })),
-              });
-            } catch (emailErr) {
-              console.warn('[Checkout] Fallback email send failed:', emailErr);
-            }
+            console.warn('[Checkout] Customer upsert task error:', err);
          }
       })();
     }
