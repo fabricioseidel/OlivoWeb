@@ -117,6 +117,25 @@ export default function ShippingSection({ settings, handleChange }: ShippingSect
         )}
       </div>
 
+      {/* El flash tiene su propio interruptor, separado de las credenciales.
+          Uber puede cotizar perfectamente y aun así rechazar la entrega —le
+          pasó a la tienda con `authorization_hold`, que es la cuenta de Uber
+          sin poder retener el cobro—, y ofrecer un envío que después no sale
+          es peor que no ofrecerlo. */}
+      <div className="border-l-4 border-amber-500 bg-amber-50 p-4 rounded">
+        <h3 className="font-semibold text-amber-900 mb-2">Envío flash (Uber Direct)</h3>
+        <CheckBoxField
+          label="Ofrecer envío flash en el checkout"
+          checked={settings.shipping?.flashDeliveryEnabled || false}
+          onChange={(val) => handleChange(["shipping", "flashDeliveryEnabled"], val)}
+        />
+        <p className="text-sm text-amber-900 mt-2">
+          {settings.shipping?.flashDeliveryEnabled
+            ? "Los clientes ven la opción cuando Uber cotiza y la tienda está abierta. Si Uber no puede crear la entrega, el pedido queda pagado y hay que despacharlo a mano."
+            : "Apagado: los clientes sólo ven retiro en tienda y envío agendado. Enciéndelo cuando Uber Direct pueda crear entregas — pruébalo creando una entrega a mano en su panel."}
+        </p>
+      </div>
+
       <div className="border-l-4 border-blue-500 bg-blue-50 p-4 rounded">
         <h3 className="font-semibold text-blue-900 mb-4">Envío Gratis</h3>
         <CheckBoxField

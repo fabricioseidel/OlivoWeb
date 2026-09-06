@@ -314,6 +314,35 @@ const PASSWORD_RESET_TEMPLATE = `<!DOCTYPE html>
 </div>
 </body></html>`;
 
+const EMAIL_VERIFICATION_TEMPLATE = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1 style="margin:0; font-size:26px; letter-spacing:-1px;">Confirma tu correo</h1>
+  </div>
+  <div class="content">
+    <p style="font-size:16px; color:#111827;">Hola {{customerName}},</p>
+    <p>Gracias por crear tu cuenta en OlivoMarket. Falta un paso: confirmar que este correo es tuyo.</p>
+
+    <div style="text-align:center; margin:30px 0;">
+      <a href="{{verifyUrl}}" class="button">Confirmar mi correo</a>
+    </div>
+
+    <p style="font-size:13px; color:#6B7280;">El enlace vence en 24 horas. Hasta que lo uses, no vas a poder iniciar sesi\u00f3n.</p>
+
+    <div class="divider"></div>
+
+    <p style="font-size:13px; color:#6B7280;">Si no creaste esta cuenta, ignora este correo: sin confirmar, no sirve para nada.</p>
+    <p style="font-size:12px; color:#9CA3AF; word-break:break-all;">Si el bot\u00f3n no funciona, copia esta direcci\u00f3n en tu navegador:<br>{{verifyUrl}}</p>
+  </div>
+  <div class="footer">
+    <p style="font-weight:bold; color:#374151;">OlivoMarket</p>
+    <p style="font-size:11px;">\u00a9 {{year}} OlivoMarket. Todos los derechos reservados.</p>
+  </div>
+</div>
+</body></html>`;
+
 const ABANDONED_CART_TEMPLATE = `<!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><style>${BASE_STYLES}</style></head>
 <body>
@@ -751,6 +780,33 @@ export async function sendPasswordResetEmail(data: {
     subject: dbSubject,
     html,
     templateSlug: "password-reset",
+  });
+}
+
+/** Confirmación del correo al crear una cuenta. */
+export async function sendEmailVerification(data: {
+  to: string;
+  customerName: string;
+  verifyUrl: string;
+}): Promise<EmailResult> {
+  const { subject: dbSubject, html: dbHtml } = await getTemplate(
+    "email-verification",
+    "Confirma tu correo en OlivoMarket",
+    EMAIL_VERIFICATION_TEMPLATE
+  );
+
+  const html = renderTemplate(dbHtml, {
+    customerName: data.customerName,
+    verifyUrl: data.verifyUrl,
+    year: new Date().getFullYear(),
+  });
+
+  return sendEmail({
+    to: data.to,
+    toName: data.customerName,
+    subject: dbSubject,
+    html,
+    templateSlug: "email-verification",
   });
 }
 

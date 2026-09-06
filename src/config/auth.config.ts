@@ -38,6 +38,17 @@ function buildProviders() {
         const ok = await bcrypt.compare(password, hash);
         if (__dev) console.log("[AUTH] Password valid:", ok);
         if (!ok) return null;
+
+        // Correo sin confirmar: no entra. Se comprueba **después** de validar
+        // la contraseña a propósito — antes, cualquiera podría averiguar qué
+        // correos están registrados y sin verificar probando direcciones.
+        //
+        // Las cuentas creadas antes de que esto existiera quedaron verificadas
+        // en la migración, así que nadie se queda fuera por el cambio.
+        if (!(user as any).email_verified_at) {
+          if (__dev) console.log("[AUTH] Email sin verificar:", email);
+          throw new Error("EMAIL_NO_VERIFICADO");
+        }
         
         if (__dev) console.log("[AUTH] Login successful for:", email);
         

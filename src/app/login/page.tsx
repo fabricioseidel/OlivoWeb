@@ -8,6 +8,12 @@ import Button from "@/components/ui/Button";
 
 function mapNextAuthError(code?: string) {
   switch (code) {
+    // El `authorize` lanza este error cuando la cuenta existe y la contraseña
+    // es correcta pero el correo no está confirmado. Sin este caso, la persona
+    // veía "email o contraseña inválidos" y volvía a intentar con la
+    // contraseña buena una y otra vez.
+    case "EMAIL_NO_VERIFICADO":
+      return "Tu correo todavía no está confirmado. Revisa tu bandeja y usa el enlace que te enviamos.";
     case "CredentialsSignin":
     case "OAuthAccountNotLinked":
     case "AccessDenied":
@@ -29,9 +35,53 @@ function LoginForm() {
   const oauthErr = params.get("error");
   const callbackUrl = params.get("callbackUrl") || "/";
 
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({ email: params.get("email") || "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
+  const [reenviado, setReenviado] = useState("");
+
+  // Resultado de venir desde el enlace del correo, o desde el registro.
+  const verificacion = params.get("verificacion");
+  const avisoVerificacion = (() => {
+    switch (verificacion) {
+      case "enviada":
+        return { tono: "info", texto: "Cuenta creada. Te enviamos un correo para confirmarla — úsalo y vuelve a iniciar sesión." };
+      case "ok":
+        return { tono: "ok", texto: "Correo confirmado. Ya puedes iniciar sesión." };
+      case "ya-verificado":
+        return { tono: "ok", texto: "Ese correo ya estaba confirmado. Inicia sesión normalmente." };
+      case "vencido":
+        return { tono: "info", texto: "El enlace venció. Pide uno nuevo con el botón de abajo." };
+      case "invalido":
+        return { tono: "info", texto: "Ese enlace no es válido. Pide uno nuevo con el botón de abajo." };
+      default:
+        return null;
+    }
+  })();
+
+  const necesitaReenvio =
+    verificacion === "vencido" ||
+    verificacion === "invalido" ||
+    error.includes("no está confirmado");
+
+  const reenviar = async () => {
+    setReenviando(true);
+    setReenviado("");
+    try {
+      const res = await fetch("/api/auth/reenviar-verificacion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setReenviado(data?.message || "Listo, revisa tu correo.");
+    } catch {
+      setReenviado("No pudimos reenviarlo. Intenta más tarde.");
+    } finally {
+      setReenviando(false);
+    }
+  };
 
   // REDIRIGIR SI YA ESTÁ AUTENTICADO
   useEffect(() => {
@@ -105,9 +155,38 @@ function LoginForm() {
 
         <div className="o-card p-6 sm:p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {avisoVerificacion && (
+              <div
+                className={`px-4 py-3 rounded-2xl text-sm font-bold border ${
+                  avisoVerificacion.tono === "ok"
+                    ? "bg-green-50 border-green-100 text-green-700"
+                    : "bg-blue-50 border-blue-100 text-blue-700"
+                }`}
+              >
+                {avisoVerificacion.texto}
+              </div>
+            )}
+
             {(error || oauthErr) && (
               <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-2xl text-sm font-bold animate-shake">
                 {error || errorFromCallback}
+              </div>
+            )}
+
+            {necesitaReenvio && (
+              <div className="text-sm">
+                {reenviado ? (
+                  <p className="text-gray-600">{reenviado}</p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={reenviar}
+                    disabled={reenviando || !formData.email}
+                    className="font-bold text-brand-700 underline underline-offset-2 disabled:opacity-50"
+                  >
+                    {reenviando ? "Enviando…" : "Reenviar el correo de confirmación"}
+                  </button>
+                )}
               </div>
             )}
 

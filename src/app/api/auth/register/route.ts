@@ -5,6 +5,7 @@ import { supabaseServer } from "@/lib/supabase-server";
 import { createCoupon } from "@/server/coupon.service";
 import { addBonusPoints } from "@/server/loyalty.service";
 import { sendWelcomeEmail } from "@/server/email.service";
+import { enviarVerificacion } from "@/server/verificacion-correo.service";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Esquema de validación
@@ -111,7 +112,17 @@ export async function POST(req: NextRequest) {
       console.warn("[Register] Error creando registro en customers:", custErr);
     }
 
-    // 4. Enviar el Email de Bienvenida Premium
+    // 4. Confirmación del correo. Va antes que la bienvenida porque es el
+    //    que la persona necesita para poder entrar: la cuenta queda creada
+    //    pero sin `email_verified_at`, y el login la rechaza hasta que use el
+    //    enlace.
+    try {
+      await enviarVerificacion({ email, nombre: name });
+    } catch (verifErr) {
+      console.error("[Register] No se pudo enviar la verificación:", verifErr);
+    }
+
+    // 5. Enviar el Email de Bienvenida Premium
     try {
       await sendWelcomeEmail({
         to: email,

@@ -75,6 +75,7 @@ export async function PATCH(req: Request) {
       free_shipping_enabled: body.shipping?.freeShippingEnabled ?? false,
       free_shipping_minimum: body.shipping?.freeShippingMinimum ?? null,
       free_shipping_minimum_flash: body.shipping?.freeShippingMinimumFlash ?? null,
+      flash_delivery_enabled: body.shipping?.flashDeliveryEnabled ?? false,
       local_delivery_enabled: body.shipping?.localDeliveryEnabled ?? true,
       local_delivery_fee: body.shipping?.localDeliveryFee ?? null,
       local_delivery_time_days: body.shipping?.localDeliveryTimeDays ?? 3,

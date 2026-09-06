@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
@@ -61,19 +60,12 @@ export default function RegisterPage() {
         throw new Error(data?.message || data?.error || "");
       }
 
-      // Iniciar sesión automáticamente
-      const result = await signIn("credentials", {
-        redirect: false,
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        router.push("/");
-        router.refresh();
-      }
+      // Ya no se inicia sesión automáticamente: la cuenta nace sin verificar y
+      // el login la rechaza, así que intentarlo sólo produciría un error
+      // incomprensible justo después de registrarse. Se manda al login con el
+      // aviso de que revise el correo.
+      router.push(`/login?verificacion=enviada&email=${encodeURIComponent(formData.email)}`);
+      router.refresh();
     } catch (error: any) {
       setError(
         error?.message || "Ocurrió un error al registrarse. Intenta de nuevo."
