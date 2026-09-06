@@ -63,6 +63,25 @@ export async function POST(request: NextRequest) {
           }
         : {};
 
+    // El interruptor del panel manda sobre todo lo demás. Va antes que las
+    // credenciales y que el horario: si la tienda apagó el flash, no hay nada
+    // que consultar ni que explicar.
+    const { data: ajustes } = await supabaseServer
+      .from('settings')
+      .select('flash_delivery_enabled')
+      .maybeSingle();
+
+    if (ajustes?.flash_delivery_enabled !== true) {
+      return NextResponse.json({
+        disponible: false,
+        motivo: "desactivado",
+        ...diagnostico({
+          queHacer:
+            "El envío flash está apagado en el panel → Configuración → Envíos. Enciéndelo cuando Uber Direct pueda crear entregas.",
+        }),
+      });
+    }
+
     if (!uberDirectConfigurado()) {
       return NextResponse.json({
         disponible: false,

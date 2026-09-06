@@ -131,6 +131,16 @@ async function calculateServerShippingCost(params: {
   }
 
   if (shippingMethod === 'flash') {
+    // El interruptor del panel también manda acá, no sólo al cotizar: un
+    // checkout abierto antes de apagarlo podría mandar `flash` igual, y este
+    // es el punto donde se cobra y se dispara al repartidor.
+    const { data: ajustesFlash } = await supabaseServer
+      .from('settings')
+      .select('flash_delivery_enabled')
+      .maybeSingle();
+    if (ajustesFlash?.flash_delivery_enabled !== true) {
+      return { error: 'El envío flash no está disponible en este momento.' };
+    }
     if (!uberDirectConfigurado()) {
       return { error: 'El envío flash no está disponible en este momento.' };
     }
@@ -277,6 +287,19 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await getServerSession(authOptions);
+
+    // Comprar exige cuenta. Se comprueba en el servidor y no sólo en la
+    // pantalla: si el requisito viviera en la interfaz, bastaría con llamar
+    // esta ruta a mano para crear un pedido anónimo. Un pedido sin cuenta no
+    // tiene a quién avisarle de los cambios de estado ni quién lo consulte
+    // después, y el correo no está verificado por nadie.
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Para comprar necesitas iniciar sesión.', requiereSesion: true },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     // Del cliente solo se toman: items (id+cantidad), datos de envío, método
     // de envío/pago, cupón y puntos a canjear. Precios, descuentos, costo de

@@ -137,6 +137,16 @@ export default function CheckoutPage() {
     }
   }, [cartItems.length, router, status]);
 
+  // Comprar exige cuenta. Se manda al login con el destino de vuelta, para
+  // que al iniciar sesión caiga en el checkout y no en la portada con el
+  // carrito a medias. El servidor lo comprueba igual: esto es la comodidad,
+  // no la barrera.
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push(`/login?callbackUrl=${encodeURIComponent("/checkout")}`);
+    }
+  }, [status, router]);
+
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   /**

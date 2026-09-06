@@ -44,6 +44,15 @@ export type StoreSettings = {
     freeShippingMinimum?: number;
     /** Mínimo del envío flash. Más alto: ese envío lo cobra Uber. */
     freeShippingMinimumFlash?: number;
+    /**
+     * Si el envío flash se ofrece en el checkout.
+     *
+     * Es aparte de tener credenciales: Uber puede cotizar perfectamente y aun
+     * así no poder crear la entrega —le pasó a la tienda con
+     * `authorization_hold`—, y ofrecer un envío que después no sale es peor que
+     * no ofrecerlo. Apagado, la opción no aparece aunque todo lo demás esté.
+     */
+    flashDeliveryEnabled?: boolean;
     localDeliveryEnabled?: boolean;
     localDeliveryFee?: number;
     localDeliveryTimeDays?: number;
@@ -214,6 +223,7 @@ export function mapSettingsRow(data: Record<string, any>): StoreSettings {
       freeShippingEnabled: data.free_shipping_enabled,
       freeShippingMinimum: data.free_shipping_minimum,
       freeShippingMinimumFlash: data.free_shipping_minimum_flash,
+      flashDeliveryEnabled: data.flash_delivery_enabled ?? false,
       localDeliveryEnabled: data.local_delivery_enabled,
       localDeliveryFee: data.local_delivery_fee,
       localDeliveryTimeDays: data.local_delivery_time_days,

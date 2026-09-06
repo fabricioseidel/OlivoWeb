@@ -7,6 +7,14 @@ export type DbUser = {
   password_hash: string;
   name: string | null;
   role: string | null;
+  /**
+   * Cuándo confirmó su correo. `null` = registrada y sin confirmar.
+   *
+   * Tiene que venir en el `select` de abajo, que es explícito: si faltara, el
+   * `authorize` la leería como `undefined` y bloquearía el inicio de sesión de
+   * **todos**, no sólo de quien no verificó.
+   */
+  email_verified_at: string | null;
 };
 
 /**
@@ -23,7 +31,7 @@ export type DbUser = {
 export async function getUserByEmail(email: string): Promise<DbUser | null> {
   const { data, error } = await supabaseServer
     .from("users")
-    .select("id, email, password_hash, name, role")
+    .select("id, email, password_hash, name, role, email_verified_at")
     .eq("email", email)
     .maybeSingle();
 
