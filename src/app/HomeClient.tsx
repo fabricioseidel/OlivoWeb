@@ -9,6 +9,7 @@ import { isProductVisible } from "@/services/products";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
 import NewsletterWidget from "@/components/NewsletterWidget";
+import AvisoConcursoInstagram from "@/components/AvisoConcursoInstagram";
 import { useCategories } from "@/hooks/useCategories";
 import { DEFAULT_BLOCKS, type PageBlock } from "@/lib/page-blocks";
 import { BUSINESS } from "@/lib/seo/business";
@@ -67,6 +68,10 @@ export default function HomeClient({ initialBlocks = null }: { initialBlocks?: P
 
   return (
     <div className="bg-gray-50 min-h-screen">
+      {/* Aviso del concurso de Instagram: va antes de los bloques para que sea
+          lo primero que se ve al entrar. Se cierra y caduca solo. */}
+      <AvisoConcursoInstagram />
+
       {blocks.map(block => {
         switch (block.type) {
           case "hero":
