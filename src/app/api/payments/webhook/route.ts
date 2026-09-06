@@ -5,7 +5,7 @@ import { auditLog } from '@/server/audit.service';
 import { restoreOrderStock } from '@/server/inventory.service';
 import { despacharPedidoFlash } from '@/server/entrega-flash.service';
 import { addBonusPoints, earnPoints } from '@/server/loyalty.service';
-import { sendOrderCancelledEmail } from '@/server/email.service';
+import { sendOrderCancelledEmail, sendOrderConfirmation } from '@/server/email.service';
 import crypto from 'crypto';
 import { montoCobrado } from '@/lib/mercadopago-monto';
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         // Verificar que el monto pagado coincide con el total de la orden
         const { data: order } = await supabaseServer
           .from('orders')
-          .select('total, shipping_cost, shipping_method, shipping_address, express_delivery_id')
+          .select('total, shipping_cost, shipping_method, shipping_address, express_delivery_id, payment_method, order_items(name, quantity, price)')
           .eq('id', orderId)
           .single();
 
@@ -146,6 +146,32 @@ export async function POST(request: NextRequest) {
             }
           } catch (e) {
             console.warn('[MP Webhook] No se pudieron acreditar los puntos:', e);
+          }
+
+          // El correo de "orden confirmada" sale acá y no al crear el pedido.
+          // Antes salía al apretar comprar: quien abandonaba el pago recibía
+          // igual la confirmación de una compra que nunca ocurrió.
+          try {
+            const dirCorreo = (order?.shipping_address ?? {}) as Record<string, any>;
+            const lineas = (order as { order_items?: Array<{ name: string; quantity: number; price: number }> })
+              ?.order_items ?? [];
+            if (dirCorreo.email) {
+              await sendOrderConfirmation({
+                to: dirCorreo.email,
+                customerName: dirCorreo.fullName || 'Cliente',
+                orderId: orderId,
+                total: Number(order?.total) || 0,
+                itemCount: lineas.length,
+                paymentMethod: order?.payment_method || 'MercadoPago',
+                items: lineas.map((i) => ({
+                  name: i.name,
+                  quantity: Number(i.quantity),
+                  price: Number(i.price),
+                })),
+              });
+            }
+          } catch (e) {
+            console.warn('[MP Webhook] No se pudo enviar la confirmación:', e);
           }
         } else {
           console.log(`[MP Webhook] La orden ${orderId} ya estaba pagada; no se acredita dos veces.`);
