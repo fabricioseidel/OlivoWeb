@@ -1,16 +1,23 @@
 export interface BundleFixedItem {
   id: string;
   name: string;
-  barcode?: string;
+  barcode?: string; // Código de barras del producto en el catálogo
   quantity: number;
   unitPrice?: number;
   unitCost?: number;
+  supplierName?: string;
+  supplierId?: string;
+  stock?: number;
 }
 
 export interface BundleOptionItem {
   id: string;
   name: string;
-  barcode?: string;
+  barcode?: string; // Código de barras del producto en el catálogo
+  unitCost?: number;
+  supplierName?: string;
+  supplierId?: string;
+  stock?: number;
 }
 
 export interface BundleOptionGroup {
@@ -18,7 +25,7 @@ export interface BundleOptionGroup {
   title: string;
   subtitle?: string;
   required: boolean;
-  minQuantity: number; // e.g., 1 for single choice (soda), 4 for multi-choice (sauces)
+  minQuantity: number; // Ej: 1 para single choice (bebida), 4 para multi-choice (salsas)
   maxQuantity: number;
   options: BundleOptionItem[];
 }
@@ -29,7 +36,15 @@ export interface BundleConfig {
   optionGroups: BundleOptionGroup[];
 }
 
+export interface SelectedBundleOptionItem {
+  barcode?: string;
+  name: string;
+  quantity: number;
+}
+
 export interface SelectedBundleOption {
+  groupId?: string;
   groupTitle: string;
-  selection: string;
+  selection: string; // Ej: "Coca-Cola Sabor Original 3L" o "2x Mayonesa, 2x Ketchup"
+  items?: SelectedBundleOptionItem[]; // Desglose con barcodes reales para descuento de inventario
 }

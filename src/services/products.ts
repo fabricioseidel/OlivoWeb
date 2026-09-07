@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { slugify } from '@/utils/string-utils';
 import { SupaProduct, ProductUI } from '@/types';
+import { calculateBundleStock } from '@/lib/bundle';
 
 // Use a repo-shipped placeholder. Files under /public/uploads may exist locally but
 // won't be present in Vercel unless committed, causing 404/next-image 400.
@@ -113,7 +114,20 @@ export async function fetchAllProducts(): Promise<ProductUI[]> {
     rows = (data ?? []) as any[];
   }
 
-  return rows.map((r) => mapSupaToUI(r as SupaProduct));
+  const mapped = rows.map((r) => mapSupaToUI(r as SupaProduct));
+  const stockMap = new Map<string, number>();
+  mapped.forEach((p) => stockMap.set(String(p.id), Number(p.stock) || 0));
+
+  return mapped.map((p) => {
+    if (p.bundle_config?.isBundle) {
+      const { stock: derivedStock } = calculateBundleStock(
+        p.bundle_config,
+        (bc) => stockMap.get(String(bc)) ?? 0
+      );
+      return { ...p, stock: derivedStock };
+    }
+    return p;
+  });
 }
 
 export async function fetchProductDetails(barcode: string): Promise<ProductUI> {
@@ -124,7 +138,34 @@ export async function fetchProductDetails(barcode: string): Promise<ProductUI> {
     .single();
 
   if (error) throw error;
-  return mapSupaToUI(data as unknown as SupaProduct);
+  const mapped = mapSupaToUI(data as unknown as SupaProduct);
+
+  if (mapped.bundle_config?.isBundle) {
+    const componentBarcodes = [
+      ...(mapped.bundle_config.fixedItems || []).map((i) => i.barcode || i.id),
+      ...(mapped.bundle_config.optionGroups || []).flatMap((g) =>
+        (g.options || []).map((o) => o.barcode || o.id)
+      ),
+    ].filter(Boolean);
+
+    if (componentBarcodes.length > 0) {
+      const { data: compRows } = await supabase
+        .from('products')
+        .select('barcode, stock')
+        .in('barcode', componentBarcodes);
+
+      const stockMap = new Map<string, number>();
+      (compRows || []).forEach((c: any) => stockMap.set(String(c.barcode), Number(c.stock) || 0));
+
+      const { stock: derivedStock } = calculateBundleStock(
+        mapped.bundle_config,
+        (bc) => stockMap.get(String(bc)) ?? 0
+      );
+      return { ...mapped, stock: derivedStock };
+    }
+  }
+
+  return mapped;
 }
 
 export async function searchProducts(query: string): Promise<ProductUI[]> {

@@ -8,6 +8,7 @@ import { redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loya
 import { createPaymentPreference } from '@/server/payments.service';
 import { quoteAgendado, FACTOR_CALLES } from '@/lib/shipping-policy';
 import { precioEfectivo } from '@/lib/pricing';
+import { expandBundleForDeduction } from '@/lib/bundle';
 import {
   quoteFlash,
   revalidarFlash,
@@ -401,7 +402,7 @@ export async function POST(request: NextRequest) {
     // CartItem.id corresponde al barcode del producto (ver mapSupaToUI en services/products.ts)
     const { data: dbProducts, error: productsErr } = await supabaseServer
       .from('products')
-      .select('id, barcode, stock, name, sale_price, offer_price, is_active')
+      .select('id, barcode, stock, name, sale_price, offer_price, is_active, features')
       .in('barcode', items.map((i: any) => i.id));
 
     if (productsErr || !dbProducts) {
@@ -459,10 +460,21 @@ export async function POST(request: NextRequest) {
       // salió $800 por encima de lo que el cliente vio en pantalla.
       const precioUnitario = precioEfectivo(dbProduct.sale_price, dbProduct.offer_price);
 
+      let itemName = dbProduct.name;
+      if (item.selectedOptions && Array.isArray(item.selectedOptions) && item.selectedOptions.length > 0) {
+        const optSummary = item.selectedOptions
+          .map((o: any) => `${o.groupTitle || 'Opción'}: ${o.selection}`)
+          .filter(Boolean)
+          .join(', ');
+        if (optSummary) {
+          itemName = `${itemName} (${optSummary})`;
+        }
+      }
+
       calculatedSubtotal += precioUnitario * quantity;
       validatedOrderItems.push({
         product_id: dbProduct.id,
-        name: dbProduct.name,
+        name: itemName,
         price: precioUnitario,
         quantity,
         image: item.image
@@ -600,6 +612,44 @@ export async function POST(request: NextRequest) {
 
     try {
       for (const item of items) {
+        const dbProduct = dbProducts.find((p: any) => String(p.barcode) === String(item.id));
+        let bundleConfig = (dbProduct as any)?.bundle_config;
+        if (!bundleConfig && Array.isArray(dbProduct?.features)) {
+          const marker = dbProduct.features.find(
+            (f: any) => typeof f === 'string' && f.startsWith('__BUNDLE_CONFIG__:')
+          );
+          if (marker) {
+            try {
+              bundleConfig = JSON.parse(marker.slice('__BUNDLE_CONFIG__:'.length));
+            } catch {}
+          }
+        }
+
+        if (bundleConfig?.isBundle) {
+          const deductions = expandBundleForDeduction(item.quantity, bundleConfig, item.selectedOptions);
+          if (deductions.length > 0) {
+            for (const deduction of deductions) {
+              const { data: success, error: rpcErr } = await supabaseServer.rpc('decrement_stock_atomic', {
+                p_barcode: String(deduction.barcode),
+                p_quantity: deduction.quantity,
+                p_branch_id: branchId,
+                p_reference: String(order.id),
+                p_reason: 'WEB_SALE'
+              });
+
+              if (rpcErr || !success) {
+                throw new Error(`Stock insuficiente para ${deduction.name} (incluido en ${item.name}). Por favor actualiza tu carrito.`);
+              }
+              successfullSubtractions.push({
+                id: deduction.barcode,
+                quantity: deduction.quantity,
+                name: deduction.name
+              });
+            }
+            continue;
+          }
+        }
+
         const { data: success, error: rpcErr } = await supabaseServer.rpc('decrement_stock_atomic', {
           p_barcode: String(item.id),
           p_quantity: item.quantity,

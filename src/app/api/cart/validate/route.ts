@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
 import { precioEfectivo } from "@/lib/pricing";
+import { calculateBundleStock } from "@/lib/bundle";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,18 +15,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ updates: [] });
     }
 
-    const itemIds = items.map((i: any) => i.id);
+    const itemIds = items.map((i: any) => String(i.id)).filter(Boolean);
     console.log("[OLIVO:api:validate] Buscando barcodes en DB:", itemIds);
 
     const { data: dbProducts, error } = await supabaseServer
       .from("products")
-      .select("id, barcode, name, sale_price, offer_price, stock, is_active")
+      .select("id, barcode, name, sale_price, offer_price, stock, is_active, features")
       .in("barcode", itemIds);
 
     if (error) {
       console.error("[OLIVO:api:validate] ❌ Error Supabase:", error);
       return NextResponse.json({ updates: [] }, { status: 500 });
     }
+
+    // Identificar códigos de barra de productos componentes si hay packs en el carrito
+    const componentBarcodes: string[] = [];
+    (dbProducts || []).forEach((p: any) => {
+      let bundleConfig = p.bundle_config;
+      if (!bundleConfig && Array.isArray(p.features)) {
+        const marker = p.features.find(
+          (f: any) => typeof f === "string" && f.startsWith("__BUNDLE_CONFIG__:")
+        );
+        if (marker) {
+          try {
+            bundleConfig = JSON.parse(marker.slice("__BUNDLE_CONFIG__:".length));
+          } catch {}
+        }
+      }
+      if (bundleConfig?.isBundle) {
+        (bundleConfig.fixedItems || []).forEach((item: any) => {
+          if (item.barcode) componentBarcodes.push(String(item.barcode));
+        });
+        (bundleConfig.optionGroups || []).forEach((g: any) => {
+          (g.options || []).forEach((opt: any) => {
+            if (opt.barcode) componentBarcodes.push(String(opt.barcode));
+          });
+        });
+      }
+    });
+
+    const allBarcodesToFetch = Array.from(new Set([...itemIds, ...componentBarcodes]));
 
     /**
      * Stock real de la sucursal que despacha.
@@ -49,12 +78,12 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     const branchStock = new Map<string, number>();
-    if (defaultBranch?.id) {
+    if (defaultBranch?.id && allBarcodesToFetch.length > 0) {
       const { data: rows } = await supabaseServer
         .from("branch_stock")
         .select("product_barcode, stock")
         .eq("branch_id", defaultBranch.id)
-        .in("product_barcode", itemIds);
+        .in("product_barcode", allBarcodesToFetch);
       for (const r of rows || []) {
         branchStock.set(String(r.product_barcode), Number(r.stock) || 0);
       }
@@ -86,7 +115,29 @@ export async function POST(req: NextRequest) {
       const updatePayload: any = { id: item.id };
 
       // Validar Stock contra la sucursal que despacha
-      const disponible = stockFor(dbProduct.barcode, Number(dbProduct.stock) || 0);
+      let disponible = stockFor(dbProduct.barcode, Number(dbProduct.stock) || 0);
+
+      // Si es un pack / producto compuesto, calcular disponibilidad de sus componentes sueltos
+      let bundleConfig = (dbProduct as any).bundle_config;
+      if (!bundleConfig && Array.isArray((dbProduct as any).features)) {
+        const marker = (dbProduct as any).features.find(
+          (f: any) => typeof f === "string" && f.startsWith("__BUNDLE_CONFIG__:")
+        );
+        if (marker) {
+          try {
+            bundleConfig = JSON.parse(marker.slice("__BUNDLE_CONFIG__:".length));
+          } catch {}
+        }
+      }
+
+      if (bundleConfig?.isBundle) {
+        const { stock: derivedStock } = calculateBundleStock(
+          bundleConfig,
+          (bc) => stockFor(bc, 0)
+        );
+        disponible = derivedStock;
+      }
+
       if (disponible < item.quantity) {
         needsUpdate = true;
         updatePayload.insufficientStock = true;

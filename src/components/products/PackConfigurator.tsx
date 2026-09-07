@@ -90,9 +90,14 @@ export default function PackConfigurator({
         if (group.required && !selected) {
           valid = false;
         } else if (selected) {
+          const matchingOpt = group.options.find((o) => o.name === selected);
           options.push({
+            groupId: group.id,
             groupTitle: group.title,
             selection: selected,
+            items: matchingOpt?.barcode
+              ? [{ barcode: matchingOpt.barcode, name: matchingOpt.name, quantity: 1 }]
+              : [],
           });
         }
       } else {
@@ -103,6 +108,20 @@ export default function PackConfigurator({
           valid = false;
         }
 
+        const items: { barcode: string; name: string; quantity: number }[] = [];
+        Object.entries(groupSelections).forEach(([name, qty]) => {
+          if (qty > 0) {
+            const matchingOpt = group.options.find((o) => o.name === name);
+            if (matchingOpt?.barcode) {
+              items.push({
+                barcode: matchingOpt.barcode,
+                name: matchingOpt.name,
+                quantity: qty,
+              });
+            }
+          }
+        });
+
         const summary = Object.entries(groupSelections)
           .filter(([_, qty]) => qty > 0)
           .map(([name, qty]) => `${qty}x ${name}`)
@@ -110,8 +129,10 @@ export default function PackConfigurator({
 
         if (summary) {
           options.push({
+            groupId: group.id,
             groupTitle: group.title,
             selection: summary,
+            items,
           });
         }
       }
@@ -179,21 +200,29 @@ export default function PackConfigurator({
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {group.options.map((opt) => {
                       const isSelected = selectedValue === opt.name;
+                      const isOutOfStock = opt.stock !== undefined && opt.stock <= 0;
                       return (
                         <button
                           key={opt.id}
                           type="button"
-                          onClick={() =>
-                            setSingleChoices((prev) => ({ ...prev, [group.id]: opt.name }))
-                          }
+                          disabled={isOutOfStock}
+                          onClick={() => {
+                            if (!isOutOfStock) {
+                              setSingleChoices((prev) => ({ ...prev, [group.id]: opt.name }));
+                            }
+                          }}
                           className={`relative flex items-center justify-between rounded-xl border p-3 text-left text-xs font-semibold transition-all ${
-                            isSelected
+                            isOutOfStock
+                              ? "border-neutral-200 bg-neutral-100 text-neutral-400 opacity-60 cursor-not-allowed"
+                              : isSelected
                               ? "border-brand-600 bg-brand-50 text-brand-900 ring-2 ring-brand-500/20 shadow-sm"
                               : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50"
                           }`}
                         >
-                          <span className="truncate pr-2">{opt.name}</span>
-                          {isSelected && (
+                          <span className="truncate pr-2">
+                            {opt.name} {isOutOfStock ? "(Agotado)" : ""}
+                          </span>
+                          {isSelected && !isOutOfStock && (
                             <CheckIcon className="size-4 shrink-0 text-brand-600" />
                           )}
                         </button>
@@ -240,7 +269,9 @@ export default function PackConfigurator({
                         key={opt.id}
                         className="flex items-center justify-between p-3 text-xs sm:text-sm"
                       >
-                        <span className="font-medium text-neutral-800">{opt.name}</span>
+                        <span className="font-medium text-neutral-800">
+                          {opt.name} {opt.stock !== undefined && opt.stock <= 0 ? "(Agotado)" : ""}
+                        </span>
 
                         <div className="flex items-center border border-neutral-300 rounded-lg">
                           <button
@@ -261,7 +292,10 @@ export default function PackConfigurator({
                             onClick={() =>
                               handleMultiQtyChange(group.id, opt.name, 1, group.maxQuantity)
                             }
-                            disabled={currentTotal >= group.maxQuantity}
+                            disabled={
+                              currentTotal >= group.maxQuantity ||
+                              (opt.stock !== undefined && count >= opt.stock)
+                            }
                             className="px-2.5 py-1 text-neutral-600 hover:bg-neutral-100 disabled:opacity-30 rounded-r-lg"
                           >
                             +
