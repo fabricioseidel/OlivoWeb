@@ -8,6 +8,24 @@ import { RADIO_DESPACHO_KM_DEFAULT } from "@/lib/shipping-policy";
 
 export type { PageBlock };
 
+export interface InstagramContestSettings {
+  enabled?: boolean;
+  title?: string;
+  description?: string;
+  buttonText?: string;
+  reelUrl?: string;
+  endDate?: string;
+}
+
+export const DEFAULT_INSTAGRAM_CONTEST: InstagramContestSettings = {
+  enabled: true,
+  title: "¡Estamos de concurso en Instagram!",
+  description: "Participa por tu premio: dale like, sigue @olivomarkett y comenta el reel.",
+  buttonText: "Participar ahora",
+  reelUrl: "https://www.instagram.com/reel/Dc9R7u-NKgJ/?stkn=MzRwMmNxZWJtczdi",
+  endDate: "2026-12-31",
+};
+
 export type StoreSettings = {
   // General
   storeName?: string;
@@ -108,7 +126,11 @@ export type StoreSettings = {
     youtube?: string | null;
     linkedin?: string | null;
     whatsapp?: string | null;
+    contest?: InstagramContestSettings | null;
   };
+
+  /** Configuración del concurso de Instagram */
+  instagramContest?: InstagramContestSettings;
 
   // SEO
   seoTitle?: string;
@@ -188,6 +210,17 @@ export const FALLBACK_SETTINGS: StoreSettings = {
   heroTitle: "Tu minimarket en Ñuñoa, con despacho a domicilio",
   heroDescription:
     "Más de 700 productos: abarrotes, bebidas, lácteos, panadería, helados y aseo. Y punto de retiro y envío de encomiendas.",
+  socialMedia: {
+    facebook: null,
+    instagram: "https://www.instagram.com/olivomarkett/",
+    twitter: null,
+    tiktok: null,
+    youtube: null,
+    linkedin: null,
+    whatsapp: "+56933030295",
+    contest: DEFAULT_INSTAGRAM_CONTEST,
+  },
+  instagramContest: DEFAULT_INSTAGRAM_CONTEST,
   // Sin fila de settings la tienda queda en vitrina: se puede mirar, no comprar.
   // Es el estado seguro — abrir se decide en el panel, no por desplegar.
   previewMode: true,
@@ -251,6 +284,7 @@ export function mapSettingsRow(data: Record<string, any>): StoreSettings {
     marketingEmailsEnabled: data.marketing_emails_enabled,
     siteCopy: data.site_copy || {},
     socialMedia: data.social_media || {},
+    instagramContest: (data.social_media?.contest as InstagramContestSettings) || (data.instagram_contest as InstagramContestSettings) || undefined,
     seoTitle: data.seo_title,
     seoDescription: data.seo_description,
     seoKeywords: data.seo_keywords,

@@ -46,6 +46,7 @@ const EDITABLE_FIELDS: Record<PageBlockType, EditableField[]> = {
   more_products: ['title', 'itemsToShow'],
   fiestas_patrias: ['title', 'description', 'buttonText', 'buttonLink', 'itemsToShow'],
   newsletter: ['title', 'description'],
+  instagram_contest: ['title', 'description', 'buttonText', 'buttonLink'],
 };
 
 // Etiquetas por tipo: "Título" significa cosas distintas en el hero (es el H1
@@ -64,6 +65,12 @@ const FIELD_LABELS: Partial<Record<PageBlockType, Partial<Record<EditableField, 
     title: 'Título del banner dieciochero',
     description: 'Texto de apoyo',
     itemsToShow: 'Productos dieciocheros a mostrar',
+  },
+  instagram_contest: {
+    title: 'Título del aviso',
+    description: 'Instrucciones del concurso',
+    buttonText: 'Texto del botón',
+    buttonLink: 'Enlace al Reel de Instagram',
   },
 };
 

@@ -9,6 +9,7 @@ import { isProductVisible } from "@/services/products";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
 import NewsletterWidget from "@/components/NewsletterWidget";
+import AvisoConcursoInstagram from "@/components/AvisoConcursoInstagram";
 import { useCategories } from "@/hooks/useCategories";
 import { DEFAULT_BLOCKS, type PageBlock } from "@/lib/page-blocks";
 import { BUSINESS } from "@/lib/seo/business";
@@ -66,8 +67,14 @@ export default function HomeClient({ initialBlocks = null }: { initialBlocks?: P
   // "Más productos" continúa donde terminó el bloque "Más vendidos"
   const topCount = blocks.find(b => b.type === "products")?.itemsToShow ?? 10;
 
+  // Si el bloque del concurso no fue agregado expresamente en el Constructor,
+  // se muestra por defecto en la parte superior si está activado en Configuración.
+  const hasContestBlock = blocks.some(b => b.type === "instagram_contest");
+
   return (
     <div className="bg-gray-50 min-h-screen">
+      {!hasContestBlock && <AvisoConcursoInstagram />}
+
       {blocks.map(block => {
         switch (block.type) {
           case "hero":
@@ -158,6 +165,19 @@ export default function HomeClient({ initialBlocks = null }: { initialBlocks?: P
               <section key={block.id} className="py-8 px-4 max-w-7xl mx-auto">
                 <NewsletterWidget title={block.title} description={block.description} />
               </section>
+            );
+          case "instagram_contest":
+            return (
+              <AvisoConcursoInstagram
+                key={block.id}
+                customConfig={{
+                  enabled: block.enabled,
+                  title: block.title,
+                  description: block.description,
+                  buttonText: block.buttonText,
+                  reelUrl: block.buttonLink,
+                }}
+              />
             );
           default:
             return null;

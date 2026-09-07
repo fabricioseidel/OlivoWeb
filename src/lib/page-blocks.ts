@@ -10,7 +10,8 @@ export type PageBlockType =
   | 'categories'
   | 'more_products'
   | 'fiestas_patrias'
-  | 'newsletter';
+  | 'newsletter'
+  | 'instagram_contest';
 
 export type PageBlock = {
   id: string;
@@ -38,6 +39,7 @@ export const BLOCK_TYPE_LABELS: Record<PageBlockType, string> = {
   more_products: 'Más productos',
   fiestas_patrias: 'Fiestas Patrias (septiembre)',
   newsletter: 'Newsletter',
+  instagram_contest: 'Aviso Concurso Instagram',
 };
 
 export const BLOCK_TYPE_DESCRIPTIONS: Record<PageBlockType, string> = {
@@ -51,6 +53,7 @@ export const BLOCK_TYPE_DESCRIPTIONS: Record<PageBlockType, string> = {
   fiestas_patrias:
     'Banner y vitrina dieciochera. Se muestra solo durante septiembre y se apaga sola el 1 de octubre',
   newsletter: 'Formulario de suscripción al newsletter',
+  instagram_contest: 'Tarjeta promocional con enlace directo al Reel o sorteo de Instagram',
 };
 
 // Layout por defecto: replica el orden de la portada original
