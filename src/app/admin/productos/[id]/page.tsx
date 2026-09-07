@@ -38,7 +38,9 @@ export default function EditProductPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
   const { getProductById, updateProduct, deleteProduct } = useProducts();
-  const { categories } = useCategories();
+  // Con las inactivas incluidas: si no, una categoría de temporada apagada
+  // no se puede asignar a un producto.
+  const { categories } = useCategories({ incluirInactivas: true });
   const { showToast } = useToast();
   const product = getProductById(id);
   const [loading, setLoading] = useState(true);

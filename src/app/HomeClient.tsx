@@ -15,6 +15,7 @@ import { BUSINESS } from "@/lib/seo/business";
 import { useSiteCopy } from "@/hooks/useSiteCopy";
 import {
   RUTA_FIESTAS_PATRIAS,
+  esCategoriaDieciochera,
   enTemporadaDieciochera,
   esProductoDieciochero,
   ordenarDieciocheros,
@@ -441,7 +442,14 @@ function CategoriesBlock({
   // solo gasta un espacio de la grilla (así aparecían "Pruebas" o categorías
   // duplicadas con 0 artículos).
   const visibles = (c: any) => c.visibleProductsCount ?? c.productsCount ?? 0;
-  const conProductos = categories.filter(c => visibles(c) > 0);
+  // "Fiestas Patrias" es una categoría de temporada: existe todo el año para
+  // que el panel pueda asignarla, pero en la grilla sólo aparece en
+  // septiembre. Fuera de temporada la sección ya se apaga sola, y la
+  // categoría suelta quedaba como un cartel de septiembre en marzo.
+  const enTemporada = enTemporadaDieciochera();
+  const conProductos = categories.filter(
+    c => visibles(c) > 0 && (enTemporada || !esCategoriaDieciochera(c.name))
+  );
 
   // Se ordena por catálogo y no alfabéticamente: antes la portada mostraba
   // siempre las seis primeras de la A a la B y las categorías grandes
