@@ -7,12 +7,10 @@ import {
   SparklesIcon, 
   PencilSquareIcon, 
   EyeIcon, 
-  CheckCircleIcon, 
-  XCircleIcon,
-  ShoppingBagIcon,
+  ShoppingBagIcon, 
   TrashIcon
 } from "@heroicons/react/24/outline";
-import { useProducts, Product } from "@/contexts/ProductContext";
+import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import Button from "@/components/ui/Button";
@@ -20,15 +18,23 @@ import Button from "@/components/ui/Button";
 const clp = (n: number) => `$${Math.round(n).toLocaleString("es-CL")}`;
 
 export default function PacksAdminPage() {
-  const { products, loading, deleteProduct, toggleActive, toggleFeatured } = useProducts();
+  const { products, loading, deleteProduct, toggleActive } = useProducts();
   const { showToast } = useToast();
   const [search, setSearch] = useState("");
 
   // Filtrar productos que son packs (por categoría 'Packs' o que tengan bundle_config configurado)
   const packs = products.filter((p) => {
-    const isPackCategory = p.categories?.some((c) => c.toLowerCase() === "packs" || c.toLowerCase() === "combos" || c.toLowerCase() === "promociones");
-    const isBundle = Boolean(p.bundle_config?.isBundle);
-    const matchesQuery = !search || p.name.toLowerCase().includes(search.toLowerCase()) || (p.barcode && p.barcode.includes(search));
+    const isPackCategory = p.categories?.some((c) =>
+      ["packs", "combos", "promociones"].includes(c.toLowerCase())
+    );
+    const hasMarker = (p.features || []).some(
+      (f: any) => typeof f === "string" && f.startsWith("__BUNDLE_CONFIG__:")
+    );
+    const isBundle = Boolean(p.bundle_config?.isBundle || hasMarker);
+    const matchesQuery =
+      !search ||
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.barcode && p.barcode.includes(search));
     return (isPackCategory || isBundle) && matchesQuery;
   });
 
@@ -107,7 +113,17 @@ export default function PacksAdminPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {packs.map((pack) => {
-            const bundle = pack.bundle_config;
+            let bundle = pack.bundle_config;
+            if (!bundle) {
+              const marker = (pack.features || []).find(
+                (f: any) => typeof f === "string" && f.startsWith("__BUNDLE_CONFIG__:")
+              );
+              if (marker) {
+                try {
+                  bundle = JSON.parse(marker.slice("__BUNDLE_CONFIG__:".length));
+                } catch {}
+              }
+            }
             const fixedCount = bundle?.fixedItems?.length || 0;
             const optionsCount = bundle?.optionGroups?.length || 0;
 

@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   ArrowLeftIcon, 
   PlusIcon, 
   TrashIcon, 
-  SparklesIcon, 
   ShoppingBagIcon, 
   ListBulletIcon,
-  CalculatorIcon,
-  InformationCircleIcon
+  CalculatorIcon
 } from "@heroicons/react/24/outline";
 import { useProducts, Product } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -23,8 +21,7 @@ import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
 import { 
   BundleConfig, 
   BundleFixedItem, 
-  BundleOptionGroup, 
-  BundleOptionItem 
+  BundleOptionGroup 
 } from "@/types/bundle";
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString("es-CL")}`;
@@ -56,23 +53,66 @@ export default function PackForm({ initialData, isEditing = false }: PackFormPro
   );
 
   // Componentes fijos del pack
-  const initialBundle = initialData?.bundle_config;
+  const resolvedInitialBundle = useMemo(() => {
+    if (initialData?.bundle_config?.isBundle) return initialData.bundle_config;
+    const raw = (initialData?.features || []) as string[];
+    const marker = raw.find((f) => typeof f === "string" && f.startsWith("__BUNDLE_CONFIG__:"));
+    if (marker) {
+      try {
+        return JSON.parse(marker.slice("__BUNDLE_CONFIG__:".length));
+      } catch {}
+    }
+    return null;
+  }, [initialData]);
+
   const [fixedItems, setFixedItems] = useState<BundleFixedItem[]>(
-    initialBundle?.fixedItems || []
+    resolvedInitialBundle?.fixedItems || []
   );
 
   // Grupos de opciones del pack (ej. sabor de bebida, salsas)
   const [optionGroups, setOptionGroups] = useState<BundleOptionGroup[]>(
-    initialBundle?.optionGroups || []
+    resolvedInitialBundle?.optionGroups || []
   );
+
+  // Efecto para sincronizar cuando initialData carga asíncronamente
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || "");
+      setDescription(initialData.description || "");
+      setPrice(initialData.price ? String(initialData.price) : "");
+      setOfferPrice(initialData.offerPrice ? String(initialData.offerPrice) : "");
+      setStock(initialData.stock !== undefined ? String(initialData.stock) : "10");
+      setBarcode(initialData.barcode || "");
+      setImage(initialData.image || "");
+      setGallery(initialData.gallery || []);
+      setIsActive(initialData.isActive ?? true);
+      setFeatured(initialData.featured ?? true);
+      if (initialData.categories && initialData.categories.length > 0) {
+        setCategories(initialData.categories);
+      }
+
+      let bundle = initialData.bundle_config;
+      if (!bundle) {
+        const raw = (initialData.features || []) as string[];
+        const marker = raw.find((f) => typeof f === "string" && f.startsWith("__BUNDLE_CONFIG__:"));
+        if (marker) {
+          try {
+            bundle = JSON.parse(marker.slice("__BUNDLE_CONFIG__:".length));
+          } catch {}
+        }
+      }
+      if (bundle) {
+        if (bundle.fixedItems) setFixedItems(bundle.fixedItems);
+        if (bundle.optionGroups) setOptionGroups(bundle.optionGroups);
+      }
+    }
+  }, [initialData]);
 
   // Estado para buscar producto a agregar en fijos
   const [productSearch, setProductSearch] = useState("");
-  const [selectedCatalogProduct, setSelectedCatalogProduct] = useState<string>("");
 
   // Estado temporal para agregar opción a un grupo
   const [tempOptionText, setTempOptionText] = useState<{ [groupId: string]: string }>({});
-  const [tempCatalogSelect, setTempCatalogSelect] = useState<{ [groupId: string]: string }>({});
 
   // Lista de productos filtrados para buscador
   const filteredProducts = useMemo(() => {
@@ -258,11 +298,20 @@ export default function PackForm({ initialData, isEditing = false }: PackFormPro
         ? financialSummary.fixedTotalCost 
         : Math.round(priceNum * 0.5);
 
+      // Generar lista de características legibles para los clientes
+      const cleanFeatures: string[] = [];
+      fixedItems.forEach((item) => {
+        cleanFeatures.push(`${item.quantity > 1 ? `${item.quantity} ` : ""}${item.name}`);
+      });
+      optionGroups.forEach((group) => {
+        cleanFeatures.push(`${group.title} (a elección)`);
+      });
+
       const packPayload: Partial<Product> = {
         id: generatedId,
         barcode: finalBarcode,
         name: name.trim(),
-        description: description.trim(),
+        description: description.trim().replace(/__BUNDLE_CONFIG__:\{.*?\}/g, "").trim(),
         price: priceNum,
         offerPrice: offerPrice.trim() ? parseFloat(offerPrice) : null,
         stock: parseInt(stock) || 10,
@@ -274,10 +323,12 @@ export default function PackForm({ initialData, isEditing = false }: PackFormPro
         slug: name.toLowerCase().replace(/[^\w ]+/g, "").replace(/ +/g, "-"),
         purchasePrice: computedPurchasePrice,
         bundle_config: bundleConfig,
+        features: cleanFeatures,
       };
 
-      if (isEditing && initialData?.id) {
-        await updateProduct(initialData.id, packPayload);
+      const targetId = initialData?.id || initialData?.barcode || finalBarcode;
+      if (isEditing && targetId) {
+        await updateProduct(targetId, packPayload);
         showToast("Pack actualizado exitosamente", "success");
       } else {
         await addProduct(packPayload);
@@ -616,7 +667,7 @@ export default function PackForm({ initialData, isEditing = false }: PackFormPro
               </div>
             ) : (
               <div className="space-y-6">
-                {optionGroups.map((group, index) => (
+                {optionGroups.map((group) => (
                   <div
                     key={group.id}
                     className="p-5 bg-neutral-50 rounded-2xl border border-neutral-200 space-y-4"

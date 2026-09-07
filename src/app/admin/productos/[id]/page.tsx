@@ -9,7 +9,8 @@ import { useCategories } from "@/hooks/useCategories";
 import Button from "@/components/ui/Button";
 import SingleImageUpload from "@/components/ui/SingleImageUpload";
 import MultiImageUpload from "@/components/ui/MultiImageUpload";
-import { TrashIcon, PlusIcon, CameraIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
+import { TrashIcon, PlusIcon, CameraIcon, XMarkIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import UnifiedScanner from "@/components/admin/scanner/UnifiedScanner";
 import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
 import { derivarCostoProveedor, aBruto } from "@/lib/pricing";
@@ -81,7 +82,9 @@ export default function EditProductPage() {
         stock: product.stock.toString(),
         featured: Boolean(product.featured),
         gallery: product.gallery || [],
-        features: (product.features || []).join("\n"),
+        features: (product.features || [])
+          .filter((f) => typeof f === "string" && !f.startsWith("__BUNDLE_CONFIG__:"))
+          .join("\n"),
         slug: product.slug,
         measurementUnit: product.measurementUnit || "ml",
         measurementValue: product.measurementValue?.toString() || "",
@@ -237,6 +240,10 @@ export default function EditProductPage() {
       const imageUrl = await uploadIfDataUrl(form.image);
       const galleryUrls = (await Promise.all((form.gallery || []).map(g => uploadIfDataUrl(g)))).filter(Boolean);
 
+      const parsedFeatures = form.features.split('\n').map(f => f.trim()).filter(Boolean);
+      const bundleMarker = (product.features || []).find((f: any) => typeof f === 'string' && f.startsWith('__BUNDLE_CONFIG__:'));
+      const finalFeatures = bundleMarker ? [bundleMarker, ...parsedFeatures] : parsedFeatures;
+
       await updateProduct(product.id, {
         name: form.name.trim(),
         price: Number(form.price),
@@ -246,7 +253,8 @@ export default function EditProductPage() {
         stock: Number(form.stock) || 0,
         featured: form.featured,
         gallery: galleryUrls,
-        features: form.features.split('\n').map(f => f.trim()).filter(Boolean),
+        features: finalFeatures,
+        bundle_config: product.bundle_config ?? null,
         slug: form.slug.trim(),
         measurementUnit: form.measurementUnit,
         measurementValue: parseFloat(form.measurementValue) || 0,
@@ -315,6 +323,11 @@ export default function EditProductPage() {
     }
   };
 
+  const isPack =
+    product?.categories?.some((c) =>
+      ["packs", "combos", "promociones"].includes(c.toLowerCase())
+    ) || Boolean(product?.bundle_config?.isBundle);
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
@@ -324,6 +337,26 @@ export default function EditProductPage() {
           <Button variant="danger" onClick={handleDelete}>Eliminar</Button>
         </div>
       </div>
+
+      {isPack && (
+        <div className="mb-6 bg-brand-50 border border-brand-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <SparklesIcon className="size-6 text-brand-600 shrink-0" />
+            <div>
+              <h4 className="text-sm font-bold text-brand-950">Este producto es un Pack / Producto Compuesto</h4>
+              <p className="text-xs text-brand-700">
+                Puedes configurar sus productos incluidos, grupos de opciones (bebidas, salsas) y reglas en el editor de packs.
+              </p>
+            </div>
+          </div>
+          <Link href={`/admin/packs/${product.id}`}>
+            <Button type="button" size="sm" className="whitespace-nowrap">
+              Abrir Editor de Packs ✨
+            </Button>
+          </Link>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow">
         <div className="grid md:grid-cols-2 gap-6">
           <div>

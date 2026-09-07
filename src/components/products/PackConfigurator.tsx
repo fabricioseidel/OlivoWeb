@@ -6,12 +6,14 @@ import { BundleConfig, SelectedBundleOption } from "@/types/bundle";
 
 interface PackConfiguratorProps {
   bundleConfig: BundleConfig;
-  onOptionsChange: (options: SelectedBundleOption[], isValid: boolean) => void;
+  onOptionsChange?: (options: SelectedBundleOption[], isValid: boolean) => void;
+  onChange?: (options: SelectedBundleOption[], isValid: boolean) => void;
 }
 
 export default function PackConfigurator({
   bundleConfig,
   onOptionsChange,
+  onChange,
 }: PackConfiguratorProps) {
   const { fixedItems = [], optionGroups = [] } = bundleConfig;
 
@@ -119,9 +121,12 @@ export default function PackConfigurator({
   }, [optionGroups, singleChoices, multiChoices]);
 
   // Notificar al componente padre
+  const notifyParent = onOptionsChange || onChange;
   useEffect(() => {
-    onOptionsChange(formattedOptions, isValid);
-  }, [formattedOptions, isValid, onOptionsChange]);
+    if (notifyParent) {
+      notifyParent(formattedOptions, isValid);
+    }
+  }, [formattedOptions, isValid, notifyParent]);
 
   return (
     <div className="space-y-6 my-6 border-t border-b border-neutral-100 py-6">

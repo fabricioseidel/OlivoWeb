@@ -379,24 +379,32 @@ export default function AdminProductsPage() {
       key: "actions",
       header: "",
       align: "right",
-      cell: (p) => (
-        <div className="flex justify-end gap-2">
-          <Link
-            href={`/admin/productos/${p.id}`}
-            className="size-9 inline-flex items-center justify-center bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-700 hover:text-white transition-all shadow-sm"
-            title="Editar"
-          >
-            <PencilIcon className="size-4" />
-          </Link>
-          <button
-            onClick={() => handleDeleteProduct(p.id, p.name)}
-            className="size-9 inline-flex items-center justify-center bg-rose-50 text-rose-700 rounded-xl hover:bg-rose-700 hover:text-white transition-all shadow-sm"
-            title="Eliminar"
-          >
-            <TrashIcon className="size-4" />
-          </button>
-        </div>
-      ),
+      cell: (p) => {
+        const isPack =
+          p.categories?.some((c) =>
+            ["packs", "combos", "promociones"].includes(c.toLowerCase())
+          ) || Boolean(p.bundle_config?.isBundle);
+        const editUrl = isPack ? `/admin/packs/${p.id}` : `/admin/productos/${p.id}`;
+
+        return (
+          <div className="flex justify-end gap-2">
+            <Link
+              href={editUrl}
+              className="size-9 inline-flex items-center justify-center bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-700 hover:text-white transition-all shadow-sm"
+              title={isPack ? "Editar Pack Compuesto" : "Editar"}
+            >
+              <PencilIcon className="size-4" />
+            </Link>
+            <button
+              onClick={() => handleDeleteProduct(p.id, p.name)}
+              className="size-9 inline-flex items-center justify-center bg-rose-50 text-rose-700 rounded-xl hover:bg-rose-700 hover:text-white transition-all shadow-sm"
+              title="Eliminar"
+            >
+              <TrashIcon className="size-4" />
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -459,12 +467,23 @@ export default function AdminProductsPage() {
         </div>
 
         <div className="flex gap-2">
-          <Link
-            href={`/admin/productos/${p.id}`}
-            className="p-2 text-blue-700 bg-blue-50 rounded-lg min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
-          >
-            <PencilIcon className="h-4 w-4" />
-          </Link>
+          {(() => {
+            const isPack =
+              p.categories?.some((c) =>
+                ["packs", "combos", "promociones"].includes(c.toLowerCase())
+              ) || Boolean(p.bundle_config?.isBundle);
+            const editUrl = isPack ? `/admin/packs/${p.id}` : `/admin/productos/${p.id}`;
+
+            return (
+              <Link
+                href={editUrl}
+                className="p-2 text-blue-700 bg-blue-50 rounded-lg min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
+                title={isPack ? "Editar Pack Compuesto" : "Editar"}
+              >
+                <PencilIcon className="h-4 w-4" />
+              </Link>
+            );
+          })()}
           <button
             onClick={() => handleDeleteProduct(p.id, p.name)}
             className="p-2 text-rose-700 bg-rose-50 rounded-lg min-h-[36px] min-w-[36px]"

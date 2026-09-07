@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import ImageWithFallback from '@/components/ui/ImageWithFallback';
 import { ArrowLeftIcon, MinusIcon, PlusIcon, ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
@@ -54,6 +54,33 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
     }
   }, [product?.id, fetchDetails]);
 
+  const rawDescription = fullProduct?.description || product?.description || "";
+  const description = useMemo(
+    () => rawDescription.replace(/__BUNDLE_CONFIG__:\{.*?\}/g, "").trim(),
+    [rawDescription]
+  );
+  const gallery = fullProduct?.gallery || product?.gallery || [];
+  const rawFeatures = useMemo(
+    () => (fullProduct?.features || product?.features || []) as string[],
+    [fullProduct?.features, product?.features]
+  );
+  const features = useMemo(
+    () => rawFeatures.filter((f) => typeof f === "string" && !f.startsWith("__BUNDLE_CONFIG__:")),
+    [rawFeatures]
+  );
+
+  const activeBundleConfig = useMemo(() => {
+    if (fullProduct?.bundle_config?.isBundle) return fullProduct.bundle_config;
+    if (product?.bundle_config?.isBundle) return product.bundle_config;
+    const marker = rawFeatures.find((f) => typeof f === "string" && f.startsWith("__BUNDLE_CONFIG__:"));
+    if (marker) {
+      try {
+        return JSON.parse(marker.slice("__BUNDLE_CONFIG__:".length));
+      } catch {}
+    }
+    return null;
+  }, [fullProduct?.bundle_config, product?.bundle_config, rawFeatures]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-white p-4">
@@ -103,13 +130,9 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
     ? Math.round(((basePrice - offerPrice!) / basePrice) * 100)
     : 0;
 
-  const description = fullProduct?.description || product.description;
-  const gallery = fullProduct?.gallery || product.gallery || [];
-  const features = fullProduct?.features || product.features || [];
-
   const outOfStock = product.stock <= 0;
   const lowStock = product.stock > 0 && product.stock <= 5;
-  const isBundle = Boolean(product.bundle_config?.isBundle);
+  const isBundle = Boolean(activeBundleConfig?.isBundle);
 
   const handleAddToCart = () => {
     if (isBundle && !isPackValid) {
@@ -281,9 +304,9 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
             )}
 
             {/* ── Configurador de Pack / Producto Compuesto ── */}
-            {isBundle && product.bundle_config && (
+            {isBundle && activeBundleConfig && (
               <PackConfigurator
-                bundleConfig={product.bundle_config}
+                bundleConfig={activeBundleConfig}
                 onOptionsChange={(opts, valid) => {
                   setPackOptions(opts);
                   setIsPackValid(valid);

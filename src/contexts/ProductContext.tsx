@@ -111,8 +111,16 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const getProductById = (id: string) =>
-    products.find((p) => String(p.id) === String(id));
+  const getProductById = (id: string) => {
+    if (!id) return undefined;
+    const cleanId = String(id).trim().toLowerCase();
+    return products.find(
+      (p) =>
+        String(p.id).toLowerCase() === cleanId ||
+        (p.barcode && String(p.barcode).toLowerCase() === cleanId) ||
+        (p.slug && p.slug.toLowerCase() === cleanId)
+    );
+  };
 
   const trackProductView = (id: string) => {
     setProducts((prev) => prev.map(p => p.id === id ? ({ ...p, viewCount: (p.viewCount ?? 0) + 1 }) : p));
@@ -158,6 +166,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       suggested_price: (productData as any).suggestedPrice ?? (productData as any).suggested_price ?? null,
       offer_price: offerPrice && Number(offerPrice) > 0 ? Number(offerPrice) : null,
       description: productData.description ?? (productData as any).description ?? null,
+      features: (productData as any).features ?? null,
+      bundle_config: (productData as any).bundle_config ?? null,
     } as any);
 
     await load();
@@ -166,10 +176,26 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   // Actualiza en la nube por "id" (equivale a barcode)
   const updateProduct = async (id: string, updateData: Partial<Product>) => {
     const barcode = String(id).trim();
-    const existing = getProductById(id);
+    let existing = getProductById(id);
+    if (!existing) {
+      try {
+        existing = await fetchProductDetails(barcode);
+      } catch {}
+    }
 
     if (!existing) {
-      throw new Error(`Producto ${id} no encontrado localmente para actualizar.`);
+      existing = {
+        id: barcode,
+        barcode,
+        name: updateData.name || '',
+        price: updateData.price || 0,
+        slug: updateData.slug || '',
+        image: updateData.image || '',
+        categories: updateData.categories || [],
+        stock: updateData.stock || 0,
+        featured: !!updateData.featured,
+        isActive: updateData.isActive ?? true,
+      } as Product;
     }
 
     // Resolucion explicita del precio de oferta:
@@ -195,7 +221,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     const stockEdit =
       updateData.stock === undefined ? {} : { stock: Number(updateData.stock) };
 
-    // Update product data in Supabase (includes optional image_url/gallery)
+    // Update product data in Supabase (includes optional image_url/gallery/features/bundle_config)
     await saveProduct({
       barcode,
       ...stockEdit,
@@ -214,6 +240,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       suggested_price: merged.suggestedPrice,
       offer_price: resolvedOfferPrice ? Math.round(resolvedOfferPrice) : null,
       description: merged.description,
+      features: (merged as any).features ?? null,
+      bundle_config: (merged as any).bundle_config ?? null,
     } as any);
 
     await load();
