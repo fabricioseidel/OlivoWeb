@@ -19,7 +19,8 @@ import { derivarCostoProveedor } from "@/lib/pricing";
 export default function NewProductPage() {
   const router = useRouter();
   const { addProduct } = useProducts();
-  const { categories } = useCategories();
+  // Con las inactivas incluidas, por la misma razón que en la edición.
+  const { categories } = useCategories({ incluirInactivas: true });
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);

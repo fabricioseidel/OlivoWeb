@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCategories as useCategoryHook } from "@/hooks/useCategories";
 import CategoryCard from "@/components/CategoryCard";
 import { LayoutGrid, X } from "lucide-react";
+import { enTemporadaDieciochera, esCategoriaDieciochera } from "@/lib/fiestas-patrias";
 
 export default function CategoriasClient() {
   const { categories, loading, error } = useCategoryHook();
@@ -33,8 +34,11 @@ export default function CategoriasClient() {
   // Mismo criterio que la portada: el número que se anuncia es el de productos
   // realmente visibles, y las categorías vacías no ocupan un espacio muerto.
   const visibles = (c: typeof categories[number]) => c.visibleProductsCount ?? c.productsCount ?? 0;
+  const enTemporada = enTemporadaDieciochera();
   const sorted = [...categories]
-    .filter((c) => visibles(c) > 0)
+    // Igual que en la portada: la categoría de temporada no se muestra fuera
+    // de septiembre, aunque exista para el panel.
+    .filter((c) => visibles(c) > 0 && (enTemporada || !esCategoriaDieciochera(c.name)))
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
 
   return (

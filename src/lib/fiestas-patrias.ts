@@ -169,6 +169,17 @@ export type ProductoDieciocheroInput = {
   categories?: string[] | null;
 };
 
+/**
+ * ¿Este nombre de categoría es de la temporada dieciochera?
+ *
+ * Lo usa la tienda para no dejar "Fiestas Patrias" colgada en la grilla de
+ * categorías en marzo: la sección tiene su propia página y su propio enlace
+ * en el navbar, que ya se apagan solos fuera de septiembre.
+ */
+export function esCategoriaDieciochera(nombre: string | null | undefined): boolean {
+  return CATEGORIAS_DIECIOCHERAS.includes(normalizarTexto(nombre));
+}
+
 /** ¿Alguna de las categorías del producto es una categoría dieciochera? */
 export function tieneCategoriaDieciochera(producto: ProductoDieciocheroInput): boolean {
   const categorias = (producto.categories ?? []).map(normalizarTexto);
