@@ -56,7 +56,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
             price: item.price,
             image: item.image || '',
             slug: item.slug || '',
-            quantity: item.quantity
+            quantity: item.quantity,
+            selectedOptions: Array.isArray(item.selectedOptions) ? item.selectedOptions : undefined,
           }));
           logger.log(`[OLIVO:cart] ✅ ${validatedCart.length} items cargados`, validatedCart.map(i => `${i.name} x${i.quantity} $${i.price}`));
           setCartItems(validatedCart);
@@ -99,17 +100,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Agregar producto al carrito
   const addToCart = useCallback((product: Omit<CartItem, "quantity">, quantity: number = 1) => {
     const qty = Math.max(1, Math.floor(quantity || 1));
+    const cartItemId = (product.selectedOptions && product.selectedOptions.length > 0)
+      ? `${product.id}__${product.selectedOptions.map(o => `${o.groupTitle}:${o.selection}`).join("|")}`
+      : product.id;
+
+    const itemToAdd = {
+      ...product,
+      id: cartItemId,
+    };
+
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === product.id);
+      const existingItem = prevItems.find(item => item.id === cartItemId);
       if (existingItem) {
         const newQty = existingItem.quantity + qty;
         logger.log(`[OLIVO:cart] ➕ UPDATE "${product.name}" → qty ${existingItem.quantity} → ${newQty} (precio: $${product.price})`);
         return prevItems.map(item =>
-          item.id === product.id ? { ...item, quantity: newQty } : item
+          item.id === cartItemId ? { ...item, quantity: newQty } : item
         );
       } else {
-        logger.log(`[OLIVO:cart] 🆕 ADD "${product.name}" qty:${qty} precio:$${product.price} id:${product.id}`);
-        return [...prevItems, { ...product, quantity: qty }];
+        logger.log(`[OLIVO:cart] 🆕 ADD "${product.name}" qty:${qty} precio:$${product.price} id:${cartItemId}`);
+        return [...prevItems, { ...itemToAdd, quantity: qty }];
       }
     });
   }, []);

@@ -36,7 +36,19 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
 
   // Handle JSONB fields safely
   const gallery = Array.isArray(p.gallery) ? p.gallery : undefined;
-  const features = Array.isArray(p.features) ? p.features : undefined;
+  const rawFeatures = Array.isArray(p.features) ? p.features : undefined;
+  let cleanFeatures: string[] | undefined = rawFeatures;
+  let bundleConfig = p.bundle_config ?? null;
+
+  if (rawFeatures) {
+    const bundleMarker = rawFeatures.find((f: any) => typeof f === 'string' && f.startsWith('__BUNDLE_CONFIG__:'));
+    if (bundleMarker && !bundleConfig) {
+      try {
+        bundleConfig = JSON.parse(bundleMarker.slice('__BUNDLE_CONFIG__:'.length));
+      } catch {}
+    }
+    cleanFeatures = rawFeatures.filter((f: any) => typeof f !== 'string' || !f.startsWith('__BUNDLE_CONFIG__:'));
+  }
 
   const rawSalePrice = Number(p.sale_price ?? 0);
   const rawOfferPrice =
@@ -55,7 +67,7 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     description: p.description || '',
     categories: cats,
     gallery,
-    features,
+    features: cleanFeatures,
     stock: Number(p.stock ?? 0),
     featured: !!p.featured,
     createdAt: p.updated_at,
@@ -73,19 +85,35 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     purchasePrice: p.purchase_price ? Number(p.purchase_price) : undefined,
     minStock: p.min_stock ?? 5,
     optimumStock: p.optimum_stock ?? 20,
+    bundle_config: bundleConfig,
   };
 }
 
 export async function fetchAllProducts(): Promise<ProductUI[]> {
+  const baseSelect = 'barcode, name, category, sale_price, offer_price, image_url, stock, featured, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold, description, features';
+  const fullSelect = `${baseSelect}, bundle_config`;
+
+  let rows: any[] = [];
   const { data, error } = await supabase
     .from('products')
-    .select('barcode, name, category, sale_price, offer_price, image_url, stock, featured, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold, description')
+    .select(fullSelect)
     .order('updated_at', { ascending: false })
     .limit(1000);
 
-  if (error) throw error;
+  if (error) {
+    // Si falla por columna inexistente en Supabase, reintento sin bundle_config
+    const fallback = await supabase
+      .from('products')
+      .select(baseSelect)
+      .order('updated_at', { ascending: false })
+      .limit(1000);
+    if (fallback.error) throw fallback.error;
+    rows = (fallback.data ?? []).map((r: any) => ({ ...r, bundle_config: null }));
+  } else {
+    rows = (data ?? []) as any[];
+  }
 
-  return (data as unknown as SupaProduct[]).map(mapSupaToUI);
+  return rows.map((r) => mapSupaToUI(r as SupaProduct));
 }
 
 export async function fetchProductDetails(barcode: string): Promise<ProductUI> {
@@ -124,6 +152,12 @@ export async function searchProducts(query: string): Promise<ProductUI[]> {
  * venta que otra persona acababa de registrar.
  */
 function toProductPayload(p: Partial<SupaProduct> & { barcode: string }) {
+  let featuresPayload = Array.isArray(p.features) ? [...p.features] : [];
+  if (p.bundle_config) {
+    featuresPayload = featuresPayload.filter((f: any) => typeof f !== 'string' || !f.startsWith('__BUNDLE_CONFIG__:'));
+    featuresPayload.unshift(`__BUNDLE_CONFIG__:${JSON.stringify(p.bundle_config)}`);
+  }
+
   return {
     barcode: p.barcode,
     name: p.name ?? null,
@@ -138,7 +172,7 @@ function toProductPayload(p: Partial<SupaProduct> & { barcode: string }) {
     featured: p.featured,
     reorder_threshold: p.reorder_threshold ?? null,
     description: p.description ?? null,
-    features: Array.isArray(p.features) ? p.features : null,
+    features: featuresPayload.length > 0 ? featuresPayload : null,
     measurement_unit: p.measurement_unit ?? null,
     measurement_value: p.measurement_value ?? null,
     suggested_price: p.suggested_price ?? null,
@@ -147,6 +181,7 @@ function toProductPayload(p: Partial<SupaProduct> & { barcode: string }) {
     tax_rate: p.tax_rate ?? 19,
     min_stock: p.min_stock ?? 5,
     optimum_stock: p.optimum_stock ?? 20,
+    ...(p.bundle_config !== undefined ? { bundle_config: p.bundle_config } : {}),
   };
 }
 

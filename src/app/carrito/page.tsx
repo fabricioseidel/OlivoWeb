@@ -146,6 +146,15 @@ export default function CartPage() {
                       >
                         {item.name}
                       </Link>
+                      {item.selectedOptions && item.selectedOptions.length > 0 && (
+                        <div className="mt-1 space-y-0.5 text-xs text-neutral-500">
+                          {item.selectedOptions.map((opt, idx) => (
+                            <p key={idx}>
+                              <span className="font-medium text-neutral-700">{opt.groupTitle}:</span> {opt.selection}
+                            </p>
+                          ))}
+                        </div>
+                      )}
                       <p className="tabular mt-1 text-sm text-neutral-500">{clp(item.price)} c/u</p>
                     </div>
                     <button

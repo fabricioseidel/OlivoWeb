@@ -85,6 +85,11 @@ export default function OrderSummary({
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium leading-snug text-neutral-900">{item.name}</p>
+              {item.selectedOptions && item.selectedOptions.length > 0 && (
+                <p className="line-clamp-2 text-xs text-neutral-500 mt-0.5">
+                  {item.selectedOptions.map(o => `${o.groupTitle}: ${o.selection}`).join(' • ')}
+                </p>
+              )}
               <p className="tabular text-xs text-neutral-500">{clp(item.price)} c/u</p>
             </div>
             <p className="tabular shrink-0 text-sm font-medium text-neutral-900">

@@ -21,7 +21,10 @@ export type SupaProduct = {
   tax_rate?: number | null;
   min_stock?: number | null;
   optimum_stock?: number | null;
+  bundle_config?: import('./bundle').BundleConfig | null;
 };
+
+export type { BundleConfig, BundleFixedItem, BundleOptionGroup, BundleOptionItem, SelectedBundleOption } from './bundle';
 
 export type ProductUI = {
   id: string;
@@ -55,6 +58,7 @@ export type ProductUI = {
   purchasePrice?: number;
   minStock?: number;
   optimumStock?: number;
+  bundle_config?: import('./bundle').BundleConfig | null;
 };
 
 export interface CartItem {
@@ -64,6 +68,7 @@ export interface CartItem {
   image: string;
   slug: string;
   quantity: number;
+  selectedOptions?: import('./bundle').SelectedBundleOption[];
 }
 
 // ── Multi-sucursal ──────────────────────────────────────────────

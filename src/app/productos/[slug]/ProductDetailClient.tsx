@@ -16,6 +16,8 @@ import ProductCard from "@/components/ProductCard";
 import { enTemporadaDieciochera, esProductoDieciochero } from "@/lib/fiestas-patrias";
 import BanderaChile from "@/components/fiestas/BanderaChile";
 import { precioEfectivo, hayOferta } from "@/lib/pricing";
+import PackConfigurator from "@/components/products/PackConfigurator";
+import { SelectedBundleOption } from "@/types/bundle";
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
 
@@ -26,6 +28,8 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [packOptions, setPackOptions] = useState<SelectedBundleOption[]>([]);
+  const [isPackValid, setIsPackValid] = useState(true);
   const { addToCart } = useCart();
   const { showToast } = useToast();
 
@@ -105,10 +109,22 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
 
   const outOfStock = product.stock <= 0;
   const lowStock = product.stock > 0 && product.stock <= 5;
+  const isBundle = Boolean(product.bundle_config?.isBundle);
 
   const handleAddToCart = () => {
+    if (isBundle && !isPackValid) {
+      showToast('Por favor completa todas las selecciones del pack antes de agregarlo.', 'warning');
+      return;
+    }
     const { id, name, image, slug } = product;
-    addToCart({ id, name, price: effectivePrice, image, slug }, quantity);
+    addToCart({ 
+      id, 
+      name, 
+      price: effectivePrice, 
+      image, 
+      slug,
+      selectedOptions: isBundle && packOptions.length > 0 ? packOptions : undefined
+    }, quantity);
     setQuantity(1);
     showToast(`${quantity}x ${product.name} añadido al carrito`, 'success');
   };
@@ -118,9 +134,12 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
     // El teléfono sale de la configuración de la tienda; el constante queda
     // solo como respaldo si el admin todavía no lo definió.
     const phone = settings?.storePhone || WHATSAPP_PHONE;
+    const optionsText = isBundle && packOptions.length > 0
+      ? ` (${packOptions.map(o => `${o.groupTitle}: ${o.selection}`).join(', ')})`
+      : '';
     const link = buildSingleProductLink(
       phone,
-      { name: product.name, price: effectivePrice },
+      { name: `${product.name}${optionsText}`, price: effectivePrice },
       quantity
     );
     window.open(link, '_blank');
@@ -261,6 +280,17 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
               </ul>
             )}
 
+            {/* ── Configurador de Pack / Producto Compuesto ── */}
+            {isBundle && product.bundle_config && (
+              <PackConfigurator
+                bundleConfig={product.bundle_config}
+                onOptionsChange={(opts, valid) => {
+                  setPackOptions(opts);
+                  setIsPackValid(valid);
+                }}
+              />
+            )}
+
             {/* ── Compra ── */}
             <div className="mt-auto">
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -290,10 +320,14 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
 
                 <button
                   onClick={handleAddToCart}
-                  disabled={outOfStock}
+                  disabled={outOfStock || (isBundle && !isPackValid)}
                   className="o-focus h-13 flex-1 rounded-xl bg-brand-boton text-base font-semibold text-brand-contraste transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-500"
                 >
-                  {outOfStock ? 'Sin stock' : 'Agregar al carrito'}
+                  {outOfStock 
+                    ? 'Sin stock' 
+                    : isBundle && !isPackValid 
+                    ? 'Completa las opciones del pack' 
+                    : 'Agregar al carrito'}
                 </button>
               </div>
 
