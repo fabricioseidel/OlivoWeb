@@ -285,7 +285,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
               <p className="o-body mb-6 text-neutral-600">{description}</p>
             ) : null}
 
-            {(features.length > 0 || loadingDetails) && (
+            {!isBundle && (features.length > 0 || loadingDetails) && (
               <ul className="mb-7 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {loadingDetails && features.length === 0 ? (
                   Array.from({ length: 4 }).map((_, i) => (
