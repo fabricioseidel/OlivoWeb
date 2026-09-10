@@ -18,6 +18,11 @@ import { logger } from "@/utils/logger";
  * puerta por la que conviene pasar, porque además deja el rastro en
  * `inventory_movements`; lo que cambió es que saltárselo ya no corrompe el dato.
  *
+ * Desde `20260910000000_conteo_fisico_de_inventario.sql` las RPC ya no
+ * recalculan `products.stock` por su cuenta: escriben `branch_stock` y el
+ * trigger hace el resto. Era la misma fórmula copiada en siete funciones, y
+ * ninguna filtraba por sucursal activa.
+ *
  * Ese era el choque que producía datos erróneos: la recepción entraba por RPC
  * (correcto) mientras que guardar un producto desde el admin reescribía
  * `products.stock` con el valor que el navegador tenía cacheado (incorrecto).
@@ -92,8 +97,8 @@ async function callBatchRpc(
 }
 
 /**
- * Entrada de mercadería (+). Incrementa `branch_stock`, recalcula
- * `products.stock` y registra un movimiento IN por ítem.
+ * Entrada de mercadería (+). Incrementa `branch_stock` y registra un
+ * movimiento IN por ítem; `products.stock` lo propaga el trigger.
  */
 export async function applyReception(
   items: StockItem[],
@@ -109,8 +114,8 @@ export async function applyReception(
  * Salida de mercadería (−), con piso en 0. Registra un movimiento OUT.
  *
  * Se apoya en `apply_reception_reverse`, que es exactamente esta operación:
- * descuenta `branch_stock` sin bajar de cero, recalcula `products.stock` y
- * deja el movimiento. El nombre de la RPC quedó atado a su primer uso
+ * descuenta `branch_stock` sin bajar de cero y deja el movimiento. El nombre
+ * de la RPC quedó atado a su primer uso
  * (revertir una recepción); el `reason` es lo que distingue una reversión de
  * una venta de mostrador en `inventory_movements`.
  */
@@ -125,9 +130,9 @@ async function applyStockOut(
  * La sucursal sobre la que se aplica un ajuste: la indicada, o la que está
  * marcada por defecto.
  *
- * Las RPC hacen este mismo `COALESCE` en SQL, pero acá hace falta resolverla
- * antes: para saber cuánto hay que mover hay que leer el stock de esa sucursal
- * concreta, no el total del producto.
+ * Las RPC hacen este mismo `COALESCE` en SQL, pero acá se resuelve antes para
+ * poder fallar con un mensaje claro cuando no hay ninguna sucursal por defecto
+ * activa, en vez de dejar que la RPC escriba en una sucursal inesperada.
  */
 async function resolverSucursal(
   branchId?: string | null
@@ -146,36 +151,6 @@ async function resolverSucursal(
     return { ok: false, error: "No hay una sucursal por defecto activa" };
   }
   return { ok: true, id: data.id };
-}
-
-/**
- * Cuánto hay de cada producto en una sucursal.
- *
- * Un producto sin fila en `branch_stock` cuenta 0, que es lo que hay: la fila
- * la crea la primera entrada de mercadería.
- */
-async function stockEnSucursal(
-  barcodes: string[],
-  branchId: string
-): Promise<{ ok: true; stock: Map<string, number> } | { ok: false; error: string }> {
-  const stock = new Map<string, number>();
-  const TAMANO = 1000;
-
-  for (let desde = 0; desde < barcodes.length; desde += TAMANO) {
-    const lote = barcodes.slice(desde, desde + TAMANO);
-    const { data, error } = await supabaseServer
-      .from("branch_stock")
-      .select("product_barcode, stock")
-      .eq("branch_id", branchId)
-      .in("product_barcode", lote);
-
-    if (error) return { ok: false, error: error.message };
-    for (const fila of data ?? []) {
-      stock.set(String((fila as any).product_barcode), Number((fila as any).stock ?? 0));
-    }
-  }
-
-  return { ok: true, stock };
 }
 
 /** Revierte una recepción ya aplicada (pedido de proveedor cancelado). */
@@ -386,17 +361,21 @@ export async function restoreOrderStock(
  * Deja el stock de un producto en un valor exacto.
  *
  * Es lo que hace el editor de productos cuando alguien escribe una cantidad a
- * mano. No se escribe la columna: se calcula la diferencia contra el stock
- * actual y se aplica como entrada o salida, para que `branch_stock` —que es de
- * donde se vende— quede coherente y el ajuste deje rastro en
+ * mano. No se escribe la columna: la cantidad va a `apply_stock_absolute`, que
+ * fija `branch_stock` —de donde realmente se vende— y deja la diferencia en
  * `inventory_movements`.
  *
- * El delta se aplica sobre una sola sucursal (la indicada o la principal), y
- * por eso se mide **contra el stock de esa sucursal**, no contra
- * `products.stock`. Medirlo contra el total es lo que hacía antes y da un
- * ajuste equivocado apenas hay más de una sucursal con existencias: con 42 en
- * Principal, 42 en otra y un total de 84, pedir "dejá 50" restaba 34 y
- * Principal terminaba en 8. El total quedaba plausible y el detalle, inventado.
+ * Antes esto se hacía en dos pasos desde acá: leer cuánto había y aplicar el
+ * delta con `apply_reception` / `apply_reception_reverse`. Funcionaba, pero la
+ * lectura y la escritura eran dos viajes distintos: si entre uno y otro entraba
+ * una venta, el ajuste la borraba. Y era una tercera fórmula para calcular lo
+ * mismo, que es la forma en que este dato se rompió dos veces. Ahora el delta
+ * lo calcula la base dentro de la misma transacción, con la fila bloqueada.
+ *
+ * El ajuste es siempre sobre UNA sucursal (la indicada o la principal), medido
+ * contra el stock de esa sucursal y no contra `products.stock`: medirlo contra
+ * el total da un ajuste equivocado apenas hay más de una sucursal con
+ * existencias.
  */
 export async function setStockLevel(
   barcode: string,
@@ -408,45 +387,19 @@ export async function setStockLevel(
     return { ok: false, error: "Cantidad de stock inválida" };
   }
 
-  const { data: product, error } = await supabaseServer
-    .from("products")
-    .select("barcode")
-    .eq("barcode", barcode)
-    .maybeSingle();
-
-  if (error) return { ok: false, error: error.message };
-  if (!product) return { ok: false, error: `Producto ${barcode} no encontrado` };
-
-  const sucursal = await resolverSucursal(options.branchId);
-  if (!sucursal.ok) return { ok: false, error: sucursal.error };
-
-  const actual = await stockEnSucursal([barcode], sucursal.id);
-  if (!actual.ok) return { ok: false, error: actual.error };
-
-  const delta = Math.round(target) - (actual.stock.get(barcode) ?? 0);
-  if (delta === 0) return { ok: true, count: 0 };
-
-  const opts: StockMutationOptions = {
-    ...options,
-    branchId: sucursal.id,
-    reason: options.reason ?? STOCK_REASON.MANUAL_ADJUSTMENT,
-  };
-
-  return delta > 0
-    ? callBatchRpc("apply_reception", [{ barcode, qty: delta }], opts)
-    : applyStockOut([{ barcode, qty: -delta }], opts);
+  const res = await setStockLevels([{ barcode, target }], options);
+  if (!res.ok) return { ok: false, error: res.error };
+  return { ok: true, count: res.count };
 }
 
 /**
- * Igual que `setStockLevel` pero para varios productos a la vez.
+ * Igual que `setStockLevel` pero para varios productos a la vez: una
+ * importación masiva puede traer cientos y uno por uno la petición se cae por
+ * tiempo antes de terminar.
  *
- * Una importación masiva puede traer cientos de productos. Uno por uno serían
- * dos viajes a la base por producto y la petición se cae por tiempo antes de
- * terminar. Acá se leen todos los stocks de una vez y se agrupan las
- * diferencias en dos llamadas: una de entrada y otra de salida.
- *
- * Igual que `setStockLevel`, el stock actual se lee de la sucursal donde se va
- * a aplicar el ajuste, no de `products.stock`.
+ * Va todo en una sola llamada a `apply_stock_absolute`. La RPC ignora los
+ * códigos que no existen y los devuelve en `desconocidos`, así que los
+ * faltantes se pueden nombrar sin una consulta extra.
  */
 export async function setStockLevels(
   targets: Array<{ barcode: string; target: number }>,
@@ -460,60 +413,37 @@ export async function setStockLevels(
   const sucursal = await resolverSucursal(options.branchId);
   if (!sucursal.ok) return { ok: false, error: sucursal.error, count: 0 };
 
-  const barcodes = wanted.map((t) => t.barcode);
+  const { data, error } = await supabaseServer.rpc("apply_stock_absolute", {
+    p_items: wanted.map((t) => ({ barcode: t.barcode, qty: Math.round(t.target) })),
+    p_branch_id: sucursal.id,
+    p_op_id: null,
+    p_reason: options.reason ?? STOCK_REASON.MANUAL_ADJUSTMENT,
+    p_session_id: null,
+    p_counted_by: null,
+  });
 
-  // Dos lecturas distintas a propósito: `products` dice qué códigos existen
-  // —para poder nombrar los que no— y `branch_stock` dice cuánto hay donde se
-  // va a aplicar el ajuste. Un producto que existe pero nunca tuvo movimiento
-  // no tiene fila en `branch_stock`: no está faltante, está en cero.
-  const [{ data: rows, error }, actual] = await Promise.all([
-    supabaseServer.from("products").select("barcode").in("barcode", barcodes),
-    stockEnSucursal(barcodes, sucursal.id),
-  ]);
-
-  if (error) return { ok: false, error: error.message, count: 0 };
-  if (!actual.ok) return { ok: false, error: actual.error, count: 0 };
-
-  const existentes = new Set((rows ?? []).map((r) => String(r.barcode)));
-
-  const entradas: StockItem[] = [];
-  const salidas: StockItem[] = [];
-  const faltantes: string[] = [];
-
-  for (const { barcode, target } of wanted) {
-    if (!existentes.has(barcode)) {
-      faltantes.push(barcode);
-      continue;
-    }
-    const delta = Math.round(target) - (actual.stock.get(barcode) ?? 0);
-    if (delta > 0) entradas.push({ barcode, qty: delta });
-    else if (delta < 0) salidas.push({ barcode, qty: -delta });
+  if (error) {
+    logger.error("[inventory] apply_stock_absolute falló:", error);
+    return { ok: false, error: error.message, count: 0 };
   }
 
-  const opts: StockMutationOptions = {
-    ...options,
-    branchId: sucursal.id,
-    reason: options.reason ?? STOCK_REASON.MANUAL_ADJUSTMENT,
+  const res = (data ?? {}) as {
+    ok?: boolean;
+    error?: string;
+    ajustados?: number;
+    desconocidos?: string[];
   };
 
-  let count = 0;
-  const errores: string[] = [];
+  if (res.ok !== true) {
+    return { ok: false, error: res.error ?? "No se pudo ajustar el stock", count: 0 };
+  }
 
-  if (entradas.length > 0) {
-    const r = await callBatchRpc("apply_reception", entradas, opts);
-    if (r.ok) count += r.count;
-    else errores.push(r.error);
-  }
-  if (salidas.length > 0) {
-    const r = await applyStockOut(salidas, opts);
-    if (r.ok) count += r.count;
-    else errores.push(r.error);
-  }
+  const count = Number(res.ajustados ?? 0);
+  const faltantes = res.desconocidos ?? [];
+
   if (faltantes.length > 0) {
-    errores.push(`sin producto: ${faltantes.join(", ")}`);
+    return { ok: false, error: `sin producto: ${faltantes.join(", ")}`, count };
   }
 
-  return errores.length > 0
-    ? { ok: false, error: errores.join(" | "), count }
-    : { ok: true, count };
+  return { ok: true, count };
 }
