@@ -302,7 +302,10 @@ function DetalleCierre({ resumen, onClose }: { resumen: CierreResumen; onClose: 
                     <p className="mt-1 text-xs text-gray-400 tabular-nums">
                       Créd {clp(v.credit_amount)} · Déb {clp(v.debit_amount)} · Prep {clp(v.prepaid_amount)}
                     </p>
-                    {Math.abs(desc) > 0.5 && (
+                    {/* Con las partes en cero no hay nada que comparar: así
+                        vienen los días importados de la planilla, que sólo
+                        traen el total del terminal. */}
+                    {Number(v.parts_total) > 0 && Math.abs(desc) > 0.5 && (
                       <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-amber-700">
                         <ExclamationTriangleIcon className="h-4 w-4" />
                         El desglose no suma el total: diferencia de {clp(Math.abs(desc))}
