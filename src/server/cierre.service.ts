@@ -36,6 +36,10 @@ export async function listarCierres(opts: {
       "id, business_date, branch_id, started_at, ended_at, starting_cash, actual_cash, is_declared, notes, declared_totals, pos_totals"
     )
     .eq("status", "CLOSED")
+    // Sólo cierres declarados: los turnos anteriores a este sistema se
+    // cerraron sin desglose y aparecerían como días de $0 junto a los reales,
+    // tanto en la tabla del mes como en el PDF del cuaderno contable.
+    .eq("is_declared", true)
     .order("business_date", { ascending: true })
     .limit(opts.limite ?? 200);
 
