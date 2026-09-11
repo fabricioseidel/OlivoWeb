@@ -166,7 +166,9 @@ BEGIN
   END LOOP;
 END $$;
 
--- La vista hereda el RLS de las tablas base; se revoca al público igual que
--- el resto de las vistas de reporte.
+-- Sin security_invoker la vista corre con los permisos de quien la creó y se
+-- salta el RLS de las tablas base para cualquiera que la consulte.
+ALTER VIEW public.v_customer_balances SET (security_invoker = true);
+
 REVOKE ALL ON public.v_customer_balances FROM PUBLIC, anon;
 GRANT SELECT ON public.v_customer_balances TO authenticated, service_role;
