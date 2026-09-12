@@ -20,6 +20,9 @@ import {
   EyeSlashIcon,
   AdjustmentsHorizontalIcon,
   FunnelIcon,
+  ArrowsRightLeftIcon,
+  ArchiveBoxIcon,
+  ClipboardDocumentCheckIcon,
 } from "@heroicons/react/24/outline";
 import { type SortPriority, type CompletenessTab, type SpecificFilter } from "../lib";
 
@@ -58,6 +61,11 @@ interface FiltersToolbarProps {
     ready: number;
   };
   missingCounts: {
+    with_stock: number;
+    counted: number;
+    counted_today: number;
+    uncounted: number;
+    duplicates: number;
     missing_photo: number;
     missing_price: number;
     missing_stock: number;
@@ -66,6 +74,9 @@ interface FiltersToolbarProps {
     missing_barcode: number;
     inactive: number;
   };
+  duplicateGroupCount: number;
+  showDuplicates: boolean;
+  setShowDuplicates: (v: boolean) => void;
   applyBulkAdjustment: (type: "price_percent" | "price_fixed" | "stock_fixed" | "cost_fixed", value: number) => void;
   bulkCategory: string;
   setBulkCategory: (v: string) => void;
@@ -104,6 +115,9 @@ export default function FiltersToolbar({
   filteredCount,
   tabCounts,
   missingCounts,
+  duplicateGroupCount,
+  showDuplicates,
+  setShowDuplicates,
   applyBulkAdjustment,
   bulkCategory,
   setBulkCategory,
@@ -140,10 +154,12 @@ export default function FiltersToolbar({
               onChange={(e) => setSortPriority(e.target.value as SortPriority)}
               className="bg-transparent text-xs font-black text-brand-900 focus:outline-none cursor-pointer pr-2"
             >
-              <option value="near_ready">🎯 Prioridad: Casi listos primero</option>
+              <option value="stock_real">📦 Prioridad: Stock real (contado) primero</option>
+              <option value="near_ready">🎯 Casi listos primero</option>
               <option value="most_incomplete">⚠️ Más incompletos primero</option>
               <option value="ready_first">✅ Listos / Publicados primero</option>
               <option value="name_asc">🔤 Nombre (A - Z)</option>
+              <option value="stock_desc">📈 Mayor stock primero</option>
               <option value="stock_asc">📉 Menor stock primero</option>
               <option value="price_asc">💲 Menor precio primero</option>
               <option value="price_desc">💲 Mayor precio primero</option>
@@ -202,6 +218,22 @@ export default function FiltersToolbar({
             <PercentBadgeIcon className="w-4 h-4 shrink-0" />
             <span>Acciones</span>
           </button>
+
+          {/* Revisión de duplicados */}
+          {duplicateGroupCount > 0 && (
+            <button
+              onClick={() => setShowDuplicates(!showDuplicates)}
+              title="El mismo producto cargado dos veces con códigos distintos"
+              className={`flex items-center gap-1.5 px-3.5 h-11 rounded-2xl font-black text-xs transition-all border-2 ${
+                showDuplicates
+                  ? "bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20"
+                  : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+              }`}
+            >
+              <ArrowsRightLeftIcon className="w-4 h-4 shrink-0" />
+              <span>Duplicados ({duplicateGroupCount})</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -273,6 +305,87 @@ export default function FiltersToolbar({
           <CheckBadgeIcon className="w-3.5 h-3.5 inline mr-1" />
           Listos ({tabCounts.ready})
         </button>
+      </div>
+
+      {/* ── Fila 2b: Stock real (lo que se publica primero) ── */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 shrink-0 mr-1 flex items-center gap-1">
+          <ArchiveBoxIcon className="w-3.5 h-3.5" /> Stock real:
+        </span>
+
+        {/* Con stock: lo primero que debe salir a la página */}
+        <button
+          type="button"
+          onClick={() => setSpecificFilter(specificFilter === "with_stock" ? "all" : "with_stock")}
+          title="Productos con stock mayor a 0: lo que hay de verdad en la tienda"
+          className={`px-3 py-1.5 rounded-xl font-black transition-all shrink-0 flex items-center gap-1.5 border ${
+            specificFilter === "with_stock"
+              ? "bg-emerald-600 text-white border-emerald-700 shadow-sm"
+              : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+          }`}
+        >
+          <span>📦 Con stock ({missingCounts.with_stock})</span>
+          <span className="text-[9px] bg-white/30 px-1 py-0.2 rounded font-black uppercase">Publicar ya</span>
+        </button>
+
+        {/* Escaneados en el conteo más reciente */}
+        <button
+          type="button"
+          onClick={() => setSpecificFilter(specificFilter === "counted_today" ? "all" : "counted_today")}
+          title="Escaneados en el conteo de las últimas 48 horas"
+          className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 flex items-center gap-1 border ${
+            specificFilter === "counted_today"
+              ? "bg-teal-600 text-white border-teal-700 shadow-sm"
+              : "bg-teal-50 text-teal-800 border-teal-200 hover:bg-teal-100"
+          }`}
+        >
+          <ClipboardDocumentCheckIcon className="w-3.5 h-3.5" />
+          Escaneados ayer ({missingCounts.counted_today})
+        </button>
+
+        {/* Todo lo que alguna vez pasó por un conteo */}
+        <button
+          type="button"
+          onClick={() => setSpecificFilter(specificFilter === "counted" ? "all" : "counted")}
+          title="Productos que ya pasaron por un conteo físico (inventario confirmado)"
+          className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 border ${
+            specificFilter === "counted"
+              ? "bg-cyan-600 text-white border-cyan-700 shadow-sm"
+              : "bg-cyan-50 text-cyan-800 border-cyan-200 hover:bg-cyan-100"
+          }`}
+        >
+          ✅ Inventario confirmado ({missingCounts.counted})
+        </button>
+
+        {/* Nunca contados: su stock no es confiable */}
+        <button
+          type="button"
+          onClick={() => setSpecificFilter(specificFilter === "uncounted" ? "all" : "uncounted")}
+          title="Nunca pasaron por un conteo: su stock no está confirmado"
+          className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 border ${
+            specificFilter === "uncounted"
+              ? "bg-slate-600 text-white border-slate-700 shadow-sm"
+              : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+          }`}
+        >
+          ❔ Sin confirmar ({missingCounts.uncounted})
+        </button>
+
+        {/* Posibles duplicados */}
+        {missingCounts.duplicates > 0 && (
+          <button
+            type="button"
+            onClick={() => setSpecificFilter(specificFilter === "duplicates" ? "all" : "duplicates")}
+            title="Filas que parecen ser el mismo producto con dos códigos de barra"
+            className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 border ${
+              specificFilter === "duplicates"
+                ? "bg-amber-600 text-white border-amber-700 shadow-sm"
+                : "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+            }`}
+          >
+            🔁 Posibles duplicados ({missingCounts.duplicates})
+          </button>
+        )}
       </div>
 
       {/* ── Fila 3: Filtros Específicos por Faltante ── */}

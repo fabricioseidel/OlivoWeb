@@ -18,9 +18,18 @@ import {
   isProductReady,
   getProductDiagnostics,
   loadBackups,
+  loadDismissedDuplicates,
   normalizeHeader,
   saveBackups,
+  saveDismissedDuplicates,
+  buildMergePlan,
+  findDuplicateGroups,
+  getPublishPriority,
+  getStock,
+  getVerifiedAt,
+  isRecentlyCounted,
   type Backup,
+  type DuplicateGroup,
   type ProductChanges,
   type SortPriority,
   type CompletenessTab,
@@ -33,6 +42,7 @@ import SelectionToolbar from "./components/SelectionToolbar";
 import ProductTable from "./components/ProductTable";
 import ProductCardsGrid from "./components/ProductCardsGrid";
 import MobileSaveBar from "./components/MobileSaveBar";
+import DuplicatesPanel from "./components/DuplicatesPanel";
 
 export default function BulkEditProductsPage() {
   const { products, updateProductsBulk, refresh } = useProducts();
@@ -44,7 +54,7 @@ export default function BulkEditProductsPage() {
   const [editedChanges, setEditedChanges] = useState<Record<string, ProductChanges>>({});
   const [filterLowStock, setFilterLowStock] = useState(false);
   const [filterWithImage, setFilterWithImage] = useState(false);
-  const [sortPriority, setSortPriority] = useState<SortPriority>("near_ready");
+  const [sortPriority, setSortPriority] = useState<SortPriority>("stock_real");
   const [completenessTab, setCompletenessTab] = useState<CompletenessTab>("all");
   const [specificFilter, setSpecificFilter] = useState<SpecificFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -54,6 +64,8 @@ export default function BulkEditProductsPage() {
   const [bulkCategory, setBulkCategory] = useState("");
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showDuplicates, setShowDuplicates] = useState(false);
+  const [dismissedDuplicates, setDismissedDuplicates] = useState<Set<string>>(new Set());
   const [backups, setBackups] = useState<Backup[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,6 +77,7 @@ export default function BulkEditProductsPage() {
 
   useEffect(() => {
     setBackups(loadBackups());
+    setDismissedDuplicates(loadDismissedDuplicates());
     const v = localStorage.getItem(VIEW_KEY);
     if (v === "cards" || v === "table") setViewMode(v);
     const s = localStorage.getItem(SORT_KEY) as SortPriority;
@@ -83,10 +96,36 @@ export default function BulkEditProductsPage() {
 
   const deferredSearch = useDeferredValue(searchTerm);
 
+  // Los posibles duplicados se calculan sobre el catálogo entero, no sobre lo
+  // filtrado: un duplicado sólo se ve comparando las dos filas, y casi siempre
+  // una de ellas está fuera del filtro con el que se está trabajando.
+  const duplicateGroups = useMemo(() => findDuplicateGroups(localProducts), [localProducts]);
+
+  // Los grupos ya revisados ("no son el mismo") o ya unificados salen de la
+  // cuenta: lo que queda es trabajo pendiente de verdad.
+  const pendingDuplicateGroups = useMemo(
+    () => duplicateGroups.filter((g) => !dismissedDuplicates.has(g.id)),
+    [duplicateGroups, dismissedDuplicates]
+  );
+
+  const duplicateIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const g of pendingDuplicateGroups) {
+      ids.add(String(g.keeper.id));
+      for (const o of g.others) ids.add(String(o.id));
+    }
+    return ids;
+  }, [pendingDuplicateGroups]);
+
   // Conteo dinámico de productos por estado de preparación y faltantes específicos
   const { tabCounts, missingCounts } = useMemo(() => {
     const tc = { all: localProducts.length, missing_1: 0, missing_2: 0, missing_3_plus: 0, ready: 0 };
     const mc = {
+      with_stock: 0,
+      counted: 0,
+      counted_today: 0,
+      uncounted: 0,
+      duplicates: duplicateIds.size,
       missing_photo: 0,
       missing_price: 0,
       missing_stock: 0,
@@ -96,12 +135,19 @@ export default function BulkEditProductsPage() {
       inactive: 0,
     };
 
+    const ahora = Date.now();
+
     for (const p of localProducts) {
       const diag = getProductDiagnostics(p, editedChanges[p.id]);
       if (diag.isReady) tc.ready++;
       else if (diag.missingCount === 1) tc.missing_1++;
       else if (diag.missingCount === 2) tc.missing_2++;
       else tc.missing_3_plus++;
+
+      if (getStock(p, editedChanges[p.id]) > 0) mc.with_stock++;
+      if (getVerifiedAt(p) !== null) mc.counted++;
+      else mc.uncounted++;
+      if (isRecentlyCounted(p, ahora)) mc.counted_today++;
 
       if (!diag.hasImage) mc.missing_photo++;
       if (!diag.hasPrice) mc.missing_price++;
@@ -113,11 +159,12 @@ export default function BulkEditProductsPage() {
     }
 
     return { tabCounts: tc, missingCounts: mc };
-  }, [localProducts, editedChanges]);
+  }, [localProducts, editedChanges, duplicateIds]);
 
   const filteredProducts = useMemo(() => {
     const term = deferredSearch.toLowerCase();
     const catFilter = categoryFilter.toLowerCase();
+    const ahora = Date.now();
     const result = localProducts.filter((p) => {
       const diag = getProductDiagnostics(p, editedChanges[p.id]);
 
@@ -142,6 +189,13 @@ export default function BulkEditProductsPage() {
       if (completenessTab === "missing_3_plus" && diag.missingCount < 3) return false;
       if (completenessTab === "ready" && !diag.isReady) return false;
 
+      // Filtro por stock real y por lo que ya pasó por el conteo físico
+      if (specificFilter === "with_stock" && getStock(p, editedChanges[p.id]) <= 0) return false;
+      if (specificFilter === "counted" && getVerifiedAt(p) === null) return false;
+      if (specificFilter === "counted_today" && !isRecentlyCounted(p, ahora)) return false;
+      if (specificFilter === "uncounted" && getVerifiedAt(p) !== null) return false;
+      if (specificFilter === "duplicates" && !duplicateIds.has(String(p.id))) return false;
+
       // Filtro específico por faltante
       if (specificFilter === "missing_photo" && diag.hasImage) return false;
       if (specificFilter === "missing_price" && diag.hasPrice) return false;
@@ -159,6 +213,20 @@ export default function BulkEditProductsPage() {
       const diagA = getProductDiagnostics(a, editedChanges[a.id]);
       const diagB = getProductDiagnostics(b, editedChanges[b.id]);
 
+      if (sortPriority === "stock_real") {
+        // Lo que hay de verdad, primero: contado y con stock. Dentro de cada
+        // tramo, los que están más cerca de poder publicarse.
+        const prioA = getPublishPriority(a, editedChanges[a.id]);
+        const prioB = getPublishPriority(b, editedChanges[b.id]);
+        if (prioA !== prioB) return prioA - prioB;
+        const faltaA = diagA.isReady ? -1 : diagA.missingCount;
+        const faltaB = diagB.isReady ? -1 : diagB.missingCount;
+        if (faltaA !== faltaB) return faltaA - faltaB;
+        const stockA = getStock(a, editedChanges[a.id]);
+        const stockB = getStock(b, editedChanges[b.id]);
+        if (stockA !== stockB) return stockB - stockA;
+        return a.name.localeCompare(b.name);
+      }
       if (sortPriority === "near_ready") {
         // Casi listos primero: 1 faltante, luego 2, luego 3... y al final los que ya están listos
         const scoreA = diagA.isReady ? 999 : diagA.missingCount;
@@ -186,6 +254,12 @@ export default function BulkEditProductsPage() {
         const sB = editedChanges[b.id]?.stock ?? b.stock ?? 0;
         return sA - sB;
       }
+      if (sortPriority === "stock_desc") {
+        const sA = editedChanges[a.id]?.stock ?? a.stock ?? 0;
+        const sB = editedChanges[b.id]?.stock ?? b.stock ?? 0;
+        if (sA !== sB) return sB - sA;
+        return a.name.localeCompare(b.name);
+      }
       if (sortPriority === "price_asc") {
         const pA = editedChanges[a.id]?.price ?? a.price ?? 0;
         const pB = editedChanges[b.id]?.price ?? b.price ?? 0;
@@ -208,6 +282,7 @@ export default function BulkEditProductsPage() {
     specificFilter,
     sortPriority,
     editedChanges,
+    duplicateIds,
   ]);
 
   const visibleProducts = useMemo(
@@ -453,6 +528,95 @@ export default function BulkEditProductsPage() {
       count > 0 ? "success" : "info"
     );
   };
+
+  // ── Duplicados ──────────────────────────────────────────────────
+  //
+  // Fusionar deja los cambios pendientes, como cualquier otra edición de esta
+  // página: nada se escribe hasta que se aprieta Guardar, y el guardado hace
+  // backup antes. Así se puede revisar la fusión (y descartarla) antes de que
+  // toque la base.
+
+  const dismissDuplicateGroup = useCallback((id: string) => {
+    setDismissedDuplicates((prev) => {
+      const next = new Set(prev).add(id);
+      saveDismissedDuplicates(next);
+      return next;
+    });
+  }, []);
+
+  const mergeDuplicateGroup = useCallback(
+    (group: DuplicateGroup) => {
+      const plan = buildMergePlan(group, editedChanges);
+
+      if (Object.keys(plan.changes).length === 0) {
+        showToast("Este grupo ya está unificado: no hay nada que corregir", "info");
+        dismissDuplicateGroup(group.id);
+        return;
+      }
+
+      setEditedChanges((prev) => {
+        const next = { ...prev };
+        for (const [id, cambios] of Object.entries(plan.changes)) {
+          next[id] = { ...next[id], ...cambios };
+        }
+        return next;
+      });
+      dismissDuplicateGroup(group.id);
+
+      const detalle = [
+        plan.rescued.length > 0 ? `se rescató ${plan.rescued.join(", ")}` : null,
+        plan.stockSumado ? `stock sumado: ${plan.stockFinal}` : null,
+        `${group.others.length} código(s) quedan ocultos en 0`,
+      ].filter(Boolean);
+
+      showToast(
+        `"${group.keeper.name}" unificado en ${group.keeper.id} — ${detalle.join(" · ")} (pendiente guardar)`,
+        "success"
+      );
+    },
+    [editedChanges, showToast, dismissDuplicateGroup]
+  );
+
+  const mergeAllDuplicates = useCallback(
+    (groups: DuplicateGroup[]) => {
+      const acumulado: Record<string, ProductChanges> = {};
+      let fusionados = 0;
+
+      for (const group of groups) {
+        const plan = buildMergePlan(group, { ...editedChanges, ...acumulado });
+        if (Object.keys(plan.changes).length === 0) continue;
+        for (const [id, cambios] of Object.entries(plan.changes)) {
+          acumulado[id] = { ...acumulado[id], ...cambios };
+        }
+        fusionados++;
+      }
+
+      if (fusionados === 0) {
+        showToast("No quedan duplicados por corregir", "info");
+        return;
+      }
+
+      setEditedChanges((prev) => {
+        const next = { ...prev };
+        for (const [id, cambios] of Object.entries(acumulado)) {
+          next[id] = { ...next[id], ...cambios };
+        }
+        return next;
+      });
+      setDismissedDuplicates((prev) => {
+        const next = new Set(prev);
+        for (const g of groups) next.add(g.id);
+        saveDismissedDuplicates(next);
+        return next;
+      });
+
+      showToast(
+        `${fusionados} grupo(s) de duplicados unificados sobre el código escaneado (pendiente guardar)`,
+        "success"
+      );
+    },
+    [editedChanges, showToast]
+  );
 
   const saveAllChanges = async () => {
     const targetIds = Object.keys(editedChanges);
@@ -766,6 +930,17 @@ export default function BulkEditProductsPage() {
         />
       )}
 
+      {showDuplicates && (
+        <DuplicatesPanel
+          groups={duplicateGroups}
+          dismissed={dismissedDuplicates}
+          onDismiss={dismissDuplicateGroup}
+          onMerge={mergeDuplicateGroup}
+          onMergeAll={mergeAllDuplicates}
+          onClose={() => setShowDuplicates(false)}
+        />
+      )}
+
       <FiltersToolbar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -795,6 +970,9 @@ export default function BulkEditProductsPage() {
         filteredCount={filteredProducts.length}
         tabCounts={tabCounts}
         missingCounts={missingCounts}
+        duplicateGroupCount={pendingDuplicateGroups.length}
+        showDuplicates={showDuplicates}
+        setShowDuplicates={setShowDuplicates}
         applyBulkAdjustment={applyBulkAdjustment}
         bulkCategory={bulkCategory}
         setBulkCategory={setBulkCategory}

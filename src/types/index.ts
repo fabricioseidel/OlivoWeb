@@ -22,6 +22,9 @@ export type SupaProduct = {
   min_stock?: number | null;
   optimum_stock?: number | null;
   bundle_config?: import('./bundle').BundleConfig | null;
+  /** Momento del último conteo físico que tocó este producto. */
+  verified_at?: string | null;
+  verified_by?: string | null;
 };
 
 export type { BundleConfig, BundleFixedItem, BundleOptionGroup, BundleOptionItem, SelectedBundleOption } from './bundle';
@@ -59,6 +62,13 @@ export type ProductUI = {
   minStock?: number;
   optimumStock?: number;
   bundle_config?: import('./bundle').BundleConfig | null;
+  /**
+   * `products.verified_at`: cuándo se escaneó este producto por última vez en
+   * un conteo físico. Es lo que separa "stock real, contado en la góndola" de
+   * "stock que quedó de una carga vieja", y por eso manda al decidir qué se
+   * publica primero y cuál de dos códigos duplicados es el bueno.
+   */
+  verifiedAt?: string | null;
 };
 
 export interface CartItem {

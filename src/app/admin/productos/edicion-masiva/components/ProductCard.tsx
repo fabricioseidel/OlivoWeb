@@ -10,7 +10,7 @@ import {
   EyeSlashIcon,
 } from "@heroicons/react/24/outline";
 import { compressImageFile } from "@/utils/image";
-import { getProductDiagnostics, type ProductChanges } from "../lib";
+import { getProductDiagnostics, getVerifiedAt, isRecentlyCounted, type ProductChanges } from "../lib";
 import CategorySelector from "./CategorySelector";
 
 interface ProductCardProps {
@@ -42,6 +42,8 @@ const ProductCard = memo(function ProductCard({
   const stock = changes?.stock ?? product.stock;
   const cats = changes?.categories ?? product.categories ?? [];
   const isActive = (changes?.isActive !== undefined ? changes.isActive : product.isActive) !== false;
+  const verifiedAt = getVerifiedAt(product);
+  const recienContado = isRecentlyCounted(product);
 
   const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -217,6 +219,21 @@ const ProductCard = memo(function ProductCard({
               </span>
             )}
           </div>
+        )}
+
+        {/* Marca del conteo físico: separa "stock real, alguien lo tuvo en la
+            mano" de "stock que quedó de una carga vieja". */}
+        {verifiedAt !== null && (
+          <span
+            title={`Escaneado en un conteo físico el ${new Date(verifiedAt).toLocaleString("es-CL")}`}
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border ${
+              recienContado
+                ? "bg-teal-50 text-teal-700 border-teal-200"
+                : "bg-gray-50 text-gray-500 border-gray-200"
+            }`}
+          >
+            ✅ Contado {new Date(verifiedAt).toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" })}
+          </span>
         )}
 
         <CategorySelector
