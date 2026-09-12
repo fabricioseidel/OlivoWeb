@@ -19,16 +19,18 @@ export default function ProductTable({ visibleProducts, editedChanges, onChange 
     // ancho fijo la tabla necesita ~1.040 px, y se muestra desde 1.024 px.
     <div className="hidden lg:block bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/40 border border-gray-50 overflow-hidden">
       <div className="overflow-x-auto">
-      <table className="w-full min-w-[1040px] text-left border-collapse">
+      <table className="w-full min-w-[1140px] text-left border-collapse">
         <thead>
           <tr className="bg-gray-50/50 border-b border-gray-100">
             <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400">Producto / SKU</th>
+            <th className="px-2 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-24 text-center">Vitrina</th>
             <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-48">Categorías</th>
-            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-28 text-right">Precio ($)</th>
-            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-28 text-right">Oferta ($)</th>
-            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-24 text-right">Stock</th>
-            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-20 text-right">Mín.</th>
-            <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-20 text-right">Ópt.</th>
+            <th className="px-2 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-24 text-right">Costo ($)</th>
+            <th className="px-2 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-24 text-right">Precio ($)</th>
+            <th className="px-2 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-24 text-right">Oferta ($)</th>
+            <th className="px-2 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-20 text-right">Stock</th>
+            <th className="px-2 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-16 text-right">Mín.</th>
+            <th className="px-2 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 w-16 text-right">Ópt.</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">

@@ -87,11 +87,12 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     minStock: p.min_stock ?? 5,
     optimumStock: p.optimum_stock ?? 20,
     bundle_config: bundleConfig,
+    verifiedAt: p.verified_at ?? null,
   };
 }
 
 export async function fetchAllProducts(): Promise<ProductUI[]> {
-  const baseSelect = 'barcode, name, category, sale_price, offer_price, image_url, stock, featured, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold, description, features';
+  const baseSelect = 'barcode, name, category, sale_price, offer_price, image_url, stock, featured, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold, description, features, verified_at';
   const fullSelect = `${baseSelect}, bundle_config`;
 
   let rows: any[] = [];
