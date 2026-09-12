@@ -348,12 +348,23 @@ export interface DuplicateGroup {
  * está en el envase que hoy está en la góndola. Si ninguno fue contado (o
  * empatan), gana el que tiene stock, y después el que tiene más datos.
  */
-function keeperScore(p: any): [number, number, number, number] {
+/**
+ * GS1 reserva los prefijos 02 y 20-29 para códigos de uso interno del local
+ * (los que genera una balanza o una carga a mano). Entre dos códigos del mismo
+ * producto, el del envase es el que no empieza con 2 — y es el que conviene
+ * conservar, porque es el que va a leer el escáner la próxima vez.
+ */
+export function isRealEan(barcode: string): boolean {
+  return !/^(2|02)/.test(String(barcode ?? "").replace(/\D/g, ""));
+}
+
+function keeperScore(p: any): [number, number, number, number, number] {
   const verificado = getVerifiedAt(p) ?? 0;
   const stock = getStock(p);
   const diag = getProductDiagnostics(p);
   const completo = 5 - diag.missingCount + (diag.hasCost ? 1 : 0);
-  return [verificado, stock, completo, diag.isActive ? 1 : 0];
+  const ean = isRealEan(p?.barcode ?? p?.id ?? "") ? 1 : 0;
+  return [verificado, stock, completo, ean, diag.isActive ? 1 : 0];
 }
 
 function mejorQue(a: any, b: any): boolean {
@@ -558,6 +569,12 @@ export function buildMergePlan(group: DuplicateGroup, existing?: Record<string, 
 
   if (stockFinal !== getStock(keeper)) keeperChanges.stock = stockFinal;
   if (keeper.isActive === false && stockFinal > 0) keeperChanges.isActive = true;
+
+  // Si el que se conserva arrastra la marca de una unificación anterior, se le
+  // saca: pasa a ser el producto bueno, no el repetido.
+  const nombreKeeper = String(keeper.name ?? "");
+  const nombreLimpio = nombreKeeper.replace(/\s*\[duplicado[^\]]*\]/gi, "").trim();
+  if (nombreLimpio && nombreLimpio !== nombreKeeper) keeperChanges.name = nombreLimpio;
 
   if (Object.keys(keeperChanges).length > 0) changes[keeper.id] = keeperChanges;
 

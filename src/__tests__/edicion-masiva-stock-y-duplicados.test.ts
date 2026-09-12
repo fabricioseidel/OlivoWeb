@@ -231,6 +231,34 @@ describe("Edición masiva: corrección de duplicados", () => {
     expect(plan.changes["7801620009342"]?.price).toBeUndefined();
   });
 
+  it("sin conteo ni stock, manda el código del envase y no el interno (GS1 2xxx)", () => {
+    // Caso real: "Pepsi Zero 1.5" (2848620006860, código interno del local) y
+    // "Pepsi Zero 1.5 Lt" (7801620006860, el del envase). El escáner va a leer
+    // el segundo, así que es el que se conserva.
+    const interno = producto({ id: "2848620006860", name: "Pepsi Zero 1.5", price: 2200, purchasePrice: 1134 });
+    const envase = producto({ id: "7801620006860", name: "Pepsi Zero 1.5 Lt", price: 2400, purchasePrice: 1134 });
+
+    const [grupo] = findDuplicateGroups([interno, envase]);
+    expect(grupo.keeper.id).toBe("7801620006860");
+  });
+
+  it("al titular se le saca la marca de una unificación anterior", () => {
+    const titular = producto({
+      id: "7622202015212",
+      name: "Halls negro [duplicado, unificado 27/08/2026]",
+      stock: 1,
+      price: 500,
+      verifiedAt: AYER,
+    });
+    const otro = producto({ id: "7622202015205", name: "Halls negro", price: 500 });
+
+    const [grupo] = findDuplicateGroups([titular, otro]);
+    const plan = buildMergePlan(grupo);
+
+    expect(grupo.keeper.id).toBe("7622202015212");
+    expect(plan.changes["7622202015212"].name).toBe("Halls negro");
+  });
+
   it("si ninguno fue contado, manda el que tiene stock", () => {
     const conStock = producto({ id: "7801620006860", name: "Pepsi Zero 1.5 Lt", stock: 4 });
     const sinStock = producto({ id: "2848620006860", name: "Pepsi Zero 1.5", stock: 0, price: 2200 });
