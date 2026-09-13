@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import {
   getCurrentShift,
   openShiftAction,
-  closeShiftAction,
   addCashMovementAction,
 } from "@/actions/shifts";
 import { CashShift } from "@/server/shifts.service";
@@ -51,7 +51,6 @@ export default function CajaPage() {
   const [shift, setShift] = useState<CashShift | null>(null);
   const [loading, setLoading] = useState(true);
   const [startingCash, setStartingCash] = useState(10000);
-  const [actualCash, setActualCash] = useState(0);
   const [movementAmount, setMovementAmount] = useState(0);
   const [movementReason, setMovementReason] = useState("");
   const [movementReference, setMovementReference] = useState("");
@@ -124,17 +123,6 @@ export default function CajaPage() {
     }
   };
 
-  const handleCloseShift = async () => {
-    if (!shift) return;
-    const res = await closeShiftAction(shift.id, actualCash);
-    if (res.ok) {
-      showToast("Caja cerrada ✓", "success");
-      setShift(null);
-      fetchShift();
-    } else {
-      showToast(res.toastMessage || "Error al cerrar caja", "error");
-    }
-  };
 
   const handleMovement = async (type: "IN" | "OUT") => {
     if (!shift || movementAmount <= 0) {
@@ -335,50 +323,27 @@ export default function CajaPage() {
             </div>
           </div>
 
+          {/* El cierre se hace en el POS del celular, no acá.
+              Este panel cerraba el turno cuadrando contra las ventas del POS,
+              que todavía no registra todas las ventas del día: dejaba el turno
+              CLOSED con un descuadre falso del porte de la venta en efectivo, y
+              además impedía registrar después el cierre declarado. Dos caminos
+              para cerrar, uno de los cuales corrompe el día, es peor que uno. */}
           <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm">
             <h3 className="text-xs font-black uppercase text-gray-400 tracking-widest mb-4 flex items-center gap-2">
               <LockClosedIcon className="h-4 w-4" /> Cierre de turno
             </h3>
-            <p className="text-xs text-gray-500 mb-3">
-              Monto total en efectivo contado físicamente:
+            <p className="text-sm text-gray-600 leading-relaxed mb-4">
+              El cierre del día se registra en el POS desde el celular: ahí se cuenta el efectivo por
+              denominación, se cargan las transferencias y los vouchers de la máquina, y se imprime
+              el comprobante.
             </p>
-            <input
-              type="number"
-              className="w-full bg-gray-900 ring-2 ring-gray-800 rounded-xl p-4 text-xl font-black text-brand-400 outline-none mb-3"
-              value={actualCash || ""}
-              onChange={(e) => setActualCash(Number(e.target.value))}
-              placeholder="0"
-            />
-            {actualCash > 0 && (
-              <div
-                className={`p-3 rounded-xl mb-3 text-center ${
-                  actualCash >= expectedCash
-                    ? "bg-brand-50 ring-1 ring-brand-200"
-                    : "bg-rose-50 ring-1 ring-rose-200"
-                }`}
-              >
-                <span className="text-xs font-bold text-gray-500">
-                  Diferencia:{" "}
-                </span>
-                <span
-                  className={`text-lg font-black ${
-                    actualCash >= expectedCash
-                      ? "text-brand-700"
-                      : "text-rose-700"
-                  }`}
-                >
-                  {CLP(actualCash - expectedCash)}
-                </span>
-              </div>
-            )}
-            <OlivoButton
-              fullWidth
-              size="lg"
-              onClick={handleCloseShift}
-              className="bg-gray-900 text-white hover:bg-black uppercase tracking-widest text-xs"
+            <Link
+              href="/admin/cierres"
+              className="block w-full rounded-xl bg-gray-900 px-4 py-3 text-center text-xs font-black uppercase tracking-widest text-white hover:bg-black transition-colors"
             >
-              Finalizar y cerrar caja
-            </OlivoButton>
+              Ver el libro de caja
+            </Link>
           </div>
         </div>
 
