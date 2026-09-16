@@ -52,6 +52,45 @@ export function feeUberACLP(feeCrudo: number): number {
 export const TOPE_FLASH_CLP = 6500;
 
 /**
+ * Tope al recotizar en el despacho, cuando el cliente **ya pagó**, en CLP.
+ *
+ * `TOPE_FLASH_CLP` decide si el flash se **ofrece**; quien lo supera al
+ * cotizar simplemente elige otra cosa y nadie pierde nada. Este otro decide si
+ * se **despacha** un pedido ya cobrado, y ahí la situación es distinta: la
+ * cotización guardada caduca a los pocos minutos, así que entre el pago y el
+ * despacho se pide una nueva —y esa nueva no la vio nadie—.
+ *
+ * Sin tope, esa recotización se creaba al precio que fuera. Un pico de lluvia
+ * o de demanda entre el pago y la confirmación de MercadoPago podía dejar una
+ * entrega de $20.000 sobre un envío cobrado a $3.000, o sobre uno regalado, en
+ * silencio y sin nada que lo frenara.
+ *
+ * Es más alto que el de la oferta a propósito: el cliente ya pagó y dejarlo
+ * sin entrega para ahorrar $1.000 es peor negocio que absorberlos. 1,5 veces
+ * el tope de oferta cae además cerca de los ~$9.300 que aguanta un pedido
+ * regalado antes de perder plata, que es el peor caso posible.
+ *
+ * Por encima de esto el pedido queda marcado como fallido —con el precio a la
+ * vista en el panel— y lo resuelve una persona: reintentar más tarde, cuando
+ * el pico pase, o llevarlo con el reparto propio. Se pierde una entrega, no
+ * una cantidad de plata desconocida.
+ */
+export const TOPE_FLASH_DESPACHO_CLP = Math.round(TOPE_FLASH_CLP * 1.5);
+
+/**
+ * ¿Se puede crear la entrega a este precio, con el pedido ya pagado?
+ *
+ * `null` —Uber no cubre la dirección— no se puede despachar tampoco.
+ */
+export function despachoAceptable(
+  costoUber: number | null,
+  tope: number = TOPE_FLASH_DESPACHO_CLP
+): boolean {
+  if (costoUber === null || !Number.isFinite(costoUber)) return false;
+  return costoUber <= tope;
+}
+
+/**
  * Cuánto puede subir la segunda cotización sin volver a preguntarle al cliente.
  *
  * Por debajo de esto se le cobra lo que vio, y la diferencia la absorbe la

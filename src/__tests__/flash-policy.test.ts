@@ -7,6 +7,8 @@ import {
   revalidarFlash,
   feeUberACLP,
   TOPE_FLASH_CLP,
+  TOPE_FLASH_DESPACHO_CLP,
+  despachoAceptable,
   MARGEN_REVALIDACION_FLASH,
 } from "@/lib/flash-policy";
 import { tiendaAbierta } from "@/lib/delivery-slots";
@@ -192,5 +194,39 @@ describe("el horario que se le publica al cliente", () => {
     // Y el borde que publica es el borde que aplica.
     expect(tiendaAbierta("2024-01-01", 20 * 60 + 29)).toBe(true);
     expect(tiendaAbierta("2024-01-01", 20 * 60 + 30)).toBe(false);
+  });
+});
+
+/**
+ * El tope de la oferta y el del despacho responden preguntas distintas.
+ *
+ * El primero decide si el flash se **muestra** —quien lo supera elige otra
+ * cosa y nadie pierde nada—. El segundo decide si se **despacha** un pedido ya
+ * pagado, con una cotización que el cliente nunca vio porque la suya caducó.
+ */
+describe("tope de despacho", () => {
+  it("es más alto que el de la oferta: el cliente ya pagó", () => {
+    expect(TOPE_FLASH_DESPACHO_CLP).toBeGreaterThan(TOPE_FLASH_CLP);
+  });
+
+  it("acepta hasta el tope inclusive", () => {
+    expect(despachoAceptable(TOPE_FLASH_DESPACHO_CLP)).toBe(true);
+    expect(despachoAceptable(TOPE_FLASH_DESPACHO_CLP + 1)).toBe(false);
+  });
+
+  it("acepta lo que la oferta ya había aceptado", () => {
+    expect(despachoAceptable(TOPE_FLASH_CLP)).toBe(true);
+  });
+
+  it("no despacha sin cobertura ni con un costo que no es número", () => {
+    // Un NaN pasaría la comparación `<=` y crearía la entrega a ciegas.
+    expect(despachoAceptable(null)).toBe(false);
+    expect(despachoAceptable(NaN)).toBe(false);
+    expect(despachoAceptable(Infinity)).toBe(false);
+  });
+
+  it("deja inyectar el tope para poder probarlo", () => {
+    expect(despachoAceptable(5000, 4000)).toBe(false);
+    expect(despachoAceptable(3000, 4000)).toBe(true);
   });
 });
