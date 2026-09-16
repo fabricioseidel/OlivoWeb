@@ -15,6 +15,7 @@
 import { supabaseServer } from '@/lib/supabase-server';
 import { auditLog } from '@/server/audit.service';
 import { cotizarFlash, crearEntregaFlash } from '@/server/uber-direct.service';
+import { despachoAceptable, TOPE_FLASH_DESPACHO_CLP } from '@/lib/flash-policy';
 
 export type PedidoParaDespachar = {
   id: string;
@@ -131,6 +132,40 @@ export async function despacharPedidoFlash(
         });
         return { ok: false, motivo };
       }
+
+      /**
+       * Esta cotización no la vio nadie: se pide después del pago, porque la
+       * que el cliente aceptó ya caducó. Sin tope se creaba la entrega al
+       * precio que fuera —un pico de lluvia entre el pago y la confirmación de
+       * MercadoPago dejaba una entrega de $20.000 sobre un envío cobrado a
+       * $3.000, o sobre uno regalado—, en silencio y sin nada que lo frenara.
+       *
+       * Por encima del tope no se crea: el pedido queda fallido con el precio
+       * a la vista y lo decide una persona —reintentar cuando el pico pase, o
+       * llevarlo con el reparto propio—. Se pierde una entrega, no una
+       * cantidad de plata desconocida.
+       */
+      if (!despachoAceptable(nueva.costoCLP)) {
+        const motivo =
+          `Uber está cobrando $${nueva.costoCLP.toLocaleString('es-CL')} por esta entrega, ` +
+          `sobre el tope de $${TOPE_FLASH_DESPACHO_CLP.toLocaleString('es-CL')}. ` +
+          `No se pidió el repartidor. Reintenta más tarde o llévalo con el reparto propio.`;
+        await marcarFallo(orderId, motivo);
+        await auditLog({
+          action: 'UBER_DELIVERY_FAILED',
+          entity: 'orders',
+          entityId: orderId,
+          actor,
+          details: {
+            motivo: 'sobre-el-tope-de-despacho',
+            costoRecotizado: nueva.costoCLP,
+            tope: TOPE_FLASH_DESPACHO_CLP,
+            cobradoAlCliente: Number(pedido.shipping_cost) || 0,
+          },
+        });
+        return { ok: false, motivo };
+      }
+
       quoteId = nueva.quoteId;
     }
 
