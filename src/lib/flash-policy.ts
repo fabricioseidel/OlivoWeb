@@ -44,10 +44,10 @@ export function feeUberACLP(feeCrudo: number): number {
  * en hora punta y con lluvia**, que es cuando Uber sube, así que este número
  * hay que revisarlo con datos y no dejarlo envejecer.
  *
- * Sostiene también el envío gratis: con el mínimo del flash en $40.000 y un
- * margen de catálogo de 27,5% menos la comisión de MercadoPago, un pedido
- * regalado aguanta hasta unos $9.300 de costo. Cortar en $6.500 deja el pedido
- * cómodamente en azul incluso en el peor caso admitido.
+ * Sostiene también el envío gratis: con el mínimo del flash en $50.000 y el
+ * margen real medido del catálogo (36,8%) menos la comisión de MercadoPago, un
+ * pedido regalado aguanta bastante más de $9.000 de costo. Cortar en $6.500
+ * deja el pedido en azul incluso sumándole el cupón de bienvenida.
  */
 export const TOPE_FLASH_CLP = 6500;
 
@@ -102,16 +102,21 @@ export const MARGEN_REVALIDACION_FLASH = 0.1;
 /**
  * Mínimo de envío gratis del flash, en CLP.
  *
- * Más alto que el del agendado ($30.000) porque el costo es muy distinto:
- * regalar el reparto propio cuesta bencina, regalar uno de Uber cuesta lo que
- * Uber cobre ese día. A $40.000, con margen de catálogo 27,5% menos la
- * comisión de MercadoPago, el pedido aguanta hasta unos $9.300 de envío antes
- * de perder plata — el doble del máximo medido.
+ * Bastante más alto que el del agendado ($35.000) porque el costo es de otra
+ * naturaleza: regalar el reparto propio cuesta bencina, regalar uno de Uber
+ * cuesta plata contante, lo que Uber cobre ese día.
+ *
+ * Subió de $40.000 a $50.000 el 2026-09-16. A $40.000 el pedido se daba vuelta
+ * cuando el cliente además usaba un cupón: con el margen real medido del
+ * catálogo (36,8%), un 20% de descuento y Uber en el techo de su rango, el
+ * pedido quedaba unos $1.100 en rojo. A $50.000 el mismo caso queda en azul
+ * —apenas, +$240 en el peor escenario admitido— y holgado en el rango normal
+ * de Uber ($3.000 a $4.700).
  *
  * Es el valor de fábrica: si la configuración de la tienda trae uno propio,
- * manda ese.
+ * manda ese. Hoy la tienda tiene $50.000 cargado.
  */
-export const MINIMO_FLASH_CLP_DEFAULT = 40000;
+export const MINIMO_FLASH_CLP_DEFAULT = 50000;
 
 export type FlashQuote = {
   /** Si es `false`, la opción no se muestra. `motivo` dice por qué. */

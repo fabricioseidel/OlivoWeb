@@ -1004,7 +1004,7 @@ programada y barata; Uber queda para quien quiera rapidez y la pague.
 | **Qué es** | Retiro en tienda | Envío a domicilio agendado | Envío flash |
 | **Quién** | El cliente | El dueño, en su ronda | Uber Direct |
 | **Precio** | Gratis | $1.500 hasta 2 km; por distancia hasta 6 km | Lo que cotice Uber |
-| **Gratis desde** | — | $30.000 | $40.000 |
+| **Gratis desde** | — | $35.000 | $50.000 |
 | **Estado** | Andando | **Andando** | **Andando** |
 
 ### Los dos tramos de precio de la opción 2
@@ -1125,11 +1125,18 @@ un error que en producción no ocurre.
 
 ### Los dos mínimos de envío gratis
 
-`free_shipping_minimum` (agendado, $30.000) y `free_shipping_minimum_flash`
-(flash, $40.000), los dos editables desde el panel. Son dos y no uno porque el
-mismo regalo cuesta plata muy distinta según quién reparta. La migración
+`free_shipping_minimum` (agendado, $35.000) y `free_shipping_minimum_flash`
+(flash, $50.000), los dos editables desde el panel. Son dos y no uno porque el
+mismo regalo cuesta plata muy distinta según quién reparta: el agendado cuesta
+bencina, el flash cuesta lo que Uber cobre ese día. La migración
 `20260828000500` agrega la columna; es idempotente y está probada contra un
 Postgres 16 real.
+
+Subieron el 2026-09-16 (agendado $30.000 → $35.000, flash $40.000 → $50.000).
+El del flash subió porque a $40.000 el pedido se daba vuelta cuando el cliente
+además usaba un cupón: con el margen real medido del catálogo (36,8%), un 20%
+de descuento y Uber en el techo de su rango, quedaba unos $1.100 en rojo. A
+$50.000 ese mismo caso queda en azul.
 
 ### Lo que falta
 
