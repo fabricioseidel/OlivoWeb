@@ -12,6 +12,7 @@ import { whatsappLink, cartInquiryMessage } from "@/utils/whatsapp";
 import { useSiteCopy } from "@/hooks/useSiteCopy";
 import { enTemporadaDieciochera, RUTA_FIESTAS_PATRIAS } from "@/lib/fiestas-patrias";
 import BanderaChile from "@/components/fiestas/BanderaChile";
+import AhorroBienvenida from "@/components/carrito/AhorroBienvenida";
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString("es-CL")}`;
 
@@ -258,6 +259,11 @@ export default function CartPage() {
             )}
 
             <h2 className="o-h3 mb-4 text-neutral-900">Resumen</h2>
+
+            {/* El ahorro del cupón se muestra acá y no sólo en el checkout: la
+                decisión de comprar se toma mirando este resumen. El monto lo
+                calcula el servidor, con la misma ruta que el checkout. */}
+            <AhorroBienvenida cartItems={cartItems} subtotal={subtotal} />
 
             <dl className="space-y-3 border-b border-neutral-100 pb-4">
               <div className="flex items-baseline justify-between gap-3">
