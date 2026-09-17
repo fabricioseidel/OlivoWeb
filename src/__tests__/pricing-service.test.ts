@@ -193,6 +193,50 @@ describe('proveedor que manda', () => {
     expect(f.proveedores.find((p: any) => p.preferido)?.supplierName).toBe('Distribuidora Central');
   });
 
+  /**
+   * El caso real: la Galleta Tritón Vainilla tenía dos proveedores con la misma
+   * prioridad —Comech a $885 con IVA y Central Mayorista a $580— y cada capa
+   * elegía uno distinto. `costo_del_proveedor_preferido()` en la base ordena
+   * `priority ASC, unit_cost ASC` y se quedaba con $580; este panel no tenía
+   * desempate y se quedaba con la primera fila que llegara, $885. El producto
+   * aparecía con 11,5% de margen, en la lista de los que se van a pérdida con
+   * un cupón, cuando en realidad deja 42%.
+   */
+  it('a igual prioridad manda el más barato, como en la base', async () => {
+    tablas.product_suppliers = [
+      asignacion({ supplier_id: PROVEEDOR_B, priority: 1, unit_cost: 743.98, unit_cost_gross: 885.34 }),
+      asignacion({ supplier_id: PROVEEDOR_A, priority: 1, unit_cost: 487.39, unit_cost_gross: 579.99 }),
+    ];
+    const f = await fila();
+
+    expect(f.costoNeto).toBe(487.39);
+    expect(f.proveedores.find((p: any) => p.preferido)?.supplierName).toBe('Distribuidora Central');
+  });
+
+  it('el desempate no depende del orden en que lleguen las filas', async () => {
+    const caro = asignacion({ supplier_id: PROVEEDOR_B, priority: 1, unit_cost: 743.98, unit_cost_gross: 885.34 });
+    const barato = asignacion({ supplier_id: PROVEEDOR_A, priority: 1, unit_cost: 487.39, unit_cost_gross: 579.99 });
+
+    tablas.product_suppliers = [caro, barato];
+    expect((await fila()).costoNeto).toBe(487.39);
+
+    tablas.product_suppliers = [barato, caro];
+    expect((await fila()).costoNeto).toBe(487.39);
+  });
+
+  it('la prioridad sigue mandando por sobre el precio', async () => {
+    // Un proveedor más caro pero marcado como principal se respeta: puede ser
+    // el único que entrega a tiempo, y eso lo decide una persona.
+    tablas.product_suppliers = [
+      asignacion({ supplier_id: PROVEEDOR_A, priority: 1, unit_cost: 1000, unit_cost_gross: 1190 }),
+      asignacion({ supplier_id: PROVEEDOR_B, priority: 2, unit_cost: 500, unit_cost_gross: 595 }),
+    ];
+    const f = await fila();
+
+    expect(f.costoNeto).toBe(1000);
+    expect(f.hayProveedorMasBarato).toBe(true);
+  });
+
   it('un proveedor principal sin costo no puede decidir el precio', async () => {
     tablas.product_suppliers = [
       asignacion({ supplier_id: PROVEEDOR_A, priority: 1, unit_cost: null, unit_cost_gross: null }),

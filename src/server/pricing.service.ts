@@ -187,16 +187,36 @@ type FilaHistorial = {
 /**
  * Elige el proveedor que manda para el margen.
  *
- * Es el de prioridad más baja **que tenga costo**: un proveedor marcado como
- * principal pero sin precio cargado no puede decidir a cuánto se vende.
+ * Es el de prioridad más baja **que tenga costo** —un proveedor marcado como
+ * principal pero sin precio cargado no puede decidir a cuánto se vende— y, a
+ * igualdad de prioridad, **el más barato**.
+ *
+ * Ese desempate no es un detalle: tiene que ser el mismo que usa la base, o el
+ * mismo producto termina con dos costos oficiales distintos según quién
+ * pregunte. `costo_del_proveedor_preferido()` ordena
+ * `priority ASC, unit_cost ASC`, y de ahí sale `products.purchase_price`, que
+ * es lo que mira la vitrina. Acá el desempate no existía: el `reduce` con `<`
+ * estricto se quedaba con la primera fila que llegara, y el orden de llegada
+ * no está definido.
+ *
+ * La Galleta Tritón Vainilla tenía las dos: Comercializadora Comech a $885 con
+ * IVA y Central Mayorista a $580, las dos con prioridad 1. La base tomaba $580
+ * y este panel tomaba $885, así que el producto aparecía con 11,5% de margen
+ * —en la lista de los que se van a pérdida con un cupón— cuando en realidad
+ * deja 42%. Se iba a corregir un precio que no tenía nada malo.
  */
 function elegirPreferido(proveedores: FilaProveedor[]): FilaProveedor | null {
   const conCosto = proveedores.filter((p) => numero(p.unit_cost) !== null);
   if (conCosto.length === 0) return null;
 
-  return conCosto.reduce((mejor, actual) =>
-    (actual.priority ?? 999) < (mejor.priority ?? 999) ? actual : mejor
-  );
+  return conCosto.reduce((mejor, actual) => {
+    const pa = actual.priority ?? 999;
+    const pm = mejor.priority ?? 999;
+    if (pa !== pm) return pa < pm ? actual : mejor;
+    return (numero(actual.unit_cost) ?? Infinity) < (numero(mejor.unit_cost) ?? Infinity)
+      ? actual
+      : mejor;
+  });
 }
 
 export async function obtenerFotoPrecios(): Promise<FotoPrecios> {
