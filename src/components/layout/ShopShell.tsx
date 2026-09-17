@@ -5,6 +5,7 @@ import { ReactNode } from "react";
 import Navbar from "./Navbar";
 import BottomNav from "./BottomNav";
 import PreviewBanner from "./PreviewBanner";
+import FranjaBienvenida from "./FranjaBienvenida";
 import FranjaDieciochera from "@/components/fiestas/FranjaDieciochera";
 import Footer from "./Footer";
 
@@ -30,6 +31,13 @@ export default function ShopShell({ children }: { children: ReactNode }) {
           </a>
           <div className="print:hidden">
             <PreviewBanner />
+          </div>
+          {/* El descuento de bienvenida. Va antes del navbar y no dentro para
+              que el encabezado siga siendo sticky por su cuenta: la franja se
+              desplaza con la página y no se come alto de pantalla en móvil.
+              Se esconde sola para quien ya usó su cupón. */}
+          <div className="print:hidden">
+            <FranjaBienvenida />
           </div>
           {/* Cinta de temporada. Va sobre el encabezado y no dentro, para
               que el navbar siga siendo sticky por su cuenta y la cinta se
