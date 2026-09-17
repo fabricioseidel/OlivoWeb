@@ -107,6 +107,45 @@ export function precioEfectivo(
   return lista;
 }
 
+/**
+ * Una línea del carrito, tal como la ve el servidor: con el precio de catálogo,
+ * no con el que mandó el navegador.
+ */
+export type LineaDescontable = {
+  precioVenta: unknown;
+  precioOferta?: unknown;
+  cantidad: number;
+};
+
+/**
+ * Cuánto del carrito puede descontar un cupón.
+ *
+ * **Los cupones no se acumulan con las ofertas.** Un producto ya rebajado no
+ * entra en la base sobre la que se calcula el porcentaje; sólo entran los que
+ * están a precio de lista.
+ *
+ * El motivo es de margen y se mide: el catálogo deja 36,8% promedio, así que un
+ * 20% sobre el precio de lista todavía deja aire. Pero una oferta ya se comió
+ * parte de ese margen —hay ofertas del 23%—, y apilarle el cupón encima manda
+ * el producto por debajo del costo. Peor: sobre una oferta más profunda que el
+ * cupón, calcular el descuento sobre la lista daría un precio **más alto** que
+ * el de la oferta, o sea que el cupón encarecería el producto.
+ *
+ * Con esta regla las dos cosas desaparecen: la oferta manda en los productos
+ * rebajados y el cupón manda en el resto. Y se explica en una línea, que es lo
+ * que hay que poder decirle al cliente.
+ */
+export function baseDescontable(lineas: LineaDescontable[]): number {
+  let base = 0;
+  for (const l of lineas) {
+    const cantidad = Number(l.cantidad);
+    if (!esFinito(cantidad) || cantidad <= 0) continue;
+    if (hayOferta(l.precioVenta, l.precioOferta)) continue;
+    base += precioEfectivo(l.precioVenta) * Math.floor(cantidad);
+  }
+  return base;
+}
+
 /** ¿Hay una oferta vigente que efectivamente baja el precio? */
 export function hayOferta(precioVenta: unknown, precioOferta?: unknown): boolean {
   return precioEfectivo(precioVenta, precioOferta) < precioEfectivo(precioVenta);

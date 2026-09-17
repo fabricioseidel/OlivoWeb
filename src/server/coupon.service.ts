@@ -53,7 +53,17 @@ export async function getCouponByCode(code: string): Promise<Coupon | null> {
 export async function validateCoupon(
   code: string,
   cartTotal: number,
-  customerEmail?: string
+  customerEmail?: string,
+  /**
+   * Cuánto del carrito puede descontar el cupón: el subtotal **sin** los
+   * productos que ya están en oferta. Si no se pasa, se descuenta sobre el
+   * carrito entero, que es como se comportaba antes.
+   *
+   * Va aparte de `cartTotal` porque los dos números responden preguntas
+   * distintas: la compra mínima del cupón mira el carrito completo —el cliente
+   * gastó eso— y el porcentaje mira sólo lo que no está rebajado.
+   */
+  baseDescontableCLP?: number
 ): Promise<CouponValidation> {
   const coupon = await getCouponByCode(code);
 
@@ -101,19 +111,42 @@ export async function validateCoupon(
     }
   }
 
-  // Calculate discount
+  // Los cupones no se acumulan con las ofertas: el porcentaje se aplica sólo
+  // sobre la parte del carrito que está a precio de lista. La regla vive en
+  // `pricing.baseDescontable`; acá sólo se usa el número que devuelve.
+  const base =
+    typeof baseDescontableCLP === "number" && Number.isFinite(baseDescontableCLP)
+      ? Math.max(0, baseDescontableCLP)
+      : cartTotal;
+
   let discount = 0;
   switch (coupon.discount_type) {
     case "percentage":
-      discount = (cartTotal * coupon.discount_value) / 100;
+      discount = (base * coupon.discount_value) / 100;
       if (coupon.max_discount) discount = Math.min(discount, coupon.max_discount);
       break;
     case "fixed_amount":
-      discount = Math.min(coupon.discount_value, cartTotal);
+      // Un cupón de monto fijo tampoco puede descontar más que la parte no
+      // rebajada, o volvería a apilarse sobre las ofertas por otra puerta.
+      discount = Math.min(coupon.discount_value, base);
       break;
     case "free_shipping":
       discount = 0; // Handled separately in checkout
       break;
+  }
+
+  // Un cupón que no puede descontar nada —el carrito es todo oferta— es válido
+  // pero no hace nada. Decirlo es mejor que mostrar "✅ 20% de descuento" y un
+  // total que no se movió.
+  if (discount === 0 && coupon.discount_type !== "free_shipping") {
+    return {
+      valid: true,
+      coupon,
+      discount: 0,
+      message:
+        "Tu cupón no se aplica: los productos de tu carrito ya están en oferta. " +
+        "Guárdalo para productos a precio normal.",
+    };
   }
 
   const discountLabel =

@@ -10,12 +10,17 @@ import {
   ArrowRightIcon,
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
+import { BIENVENIDA, BIENVENIDA_COPY } from "@/lib/bienvenida";
 
 /** Debe coincidir con el cupón que emite /api/auth/register para
  *  source = "tienda_fisica". Si allí cambia, cámbialo también aquí. */
-const WELCOME_DISCOUNT_PERCENT = 15;
-const WELCOME_MIN_PURCHASE = 20000;
-const WELCOME_BONUS_POINTS = 200;
+// Los números salen de la fuente única, no repetidos acá: esta página promete
+// lo que `/api/auth/register` emite. Cuando estaban escritos a mano, la página
+// decía 15% y "en tu primera compra" sin mencionar la compra mínima, y el
+// cliente se enteraba recién al intentar aplicarlo en el checkout.
+const WELCOME_DISCOUNT_PERCENT = BIENVENIDA.porcentaje;
+const WELCOME_MIN_PURCHASE = BIENVENIDA.compraMinima;
+const WELCOME_BONUS_POINTS = BIENVENIDA.puntosTiendaFisica;
 
 const clp = (n: number) => `$${n.toLocaleString("es-CL")}`;
 
@@ -34,10 +39,7 @@ export default function BienvenidosPage() {
     {
       icon: GiftIcon,
       title: `Cupón de ${WELCOME_DISCOUNT_PERCENT}% de descuento`,
-      // El cupón se emite con min_purchase = 20000. Antes la página prometía el
-      // descuento "en tu primera compra" sin decirlo, y el cliente se enteraba
-      // recién al intentar aplicarlo en el checkout.
-      detail: `Válido por 30 días en compras sobre ${clp(WELCOME_MIN_PURCHASE)}.`,
+      detail: BIENVENIDA_COPY.condiciones,
     },
     {
       icon: StarIcon,

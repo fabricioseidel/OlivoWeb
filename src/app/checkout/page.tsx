@@ -114,6 +114,9 @@ export default function CheckoutPage() {
     couponId?: number;
   } | null>(null);
 
+  /** La persona sacó el cupón a mano: no se lo volvemos a poner. */
+  const [cuponRechazado, setCuponRechazado] = useState(false);
+
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     fullName: "",
     email: "",
@@ -418,6 +421,21 @@ export default function CheckoutPage() {
     }
   }, [session, status, triggerShippingCalculation]);
 
+  /**
+   * Firma del carrito: cambia si cambia algún código o alguna cantidad.
+   *
+   * Sirve para volver a pedir el descuento cuando el carrito se mueve. Con los
+   * cupones sin acumular, cuánto descuenta depende de qué haya adentro: sacar
+   * el único producto a precio de lista deja el descuento en cero. Si el número
+   * se calculara una sola vez al aplicar el cupón, el checkout mostraría un
+   * total y el servidor cobraría otro — que es exactamente el problema que ya
+   * nos costó un pedido cobrado de más.
+   */
+  const firmaDelCarrito = useMemo(
+    () => cartItems.map((i) => `${i.id}:${i.quantity}`).join("|"),
+    [cartItems]
+  );
+
   const handleApplyCoupon = async (code: string) => {
     try {
       const response = await fetch('/api/coupons/validate', {
@@ -426,7 +444,11 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           code,
           cartTotal: subtotal,
-          customerEmail: shippingInfo.email
+          customerEmail: shippingInfo.email,
+          // Los cupones no se acumulan con las ofertas, así que el servidor
+          // necesita saber qué hay en el carrito para calcular sobre qué parte
+          // aplica. Van sólo códigos y cantidades: los precios los pone él.
+          items: cartItems.map((i) => ({ id: i.id, quantity: i.quantity })),
         }),
       });
       const data = await response.json();
@@ -448,8 +470,85 @@ export default function CheckoutPage() {
   };
 
   const handleRemoveCoupon = () => {
+    setCuponRechazado(true);
     setAppliedCoupon(null);
   };
+
+  /**
+   * Aplica solo el cupón que la persona ya tiene.
+   *
+   * `coupons.auto_apply` existía en la base desde el principio y nadie lo leía:
+   * el cliente recibía su cupón de bienvenida al registrarse y después tenía
+   * que acordarse del código y tipearlo acá. Ahora llega al pago y ya lo ve
+   * descontado.
+   *
+   * No se vuelve a aplicar si la persona lo sacó a mano (`cuponRechazado`):
+   * insistir con algo que acaba de rechazar es pelearle a la interfaz.
+   */
+  useEffect(() => {
+    if (status !== "authenticated" || appliedCoupon || cuponRechazado) return;
+    if (cartItems.length === 0) return;
+
+    let cancelado = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/coupons/mio");
+        const { cupon } = await r.json();
+        if (cancelado || !cupon?.code) return;
+        await handleApplyCoupon(cupon.code);
+      } catch {
+        // Sin cupón automático el checkout funciona igual; no se molesta al
+        // cliente con un error por algo que él no pidió.
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, appliedCoupon, cuponRechazado, cartItems.length]);
+
+  /**
+   * Recalcula el descuento cuando cambia el carrito.
+   *
+   * Cuánto descuenta el cupón depende de qué haya adentro, porque no se acumula
+   * con las ofertas. Sin esto, agregar o sacar productos dejaba el descuento
+   * viejo en pantalla mientras el servidor cobraba el correcto.
+   */
+  useEffect(() => {
+    if (!appliedCoupon?.code) return;
+
+    let cancelado = false;
+    (async () => {
+      const r = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: appliedCoupon.code,
+          cartTotal: subtotal,
+          customerEmail: shippingInfo.email,
+          items: cartItems.map((i) => ({ id: i.id, quantity: i.quantity })),
+        }),
+      }).catch(() => null);
+      if (!r || cancelado) return;
+
+      const data = await r.json().catch(() => null);
+      if (!data || cancelado) return;
+
+      if (!data.valid) {
+        setAppliedCoupon(null);
+        return;
+      }
+      if (data.discount !== appliedCoupon.discount) {
+        setAppliedCoupon((prev) => (prev ? { ...prev, discount: data.discount } : prev));
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firmaDelCarrito]);
 
   const handleShippingInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

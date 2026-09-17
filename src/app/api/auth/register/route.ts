@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase-server";
 import { createCoupon } from "@/server/coupon.service";
+import { BIENVENIDA } from "@/lib/bienvenida";
 import { addBonusPoints } from "@/server/loyalty.service";
 import { sendWelcomeEmail } from "@/server/email.service";
 import { enviarVerificacion } from "@/server/verificacion-correo.service";
@@ -64,25 +65,50 @@ export async function POST(req: NextRequest) {
 
     let couponCode = "";
     const initialPoints = source === "tienda_fisica" ? 200 : 50;
-    
-    // Lógica de Fidelización Automática
-    if (source === "tienda_fisica") {
-       // 1. Generar Cupón de 15% (Específico para Tienda Física)
-       try {
-         const coupon = await createCoupon({
-           code: `OLIVO15-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-           name: "Descuento Bienvenida Física",
-           discount_type: "percentage",
-           discount_value: 15,
-           min_purchase: 20000,
-           valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 días
-           max_uses_per_customer: 1,
-           is_active: true
-         });
-         couponCode = coupon?.code || "";
-       } catch (couponErr) {
-         console.warn("[Register] Error creando cupón de bienvenida física:", couponErr);
-       }
+
+    /**
+     * Cupón de bienvenida, para todos los que se registran.
+     *
+     * Antes lo recibía sólo quien venía del QR de la tienda física; quien se
+     * registraba desde la web se llevaba 50 puntos ($500) y nada más. Con el
+     * tráfico llegando de Instagram y de Google Maps, eso dejaba sin premio
+     * justo a la gente que hay que convertir.
+     *
+     * Es un cupón **personal**, con código propio por persona, y no uno global:
+     * un código global termina publicado en los sitios de cupones y lo usa
+     * cualquiera, cuantas veces quiera. Con uno por cuenta, "primera compra"
+     * se puede garantizar de verdad.
+     *
+     * Se emite con `auto_apply` para que el checkout lo aplique solo. Pedirle
+     * al cliente que se acuerde de un código es donde se pierden las ventas.
+     *
+     * No se acumula con las ofertas: el descuento se calcula sólo sobre la
+     * parte del carrito que está a precio de lista (ver `baseDescontable` en
+     * `lib/pricing`). Por eso puede ser 20% sin que ningún producto quede bajo
+     * el costo.
+     */
+    try {
+      const coupon = await createCoupon({
+        code: `OLIVO20-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+        name: "Descuento de bienvenida",
+        description: "20% en tu primera compra. No se acumula con productos en oferta.",
+        discount_type: "percentage",
+        discount_value: BIENVENIDA.porcentaje,
+        min_purchase: BIENVENIDA.compraMinima,
+        // Tope para que un primer pedido grande no se lleve un descuento que
+        // el margen no aguanta: se alcanza con un carrito de $50.000.
+        max_discount: BIENVENIDA.topeDescuento,
+        valid_until: new Date(Date.now() + BIENVENIDA.diasDeVigencia * 24 * 60 * 60 * 1000).toISOString(),
+        max_uses: 1,
+        max_uses_per_customer: 1,
+        auto_apply: true,
+        is_active: true,
+      });
+      couponCode = coupon?.code || "";
+    } catch (couponErr) {
+      // Que falle el cupón no puede impedir que la cuenta se cree: el usuario
+      // ya existe a esta altura y quedaría sin poder entrar.
+      console.warn("[Register] Error creando cupón de bienvenida:", couponErr);
     }
 
     // 2. Acreditar Puntos de Bienvenida en la base de datos (física: 200, web: 50)
