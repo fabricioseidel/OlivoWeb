@@ -7,7 +7,7 @@ import { recordCouponUsage, getCouponByCode, validateCoupon } from '@/server/cou
 import { redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
 import { quoteAgendado, FACTOR_CALLES } from '@/lib/shipping-policy';
-import { precioEfectivo } from '@/lib/pricing';
+import { precioEfectivo, baseDescontable } from '@/lib/pricing';
 import { expandBundleForDeduction } from '@/lib/bundle';
 import {
   quoteFlash,
@@ -504,7 +504,26 @@ export async function POST(request: NextRequest) {
 
     let couponDiscount = 0;
     if (couponCode) {
-      const validation = await validateCoupon(String(couponCode), calculatedSubtotal, shippingInfo?.email);
+      // La base descontable sale del catálogo, no del carrito que llegó: si
+      // saliera de los precios del navegador, bastaría con mandar un producto
+      // en oferta como si estuviera a precio de lista para apilar el cupón.
+      const base = baseDescontable(
+        items.map((i: any) => {
+          const p = dbProducts.find((d: any) => String(d.barcode) === String(i.id));
+          return {
+            precioVenta: p?.sale_price,
+            precioOferta: p?.offer_price,
+            cantidad: Number(i.quantity),
+          };
+        })
+      );
+
+      const validation = await validateCoupon(
+        String(couponCode),
+        calculatedSubtotal,
+        shippingInfo?.email,
+        base
+      );
       if (!validation.valid) {
         return NextResponse.json({ error: `Cupón inválido: ${validation.message}` }, { status: 400 });
       }
