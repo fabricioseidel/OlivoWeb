@@ -141,6 +141,46 @@ export default function InventarioMode() {
     }
   }, []);
 
+  /**
+   * El producto se queda con el código que se acaba de escanear.
+   *
+   * Cuando el que está en la base es interno (900000000xxx) o de balanza
+   * (2xxxxx), el escaneado es el bueno: adoptarlo es lo que evita que la
+   * próxima pasada vuelva a no encontrarlo. Cuando el de la base ya es un
+   * EAN real son dos productos distintos o un envase nuevo, así que la
+   * decisión queda en el botón secundario y no acá.
+   */
+  const adoptarCodigo = useCallback(
+    async (candidato: Candidato, codigoEscaneado: string) => {
+      if (procesando) return;
+      setProcesando(true);
+      try {
+        const res = await fetch("/api/admin/inventario/adoptar-codigo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            oldBarcode: candidato.barcode,
+            newBarcode: codigoEscaneado,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "No se pudo asignar el código");
+
+        registrar(data.barcode, data.name, Boolean(data.recienActivado));
+        showToast(`✓ ${data.name} quedó con el código ${data.barcode}`, "success");
+        setCodigoNoEncontrado(null);
+        setBusqueda("");
+        setCandidatos([]);
+        cargarResumen();
+      } catch (e) {
+        showToast(e instanceof Error ? e.message : "No se pudo asignar el código", "error");
+      } finally {
+        setProcesando(false);
+      }
+    },
+    [procesando, registrar, showToast, cargarResumen]
+  );
+
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
       {/* Resumen del catálogo */}
@@ -208,13 +248,14 @@ export default function InventarioMode() {
           {candidatos.length > 0 && (
             <ul className="space-y-1.5 max-h-56 overflow-y-auto">
               {candidatos.map((c) => (
-                <li key={c.barcode}>
+                <li
+                  key={c.barcode}
+                  className="bg-white/5 rounded-xl border border-white/10 overflow-hidden"
+                >
                   <button
-                    onClick={async () => {
-                      await verificar(c.barcode);
-                      setCodigoNoEncontrado(null);
-                    }}
-                    className="w-full text-left bg-white/5 hover:bg-white/10 rounded-xl p-3 border border-white/10 transition-colors"
+                    disabled={procesando}
+                    onClick={() => adoptarCodigo(c, codigoNoEncontrado)}
+                    className="w-full text-left p-3 hover:bg-white/10 transition-colors disabled:opacity-50"
                   >
                     <p className="text-sm font-bold text-white">{c.name}</p>
                     <p className="text-[10px] text-white/40 font-mono mt-0.5">
@@ -222,6 +263,19 @@ export default function InventarioMode() {
                       {!c.is_active && " · inactivo"}
                       {c.verified_at && " · ya verificado"}
                     </p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-400 mt-1.5">
+                      Pasa a tener el código {codigoNoEncontrado}
+                    </p>
+                  </button>
+                  <button
+                    disabled={procesando}
+                    onClick={async () => {
+                      await verificar(c.barcode);
+                      setCodigoNoEncontrado(null);
+                    }}
+                    className="w-full border-t border-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+                  >
+                    Sólo verificar, dejarle su código
                   </button>
                 </li>
               ))}
