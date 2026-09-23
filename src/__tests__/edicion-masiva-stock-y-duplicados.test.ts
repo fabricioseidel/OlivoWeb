@@ -267,3 +267,104 @@ describe("Edición masiva: corrección de duplicados", () => {
     expect(grupo.keeper.id).toBe("7801620006860");
   });
 });
+
+/**
+ * Los dos vetos que protegen contra unificar productos que NO son el mismo.
+ *
+ * Dejaron de ser un detalle el día que el dueño decidió que los duplicados se
+ * borran en vez de archivarse: antes un falso positivo era una molestia —una
+ * fila oculta de más—, ahora es un producto real que desaparece del catálogo
+ * y de la góndola, y no se puede deshacer.
+ */
+describe("Edición masiva: no unificar lo que no es duplicado", () => {
+  it("no empareja dos productos que comparten el final del código por casualidad", () => {
+    // Caso real del catálogo: los dos terminan en 00000144 y no tienen nada
+    // que ver. La herramienta los ofrecía como el mismo producto.
+    const diablitos = producto({
+      id: "047800000144",
+      name: "Diablitos underwood 120",
+      stock: 2,
+      verifiedAt: AYER,
+    });
+    const lasagna = producto({
+      id: "900000000144",
+      name: "Lasaña Precocida Lucchetti 360 gr",
+      stock: 3,
+      verifiedAt: AYER,
+    });
+
+    expect(findDuplicateGroups([diablitos, lasagna])).toEqual([]);
+  });
+
+  it("no empareja dos formatos distintos del mismo producto", () => {
+    const chico = producto({ id: "7802000021589", name: "Doritos Queso 125 Gr", stock: 5 });
+    const grande = producto({ id: "900000000135", name: "Doritos Queso 200 gr", stock: 3 });
+
+    expect(findDuplicateGroups([chico, grande])).toEqual([]);
+  });
+
+  it("no empareja con gas contra sin gas del mismo formato", () => {
+    // Acá los números coinciden (500 y 500), así que el veto de formato no
+    // aplica: lo que los separa es que por nombre normalizado no chocan.
+    const conGas = producto({ id: "7802820441123", name: "Agua Benedictino CON GAS 500 Ml", stock: 2 });
+    const sinGas = producto({ id: "7802820441000", name: "Agua Benedictino Sin Gas 500 Ml", stock: 3 });
+
+    expect(findDuplicateGroups([conGas, sinGas])).toEqual([]);
+  });
+
+  it("sigue encontrando el duplicado de verdad: mismo envase, dos códigos", () => {
+    // El caso real del catálogo: la misma ficha bajo el EAN del envase y bajo
+    // un código de casa. Los vetos nuevos no lo tocan — mismo formato (85) y
+    // nombres idénticos — así que se sigue proponiendo.
+    const delEnvase = producto({
+      id: "7896029047101",
+      name: "Pouch Carne Gatito 85 Gr Whiskas",
+      stock: 3,
+      verifiedAt: AYER,
+    });
+    const deCasa = producto({
+      id: "900000000102",
+      name: "Pouch carne gatito 85 gr Whiskas",
+      stock: 5,
+      verifiedAt: AYER,
+      image: "foto.jpg",
+      purchasePrice: 554,
+    });
+
+    const grupos = findDuplicateGroups([delEnvase, deCasa]);
+
+    expect(grupos).toHaveLength(1);
+    expect(grupos[0].others).toHaveLength(1);
+    expect(grupos[0].reasons).toContain("nombre");
+  });
+
+  /**
+   * El agujero que dejó pasar los duplicados que hubo que buscar a mano.
+   *
+   * Un código de casa y el EAN del envase no comparten los últimos dígitos, así
+   * que la señal del código no los junta; y si además los nombres están
+   * escritos distinto —"Chokita" contra "Chokita Chocolate Nestlé"— la señal
+   * del nombre tampoco. El par existe, es el mismo producto, y la herramienta
+   * no lo ve.
+   *
+   * Queda anotado como lo que es: una limitación conocida, no un
+   * comportamiento deseado. Cerrarla pide una señal nueva (mismo proveedor y
+   * mismo costo, por ejemplo), y esa señal hay que diseñarla con cuidado
+   * porque los sabores de una misma línea comparten costo.
+   */
+  it("conocido: no ve el par cuando difieren el código Y el nombre", () => {
+    const delEnvase = producto({ id: "7613287755841", name: "Chokita", stock: 20 });
+    const deCasa = producto({ id: "900000000115", name: "Chokita Chocolate Nestlé", stock: 10 });
+
+    expect(findDuplicateGroups([delEnvase, deCasa])).toEqual([]);
+  });
+
+  it("el veto de formato no se activa cuando uno de los nombres no trae números", () => {
+    // "Chokita" no dice el gramaje; no hay evidencia de que sean formatos
+    // distintos, así que el par sigue en pie para que lo mire una persona.
+    const corto = producto({ id: "7613287755841", name: "Chokita", stock: 20 });
+    const largo = producto({ id: "7613287755841", name: "Chokita", stock: 10 });
+
+    expect(findDuplicateGroups([corto, largo])).toHaveLength(1);
+  });
+});
