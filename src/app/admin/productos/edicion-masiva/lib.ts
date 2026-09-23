@@ -291,6 +291,14 @@ export function getPublishPriority(p: any, changes?: ProductChanges): number {
 const UNIDADES = /\b(lt|ltr|litro|litros|l|ml|cc|gr|grs|g|kg|kgs|un|uds|unid|unidad|unidades|pack|pza|pzas)\b/g;
 
 /**
+ * La misma lista sin la bandera `g`, para preguntar por una palabra suelta.
+ * `UNIDADES.test()` lleva `lastIndex` entre llamadas y devuelve `true` y
+ * `false` alternados sobre la misma entrada; acá hace falta una respuesta que
+ * no dependa de cuántas veces se preguntó antes.
+ */
+const ES_UNIDAD = /^(lt|ltr|litro|litros|l|ml|cc|gr|grs|g|kg|kgs|un|uds|unid|unidad|unidades|pack|pza|pzas)$/;
+
+/**
  * Clave de comparación por nombre. Saca acentos, mayúsculas, puntuación, las
  * marcas que dejó una unificación anterior ("[duplicado, unificado 27/08]") y
  * las unidades de medida, que es donde más varía la escritura del mismo
@@ -317,6 +325,75 @@ export function barcodeSuffixKey(barcode: string): string | null {
   const digits = String(barcode ?? "").replace(/\D/g, "");
   if (digits.length < 10) return null;
   return digits.slice(-8);
+}
+
+/**
+ * Los números que describen el envase: 200 de "200 gr", 15 de "1.5 Lt", 6 de
+ * "bolsa 6 un.".
+ *
+ * `normalizeDuplicateKey` borra la unidad pero deja el número pegado al resto
+ * del nombre, así que "Doritos Queso 125 Gr" y "Doritos Queso 200 gr" dan
+ * claves distintas y por nombre no se emparejan. El problema aparece cuando
+ * los empareja OTRA señal —el código— y nadie vuelve a mirar el formato.
+ */
+function numerosDelFormato(name: string): Set<string> {
+  const limpio = String(name ?? "")
+    .toLowerCase()
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/(\d)[,.](\d)/g, "$1$2");
+  return new Set(limpio.match(/\d+/g) ?? []);
+}
+
+/**
+ * ¿Los dos nombres describen envases de tamaño distinto?
+ *
+ * Es un veto, no una señal: si los dos nombres traen números de formato y no
+ * comparten ninguno, son presentaciones distintas del mismo producto y
+ * unificarlas destruye una de las dos.
+ *
+ * Existe porque el emparejamiento por código puede juntar cualquier cosa. En
+ * el catálogo real, "Diablitos underwood 120" (047800000144) y "Lasaña
+ * Precocida Lucchetti 360 gr" (900000000144) comparten los últimos ocho
+ * dígitos **por casualidad**, y la herramienta los ofrecía como el mismo
+ * producto. Con borrado de duplicados de por medio, un falso positivo no es
+ * una molestia: es un producto real que desaparece del catálogo y de la
+ * góndola.
+ */
+export function formatosDistintos(nombreA: string, nombreB: string): boolean {
+  const a = numerosDelFormato(nombreA);
+  const b = numerosDelFormato(nombreB);
+  if (a.size === 0 || b.size === 0) return false; // sin datos no se veta
+  for (const n of a) if (b.has(n)) return false;
+  return true;
+}
+
+/**
+ * ¿Dos nombres son lo bastante parecidos como para creerle a un código que
+ * coincide?
+ *
+ * Pide que compartan la primera palabra —donde vive la marca— o que se
+ * solapen en al menos la mitad de sus palabras. "Diablitos underwood" y
+ * "Lasaña Precocida Lucchetti" no comparten nada, así que la coincidencia de
+ * código queda descartada como casualidad.
+ */
+export function nombresCompatibles(nombreA: string, nombreB: string): boolean {
+  const palabras = (n: string) =>
+    String(n ?? "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\[[^\]]*\]/g, " ")
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 3 && !ES_UNIDAD.test(w));
+
+  const a = palabras(nombreA);
+  const b = palabras(nombreB);
+  if (a.length === 0 || b.length === 0) return false;
+  if (a[0] === b[0]) return true;
+
+  const setB = new Set(b);
+  const comunes = a.filter((w) => setB.has(w)).length;
+  return comunes >= Math.ceil(Math.min(a.length, b.length) / 2);
 }
 
 /**
@@ -434,17 +511,42 @@ export function findDuplicateGroups(productsInput: any[]): DuplicateGroup[] {
     }
   };
 
+  /**
+   * Une los miembros de un grupo, de a pares y sólo si el par sobrevive a los
+   * dos vetos: formatos distintos y nombres incompatibles.
+   *
+   * Se comparan los pares y no el grupo entero porque un veto entre dos de
+   * ellos no debe descartar a los demás.
+   */
+  const unirCompatibles = (grupo: any[], motivo: "nombre" | "codigo") => {
+    for (let i = 0; i < grupo.length; i++) {
+      for (let j = i + 1; j < grupo.length; j++) {
+        const a = grupo[i];
+        const b = grupo[j];
+        const na = String(a?.name ?? "");
+        const nb = String(b?.name ?? "");
+
+        // Presentaciones distintas del mismo producto (125 g y 200 g) no son
+        // duplicados: unificarlas borra una de las dos.
+        if (formatosDistintos(na, nb)) continue;
+
+        // Dos códigos pueden terminar igual por casualidad. Sin parecido de
+        // nombre, esa coincidencia no alcanza.
+        if (motivo === "codigo" && !nombresCompatibles(na, nb)) continue;
+
+        marcar([String(a.id), String(b.id)], motivo);
+        union(String(a.id), String(b.id));
+      }
+    }
+  };
+
   for (const grupo of porNombre.values()) {
     if (grupo.length < 2) continue;
-    const ids = grupo.map((p) => String(p.id));
-    marcar(ids, "nombre");
-    for (let i = 1; i < ids.length; i++) union(ids[0], ids[i]);
+    unirCompatibles(grupo, "nombre");
   }
   for (const grupo of porCodigo.values()) {
     if (grupo.length < 2) continue;
-    const ids = grupo.map((p) => String(p.id));
-    marcar(ids, "codigo");
-    for (let i = 1; i < ids.length; i++) union(ids[0], ids[i]);
+    unirCompatibles(grupo, "codigo");
   }
 
   const porRaiz = new Map<string, any[]>();
