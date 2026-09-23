@@ -41,6 +41,8 @@ type Pedido = {
   productos: ProductoEnPedido[];
   direccionEnvio: DatosDireccion;
   metodoPago: string;
+  /** El estado del pago, tal como lo dice la base. */
+  estadoPago: string;
   numeroSeguimiento?: string;
   urlSeguimiento?: string;
   /** Estado del repartidor, sólo en los pedidos con envío flash. */
@@ -162,6 +164,7 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
             productos,
             direccionEnvio,
             metodoPago: found.payment_method || found.paymentMethod || 'No especificado',
+            estadoPago: String(found.payment_status || 'pending').toLowerCase(),
             numeroSeguimiento: found.tracking_number || found.trackingNumber || undefined,
             urlSeguimiento: found.tracking_url || found.trackingUrl || undefined,
             // La dirección cruda y no la normalizada: el normalizador arma
@@ -299,7 +302,11 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
     total: pedido.total,
     payment: {
       method: pedido.metodoPago,
-      status: pedido.estado === 'Pendiente' ? 'pending' : 'paid'
+      // El estado del pago sale de `payment_status`, no del estado del pedido.
+      // Antes se derivaba comparando `estado === 'Pendiente'`, y `estado` vale
+      // `'pending'` en inglés minúscula: la comparación nunca era cierta, así
+      // que el comprobante de un pedido **sin pagar** salía como pagado.
+      status: pedido.estadoPago === 'paid' ? 'paid' : 'pending'
     }
   } : null;
 
@@ -484,6 +491,25 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
                     </p>
                   </div>
                 </div>
+
+                {/* El estado del pago, dicho claro. La página mostraba sólo
+                    "Mercadopago" y el cliente no tenía cómo saber si su pago
+                    había entrado: un pedido a medio pagar se leía igual que
+                    uno pagado. */}
+                {pedido.estadoPago !== 'paid' && (
+                  <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-sm font-semibold text-amber-900">
+                      {pedido.estadoPago === 'pending'
+                        ? 'Pago pendiente'
+                        : 'El pago no se completó'}
+                    </p>
+                    <p className="mt-1 text-sm text-amber-800">
+                      {pedido.estadoPago === 'pending'
+                        ? 'Todavía no recibimos la confirmación de tu pago. Si ya pagaste, se acredita en unos minutos. Este pedido no se prepara hasta entonces.'
+                        : 'Puedes volver a intentarlo desde el detalle de tu pedido.'}
+                    </p>
+                  </div>
+                )}
 
                 {/* Método de pago */}
                 <div>
