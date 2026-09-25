@@ -24,6 +24,7 @@ import {
 import BanderaChile from "@/components/fiestas/BanderaChile";
 import BannerFiestasPatrias from "@/components/fiestas/BannerFiestasPatrias";
 import VitrinaDieciochera from "@/components/fiestas/VitrinaDieciochera";
+import HeroCarousel from "@/components/HeroCarousel";
 import {
   ChevronRight,
   Truck,
@@ -211,7 +212,7 @@ function HeroBlock({
   block: PageBlock;
   fallbackTitle?: string;
   fallbackDescription?: string;
-  storeSettings?: { appearance?: { bannerUrl?: string | null } } | null;
+  storeSettings?: { appearance?: { bannerUrl?: string | null; blocks?: any[] } } | null;
   showCategoriesBar?: boolean;
   categories: any[];
   categoriesLoading: boolean;
@@ -241,6 +242,38 @@ function HeroBlock({
   // base y no lo mostraba nadie: se podía subir una imagen y no pasaba nada.
   // Va de fondo del encabezado, que es donde el propio panel dice que va.
   const banner = storeSettings?.appearance?.bannerUrl;
+
+  const slides = (storeSettings?.appearance?.blocks || []).filter((b: any) => b.type === "carousel_slide" && b.active !== false);
+
+  if (slides.length > 0) {
+    return (
+      <>
+        <HeroCarousel blocks={storeSettings?.appearance?.blocks || []} storeSettings={storeSettings} />
+        {/* \u2500\u2500 CATEGORIAS (barra de navegacion horizontal) \u2500\u2500 */}
+        {showCategoriesBar && (
+          <section className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
+              <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-brand-boton text-brand-contraste text-xs font-bold whitespace-nowrap hover:bg-brand-700 transition-colors">
+                Todo
+              </Link>
+              {enTemporadaDieciochera() && (
+                <Link href={RUTA_FIESTAS_PATRIAS} className="shrink-0 px-4 py-1.5 rounded-full bg-fp-rojo text-white text-xs font-bold whitespace-nowrap hover:bg-fp-rojo-claro transition-colors flex items-center gap-1.5 shadow-sm">
+                  <BanderaChile className="h-3 w-auto rounded-[1px]" />
+                  Fiestas Patrias \uD83C\uDDE8\uD83C\uDDF1
+                </Link>
+              )}
+              {!categoriesLoading && [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map(cat => (
+                <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}
+                  className="shrink-0 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-brand-50 hover:text-brand-700 text-gray-700 text-xs font-bold whitespace-nowrap transition-colors">
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+      </>
+    );
+  }
 
   return (
     <>
