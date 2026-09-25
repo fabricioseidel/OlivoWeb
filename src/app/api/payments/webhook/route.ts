@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { supabaseServer } from '@/lib/supabase-server';
 import { auditLog } from '@/server/audit.service';
-import { restoreOrderStock } from '@/server/inventory.service';
 import { despacharPedidoFlash } from '@/server/entrega-flash.service';
-import { addBonusPoints, earnPoints } from '@/server/loyalty.service';
-import { sendOrderCancelledEmail } from '@/server/email.service';
-import { releaseCouponUsage } from '@/server/coupon.service';
+import { earnPoints } from '@/server/loyalty.service';
+import { cancelarPedido } from '@/server/order-cancel.service';
 import crypto from 'crypto';
 import { montoCobrado } from '@/lib/mercadopago-monto';
 
@@ -85,9 +83,26 @@ export async function POST(request: NextRequest) {
         // Verificar que el monto pagado coincide con el total de la orden
         const { data: order } = await supabaseServer
           .from('orders')
-          .select('total, shipping_cost, shipping_method, shipping_address, express_delivery_id')
+          .select('status, total, shipping_cost, shipping_method, shipping_address, express_delivery_id')
           .eq('id', orderId)
           .single();
+
+        // Un pago que entra sobre un pedido ya cancelado no se acredita solo:
+        // el stock y el cupón ya se devolvieron, y marcarlo pagado dejaría un
+        // pedido en preparación sin mercadería reservada. Los links de pago
+        // vencen antes de que el cron cancele, así que esto no debería pasar;
+        // si pasa, lo resuelve una persona (reembolso o reponer el pedido).
+        if (order && (order.status === 'cancelled' || order.status === 'refunded')) {
+          console.error(`[MP Webhook] ⚠️ Pago ${paymentId} aprobado sobre la orden cancelada ${orderId}`);
+          await auditLog({
+            action: 'ORDER_PAID_AFTER_CANCEL',
+            entity: 'orders',
+            entityId: orderId,
+            actor: 'mp-webhook',
+            details: { paymentId: String(paymentId), mpStatus: status },
+          });
+          return NextResponse.json({ received: true, flagged: 'paid_after_cancel' }, { status: 200 });
+        }
 
         const paidAmount = montoCobrado(paymentData);
         if (order && Math.abs(Number(order.total) - paidAmount) > 1) {
@@ -199,132 +214,25 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json({ received: true, flagged: 'rejected_retryable' }, { status: 200 });
       } else if (orderId && (status === 'cancelled' || status === 'refunded')) {
-        // Toma la orden en exclusiva antes de deshacer nada. MercadoPago
-        // reenvía la misma notificación, y sin este filtro dentro del UPDATE
-        // cada reintento devolvía el stock **otra vez** —inflando el
-        // inventario—, regalaba de nuevo los puntos redimidos y mandaba un
-        // segundo correo de cancelación.
-        //
-        // El filtro va sobre `status` y no sobre `payment_status`: un pedido
-        // con un intento rechazado sigue vivo y tiene que poder cancelarse.
-        let tomar = supabaseServer
-          .from('orders')
-          .update({
-            payment_status: status,
-            status: status === 'refunded' ? 'refunded' : 'cancelled',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', orderId)
-          .not('status', 'in', '("cancelled","refunded")');
-        // Un pago cancelado de un intento viejo no cancela un pedido que se
-        // terminó pagando con otro intento. Un reembolso sí aplica a pagados.
-        if (status === 'cancelled') tomar = tomar.neq('payment_status', 'paid');
-        const { data: tomadas, error: errorTomar } = await tomar.select('id');
+        const r = await cancelarPedido(orderId, {
+          estadoPago: status,
+          actor: 'mp-webhook',
+          motivo:
+            status === 'refunded'
+              ? 'Pago reembolsado en Mercado Pago'
+              : 'Pago no completado en Mercado Pago',
+          detalles: { paymentId: String(paymentId), mpStatus: status },
+        });
 
-        if (errorTomar) {
-          console.error(`[MP Webhook] Error marcando la orden ${orderId}:`, errorTomar);
+        if (!r.ok) {
+          console.error(`[MP Webhook] Error cancelando la orden ${orderId}:`, r.error);
           return NextResponse.json({ received: true, flagged: 'update_failed' }, { status: 200 });
         }
-        if (!tomadas || tomadas.length === 0) {
-          console.log(`[MP Webhook] La orden ${orderId} ya estaba cancelada; no se deshace dos veces.`);
+        if (!r.cancelada) {
+          console.log(`[MP Webhook] La orden ${orderId} ya estaba cancelada o pagada; no se deshace.`);
           return NextResponse.json({ received: true, flagged: 'ya_cancelada' }, { status: 200 });
         }
-
-        console.log(`[MP Webhook] 🔄 Restaurando stock para orden ${orderId} debido a estado: ${status}`);
-
-        // Devolver al inventario lo que la orden tenía reservado.
-        // La traducción de `order_items.product_id` (que guarda `products.id`)
-        // al código de barras que usan las RPC vive en el servicio de
-        // inventario; acá sólo se informa el resultado.
-        const devolucion = await restoreOrderStock(orderId, {
-          reason: `MP_${status.toUpperCase()}`,
-        });
-
-        // 2a. Devolver el cupón: el uso se registró al crear el pedido, y un
-        //     pedido que no se pagó no debería gastar el de primera compra.
-        try {
-          await releaseCouponUsage(orderId);
-        } catch (e) {
-          console.warn(`[MP Webhook] No se pudo liberar el cupón de la orden ${orderId}:`, e);
-        }
-
-        // 2b. Revertir puntos redimidos y notificar cancelación al cliente
-        try {
-          const { data: orderData } = await supabaseServer
-            .from('orders')
-            .select('shipping_address')
-            .eq('id', orderId)
-            .maybeSingle();
-
-          if (orderData?.shipping_address) {
-            const addr = typeof orderData.shipping_address === 'string'
-              ? JSON.parse(orderData.shipping_address)
-              : orderData.shipping_address;
-
-            const customerEmail = addr.email;
-            const pointsRedeemed = Number(addr.pointsRedeemed) || 0;
-
-            if (customerEmail && pointsRedeemed > 0) {
-              await addBonusPoints({
-                customerEmail,
-                points: pointsRedeemed,
-                description: `Reverso de ${pointsRedeemed} puntos por orden #${orderId} cancelada`,
-                referenceType: 'order_cancellation',
-              });
-              console.log(`[MP Webhook] 🌟 Se revirtieron ${pointsRedeemed} puntos a ${customerEmail}`);
-            }
-
-            if (customerEmail) {
-              await sendOrderCancelledEmail({
-                to: customerEmail,
-                customerName: addr.fullName || 'Cliente',
-                orderId,
-                cancelReason: status === 'refunded' ? 'Pago reembolsado en Mercado Pago' : 'Pago no completado o rechazado en Mercado Pago',
-                pointsRefunded: pointsRedeemed > 0 ? pointsRedeemed : undefined,
-                paymentRefunded: status === 'refunded',
-              });
-            }
-          }
-        } catch (postCancelErr) {
-          console.warn('[MP Webhook] Error en post-procesamiento de cancelación (puntos/email):', postCancelErr);
-        }
-
-        // 3. Informar lo que pasó de verdad. Este log decía siempre "stock
-        //    restaurado", incluso cuando no se había devuelto nada — que era
-        //    exactamente el caso, porque el paso 1 fallaba en silencio.
-        const quedoPendiente =
-          !devolucion.ok || devolucion.fallidos > 0 || devolucion.sinResolver.length > 0;
-
-        if (quedoPendiente) {
-          console.error(
-            `[MP Webhook] ⚠️ Orden ${orderId} actualizada a ${status}, pero el stock NO se devolvió por completo:`,
-            devolucion.ok
-              ? { devueltos: devolucion.devueltos, fallidos: devolucion.fallidos, sinResolver: devolucion.sinResolver }
-              : { error: devolucion.error }
-          );
-        } else {
-          console.log(
-            `[MP Webhook] ❌ Orden ${orderId} actualizada a ${status}; se devolvieron ${devolucion.devueltos} ítems al stock.`
-          );
-        }
-
-        await auditLog({
-          action: 'ORDER_PAYMENT_FAILED',
-          entity: 'orders',
-          entityId: orderId,
-          actor: 'mp-webhook',
-          details: {
-            paymentId: String(paymentId),
-            mpStatus: status,
-            stock: devolucion.ok
-              ? {
-                  devueltos: devolucion.devueltos,
-                  fallidos: devolucion.fallidos,
-                  sinResolver: devolucion.sinResolver,
-                }
-              : { error: devolucion.error },
-          },
-        });
+        console.log(`[MP Webhook] ❌ Orden ${orderId} cancelada (${status}).`);
       }
     }
 

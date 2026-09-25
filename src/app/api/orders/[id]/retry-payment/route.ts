@@ -140,6 +140,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       discountTotal: Number(order.discount_amount || 0),
     });
 
+    // Emitir un link nuevo cuenta como actividad: el cron de abandonados mide
+    // desde `updated_at`, y así no cancela un pedido con un link recién dado.
+    await supabaseServer
+      .from('orders')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', order.id);
+
     return NextResponse.json({ success: true, orderId: order.id, initPoint: mp.initPoint });
   } catch (err: any) {
     console.error('[RetryPayment] Error regenerando preferencia:', err?.message || err);

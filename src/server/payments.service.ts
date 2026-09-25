@@ -1,6 +1,7 @@
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { logger } from '@/utils/logger';
 import { urlPublica } from '@/lib/site-url';
+import { VIGENCIA_LINK_PAGO_MS } from '@/lib/pedido-plazos';
 
 // ── Preference Creation ────────────────────────────────────────────────────────
 
@@ -119,7 +120,11 @@ export async function createPaymentPreference(params: CreatePreferenceParams) {
       notification_url: `${siteUrl}/api/payments/webhook`,
       external_reference: String(orderId),
       statement_descriptor: 'OLIVOMARKET',
-      expires: false,
+      // El link vence: el cron de pedidos abandonados devuelve stock y cupón,
+      // y un link eterno permitiría pagar un pedido que ya no existe. Para
+      // volver a pagar está `/api/orders/[id]/retry-payment`.
+      expires: true,
+      expiration_date_to: new Date(Date.now() + VIGENCIA_LINK_PAGO_MS).toISOString(),
     };
 
     logger.log('[MercadoPago] Creando preferencia:', JSON.stringify(body, null, 2));
