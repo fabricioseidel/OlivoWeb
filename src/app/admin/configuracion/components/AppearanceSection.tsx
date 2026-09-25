@@ -5,7 +5,7 @@ import SingleImageUpload from "@/components/ui/SingleImageUpload";
 import type { StoreSettings } from "@/app/api/admin/settings/route";
 import { uploadImageServerAction } from "@/actions/upload";
 import type { HandleChange } from "../lib";
-import { ColorField, InputField, CheckBoxField, TextAreaField } from "./fields";
+import { ColorField, InputField, CheckBoxField } from "./fields";
 import HeroCarouselEditor from "./HeroCarouselEditor";
 
 interface AppearanceSectionProps {
@@ -206,12 +206,13 @@ export default function AppearanceSection({ settings, handleChange, saveSettings
 
       <div className="border-t border-slate-200 pt-6">
         <h3 className="font-semibold text-slate-900 mb-4">Carrusel de Inicio (Hero)</h3>
-        <p className="text-sm text-slate-500 mb-6">Configura las im\u00E1genes flotantes din\u00E1micas, t\u00EDtulos y enlaces para promociones, destacados o anuncios en la pantalla de inicio.</p>
-        
-        <HeroCarouselEditor 
+        <p className="text-sm text-slate-500 mb-6">
+          Diapositivas con imagen, título y botón para promociones o anuncios. El título principal de la portada
+          (el que ayuda a aparecer en Google) se sigue editando en «Textos de la portada».
+        </p>
+        <HeroCarouselEditor
           blocks={settings.appearance?.blocks || []}
           onChange={(newBlocks) => handleChange(["appearance", "blocks"], newBlocks)}
-          saveSettings={saveSettings}
         />
       </div>
     </div>
