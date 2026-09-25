@@ -279,6 +279,138 @@ export function getPublishPriority(p: any, changes?: ProductChanges): number {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// Filtrado y orden de la grilla
+// ─────────────────────────────────────────────────────────────────────
+//
+// IMPORTANTE: estas funciones miran el producto GUARDADO y no reciben los
+// cambios en curso. Es a propósito.
+//
+// Antes el filtro y el orden se calculaban sobre `producto + cambios sin
+// guardar`. Como cada tecla escribe en `editedChanges`, la lista se recalculaba
+// en mitad de la escritura: al teclear el primer dígito de un precio el
+// producto dejaba de estar "Sin precio", salía del filtro activo y su fila
+// desaparecía con el cursor dentro. Se veía como si el producto "se fuera solo
+// a Listo" y era imposible terminar de escribir el número. Lo mismo pasaba con
+// los órdenes que dependen de lo editado (near_ready, price_asc, stock_real):
+// la fila saltaba de posición y, si caía fuera de la ventana paginada, se
+// desmontaba igual.
+//
+// Con el producto guardado como referencia, la lista queda quieta mientras se
+// trabaja y se reordena sola al guardar, que es cuando el producto realmente
+// cambió. Los contadores de las pestañas sí siguen usando los cambios en curso:
+// ahí la actualización en vivo es útil y no mueve nada de lugar.
+
+export interface BulkFilterCriteria {
+  search: string;
+  filterLowStock: boolean;
+  filterWithImage: boolean;
+  categoryFilter: string;
+  completenessTab: CompletenessTab;
+  specificFilter: SpecificFilter;
+}
+
+export function matchesBulkFilters(
+  p: any,
+  criteria: BulkFilterCriteria,
+  duplicateIds: Set<string> = new Set(),
+  now: number = Date.now(),
+): boolean {
+  const diag = getProductDiagnostics(p);
+
+  const term = criteria.search.toLowerCase();
+  if (term) {
+    const matchesSearch =
+      String(p.name ?? "").toLowerCase().includes(term) ||
+      String(p.id ?? "").toLowerCase().includes(term) ||
+      String(p.barcode ?? "").toLowerCase().includes(term);
+    if (!matchesSearch) return false;
+  }
+
+  if (criteria.filterLowStock && getStock(p) > 5) return false;
+  if (criteria.filterWithImage && !diag.hasImage) return false;
+
+  const catFilter = criteria.categoryFilter.toLowerCase();
+  if (catFilter) {
+    const pCats: string[] = p.categories ?? [];
+    if (!pCats.some((c) => c.toLowerCase() === catFilter)) return false;
+  }
+
+  // Pestaña de completitud
+  if (criteria.completenessTab === "missing_1" && diag.missingCount !== 1) return false;
+  if (criteria.completenessTab === "missing_2" && diag.missingCount !== 2) return false;
+  if (criteria.completenessTab === "missing_3_plus" && diag.missingCount < 3) return false;
+  if (criteria.completenessTab === "ready" && !diag.isReady) return false;
+
+  // Filtro por stock real y por lo que ya pasó por el conteo físico
+  const { specificFilter } = criteria;
+  if (specificFilter === "with_stock" && getStock(p) <= 0) return false;
+  if (specificFilter === "counted" && getVerifiedAt(p) === null) return false;
+  if (specificFilter === "counted_today" && !isRecentlyCounted(p, now)) return false;
+  if (specificFilter === "uncounted" && getVerifiedAt(p) !== null) return false;
+  if (specificFilter === "duplicates" && !duplicateIds.has(String(p.id))) return false;
+
+  // Filtro específico por faltante
+  if (specificFilter === "missing_photo" && diag.hasImage) return false;
+  if (specificFilter === "missing_price" && diag.hasPrice) return false;
+  if (specificFilter === "missing_stock" && diag.hasStock) return false;
+  if (specificFilter === "missing_cost" && diag.hasCost) return false;
+  if (specificFilter === "missing_category" && diag.hasCategories) return false;
+  if (specificFilter === "missing_barcode" && diag.hasBarcode) return false;
+  if (specificFilter === "inactive" && diag.isActive) return false;
+
+  return true;
+}
+
+export function compareBySortPriority(a: any, b: any, sortPriority: SortPriority): number {
+  const diagA = getProductDiagnostics(a);
+  const diagB = getProductDiagnostics(b);
+  const nombre = () => String(a.name ?? "").localeCompare(String(b.name ?? ""));
+
+  if (sortPriority === "stock_real") {
+    // Lo que hay de verdad, primero: contado y con stock. Dentro de cada
+    // tramo, los que están más cerca de poder publicarse.
+    const prioA = getPublishPriority(a);
+    const prioB = getPublishPriority(b);
+    if (prioA !== prioB) return prioA - prioB;
+    const faltaA = diagA.isReady ? -1 : diagA.missingCount;
+    const faltaB = diagB.isReady ? -1 : diagB.missingCount;
+    if (faltaA !== faltaB) return faltaA - faltaB;
+    const stockA = getStock(a);
+    const stockB = getStock(b);
+    if (stockA !== stockB) return stockB - stockA;
+    return nombre();
+  }
+  if (sortPriority === "near_ready") {
+    // Casi listos primero: 1 faltante, luego 2, luego 3... y al final los que ya están listos
+    const scoreA = diagA.isReady ? 999 : diagA.missingCount;
+    const scoreB = diagB.isReady ? 999 : diagB.missingCount;
+    if (scoreA !== scoreB) return scoreA - scoreB;
+    return nombre();
+  }
+  if (sortPriority === "most_incomplete") {
+    const scoreA = diagA.isReady ? -1 : diagA.missingCount;
+    const scoreB = diagB.isReady ? -1 : diagB.missingCount;
+    if (scoreA !== scoreB) return scoreB - scoreA;
+    return nombre();
+  }
+  if (sortPriority === "ready_first") {
+    return (diagB.isReady ? 1 : 0) - (diagA.isReady ? 1 : 0);
+  }
+  if (sortPriority === "name_asc") return nombre();
+  if (sortPriority === "name_desc") return -nombre();
+  if (sortPriority === "stock_asc") return getStock(a) - getStock(b);
+  if (sortPriority === "stock_desc") {
+    const sA = getStock(a);
+    const sB = getStock(b);
+    if (sA !== sB) return sB - sA;
+    return nombre();
+  }
+  if (sortPriority === "price_asc") return Number(a.price ?? 0) - Number(b.price ?? 0);
+  if (sortPriority === "price_desc") return Number(b.price ?? 0) - Number(a.price ?? 0);
+  return 0;
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Duplicados: el mismo producto en dos filas
 // ─────────────────────────────────────────────────────────────────────
 //
