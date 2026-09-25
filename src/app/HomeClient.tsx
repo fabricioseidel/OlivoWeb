@@ -25,6 +25,7 @@ import BanderaChile from "@/components/fiestas/BanderaChile";
 import BannerFiestasPatrias from "@/components/fiestas/BannerFiestasPatrias";
 import VitrinaDieciochera from "@/components/fiestas/VitrinaDieciochera";
 import HeroCarousel from "@/components/HeroCarousel";
+import { slidesVisibles } from "@/lib/hero-slides";
 import {
   ChevronRight,
   Truck,
@@ -212,7 +213,7 @@ function HeroBlock({
   block: PageBlock;
   fallbackTitle?: string;
   fallbackDescription?: string;
-  storeSettings?: { appearance?: { bannerUrl?: string | null; blocks?: any[] } } | null;
+  storeSettings?: { appearance?: { bannerUrl?: string | null } } | null;
   showCategoriesBar?: boolean;
   categories: any[];
   categoriesLoading: boolean;
@@ -243,34 +244,66 @@ function HeroBlock({
   // Va de fondo del encabezado, que es donde el propio panel dice que va.
   const banner = storeSettings?.appearance?.bannerUrl;
 
-  const slides = (storeSettings?.appearance?.blocks || []).filter((b: any) => b.type === "carousel_slide" && b.active !== false);
+  // Barra de categorías: va bajo el encabezado, sea el hero clásico o el carrusel.
+  const barraCategorias = showCategoriesBar ? (
+        <section className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
+            <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-brand-boton text-brand-contraste text-xs font-bold whitespace-nowrap hover:bg-brand-700 transition-colors">
+              Todo
+            </Link>
+            {enTemporadaDieciochera() && (
+              <Link href={RUTA_FIESTAS_PATRIAS} className="shrink-0 px-4 py-1.5 rounded-full bg-fp-rojo text-white text-xs font-bold whitespace-nowrap hover:bg-fp-rojo-claro transition-colors flex items-center gap-1.5 shadow-sm">
+                <BanderaChile className="h-3 w-auto rounded-[1px]" />
+                Fiestas Patrias 🇨🇱
+              </Link>
+            )}
+            {!categoriesLoading && [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map(cat => (
+              <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}
+                className="shrink-0 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-brand-50 hover:text-brand-700 text-gray-700 text-xs font-bold whitespace-nowrap transition-colors">
+                {cat.name}
+              </Link>
+            ))}
+          </div>
+        </section>
+  ) : null;
 
+  // Con diapositivas cargadas en Configuración → Apariencia, el encabezado es
+  // el carrusel; sin ellas, el hero clásico de siempre.
+  const slides = slidesVisibles(block);
   if (slides.length > 0) {
     return (
       <>
-        <HeroCarousel blocks={storeSettings?.appearance?.blocks || []} storeSettings={storeSettings} />
-        {/* \u2500\u2500 CATEGORIAS (barra de navegacion horizontal) \u2500\u2500 */}
-        {showCategoriesBar && (
-          <section className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
-              <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-brand-boton text-brand-contraste text-xs font-bold whitespace-nowrap hover:bg-brand-700 transition-colors">
-                Todo
-              </Link>
-              {enTemporadaDieciochera() && (
-                <Link href={RUTA_FIESTAS_PATRIAS} className="shrink-0 px-4 py-1.5 rounded-full bg-fp-rojo text-white text-xs font-bold whitespace-nowrap hover:bg-fp-rojo-claro transition-colors flex items-center gap-1.5 shadow-sm">
-                  <BanderaChile className="h-3 w-auto rounded-[1px]" />
-                  Fiestas Patrias \uD83C\uDDE8\uD83C\uDDF1
-                </Link>
-              )}
-              {!categoriesLoading && [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map(cat => (
-                <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}
-                  className="shrink-0 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-brand-50 hover:text-brand-700 text-gray-700 text-xs font-bold whitespace-nowrap transition-colors">
-                  {cat.name}
-                </Link>
+        <HeroCarousel
+          slides={slides}
+          titulo={title}
+          subtitulo={block.subtitle || "Minimarket y punto de encomiendas · Ñuñoa"}
+          placeholderBusqueda={enTemporadaDieciochera() ? "Buscar empanadas de pino, carbón, pebre, choripán..." : "Buscar productos..."}
+        />
+        {/* El hero clásico trae en texto plano los couriers, la dirección y el
+            horario, que respaldan el schema y las búsquedas locales. Con el
+            carrusel no caben arriba: van en esta franja para no perderlos. */}
+        <section className="bg-brand-900 text-white">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs md:text-sm">
+            <span className="font-semibold text-brand-300">{t("home.shipping.title")}</span>
+            <ul className="flex flex-wrap gap-2">
+              {BUSINESS.services.map((s) => (
+                <li key={s.slug}>
+                  <Link
+                    href={`/punto-de-envio/${s.slug}`}
+                    className="inline-flex items-center rounded-lg border border-white/20 bg-white/10 px-2.5 py-1 font-bold hover:bg-white/20 transition-colors"
+                  >
+                    {s.nombre}
+                  </Link>
+                </li>
               ))}
-            </div>
-          </section>
-        )}
+            </ul>
+            <span className="text-brand-100/80">{BUSINESS.addressFull}</span>
+            <span className="text-brand-100/80">
+              {BUSINESS.openingHoursDisplay.map((h) => `${h.label}: ${h.value}`).join(" · ")}
+            </span>
+          </div>
+        </section>
+        {barraCategorias}
       </>
     );
   }
@@ -415,28 +448,7 @@ function HeroBlock({
         </div>
       </section>
 
-      {/* ── CATEGORÍAS (barra de navegación horizontal) ── */}
-      {showCategoriesBar && (
-        <section className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
-            <Link href="/productos" className="shrink-0 px-4 py-1.5 rounded-full bg-brand-boton text-brand-contraste text-xs font-bold whitespace-nowrap hover:bg-brand-700 transition-colors">
-              Todo
-            </Link>
-            {enTemporadaDieciochera() && (
-              <Link href={RUTA_FIESTAS_PATRIAS} className="shrink-0 px-4 py-1.5 rounded-full bg-fp-rojo text-white text-xs font-bold whitespace-nowrap hover:bg-fp-rojo-claro transition-colors flex items-center gap-1.5 shadow-sm">
-                <BanderaChile className="h-3 w-auto rounded-[1px]" />
-                Fiestas Patrias 🇨🇱
-              </Link>
-            )}
-            {!categoriesLoading && [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")).map(cat => (
-              <Link key={cat.id} href={`/productos?categoria=${cat.slug || cat.id}`}
-                className="shrink-0 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-brand-50 hover:text-brand-700 text-gray-700 text-xs font-bold whitespace-nowrap transition-colors">
-                {cat.name}
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      {barraCategorias}
     </>
   );
 }

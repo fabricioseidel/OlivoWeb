@@ -1,170 +1,203 @@
 "use client";
 
-import { useState, useEffect } from "react";
+/**
+ * Carrusel de la portada: las diapositivas que se cargan en
+ * Configuración → Apariencia → Carrusel de inicio.
+ *
+ * - El <h1> sigue siendo el título del hero ("Minimarket en Ñuñoa…"), que es
+ *   la señal de SEO local más fuerte de la página. Los títulos de las
+ *   diapositivas van en <h2>: con un <h1> por diapositiva la portada tendría
+ *   varios, y el buscador no sabría cuál es el tema.
+ * - Se detiene al pasar el mouse o enfocar con teclado, y no avanza solo si el
+ *   sistema pide menos movimiento (WCAG 2.2.2).
+ */
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, ChevronLeft, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { INTERVALO_CARRUSEL_MS, enlaceValido, type HeroSlide } from "@/lib/hero-slides";
 
-export default function HeroCarousel({ blocks, storeSettings }: { blocks: any[], storeSettings: any }) {
+export default function HeroCarousel({
+  slides,
+  titulo,
+  subtitulo,
+  placeholderBusqueda = "Buscar productos...",
+}: {
+  slides: HeroSlide[];
+  /** El título del bloque hero: se muestra como <h1>. */
+  titulo: string;
+  subtitulo?: string;
+  placeholderBusqueda?: string;
+}) {
   const router = useRouter();
-  const [current, setCurrent] = useState(0);
-  const [heroQuery, setHeroQuery] = useState("");
+  const [actual, setActual] = useState(0);
+  const [pausado, setPausado] = useState(false);
+  const [detenidoPorUsuario, setDetenidoPorUsuario] = useState(false);
+  const [menosMovimiento, setMenosMovimiento] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
 
-  const slides = (blocks || []).filter((b: any) => b.type === "carousel_slide" && b.active !== false).sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+  const total = slides.length;
+  const indice = total ? Math.min(actual, total - 1) : 0;
 
   useEffect(() => {
-    if (slides.length <= 1) return;
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [slides.length]);
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setMenosMovimiento(mq.matches);
+    const cambio = (e: MediaQueryListEvent) => setMenosMovimiento(e.matches);
+    mq.addEventListener("change", cambio);
+    return () => mq.removeEventListener("change", cambio);
+  }, []);
 
-  const submitHeroSearch = (e: React.FormEvent) => {
+  const avanza = total > 1 && !pausado && !detenidoPorUsuario && !menosMovimiento;
+  useEffect(() => {
+    if (!avanza) return;
+    const t = setInterval(() => setActual((p) => (p + 1) % total), INTERVALO_CARRUSEL_MS);
+    return () => clearInterval(t);
+  }, [avanza, total]);
+
+  const ir = (i: number) => setActual(((i % total) + total) % total);
+
+  const buscar = (e: React.FormEvent) => {
     e.preventDefault();
-    const q = heroQuery.trim();
+    const q = busqueda.trim();
     router.push(q ? `/productos?q=${encodeURIComponent(q)}` : "/productos");
   };
 
-  const nextSlide = () => setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-  const prevSlide = () => setCurrent((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  if (!total) return null;
 
-  // Fallback to static hero if no slides are defined
-  if (slides.length === 0) {
-    const heroTitle = storeSettings?.heroTitle || "Sabor que te conecta con casa";
-    const heroDescription = storeSettings?.heroDescription || "Llevamos lo mejor de Venezuela directo a tu puerta en Chile.";
-    
-    return (
-      <section className="bg-[#1a4731] relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 py-8 md:py-16 grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-          <div className="text-white z-10 relative">
-            <h1 className="text-4xl md:text-6xl font-black leading-tight mb-4 tracking-tight drop-shadow-md">
-              {heroTitle}
-            </h1>
-            <p className="text-emerald-100/90 text-base md:text-lg mb-8 max-w-xl font-medium">
-              {heroDescription}
-            </p>
-            <form onSubmit={submitHeroSearch} className="flex max-w-xl gap-2 bg-white/10 p-2 rounded-2xl backdrop-blur-sm border border-white/20 shadow-xl">
+  return (
+    <section
+      aria-roledescription="carrusel"
+      aria-label="Destacados"
+      className="relative w-full overflow-hidden bg-brand-950"
+      onMouseEnter={() => setPausado(true)}
+      onMouseLeave={() => setPausado(false)}
+      onFocus={() => setPausado(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPausado(false);
+      }}
+    >
+      <div className="relative min-h-[460px] md:min-h-[520px]">
+        {slides.map((s, i) => {
+          const activa = i === indice;
+          return (
+            <div
+              key={s.id}
+              role="group"
+              aria-roledescription="diapositiva"
+              aria-label={`${i + 1} de ${total}`}
+              aria-hidden={!activa}
+              className={`absolute inset-0 transition-opacity duration-700 motion-reduce:transition-none ${activa ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"}`}
+            >
+              {s.imageUrl ? (
+                <>
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${s.imageUrl})` }}
+                  />
+                  {/* Velo para que el texto blanco se lea sobre cualquier foto. */}
+                  <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-brand-950/90 via-brand-950/60 to-brand-950/20" />
+                </>
+              ) : (
+                <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800" />
+              )}
+
+              <div className="relative z-10 max-w-7xl mx-auto px-4 pt-20 pb-44 md:pt-20 md:pb-44">
+                <div className="max-w-2xl text-white">
+                  {s.title && <h2 className="o-display mb-3 text-white drop-shadow">{s.title}</h2>}
+                  {s.description && <p className="text-base md:text-lg text-white/90 mb-6 max-w-xl">{s.description}</p>}
+                  {s.linkUrl && enlaceValido(s.linkUrl) && (
+                    <Link
+                      href={s.linkUrl}
+                      tabIndex={activa ? 0 : -1}
+                      className="o-focus inline-flex items-center gap-1.5 h-12 px-6 rounded-xl bg-brand-boton text-brand-contraste font-bold text-sm md:text-base hover:bg-brand-700 transition-colors shadow-lg"
+                    >
+                      {s.linkText || "Ver más"} <ChevronRight className="w-5 h-5" aria-hidden />
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Título del hero y buscador: fijos sobre todas las diapositivas. */}
+        <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-brand-950/95 via-brand-950/70 to-transparent pt-10 pb-5 md:pb-7">
+          <div className="max-w-7xl mx-auto px-4">
+            {subtitulo && <p className="text-xs md:text-sm font-semibold text-brand-300 mb-1">{subtitulo}</p>}
+            <h1 className="text-base md:text-xl font-bold text-white mb-3">{titulo}</h1>
+            <form onSubmit={buscar} className="flex max-w-2xl gap-2" role="search">
               <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" aria-hidden />
                 <input
                   type="search"
-                  value={heroQuery}
-                  onChange={(e) => setHeroQuery(e.target.value)}
-                  placeholder="Buscar productos..."
-                  className="w-full h-12 pl-11 pr-4 rounded-xl bg-white text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400 shadow-inner"
+                  aria-label="Buscar productos"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder={placeholderBusqueda}
+                  className="w-full h-12 pl-11 pr-4 rounded-xl bg-white text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-400"
                 />
               </div>
               <button
                 type="submit"
-                className="h-12 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-all transform hover:scale-105 shadow-md"
+                className="o-focus h-12 shrink-0 rounded-xl bg-brand-boton px-6 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-700"
               >
                 Buscar
               </button>
             </form>
           </div>
         </div>
-      </section>
-    );
-  }
 
-  return (
-    <section className="relative w-full overflow-hidden bg-gray-900 min-h-[400px] md:min-h-[500px]">
-      {slides.map((slide: any, index: number) => {
-        const isActive = index === current;
-        return (
-          <div
-            key={slide.id}
-            className={`absolute inset-0 transition-opacity duration-700 ease-in-out flex items-center ${isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"}`}
-          >
-            {/* Background Image */}
-            {slide.imageUrl ? (
-              <div className="absolute inset-0">
-                <div className="absolute inset-0 bg-black/40 z-10" />
-                <div 
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-[10000ms] ease-linear"
-                  style={{ backgroundImage: `url(${slide.imageUrl})`, transform: isActive ? 'scale(1.05)' : 'scale(1)' }}
-                />
-              </div>
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-900 to-emerald-700 z-0" />
-            )}
-            
-            {/* Content */}
-            <div className="max-w-7xl mx-auto px-4 relative z-20 w-full">
-              <div className="max-w-2xl transform transition-all duration-700 delay-100" style={{ opacity: isActive ? 1 : 0, transform: isActive ? 'translateY(0)' : 'translateY(20px)' }}>
-                {slide.title && (
-                  <h1 className="text-4xl md:text-6xl font-black text-white leading-tight mb-4 tracking-tight drop-shadow-lg">
-                    {slide.title}
-                  </h1>
-                )}
-                {slide.description && (
-                  <p className="text-lg md:text-xl text-white/90 mb-8 font-medium drop-shadow-md">
-                    {slide.description}
-                  </p>
-                )}
-                
-                <div className="flex flex-wrap gap-4 items-center">
-                  {slide.linkUrl && (
-                    <Link href={slide.linkUrl} className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white font-black text-base px-8 h-14 rounded-xl transition-all transform hover:scale-105 shadow-lg shadow-emerald-500/30">
-                      {slide.linkText || "Ver m\u00E1s"} <ChevronRight className="w-5 h-5" />
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Floating Search Bar (Always visible over carousel) */}
-      <div className="absolute bottom-6 md:bottom-12 left-0 right-0 z-30 px-4">
-        <div className="max-w-4xl mx-auto">
-          <form onSubmit={submitHeroSearch} className="flex gap-2 bg-white/20 p-2 rounded-2xl backdrop-blur-md border border-white/30 shadow-2xl">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-500 pointer-events-none" />
-              <input
-                type="search"
-                value={heroQuery}
-                onChange={(e) => setHeroQuery(e.target.value)}
-                placeholder="Buscar empanadas, teque\u00F1os, malt\u00EDn..."
-                className="w-full h-14 pl-12 pr-4 rounded-xl bg-white/95 text-gray-900 text-base md:text-lg font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
-              />
-            </div>
+        {total > 1 && (
+          <div className="absolute z-30 top-4 right-4 flex items-center gap-2">
             <button
-              type="submit"
-              className="h-14 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base md:text-lg transition-all shadow-md shrink-0"
+              type="button"
+              onClick={() => setDetenidoPorUsuario((v) => !v)}
+              aria-label={detenidoPorUsuario ? "Reanudar el carrusel" : "Detener el carrusel"}
+              className="o-focus w-10 h-10 rounded-full bg-black/30 hover:bg-black/50 border border-white/20 text-white flex items-center justify-center"
             >
-              Buscar
+              {detenidoPorUsuario ? <Play className="w-4 h-4" aria-hidden /> : <Pause className="w-4 h-4" aria-hidden />}
             </button>
-          </form>
-        </div>
-      </div>
-
-      {/* Navigation arrows (if > 1 slide) */}
-      {slides.length > 1 && (
-        <div className="absolute top-1/2 -translate-y-1/2 left-4 right-4 flex justify-between z-20 pointer-events-none">
-          <button onClick={prevSlide} className="pointer-events-auto w-12 h-12 rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center transition-colors">
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <button onClick={nextSlide} className="pointer-events-auto w-12 h-12 rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center transition-colors">
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        </div>
-      )}
-
-      {/* Pagination dots */}
-      {slides.length > 1 && (
-        <div className="absolute bottom-28 md:bottom-32 left-0 right-0 flex justify-center gap-2 z-20">
-          {slides.map((_: any, idx: number) => (
             <button
-              key={idx}
-              onClick={() => setCurrent(idx)}
-              className={`w-3 h-3 rounded-full transition-all ${idx === current ? "bg-emerald-400 w-8" : "bg-white/50 hover:bg-white/80"}`}
-            />
-          ))}
-        </div>
-      )}
+              type="button"
+              onClick={() => ir(indice - 1)}
+              aria-label="Diapositiva anterior"
+              className="o-focus w-10 h-10 rounded-full bg-black/30 hover:bg-black/50 border border-white/20 text-white flex items-center justify-center"
+            >
+              <ChevronLeft className="w-5 h-5" aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={() => ir(indice + 1)}
+              aria-label="Diapositiva siguiente"
+              className="o-focus w-10 h-10 rounded-full bg-black/30 hover:bg-black/50 border border-white/20 text-white flex items-center justify-center"
+            >
+              <ChevronRight className="w-5 h-5" aria-hidden />
+            </button>
+          </div>
+        )}
+
+        {total > 1 && (
+          <div className="absolute z-30 top-4 left-2 md:left-1/2 md:-translate-x-1/2 flex items-center">
+            {slides.map((s, i) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => ir(i)}
+                aria-label={`Ir a la diapositiva ${i + 1}`}
+                aria-current={i === indice}
+                className="o-focus flex items-center justify-center min-w-[32px] min-h-[40px] px-1 group"
+              >
+                <span
+                  aria-hidden
+                  className={`block h-2.5 rounded-full transition-all ${i === indice ? "w-8 bg-brand-300" : "w-2.5 bg-white/50 group-hover:bg-white/80"}`}
+                />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
