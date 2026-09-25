@@ -1,20 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useProducts } from "@/contexts/ProductContext";
 import { isProductVisible } from "@/services/products";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
+import HeroCarousel from "@/components/HeroCarousel";
 import { useCategories } from "@/hooks/useCategories";
 import {
   ChevronRight,
-  Truck,
-  Shield,
-  BadgeCheck,
-  Search,
   Tag,
   Flame,
   Zap,
@@ -24,17 +19,6 @@ export default function Home() {
   const { products, loading: productsLoading } = useProducts();
   const { categories, loading: categoriesLoading } = useCategories();
   const { settings: storeSettings } = useStoreSettings();
-  const router = useRouter();
-  const [heroQuery, setHeroQuery] = useState("");
-
-  const submitHeroSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = heroQuery.trim();
-    router.push(q ? `/productos?q=${encodeURIComponent(q)}` : "/productos");
-  };
-
-  const heroTitle = storeSettings?.heroTitle || "Sabor que te conecta con casa";
-  const heroDescription = storeSettings?.heroDescription || "Llevamos lo mejor de Venezuela directo a tu puerta en Chile.";
 
   const visible = products.filter(p => p.isActive && isProductVisible(p));
   const featured = visible.filter(p => p.featured).sort((a, b) => a.name.localeCompare(b.name, "es"));
@@ -43,91 +27,14 @@ export default function Home() {
   const offerProducts = visible.filter(p => p.offerPrice && p.offerPrice < p.price).slice(0, 10);
   const moreProducts = [...featured, ...rest].slice(10, 20);
 
-  const blocks = storeSettings?.appearance?.blocks?.filter(b => b.enabled) ?? [];
-  const hasBlocks = blocks.length > 0;
-
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* ── HERO BANNER ── */}
-      <section className="bg-[#1a4731] relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 py-8 md:py-10 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6 items-center">
-          {/* Left: text + search */}
-          <div className="text-white">
-            <p className="text-emerald-300 font-bold text-xs uppercase tracking-widest mb-2">🌿 Productos venezolanos premium</p>
-            <h1 className="text-3xl md:text-5xl font-black leading-tight mb-2 tracking-tight">
-              {heroTitle}
-            </h1>
-            <p className="text-emerald-100/70 text-sm md:text-base mb-5 max-w-md">
-              {heroDescription}
-            </p>
-            <form onSubmit={submitHeroSearch} className="flex max-w-xl gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                <input
-                  type="search"
-                  value={heroQuery}
-                  onChange={(e) => setHeroQuery(e.target.value)}
-                  placeholder="Buscar productos..."
-                  className="w-full h-12 pl-11 pr-4 rounded-xl bg-white text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                />
-              </div>
-              <button
-                type="submit"
-                className="h-12 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-colors"
-              >
-                Buscar
-              </button>
-            </form>
-            <div className="flex flex-wrap gap-3 mt-5">
-              <Link href="/productos" className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
-                Comprar ahora <ChevronRight className="w-4 h-4" />
-              </Link>
-              <Link href="/ofertas" className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm px-5 h-10 rounded-lg transition-colors">
-                <Tag className="w-4 h-4 text-amber-400" /> Ver ofertas
-              </Link>
-            </div>
-          </div>
-
-          {/* Right: promo cards */}
-          <div className="hidden lg:grid grid-cols-2 gap-3">
-            <Link href="/ofertas" className="col-span-2 bg-amber-400/20 border border-amber-400/30 rounded-2xl p-5 text-center hover:bg-amber-400/30 transition-colors">
-              <p className="text-amber-300 text-xs font-black uppercase tracking-widest mb-1">Ofertas especiales</p>
-              <p className="text-white text-4xl font-black">40% OFF</p>
-              <p className="text-amber-200/70 text-xs mt-1">en productos seleccionados</p>
-            </Link>
-            <div className="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3">
-              <Truck className="w-8 h-8 text-emerald-400 shrink-0" />
-              <div>
-                <p className="text-white font-black text-sm leading-tight">Envío rápido</p>
-                <p className="text-emerald-300/70 text-xs">Llega en 24-48h</p>
-              </div>
-            </div>
-            <div className="bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3">
-              <BadgeCheck className="w-8 h-8 text-emerald-400 shrink-0" />
-              <div>
-                <p className="text-white font-black text-sm leading-tight">100% garantizado</p>
-                <p className="text-emerald-300/70 text-xs">Calidad asegurada</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Benefits bar */}
-        <div className="border-t border-white/10 bg-black/20">
-          <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap justify-center sm:justify-between gap-y-2 divide-x divide-white/10">
-            {[
-              { icon: Truck,      text: "Envío en 24-48h" },
-              { icon: BadgeCheck, text: "Calidad garantizada" },
-              { icon: Shield,     text: "Pago 100% seguro" },
-            ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-2 px-4 sm:px-8">
-                <Icon className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-[11px] font-bold text-emerald-100/70 uppercase tracking-wider whitespace-nowrap">{text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ── HERO BANNER (CAROUSEL) ── */}
+      <HeroCarousel 
+        blocks={storeSettings?.appearance?.blocks || []} 
+        storeSettings={storeSettings} 
+      />
 
       {/* ── CATEGORÍAS (horizontal) ── */}
       <section className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">

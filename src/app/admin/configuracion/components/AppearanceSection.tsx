@@ -6,6 +6,7 @@ import type { StoreSettings } from "@/app/api/admin/settings/route";
 import { uploadImageServerAction } from "@/actions/upload";
 import type { HandleChange } from "../lib";
 import { ColorField, InputField, CheckBoxField, TextAreaField } from "./fields";
+import HeroCarouselEditor from "./HeroCarouselEditor";
 
 interface AppearanceSectionProps {
   settings: StoreSettings;
@@ -204,22 +205,14 @@ export default function AppearanceSection({ settings, handleChange, saveSettings
       />
 
       <div className="border-t border-slate-200 pt-6">
-        <h3 className="font-semibold text-slate-900 mb-4">Contenido del Hero (Inicio)</h3>
-        <div className="space-y-4">
-          <InputField
-            label="Título del Hero"
-            value={settings.heroTitle || ""}
-            onChange={(val) => handleChange(["heroTitle"], val)}
-            placeholder="Sabor que te conecta con casa"
-          />
-          <TextAreaField
-            label="Descripción del Hero"
-            value={settings.heroDescription || ""}
-            onChange={(val) => handleChange(["heroDescription"], val)}
-            rows={3}
-            placeholder="Llevamos lo mejor de Venezuela directo a tu puerta en Chile..."
-          />
-        </div>
+        <h3 className="font-semibold text-slate-900 mb-4">Carrusel de Inicio (Hero)</h3>
+        <p className="text-sm text-slate-500 mb-6">Configura las im\u00E1genes flotantes din\u00E1micas, t\u00EDtulos y enlaces para promociones, destacados o anuncios en la pantalla de inicio.</p>
+        
+        <HeroCarouselEditor 
+          blocks={settings.appearance?.blocks || []}
+          onChange={(newBlocks) => handleChange(["appearance", "blocks"], newBlocks)}
+          saveSettings={saveSettings}
+        />
       </div>
     </div>
   );
