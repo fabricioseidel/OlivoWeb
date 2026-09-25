@@ -20,6 +20,7 @@ Una plataforma de comercio electrónico completa construida con Next.js 15, Type
 - ✅ Subida de imágenes
 - ✅ Configuración del sistema
 - ✅ Gestión de proveedores y generación de pedidos de reposición por WhatsApp
+- ✅ Gestión documental: facturas recibidas y emitidas, libro mensual con F29 estimado y calendario de IVA e imposiciones (ver `docs/GESTION_DOCUMENTAL.md`)
 
 ## 🛠️ Stack Tecnológico
 

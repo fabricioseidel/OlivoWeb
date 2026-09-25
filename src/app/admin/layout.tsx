@@ -36,6 +36,7 @@ import {
   BuildingStorefrontIcon,
   BeakerIcon,
   UserGroupIcon,
+  FolderOpenIcon,
 } from "@heroicons/react/24/outline";
 import { Dialog, Transition } from "@headlessui/react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -44,7 +45,10 @@ import { BranchProvider } from "@/contexts/BranchContext";
 import BranchSelector from "@/components/admin/BranchSelector";
 
 // ── Sidebar Groups ──────────────────────────────────────────────────────
-type MenuItem = { name: string; href: string; icon: typeof ChartBarIcon };
+// `soloAdmin`: el vendedor (SELLER) no lo ve en el menú ni puede entrar por
+// URL. Las rutas de la API lo exigen también; esto es para no mostrarle una
+// pantalla que le respondería 403.
+type MenuItem = { name: string; href: string; icon: typeof ChartBarIcon; soloAdmin?: boolean };
 type MenuGroup = { label: string; items: MenuItem[] };
 
 // OLIVOTEAM: operación diaria de la tienda
@@ -96,7 +100,21 @@ const menuGroupsOlivoTeam: MenuGroup[] = [
       { name: "Uber Eats", href: "/admin/uber-eats", icon: GlobeAltIcon },
     ],
   },
+  {
+    label: "Administración",
+    items: [
+      { name: "Gestión documental", href: "/admin/documentos", icon: FolderOpenIcon, soloAdmin: true },
+    ],
+  },
 ];
+
+/** El menú que corresponde al rol: sin los ítems `soloAdmin` para el vendedor. */
+function menuParaRol(grupos: MenuGroup[], rol: string): MenuGroup[] {
+  if (rol === "ADMIN") return grupos;
+  return grupos
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.soloAdmin) }))
+    .filter((g) => g.items.length > 0);
+}
 
 // LABORATORIO FABRI: marketing, sistema y herramientas avanzadas
 const menuGroupsLaboratorioFabri: MenuGroup[] = [
@@ -245,11 +263,19 @@ export default function AdminLayout({
     }
   }, [status, session, router, pathname]);
 
+  const rolActual = ((session as any)?.role || (session as any)?.user?.role || "USER").toString().toUpperCase();
+
   // Route redirect if not valid in the selected mode
   useEffect(() => {
     if (!panelMode || !pathname.startsWith("/admin") || pathname === "/admin") return;
+    // Sin sesión todavía el rol se lee como USER y se expulsaría al ADMIN de
+    // las pantallas `soloAdmin` antes de saber quién es.
+    if (status !== "authenticated") return;
 
-    const currentMenuGroups = panelMode === "OLIVOTEAM" ? menuGroupsOlivoTeam : menuGroupsLaboratorioFabri;
+    const currentMenuGroups = menuParaRol(
+      panelMode === "OLIVOTEAM" ? menuGroupsOlivoTeam : menuGroupsLaboratorioFabri,
+      rolActual,
+    );
     const allowedHrefs = currentMenuGroups.flatMap(g => g.items.map(item => item.href));
 
     const isAllowed = allowedHrefs.some(href => {
@@ -260,7 +286,7 @@ export default function AdminLayout({
       const defaultPage = panelMode === "OLIVOTEAM" ? "/admin" : "/admin/configuracion";
       router.push(defaultPage);
     }
-  }, [panelMode, pathname, router]);
+  }, [panelMode, pathname, router, rolActual, status]);
 
   // Close mobile menu on navigate
   useEffect(() => {
@@ -283,7 +309,10 @@ export default function AdminLayout({
 
   // ── Sidebar nav content (shared between desktop and mobile) ──
   const NavContent = ({ mobile = false }: { mobile?: boolean }) => {
-    const currentMenuGroups = panelMode === "OLIVOTEAM" ? menuGroupsOlivoTeam : menuGroupsLaboratorioFabri;
+    const currentMenuGroups = menuParaRol(
+      panelMode === "OLIVOTEAM" ? menuGroupsOlivoTeam : menuGroupsLaboratorioFabri,
+      userRole,
+    );
 
     return (
       <>

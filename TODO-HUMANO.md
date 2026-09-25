@@ -280,6 +280,42 @@ El dominio del remitente tiene que estar verificado o los correos caen en spam
 
 ---
 
+## 🧾 Gestión documental — lo que falta de tu parte
+
+La sección ya funciona para **registrar e importar facturas, llevar el libro
+del mes y ver los vencimientos**. Cómo se usa: `docs/GESTION_DOCUMENTAL.md`.
+Para que quede completa hacen falta decisiones y datos que sólo tú tienes:
+
+1. **Elegir un proveedor de facturación electrónica** (OpenFactura/Haulmer,
+   LibreDTE, SimpleAPI, Bsale…) si quieres emitir boletas y facturas **desde el
+   panel**. Hasta entonces, «Emitir» deja un borrador y el documento se emite en
+   el portal del SII (ahí se anota el folio). Con el proveedor elegido y sus
+   credenciales se implementa su adaptador en `src/server/dte.ts` y se carga
+   `DTE_PROVIDER` en Vercel. Necesitarás el certificado digital del
+   representante legal.
+2. **Declarar en el SII el modelo «voucher válido como boleta»** (o confirmar
+   que ya está), para no emitir boleta por las ventas con tarjeta o MercadoPago.
+   Eso duplicaría el IVA.
+3. **Confirmar el régimen tributario de la SpA.** El PPM por defecto es 0,125%
+   (Pro Pyme General, transitorio hasta dic-2027). Si es otro régimen, cámbialo
+   en *Libro del mes → Ajustes*.
+4. **Cargar el remanente de crédito fiscal** del último F29 presentado (código
+   77) en el primer mes que uses el libro. Desde ahí se arrastra solo al cerrar
+   cada mes.
+5. **Cargar a los trabajadores** (*Imposiciones*) y **comparar las tasas** con
+   la primera planilla real de Previred. El aporte del empleador de la reforma
+   (3,5% desde agosto de 2026) y si el SIS va aparte son lo primero que hay que
+   confirmar.
+6. **El giro de la empresa.** `BUSINESS` (`src/lib/seo/business.ts`) no lo
+   tiene. Hará falta para imprimir facturas desde el panel cuando haya proveedor.
+   // TODO-HUMANO: entregar el giro tal como figura en el SII.
+7. **Feriados de 2027 en adelante.** Están en `src/lib/documentos/vencimientos.ts`
+   (2027 es proyección). Revísalos cada diciembre: incluye interferiados y días
+   de elección.
+8. **Las facturas viejas de pedidos a proveedores** están en el bucket público
+   `uploads` (cualquiera con la URL las ve). Las nuevas van al bucket privado
+   `documentos-tributarios`. Conviene decidir si se mueven.
+
 ## 📐 Trabajo planificado, aún sin implementar
 
 ### Precios, costos y reposición
