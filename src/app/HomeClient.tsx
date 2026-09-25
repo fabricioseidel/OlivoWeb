@@ -212,7 +212,7 @@ function HeroBlock({
   block: PageBlock;
   fallbackTitle?: string;
   fallbackDescription?: string;
-  storeSettings?: { appearance?: { bannerUrl?: string | null } } | null;
+  storeSettings?: { appearance?: { bannerUrl?: string | null; blocks?: any[] } } | null;
   showCategoriesBar?: boolean;
   categories: any[];
   categoriesLoading: boolean;
