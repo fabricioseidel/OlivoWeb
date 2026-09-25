@@ -1,6 +1,4 @@
-import { 
-  ChevronRight
-} from 'lucide-react';
+import Link from 'next/link';
 
 import { getCategoryStyle } from '@/utils/categoryStyles';
 
@@ -14,43 +12,72 @@ export type CategoryUI = {
 
 type Props = {
     category: CategoryUI;
+    /**
+     * Destino de la categoría. Se prefiere sobre `onClick`: la tarjeta se
+     * renderiza como enlace real, de modo que funciona con teclado, se puede
+     * abrir en otra pestaña y Google la puede rastrear. Antes era un `div` con
+     * onClick, que no cumple ninguna de las tres cosas.
+     */
+    href?: string;
     onClick?: () => void;
 };
 
-export default function CategoryCard({ category, onClick }: Props) {
+export default function CategoryCard({ category, href, onClick }: Props) {
     const style = getCategoryStyle(category.name, category.image || undefined);
     const Icon = style.icon;
+    const count = category.productsCount;
 
+    // Tarjeta compacta: el color va en la pastilla del icono y no en todo el
+    // bloque. Antes cada tarjeta era un rectángulo tintado de 250 px de alto
+    // con un enlace "Ver catálogo" redundante, así que en el teléfono entraban
+    // dos categorías por pantalla y la grilla quedaba desordenada de color.
+    const className =
+        'o-focus group flex h-full w-full flex-col items-center justify-start gap-2 rounded-2xl border border-neutral-200 bg-white p-3 text-center transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[0_6px_20px_-8px_rgba(0,0,0,0.18)] sm:gap-2.5 sm:p-4';
+
+    const content = (
+        <>
+            <span
+                className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${style.bg} transition-transform duration-200 group-hover:scale-105 sm:size-12`}
+            >
+                <Icon className={`size-5 ${style.color} sm:size-6`} strokeWidth={2} />
+            </span>
+
+            <span className="line-clamp-2 text-[13px] font-semibold leading-tight tracking-tight text-neutral-900 transition-colors group-hover:text-brand-700 sm:text-sm">
+                {category.name}
+            </span>
+
+            {count !== undefined && (
+                <span className="text-[11px] leading-none text-neutral-500 sm:text-xs">
+                    {count} {count === 1 ? 'producto' : 'productos'}
+                </span>
+            )}
+        </>
+    );
+
+    if (href) {
+        return (
+            <Link href={href} className={className}>
+                {content}
+            </Link>
+        );
+    }
+
+    // Respaldo para los usos que todavía pasan onClick: se mantiene operable
+    // con teclado en vez de quedar como un div inerte.
     return (
         <div
+            role="button"
+            tabIndex={0}
             onClick={onClick}
-            className={`group relative flex flex-col items-center justify-center p-8 sm:p-10 ${style.bg} rounded-[3rem] transition-all duration-500 border-2 border-transparent ${style.border} hover:shadow-xl hover:-translate-y-2 w-full active:scale-95 cursor-pointer overflow-hidden`}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick?.();
+                }
+            }}
+            className={`${className} cursor-pointer`}
         >
-            {/* Subtle dots texture */}
-            <div className="absolute inset-0 bg-dots text-black opacity-[0.04] pointer-events-none" />
-            {/* Contenedor de Icono */}
-            <div className="size-20 sm:size-24 rounded-[2rem] flex items-center justify-center bg-white shadow-sm mb-6 group-hover:scale-110 group-hover:shadow-md transition-all duration-500 relative overflow-hidden">
-                <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 ${style.bg}`} />
-                <Icon className={`size-10 sm:size-12 ${style.color} transition-all duration-500 group-hover:rotate-6 relative z-10`} />
-            </div>
-
-            {/* Nombre de Categoría */}
-            <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-2 tracking-tight group-hover:text-emerald-600 transition-colors">
-                {category.name}
-            </h3>
-
-            {/* Contador de productos si está disponible */}
-            {category.productsCount !== undefined && (
-                <p className="text-sm font-bold text-gray-400 mb-4 opacity-100 group-hover:text-emerald-500/60 transition-colors">
-                    {category.productsCount} productos
-                </p>
-            )}
-
-            {/* Botón de acción / CTA decorativo */}
-            <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-sm bg-white/50 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/50 shadow-sm transition-all duration-500 opacity-60 group-hover:opacity-100 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-500 group-hover:shadow-emerald-200">
-                <span>Ver catálogo</span>
-                <ChevronRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
-            </div>
+            {content}
         </div>
     );
 }

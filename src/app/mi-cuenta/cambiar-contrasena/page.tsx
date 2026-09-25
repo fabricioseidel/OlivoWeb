@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeftIcon, CheckCircleIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
-const labelClass = "block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2";
+const labelClass = "mb-1.5 block text-sm font-medium text-neutral-700";
 
 function PasswordInput({
   name,
@@ -34,7 +34,7 @@ function PasswordInput({
           className={`w-full bg-gray-50 border-2 rounded-2xl px-4 py-3 pr-12 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
             error
               ? "border-red-300 focus:border-red-400 focus:ring-red-500/20"
-              : "border-gray-100 focus:border-emerald-400 focus:ring-emerald-500/20"
+              : "border-gray-100 focus:border-brand-400 focus:ring-brand-500/20"
           }`}
         />
         <button
@@ -105,7 +105,7 @@ export default function CambiarContrasenaPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500" />
       </div>
     );
   }
@@ -114,22 +114,22 @@ export default function CambiarContrasenaPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <Link
         href="/mi-cuenta"
-        className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-emerald-600 mb-8 transition-colors"
+        className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-brand-600 mb-8 transition-colors"
       >
         <ArrowLeftIcon className="w-4 h-4 mr-2" />
         Volver a Mi Cuenta
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Cambiar Contraseña</h1>
+        <h1 className="o-h1 mb-1 text-neutral-900">Cambiar contraseña</h1>
         <p className="text-gray-500 font-medium">Elige una contraseña segura con al menos 8 caracteres.</p>
       </div>
 
-      <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-8">
+      <div className="o-card p-6">
         {success && (
-          <div className="flex items-center gap-3 mb-6 px-5 py-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
-            <CheckCircleIcon className="w-5 h-5 text-emerald-600 shrink-0" />
-            <p className="text-sm font-bold text-emerald-800">Contraseña actualizada correctamente</p>
+          <div className="flex items-center gap-3 mb-6 px-5 py-4 bg-brand-50 border border-brand-200 rounded-2xl">
+            <CheckCircleIcon className="w-5 h-5 text-brand-600 shrink-0" />
+            <p className="text-sm font-bold text-brand-800">Contraseña actualizada correctamente</p>
           </div>
         )}
 
@@ -173,7 +173,7 @@ export default function CambiarContrasenaPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="o-focus inline-flex h-11 items-center gap-2 rounded-xl bg-brand-boton px-6 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
               {isSubmitting ? "Actualizando…" : "Cambiar contraseña"}

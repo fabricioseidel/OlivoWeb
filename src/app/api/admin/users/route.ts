@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireApiAdmin } from "@/lib/api-auth";
 import { supabaseServer } from "@/lib/supabase-server";
 import bcrypt from "bcryptjs";
 
 // GET /api/admin/users -> lista usuarios reales (solo admin)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(req: NextRequest) {
-  const session: any = await getServerSession(authOptions as any);
-  const role = (session as any)?.role || (session?.user as any)?.role || '';
-  if (!session || !String(role).toUpperCase().includes('ADMIN')) {
-    return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
-  }
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
   const { data, error } = await supabaseServer
     .from('users')
     .select('id,name,email,role,created_at');
@@ -27,11 +23,8 @@ export async function GET(req: NextRequest) {
 
 // PATCH /api/admin/users (cambiar rol) body: { userId, role }
 export async function PATCH(req: NextRequest) {
-  const session: any = await getServerSession(authOptions as any);
-  const adminRole = (session as any)?.role || (session?.user as any)?.role || '';
-  if (!session || !String(adminRole).toUpperCase().includes('ADMIN')) {
-    return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
-  }
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
   try {
     const { userId, role } = await req.json();
     if (!userId || !['USER', 'ADMIN'].includes(role)) {
@@ -57,11 +50,8 @@ export async function PATCH(req: NextRequest) {
 // POST /api/admin/users (crear usuario)
 // body: { name: string, email: string, password: string, role?: 'USER'|'ADMIN' }
 export async function POST(req: NextRequest) {
-  const session: any = await getServerSession(authOptions as any);
-  const adminRole = (session as any)?.role || (session?.user as any)?.role || '';
-  if (!session || !String(adminRole).toUpperCase().includes('ADMIN')) {
-    return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
-  }
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
   try {
     const { name, email, password, role } = await req.json();
     if (!name || !email || !password) {
@@ -97,11 +87,8 @@ export async function POST(req: NextRequest) {
 // PUT /api/admin/users (editar usuario)
 // body: { userId: string, name: string, email: string, password?: string, role: string }
 export async function PUT(req: NextRequest) {
-  const session: any = await getServerSession(authOptions as any);
-  const adminRole = (session as any)?.role || (session?.user as any)?.role || '';
-  if (!session || !String(adminRole).toUpperCase().includes('ADMIN')) {
-    return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
-  }
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
   try {
     const { userId, name, email, password, role } = await req.json();
     if (!userId || !name || !email || !['USER', 'ADMIN'].includes(role)) {
@@ -132,11 +119,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/admin/users
 export async function DELETE(req: NextRequest) {
-  const session: any = await getServerSession(authOptions as any);
-  const adminRole = (session as any)?.role || (session?.user as any)?.role || '';
-  if (!session || !String(adminRole).toUpperCase().includes('ADMIN')) {
-    return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
-  }
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('id');

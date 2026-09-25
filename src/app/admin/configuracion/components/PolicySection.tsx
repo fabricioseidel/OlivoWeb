@@ -49,13 +49,40 @@ export default function PolicySection({ settings, handleChange }: PolicySectionP
         placeholder="https://tutienda.com/faq"
       />
 
-      <div className="border-t border-slate-200 pt-6">
+      <div className="border-t border-slate-200 pt-6 space-y-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+          <CheckBoxField
+            label="Modo vitrina — se puede mirar, no comprar"
+            checked={settings.previewMode !== false}
+            onChange={(val) => handleChange(["previewMode"], val)}
+          />
+          <p className="text-xs leading-relaxed text-amber-900">
+            Con esto activado el sitio se ve completo y sale en buscadores, pero
+            nadie puede pagar ni dejar un pedido: el servidor los rechaza, no es
+            solo un botón escondido. <strong>Desactívalo el día que abras.</strong>
+          </p>
+          {settings.previewMode !== false && (
+            <TextAreaField
+              label="Aviso que ven los clientes"
+              value={settings.previewMessage || ""}
+              onChange={(val) => handleChange(["previewMessage"], val)}
+              placeholder="Estamos terminando los últimos detalles. Puedes mirar todo el catálogo, pero todavía no aceptamos pedidos por la web."
+              rows={3}
+            />
+          )}
+        </div>
+
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-3">
           <CheckBoxField
-            label="Modo mantenimiento"
+            label="Modo mantenimiento — el sitio entero fuera de línea"
             checked={settings.maintenanceMode || false}
             onChange={(val) => handleChange(["maintenanceMode"], val)}
           />
+          <p className="text-xs leading-relaxed text-red-900">
+            ⚠️ Este interruptor todavía <strong>no está conectado</strong>: se
+            guarda, pero el sitio sigue disponible igual. Para cerrar solo las
+            ventas y dejar el catálogo visible, usa el modo vitrina de arriba.
+          </p>
           {settings.maintenanceMode && (
             <TextAreaField
               label="Mensaje de mantenimiento"

@@ -6,6 +6,7 @@ import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
 import Button from "@/components/ui/Button";
 import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
+import { compressImageFile } from "@/utils/image";
 import {
   MagnifyingGlassIcon,
   ArrowLeftIcon,
@@ -16,16 +17,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 const DEFAULT_IMAGE = "/file.svg";
-const MAX_SIZE_KB = 10240;
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target?.result as string);
-    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
-    reader.readAsDataURL(file);
-  });
-}
+const MAX_SIZE_KB = 20480;
 
 export default function BulkImageEditorPage() {
   const { products, loading, updateProductsBulk } = useProducts();
@@ -69,10 +61,10 @@ export default function BulkImageEditorPage() {
       return;
     }
     try {
-      const dataUrl = await readFileAsDataUrl(file);
+      const dataUrl = await compressImageFile(file);
       setPending((prev) => ({ ...prev, [id]: dataUrl }));
     } catch {
-      showToast("No se pudo leer la imagen", "error");
+      showToast("No se pudo procesar la imagen", "error");
     }
   };
 
@@ -89,22 +81,41 @@ export default function BulkImageEditorPage() {
     if (ids.length === 0) return;
     setSaving(true);
     setProgress(0);
-    try {
-      const updates: Record<string, { image: string }> = {};
-      for (let i = 0; i < ids.length; i++) {
-        const id = ids[i];
+
+    const updates: Record<string, { image: string }> = {};
+    const failed: string[] = [];
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      try {
         const res = await uploadImageToCloudinaryServerAction(pending[id]);
-        if (!res.ok || !res.url) {
-          throw new Error(res.error || `Falló la subida de ${id}`);
-        }
+        if (!res.ok || !res.url) throw new Error(res.error || "Falló la subida");
         updates[id] = { image: res.url };
-        setProgress(i + 1);
+      } catch {
+        const name = products.find((p) => p.id === id)?.name || id;
+        failed.push(name);
       }
-      await updateProductsBulk(updates as any);
-      showToast(`${ids.length} ${ids.length === 1 ? "imagen actualizada" : "imágenes actualizadas"}`, "success");
-      setPending({});
+      setProgress(i + 1);
+    }
+
+    try {
+      const okIds = Object.keys(updates);
+      if (okIds.length > 0) {
+        await updateProductsBulk(updates as any);
+        setPending((prev) => {
+          const next = { ...prev };
+          for (const id of okIds) delete next[id];
+          return next;
+        });
+      }
+      if (failed.length === 0) {
+        showToast(`${okIds.length} ${okIds.length === 1 ? "imagen actualizada" : "imágenes actualizadas"}`, "success");
+      } else if (okIds.length === 0) {
+        showToast(`No se pudo subir ninguna imagen. Falló: ${failed.slice(0, 3).join(", ")}${failed.length > 3 ? "…" : ""}`, "error");
+      } else {
+        showToast(`${okIds.length} guardadas, ${failed.length} fallaron (${failed.slice(0, 3).join(", ")}${failed.length > 3 ? "…" : ""})`, "warning");
+      }
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Error al guardar imágenes", "error");
+      showToast(err instanceof Error ? err.message : "Error al guardar los cambios", "error");
     } finally {
       setSaving(false);
       setProgress(0);
@@ -118,13 +129,13 @@ export default function BulkImageEditorPage() {
         <div>
           <Link
             href="/admin/productos"
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-emerald-600 font-medium mb-2"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-600 font-medium mb-2"
           >
             <ArrowLeftIcon className="w-4 h-4" />
             Productos
           </Link>
           <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-            <PhotoIcon className="w-7 h-7 text-emerald-600" />
+            <PhotoIcon className="w-7 h-7 text-brand-600" />
             Editor masivo de imágenes
           </h1>
           <p className="text-gray-500 text-sm font-medium">
@@ -135,7 +146,7 @@ export default function BulkImageEditorPage() {
           onClick={handleSave}
           loading={saving}
           disabled={pendingCount === 0 || saving}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold whitespace-nowrap"
+          className="bg-brand-600 hover:bg-brand-500 text-white font-bold whitespace-nowrap"
         >
           <CloudArrowUpIcon className="w-5 h-5 mr-2" />
           {saving
@@ -155,7 +166,7 @@ export default function BulkImageEditorPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nombre o código de barras…"
-            className="w-full pl-10 pr-4 h-11 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+            className="w-full pl-10 pr-4 h-11 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm"
           />
         </div>
         <label className="inline-flex items-center gap-2 px-4 h-11 rounded-xl border border-gray-300 bg-white cursor-pointer select-none text-sm font-medium text-gray-700">
@@ -163,7 +174,7 @@ export default function BulkImageEditorPage() {
             type="checkbox"
             checked={onlyMissing}
             onChange={(e) => setOnlyMissing(e.target.checked)}
-            className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+            className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
           />
           Solo sin imagen
         </label>
@@ -189,7 +200,7 @@ export default function BulkImageEditorPage() {
               <div
                 key={p.id}
                 className={`bg-white rounded-2xl border shadow-sm overflow-hidden flex flex-col ${
-                  hasPending ? "border-emerald-400 ring-2 ring-emerald-100" : "border-gray-200"
+                  hasPending ? "border-brand-400 ring-2 ring-brand-100" : "border-gray-200"
                 }`}
               >
                 <div
@@ -203,13 +214,13 @@ export default function BulkImageEditorPage() {
                     className={`w-full h-full object-contain ${isPlaceholder ? "opacity-30 p-8" : ""}`}
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold bg-emerald-600 px-3 py-1.5 rounded-lg">
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold bg-brand-600 px-3 py-1.5 rounded-lg">
                       {isPlaceholder ? "Subir imagen" : "Reemplazar"}
                     </span>
                   </div>
                   {hasPending && (
                     <>
-                      <span className="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide">
+                      <span className="absolute top-2 left-2 bg-brand-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide">
                         Pendiente
                       </span>
                       <button
@@ -247,7 +258,7 @@ export default function BulkImageEditorPage() {
                         }
                       }}
                       title="Copiar nombre"
-                      className="flex-shrink-0 p-1 rounded-md text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                      className="flex-shrink-0 p-1 rounded-md text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
                     >
                       <ClipboardDocumentIcon className="w-4 h-4" />
                     </button>

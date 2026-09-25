@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
+import { precioEfectivo } from "@/lib/pricing";
+import { calculateBundleStock } from "@/lib/bundle";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,18 +15,84 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ updates: [] });
     }
 
-    const itemIds = items.map((i: any) => i.id);
+    const itemIds = items.map((i: any) => String(i.id)).filter(Boolean);
     console.log("[OLIVO:api:validate] Buscando barcodes en DB:", itemIds);
 
     const { data: dbProducts, error } = await supabaseServer
       .from("products")
-      .select("id, barcode, name, sale_price, stock, is_active")
+      .select("id, barcode, name, sale_price, offer_price, stock, is_active, features")
       .in("barcode", itemIds);
 
     if (error) {
       console.error("[OLIVO:api:validate] ❌ Error Supabase:", error);
       return NextResponse.json({ updates: [] }, { status: 500 });
     }
+
+    // Identificar códigos de barra de productos componentes si hay packs en el carrito
+    const componentBarcodes: string[] = [];
+    (dbProducts || []).forEach((p: any) => {
+      let bundleConfig = p.bundle_config;
+      if (!bundleConfig && Array.isArray(p.features)) {
+        const marker = p.features.find(
+          (f: any) => typeof f === "string" && f.startsWith("__BUNDLE_CONFIG__:")
+        );
+        if (marker) {
+          try {
+            bundleConfig = JSON.parse(marker.slice("__BUNDLE_CONFIG__:".length));
+          } catch {}
+        }
+      }
+      if (bundleConfig?.isBundle) {
+        (bundleConfig.fixedItems || []).forEach((item: any) => {
+          if (item.barcode) componentBarcodes.push(String(item.barcode));
+        });
+        (bundleConfig.optionGroups || []).forEach((g: any) => {
+          (g.options || []).forEach((opt: any) => {
+            if (opt.barcode) componentBarcodes.push(String(opt.barcode));
+          });
+        });
+      }
+    });
+
+    const allBarcodesToFetch = Array.from(new Set([...itemIds, ...componentBarcodes]));
+
+    /**
+     * Stock real de la sucursal que despacha.
+     *
+     * `products.stock` es un consolidado que puede quedar desfasado del stock
+     * por sucursal: se han visto productos con 4 en products.stock y 2 en
+     * branch_stock. La creación del pedido descuenta de branch_stock vía
+     * decrement_stock_atomic, así que validar contra products.stock dejaba
+     * pasar carritos que después el checkout rechazaba con "Stock
+     * insuficiente" — sin forma de que el cliente supiera cuál era el máximo.
+     *
+     * Se valida contra la misma fuente que descuenta. Si no hay fila en
+     * branch_stock para ese producto, se cae a products.stock (mismo criterio
+     * que la RPC).
+     */
+    const { data: defaultBranch } = await supabaseServer
+      .from("branches")
+      .select("id")
+      .eq("is_default", true)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    const branchStock = new Map<string, number>();
+    if (defaultBranch?.id && allBarcodesToFetch.length > 0) {
+      const { data: rows } = await supabaseServer
+        .from("branch_stock")
+        .select("product_barcode, stock")
+        .eq("branch_id", defaultBranch.id)
+        .in("product_barcode", allBarcodesToFetch);
+      for (const r of rows || []) {
+        branchStock.set(String(r.product_barcode), Number(r.stock) || 0);
+      }
+    }
+
+    const stockFor = (barcode: string, fallback: number) => {
+      const b = branchStock.get(String(barcode));
+      return typeof b === "number" ? b : fallback;
+    };
 
     console.log("[OLIVO:api:validate] 🗄️ Productos encontrados en DB:", dbProducts?.length, dbProducts?.map((p: any) => `${p.barcode}:stock=${p.stock},precio=$${p.sale_price},activo=${p.is_active}`));
 
@@ -46,18 +114,56 @@ export async function POST(req: NextRequest) {
       let needsUpdate = false;
       const updatePayload: any = { id: item.id };
 
-      // Validar Stock
-      if (dbProduct.stock < item.quantity) {
-        needsUpdate = true;
-        updatePayload.insufficientStock = true;
-        updatePayload.availableQty = dbProduct.stock;
+      // Validar Stock contra la sucursal que despacha
+      let disponible = stockFor(dbProduct.barcode, Number(dbProduct.stock) || 0);
+
+      // Si es un pack / producto compuesto, calcular disponibilidad de sus componentes sueltos
+      let bundleConfig = (dbProduct as any).bundle_config;
+      if (!bundleConfig && Array.isArray((dbProduct as any).features)) {
+        const marker = (dbProduct as any).features.find(
+          (f: any) => typeof f === "string" && f.startsWith("__BUNDLE_CONFIG__:")
+        );
+        if (marker) {
+          try {
+            bundleConfig = JSON.parse(marker.slice("__BUNDLE_CONFIG__:".length));
+          } catch {}
+        }
       }
 
-      // Validar Precio
-      if (dbProduct.sale_price !== item.price) {
+      if (bundleConfig?.isBundle) {
+        const { stock: derivedStock } = calculateBundleStock(
+          bundleConfig,
+          (bc) => stockFor(bc, 0)
+        );
+        disponible = derivedStock;
+      }
+
+      if (disponible < item.quantity) {
+        needsUpdate = true;
+        updatePayload.insufficientStock = true;
+        updatePayload.availableQty = disponible;
+      }
+
+      /**
+       * Validar precio contra lo que realmente se cobra.
+       *
+       * Acá se comparaba `sale_price` crudo contra el precio del carrito, y eso
+       * rompía las ofertas: la vitrina agrega al carrito el precio de oferta,
+       * así que todo producto en oferta salía como "cambió de precio" y el
+       * carrito se reescribía con el precio de lista, más caro. El cliente veía
+       * cómo le sacaban el descuento justo antes de pagar.
+       *
+       * `precioEfectivo` es la misma función que usa la vitrina y la que cobra
+       * `create-order`, y redondea a pesos de los dos lados: sin eso, un
+       * `sale_price` con decimales en la base contra el precio ya redondeado
+       * del carrito también inventaba un cambio de precio.
+       */
+      const precioReal = precioEfectivo(dbProduct.sale_price, dbProduct.offer_price);
+      if (precioReal !== Math.round(Number(item.price))) {
         needsUpdate = true;
         updatePayload.priceChanged = true;
-        updatePayload.newPrice = dbProduct.sale_price;
+        updatePayload.newPrice = precioReal;
+        updatePayload.oldPrice = Math.round(Number(item.price));
       }
 
       if (needsUpdate) {

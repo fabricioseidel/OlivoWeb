@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from "react";
 
-type Tone = "emerald" | "dark";
+type Tone = "brand" | "dark";
 
 type Props = {
   title: string;
@@ -15,7 +15,7 @@ type Props = {
 };
 
 const toneClasses: Record<Tone, string> = {
-  emerald: "from-emerald-950 via-emerald-900 to-emerald-950",
+  brand: "from-brand-950 via-brand-900 to-brand-950",
   dark: "from-[#0a0a0a] via-[#111111] to-[#0a0a0a]",
 };
 
@@ -25,7 +25,7 @@ export default function HeroHeader({
   kicker,
   icon,
   right,
-  tone = "emerald",
+  tone = "brand",
   className = "",
 }: Props) {
   return (
@@ -34,16 +34,16 @@ export default function HeroHeader({
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-24 -right-20 w-72 h-72 rounded-full bg-emerald-500/20 blur-3xl"
+        className="pointer-events-none absolute -top-24 -right-20 w-72 h-72 rounded-full bg-brand-500/20 blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-32 -left-16 w-72 h-72 rounded-full bg-emerald-400/10 blur-3xl"
+        className="pointer-events-none absolute -bottom-32 -left-16 w-72 h-72 rounded-full bg-brand-400/10 blur-3xl"
       />
       <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 min-w-0">
         <div className="min-w-0 flex-1">
           {kicker && (
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-300/80 truncate">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-300/80 truncate">
               {kicker}
             </p>
           )}
@@ -58,7 +58,7 @@ export default function HeroHeader({
             </h1>
           </div>
           {subtitle && (
-            <p className="mt-2 text-sm sm:text-base text-emerald-100/70 max-w-2xl break-words">
+            <p className="mt-2 text-sm sm:text-base text-brand-100/70 max-w-2xl break-words">
               {subtitle}
             </p>
           )}

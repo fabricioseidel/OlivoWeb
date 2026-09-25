@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireApiAdmin } from "@/lib/api-auth";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { supabaseServer } from "@/lib/supabase-server";
 import * as fs from 'fs';
@@ -122,12 +121,8 @@ function parseCSVLine(line: string): string[] {
 // Endpoint específico para Uber Eats que carga desde CSV corregido
 export async function GET(request: Request) {
   try {
-    const session: any = await getServerSession(authOptions as any);
-    const role = (session as any)?.role || (session?.user as any)?.role || '';
-
-    if (!session || !String(role).toUpperCase().includes('ADMIN')) {
-      return errorResponse(new Error("Unauthorized"), 401);
-    }
+    const auth = await requireApiAdmin();
+    if (!auth.ok) return auth.response;
 
     const { searchParams } = new URL(request.url);
     const source = (searchParams.get('source') || 'db').toLowerCase();

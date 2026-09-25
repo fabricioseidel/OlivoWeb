@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { slugify } from '@/utils/string-utils';
 import { SupaProduct, ProductUI } from '@/types';
+import { calculateBundleStock } from '@/lib/bundle';
 
 // Use a repo-shipped placeholder. Files under /public/uploads may exist locally but
 // won't be present in Vercel unless committed, causing 404/next-image 400.
@@ -11,14 +12,19 @@ export function hasRealImage(p: { image?: string | null }): boolean {
   return Boolean(p.image) && p.image !== DEFAULT_IMAGE;
 }
 
-// Un producto es visible en la tienda pública solo si tiene los 4 campos mínimos:
-// nombre real, al menos una categoría, precio > 0 y foto distinta al placeholder.
+// Un producto es visible en la tienda pública solo si tiene los 5 campos mínimos:
+// nombre real, al menos una categoría, precio > 0, foto distinta al placeholder,
+// y costo de proveedor confirmado.
 export function isProductVisible(p: ProductUI): boolean {
   const name = (p.name ?? "").trim();
   if (!name || name === "(Sin nombre)") return false;
   if (!Array.isArray(p.categories) || p.categories.length === 0) return false;
   if (!p.price || Number(p.price) <= 0) return false;
   if (!p.image || p.image === DEFAULT_IMAGE) return false;
+  // `purchasePrice` es products.purchase_price, derivado por trigger desde
+  // product_suppliers.unit_cost (doctrina #2): en 0 significa que nadie cargó
+  // el costo de compra, y sin costo no se sabe si el precio deja margen o pierde.
+  if (!p.purchasePrice || Number(p.purchasePrice) <= 0) return false;
   return true;
 }
 
@@ -31,10 +37,25 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
 
   // Handle JSONB fields safely
   const gallery = Array.isArray(p.gallery) ? p.gallery : undefined;
-  const features = Array.isArray(p.features) ? p.features : undefined;
+  const rawFeatures = Array.isArray(p.features) ? p.features : undefined;
+  let cleanFeatures: string[] | undefined = rawFeatures;
+  let bundleConfig = p.bundle_config ?? null;
+
+  if (rawFeatures) {
+    const bundleMarker = rawFeatures.find((f: any) => typeof f === 'string' && f.startsWith('__BUNDLE_CONFIG__:'));
+    if (bundleMarker && !bundleConfig) {
+      try {
+        bundleConfig = JSON.parse(bundleMarker.slice('__BUNDLE_CONFIG__:'.length));
+      } catch {}
+    }
+    cleanFeatures = rawFeatures.filter((f: any) => typeof f !== 'string' || !f.startsWith('__BUNDLE_CONFIG__:'));
+  }
 
   const rawSalePrice = Number(p.sale_price ?? 0);
-  const rawOfferPrice = p.offer_price ? Number(p.offer_price) : undefined;
+  const rawOfferPrice =
+    p.offer_price !== null && p.offer_price !== undefined && Number(p.offer_price) > 0
+      ? Number(p.offer_price)
+      : undefined;
 
   return {
     id: String(p.barcode),
@@ -47,7 +68,7 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     description: p.description || '',
     categories: cats,
     gallery,
-    features,
+    features: cleanFeatures,
     stock: Number(p.stock ?? 0),
     featured: !!p.featured,
     createdAt: p.updated_at,
@@ -65,19 +86,49 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     purchasePrice: p.purchase_price ? Number(p.purchase_price) : undefined,
     minStock: p.min_stock ?? 5,
     optimumStock: p.optimum_stock ?? 20,
+    bundle_config: bundleConfig,
+    verifiedAt: p.verified_at ?? null,
   };
 }
 
 export async function fetchAllProducts(): Promise<ProductUI[]> {
+  const baseSelect = 'barcode, name, category, sale_price, offer_price, image_url, stock, featured, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold, description, features, verified_at';
+  const fullSelect = `${baseSelect}, bundle_config`;
+
+  let rows: any[] = [];
   const { data, error } = await supabase
     .from('products')
-    .select('barcode, name, category, sale_price, offer_price, image_url, stock, featured, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold, description')
+    .select(fullSelect)
     .order('updated_at', { ascending: false })
     .limit(1000);
 
-  if (error) throw error;
+  if (error) {
+    // Si falla por columna inexistente en Supabase, reintento sin bundle_config
+    const fallback = await supabase
+      .from('products')
+      .select(baseSelect)
+      .order('updated_at', { ascending: false })
+      .limit(1000);
+    if (fallback.error) throw fallback.error;
+    rows = (fallback.data ?? []).map((r: any) => ({ ...r, bundle_config: null }));
+  } else {
+    rows = (data ?? []) as any[];
+  }
 
-  return (data as unknown as SupaProduct[]).map(mapSupaToUI);
+  const mapped = rows.map((r) => mapSupaToUI(r as SupaProduct));
+  const stockMap = new Map<string, number>();
+  mapped.forEach((p) => stockMap.set(String(p.id), Number(p.stock) || 0));
+
+  return mapped.map((p) => {
+    if (p.bundle_config?.isBundle) {
+      const { stock: derivedStock } = calculateBundleStock(
+        p.bundle_config,
+        (bc) => stockMap.get(String(bc)) ?? 0
+      );
+      return { ...p, stock: derivedStock };
+    }
+    return p;
+  });
 }
 
 export async function fetchProductDetails(barcode: string): Promise<ProductUI> {
@@ -88,7 +139,34 @@ export async function fetchProductDetails(barcode: string): Promise<ProductUI> {
     .single();
 
   if (error) throw error;
-  return mapSupaToUI(data as unknown as SupaProduct);
+  const mapped = mapSupaToUI(data as unknown as SupaProduct);
+
+  if (mapped.bundle_config?.isBundle) {
+    const componentBarcodes = [
+      ...(mapped.bundle_config.fixedItems || []).map((i) => i.barcode || i.id),
+      ...(mapped.bundle_config.optionGroups || []).flatMap((g) =>
+        (g.options || []).map((o) => o.barcode || o.id)
+      ),
+    ].filter(Boolean);
+
+    if (componentBarcodes.length > 0) {
+      const { data: compRows } = await supabase
+        .from('products')
+        .select('barcode, stock')
+        .in('barcode', componentBarcodes);
+
+      const stockMap = new Map<string, number>();
+      (compRows || []).forEach((c: any) => stockMap.set(String(c.barcode), Number(c.stock) || 0));
+
+      const { stock: derivedStock } = calculateBundleStock(
+        mapped.bundle_config,
+        (bc) => stockMap.get(String(bc)) ?? 0
+      );
+      return { ...mapped, stock: derivedStock };
+    }
+  }
+
+  return mapped;
 }
 
 export async function searchProducts(query: string): Promise<ProductUI[]> {
@@ -106,23 +184,37 @@ export async function searchProducts(query: string): Promise<ProductUI[]> {
   return (data as unknown as SupaProduct[]).map(mapSupaToUI);
 }
 
-export async function saveProduct(p: Partial<SupaProduct> & { barcode: string }) {
-  // Ensure we send the correct structure to the API
-  const payload = {
+/**
+ * Payload de guardado de un producto, compartido por saveProduct y
+ * saveProductsBulk para que no se separen.
+ *
+ * `stock` se incluye SOLO si quien llama lo puso explícitamente. Es stock
+ * derivado de branch_stock: mandarlo "por si acaso" con el valor cacheado
+ * hacía que guardar el precio de un producto revirtiera la recepción o la
+ * venta que otra persona acababa de registrar.
+ */
+function toProductPayload(p: Partial<SupaProduct> & { barcode: string }) {
+  let featuresPayload = Array.isArray(p.features) ? [...p.features] : [];
+  if (p.bundle_config) {
+    featuresPayload = featuresPayload.filter((f: any) => typeof f !== 'string' || !f.startsWith('__BUNDLE_CONFIG__:'));
+    featuresPayload.unshift(`__BUNDLE_CONFIG__:${JSON.stringify(p.bundle_config)}`);
+  }
+
+  return {
     barcode: p.barcode,
     name: p.name ?? null,
     category: p.category ?? null,
     purchase_price: p.purchase_price ?? 0,
     sale_price: p.sale_price ?? 0,
     expiry_date: p.expiry_date ?? null,
-    stock: p.stock ?? 0,
+    ...(p.stock === undefined || p.stock === null ? {} : { stock: p.stock }),
     updated_at: new Date().toISOString(),
     image_url: p.image_url ?? null,
     gallery: Array.isArray(p.gallery) ? p.gallery : null,
     featured: p.featured,
     reorder_threshold: p.reorder_threshold ?? null,
     description: p.description ?? null,
-    features: Array.isArray(p.features) ? p.features : null,
+    features: featuresPayload.length > 0 ? featuresPayload : null,
     measurement_unit: p.measurement_unit ?? null,
     measurement_value: p.measurement_value ?? null,
     suggested_price: p.suggested_price ?? null,
@@ -131,7 +223,12 @@ export async function saveProduct(p: Partial<SupaProduct> & { barcode: string })
     tax_rate: p.tax_rate ?? 19,
     min_stock: p.min_stock ?? 5,
     optimum_stock: p.optimum_stock ?? 20,
+    ...(p.bundle_config !== undefined ? { bundle_config: p.bundle_config } : {}),
   };
+}
+
+export async function saveProduct(p: Partial<SupaProduct> & { barcode: string }) {
+  const payload = toProductPayload(p);
 
   const res = await fetch('/api/products', {
     method: 'POST',
@@ -146,30 +243,7 @@ export async function saveProduct(p: Partial<SupaProduct> & { barcode: string })
 }
 
 export async function saveProductsBulk(products: (Partial<SupaProduct> & { barcode: string })[]) {
-  const payloads = products.map(p => ({
-    barcode: p.barcode,
-    name: p.name ?? null,
-    category: p.category ?? null,
-    purchase_price: p.purchase_price ?? 0,
-    sale_price: p.sale_price ?? 0,
-    expiry_date: p.expiry_date ?? null,
-    stock: p.stock ?? 0,
-    updated_at: new Date().toISOString(),
-    image_url: p.image_url ?? null,
-    gallery: Array.isArray(p.gallery) ? p.gallery : null,
-    featured: p.featured,
-    reorder_threshold: p.reorder_threshold ?? null,
-    description: p.description ?? null,
-    features: Array.isArray(p.features) ? p.features : null,
-    measurement_unit: p.measurement_unit ?? null,
-    measurement_value: p.measurement_value ?? null,
-    suggested_price: p.suggested_price ?? null,
-    offer_price: p.offer_price ?? null,
-    is_active: p.is_active ?? false,
-    tax_rate: p.tax_rate ?? 19,
-    min_stock: p.min_stock ?? 5,
-    optimum_stock: p.optimum_stock ?? 20,
-  }));
+  const payloads = products.map(toProductPayload);
 
   const res = await fetch('/api/products', {
     method: 'POST',
@@ -191,5 +265,22 @@ export async function deleteProduct(barcode: string) {
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || 'Error deleting product');
+  }
+}
+
+// El barcode es el identificador de negocio del producto (upserts usan
+// onConflict:'barcode'), así que renombrarlo no puede pasar por
+// saveProduct/saveProductsBulk (crearían una fila nueva en vez de renombrar
+// la existente). Este endpoint hace un UPDATE real de la fila.
+export async function renameProductBarcode(oldBarcode: string, newBarcode: string) {
+  const res = await fetch('/api/admin/products/rename-barcode', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ oldBarcode, newBarcode }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Error renombrando el código de barras');
   }
 }

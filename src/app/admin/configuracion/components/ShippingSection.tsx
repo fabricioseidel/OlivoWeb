@@ -43,9 +43,9 @@ export default function ShippingSection({ settings, handleChange }: ShippingSect
         </p>
       </div>
 
-      <div className="border-l-4 border-emerald-500 bg-emerald-50 p-4 rounded">
-        <h3 className="font-semibold text-emerald-900 mb-4 flex items-center gap-2">
-          <SparklesIcon className="h-5 w-5 text-emerald-600" />
+      <div className="border-l-4 border-brand-500 bg-brand-50 p-4 rounded">
+        <h3 className="font-semibold text-brand-900 mb-4 flex items-center gap-2">
+          <SparklesIcon className="h-5 w-5 text-brand-600" />
           Cálculo por Distancia (Haversine)
         </h3>
         <CheckBoxField
@@ -72,10 +72,20 @@ export default function ShippingSection({ settings, handleChange }: ShippingSect
                 prefix="$"
                 hint="Costo adicional por cada KM de distancia"
               />
+              <InputField
+                label="Radio de reparto"
+                type="number"
+                value={settings.shipping?.shippingMaxDistanceKm ?? 8}
+                onChange={(val) =>
+                  handleChange(["shipping", "shippingMaxDistanceKm"], Number(val))
+                }
+                suffix="km"
+                hint="Hasta esta distancia aplica el envío gratis por monto. Más lejos igual despachamos, pero cobrando la tarifa por distancia."
+              />
             </div>
 
-            <div className="pt-4 border-t border-emerald-200">
-              <label className="block text-sm font-medium text-emerald-900 mb-2">
+            <div className="pt-4 border-t border-brand-200">
+              <label className="block text-sm font-medium text-brand-900 mb-2">
                 Punto de Origen (Dirección de tu Tienda o Bodega)
               </label>
               <AddressAutocomplete
@@ -93,7 +103,7 @@ export default function ShippingSection({ settings, handleChange }: ShippingSect
                 placeholder="Busca la ubicación exacta de tu bodega..."
               />
               {(settings.shipping?.shippingOriginLat && settings.shipping?.shippingOriginLng) ? (
-                <p className="mt-2 text-xs text-emerald-600 flex items-center gap-1">
+                <p className="mt-2 text-xs text-brand-600 flex items-center gap-1">
                   <CheckCircleIcon className="h-4 w-4" />
                   Coordenadas de origen configuradas satisfactoriamente
                 </p>
@@ -107,6 +117,25 @@ export default function ShippingSection({ settings, handleChange }: ShippingSect
         )}
       </div>
 
+      {/* El flash tiene su propio interruptor, separado de las credenciales.
+          Uber puede cotizar perfectamente y aun así rechazar la entrega —le
+          pasó a la tienda con `authorization_hold`, que es la cuenta de Uber
+          sin poder retener el cobro—, y ofrecer un envío que después no sale
+          es peor que no ofrecerlo. */}
+      <div className="border-l-4 border-amber-500 bg-amber-50 p-4 rounded">
+        <h3 className="font-semibold text-amber-900 mb-2">Envío flash (Uber Direct)</h3>
+        <CheckBoxField
+          label="Ofrecer envío flash en el checkout"
+          checked={settings.shipping?.flashDeliveryEnabled || false}
+          onChange={(val) => handleChange(["shipping", "flashDeliveryEnabled"], val)}
+        />
+        <p className="text-sm text-amber-900 mt-2">
+          {settings.shipping?.flashDeliveryEnabled
+            ? "Los clientes ven la opción cuando Uber cotiza y la tienda está abierta. Si Uber no puede crear la entrega, el pedido queda pagado y hay que despacharlo a mano."
+            : "Apagado: los clientes sólo ven retiro en tienda y envío agendado. Enciéndelo cuando Uber Direct pueda crear entregas — pruébalo creando una entrega a mano en su panel."}
+        </p>
+      </div>
+
       <div className="border-l-4 border-blue-500 bg-blue-50 p-4 rounded">
         <h3 className="font-semibold text-blue-900 mb-4">Envío Gratis</h3>
         <CheckBoxField
@@ -115,14 +144,30 @@ export default function ShippingSection({ settings, handleChange }: ShippingSect
           onChange={(val) => handleChange(["shipping", "freeShippingEnabled"], val)}
         />
         {settings.shipping?.freeShippingEnabled && (
-          <div className="mt-4">
+          <div className="mt-4 space-y-4">
+            {/* Son dos montos y no uno porque el mismo regalo cuesta plata muy
+                distinta según quién reparta: el despacho propio cuesta bencina
+                y el flash cuesta lo que Uber cobre ese día. */}
             <InputField
-              label="Monto mínimo"
+              label="Monto mínimo — envío agendado (lo llevas tú)"
               type="number"
               value={settings.shipping?.freeShippingMinimum || 0}
               onChange={(val) => handleChange(["shipping", "freeShippingMinimum"], Number(val))}
               prefix="$"
             />
+            <InputField
+              label="Monto mínimo — envío flash (lo lleva Uber)"
+              type="number"
+              value={settings.shipping?.freeShippingMinimumFlash || 0}
+              onChange={(val) =>
+                handleChange(["shipping", "freeShippingMinimumFlash"], Number(val))
+              }
+              prefix="$"
+            />
+            <p className="text-sm text-blue-900">
+              El mínimo del flash conviene más alto: ese envío lo cobra Uber, no cuesta
+              sólo bencina.
+            </p>
           </div>
         )}
       </div>

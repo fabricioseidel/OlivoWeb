@@ -40,8 +40,8 @@ export default function FilterChips({
               onClick={() => onChange(opt.value)}
               className={`inline-flex items-center min-h-[36px] px-3 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                 active
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "bg-white text-gray-700 ring-1 ring-gray-200 hover:ring-emerald-300"
+                  ? "bg-brand-600 text-white shadow-sm"
+                  : "bg-white text-gray-700 ring-1 ring-gray-200 hover:ring-brand-300"
               }`}
             >
               {opt.label}

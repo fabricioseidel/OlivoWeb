@@ -5,9 +5,11 @@ import Image from "next/image";
 import { usePOS } from "@/contexts/POSContext";
 import { useBranch } from "@/contexts/BranchContext";
 import { ProductUI } from "@/types";
+import { STAFF_DISCOUNT_RATE, type PosPaymentMethod } from "@/lib/pos/payments";
 import { createSaleAction } from "@/actions/sales";
 import { useToast } from "@/contexts/ToastContext";
 import UnifiedScanner from "@/components/admin/scanner/UnifiedScanner";
+import QuickCreateProductModal from "@/components/admin/pos/QuickCreateProductModal";
 import {
   MagnifyingGlassIcon, XMarkIcon, TrashIcon, MinusIcon, PlusIcon,
   BanknotesIcon, CreditCardIcon, ArrowPathIcon, CheckCircleIcon,
@@ -16,7 +18,9 @@ import {
 
 const PRODUCTS_PER_PAGE = 40;
 
-type PaymentMethod = "CASH" | "DEBIT" | "CREDIT" | "TRANSFER" | "WALLET" | "OTHER";
+// El local no distingue débito/crédito/prepago: todo pago con tarjeta llega al
+// mismo extracto bancario, así que en el POS es un solo botón.
+type PaymentMethod = PosPaymentMethod;
 
 interface PaymentRow {
   id: string;
@@ -26,17 +30,15 @@ interface PaymentRow {
 }
 
 const METHOD_LABEL: Record<PaymentMethod, string> = {
-  CASH: "Efectivo", DEBIT: "Débito", CREDIT: "Crédito",
-  TRANSFER: "Transf.", WALLET: "Billetera", OTHER: "Otro",
+  CASH: "Efectivo", CARD: "Tarjeta", TRANSFER: "Transf.",
 };
 
 const METHOD_ICONS: Record<PaymentMethod, typeof BanknotesIcon> = {
-  CASH: BanknotesIcon, DEBIT: CreditCardIcon, CREDIT: CreditCardIcon,
-  TRANSFER: ArrowPathIcon, WALLET: CreditCardIcon, OTHER: CreditCardIcon,
+  CASH: BanknotesIcon, CARD: CreditCardIcon, TRANSFER: ArrowPathIcon,
 };
 
 export default function SaleMode() {
-  const { cart, addToCart, updateQuantity, removeFromCart, clearCart, discount, finalTotal, appliedCoupon, setAppliedCoupon, applyDiscount } = usePOS();
+  const { cart, addToCart, updateQuantity, removeFromCart, clearCart, discount, total, finalTotal, appliedCoupon, setAppliedCoupon, applyDiscount } = usePOS();
   const { currentBranch } = useBranch();
   const { showToast } = useToast();
 
@@ -48,9 +50,26 @@ export default function SaleMode() {
   ]);
   const [processing, setProcessing] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [quickCreateBarcode, setQuickCreateBarcode] = useState<string | null>(null);
   const [view, setView] = useState<"products" | "cart">("products");
+  // Compra propia: 25% de descuento, asociada al vendedor autenticado.
+  const [compraPropia, setCompraPropia] = useState(false);
+  const [porCobrar, setPorCobrar] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // El descuento se recalcula cuando cambia el carrito para que siga siendo el
+  // 25% del total vigente, no un monto congelado del momento en que se activó.
+  useEffect(() => {
+    if (compraPropia) {
+      applyDiscount(Math.round(total * STAFF_DISCOUNT_RATE));
+    } else if (discount > 0 && !appliedCoupon) {
+      applyDiscount(0);
+    }
+    // `discount` fuera de deps a propósito: incluirlo genera un bucle porque
+    // applyDiscount lo modifica.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compraPropia, total, applyDiscount, appliedCoupon]);
 
   const paymentSum = useMemo(() => payments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0), [payments]);
   const remaining = useMemo(() => Math.max(0, finalTotal - paymentSum), [finalTotal, paymentSum]);
@@ -61,7 +80,10 @@ export default function SaleMode() {
     const cashOwed = Math.max(0, finalTotal - nonCash);
     return Math.max(0, cashPaid - cashOwed);
   }, [paymentSum, cashPaid, finalTotal]);
-  const paymentsOk = Math.abs(paymentSum - change - finalTotal) < 0.01 && paymentSum >= finalTotal;
+  // Una compra propia por cobrar no recibe dinero ahora: no hay pagos que cuadrar.
+  const paymentsOk = porCobrar
+    ? true
+    : Math.abs(paymentSum - change - finalTotal) < 0.01 && paymentSum >= finalTotal;
   const products = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return q ? allProducts.filter(p => p.name.toLowerCase().includes(q) || p.id.includes(q)) : allProducts;
@@ -125,10 +147,15 @@ export default function SaleMode() {
       const result = await createSaleAction({
         total: finalTotal,
         branchId: currentBranch?.id ?? null,
-        cashReceived: payments.filter(p => p.method === "CASH").reduce((a, p) => a + p.amount, 0),
-        changeGiven: change,
+        cashReceived: porCobrar ? 0 : payments.filter(p => p.method === "CASH").reduce((a, p) => a + p.amount, 0),
+        changeGiven: porCobrar ? 0 : change,
         tax: 0,
-        payments: payloadPayments,
+        isStaffPurchase: compraPropia,
+        staffUnpaid: compraPropia && porCobrar,
+        staffDiscountRate: compraPropia ? STAFF_DISCOUNT_RATE : undefined,
+        discount: compraPropia ? discount : 0,
+        // Por cobrar: sin lista de pagos, el servidor registra STAFF_CREDIT
+        ...(porCobrar ? {} : { payments: payloadPayments }),
         items: cart.map(item => ({
           product_id: item.id, name: item.name, quantity: item.quantity,
           unit_price: item.offerPrice || item.price,
@@ -138,8 +165,10 @@ export default function SaleMode() {
       if (result.ok) {
         clearCart();
         setPayments([{ id: "p1", method: "CASH", amount: 0 }]);
+        setCompraPropia(false);
+        setPorCobrar(false);
         setView("products");
-        showToast("✓ Venta registrada", "success");
+        showToast(result.toastMessage || "✓ Venta registrada", "success");
       } else {
         showToast(result.toastMessage || "Error en la venta", "error");
       }
@@ -158,7 +187,7 @@ export default function SaleMode() {
           <div className="relative flex-1">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
             <input ref={searchRef} type="text" placeholder="Buscar producto..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-9 text-white text-sm outline-none focus:border-emerald-500"
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-9 text-white text-sm outline-none focus:border-brand-500"
               value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             {searchQuery && (
               <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1">
@@ -166,13 +195,13 @@ export default function SaleMode() {
               </button>
             )}
           </div>
-          <button onClick={() => setShowScanner(true)} className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400">
+          <button onClick={() => setShowScanner(true)} className="p-2.5 bg-brand-500/10 border border-brand-500/30 rounded-xl text-brand-400">
             <CameraIcon className="h-5 w-5" />
           </button>
           <button onClick={() => setView("cart")} className="relative p-2.5 bg-white/5 border border-white/10 rounded-xl text-white/70">
             <ShoppingBagIcon className="h-5 w-5" />
             {cart.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-black text-[9px] font-black rounded-full flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-500 text-black text-[9px] font-black rounded-full flex items-center justify-center">
                 {cart.length}
               </span>
             )}
@@ -188,22 +217,35 @@ export default function SaleMode() {
             <button key={p.id} disabled={p.stock <= 0}
               onClick={() => { addToCart(p); showToast(`+ ${p.name}`, "success", 1200); }}
               className={`bg-white/5 rounded-xl p-2 border text-left transition-all active:scale-95 flex flex-col ${
-                p.stock <= 0 ? "opacity-40 cursor-not-allowed border-white/5" : "border-white/10 hover:border-emerald-500"
+                p.stock <= 0 ? "opacity-40 cursor-not-allowed border-white/5" : "border-white/10 hover:border-brand-500"
               }`}>
               <div className="relative aspect-square rounded-lg overflow-hidden mb-1 bg-white/5">
                 <Image src={p.image} alt={p.name} fill className="object-cover" sizes="20vw" />
                 {p.stock <= 0 && <div className="absolute inset-0 bg-black/70 flex items-center justify-center"><span className="text-[8px] font-black text-red-400 uppercase">Sin stock</span></div>}
               </div>
               <p className="text-[10px] font-bold truncate text-white/80">{p.name}</p>
-              <p className="text-emerald-400 font-black text-xs">$ {(p.offerPrice || p.price).toLocaleString()}</p>
+              <p className="text-brand-400 font-black text-xs">$ {(p.offerPrice || p.price).toLocaleString()}</p>
             </button>
           ))}
           {!loading && visibleCount < products.length && (
             <div className="col-span-full py-3 text-center">
               <button onClick={() => setVisibleCount(p => p + PRODUCTS_PER_PAGE)}
-                className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">
+                className="text-[10px] font-bold uppercase tracking-widest text-brand-500">
                 + {products.length - visibleCount} más
               </button>
+            </div>
+          )}
+          {!loading && products.length === 0 && (
+            <div className="col-span-full py-16 text-center text-white/30">
+              <p className="text-xs font-black uppercase tracking-widest mb-3">Sin resultados</p>
+              {searchQuery.trim() && (
+                <button
+                  onClick={() => setQuickCreateBarcode(searchQuery.trim())}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-500/10 border border-brand-500/30 rounded-xl text-brand-400 text-[10px] font-black uppercase tracking-widest"
+                >
+                  <PlusCircleIcon className="h-4 w-4" /> Crear &quot;{searchQuery.trim()}&quot;
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -215,7 +257,7 @@ export default function SaleMode() {
           <button onClick={() => setView("products")} className="text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white">
             ← Productos
           </button>
-          <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-emerald-400 text-center">Carrito</span>
+          <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-brand-400 text-center">Carrito</span>
           <button onClick={clearCart} className="text-white/30 hover:text-red-400 transition-colors">
             <TrashIcon className="h-4 w-4" />
           </button>
@@ -232,7 +274,7 @@ export default function SaleMode() {
               <div className="flex justify-between items-start mb-2">
                 <div className="flex-1 min-w-0 pr-2">
                   <p className="text-sm font-bold truncate">{item.name}</p>
-                  <p className="text-[10px] text-emerald-400 font-bold">$ {(item.offerPrice || item.price).toLocaleString()} c/u</p>
+                  <p className="text-[10px] text-brand-400 font-bold">$ {(item.offerPrice || item.price).toLocaleString()} c/u</p>
                 </div>
                 <button onClick={() => removeFromCart(item.id)} className="text-white/20 hover:text-red-400 transition-colors">
                   <XMarkIcon className="h-4 w-4" />
@@ -242,7 +284,7 @@ export default function SaleMode() {
                 <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5">
                   <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1.5 text-white/50 active:scale-90"><MinusIcon className="h-3 w-3" /></button>
                   <span className="w-8 text-center text-sm font-black">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1.5 text-emerald-400 active:scale-90"><PlusIcon className="h-3 w-3" /></button>
+                  <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1.5 text-brand-400 active:scale-90"><PlusIcon className="h-3 w-3" /></button>
                 </div>
                 <span className="text-sm font-black">$ {((item.offerPrice || item.price) * item.quantity).toLocaleString()}</span>
               </div>
@@ -253,26 +295,70 @@ export default function SaleMode() {
             <div className="bg-white/5 rounded-2xl p-4 border border-white/5 space-y-4 mt-4">
               {appliedCoupon && (
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-emerald-400 font-black uppercase tracking-widest">{appliedCoupon}</span>
+                  <span className="text-[10px] text-brand-400 font-black uppercase tracking-widest">{appliedCoupon}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-400 font-black">- $ {discount.toLocaleString()}</span>
+                    <span className="text-brand-400 font-black">- $ {discount.toLocaleString()}</span>
                     <button onClick={() => { setAppliedCoupon(null); applyDiscount(0); }} className="text-white/30 hover:text-red-400"><XMarkIcon className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
               )}
+              {/* Compra propia: descuento de personal asociado al vendedor */}
+              {compraPropia && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+                    Compra propia −{Math.round(STAFF_DISCOUNT_RATE * 100)}%
+                  </span>
+                  <span className="text-amber-400 font-black">- $ {discount.toLocaleString()}</span>
+                </div>
+              )}
+
               <div className="flex justify-between items-end">
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Total</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-brand-400">Total</span>
                 <span className="text-3xl font-black">$ {finalTotal.toLocaleString()}</span>
               </div>
 
-              {/* Payment rows */}
-              <div className="space-y-2">
+              {/* Botón compra propia. Deshabilitado si hay cupón: dos descuentos
+                  encimados dan un precio que después nadie sabe explicar. */}
+              <button
+                type="button"
+                onClick={() => {
+                  const activando = !compraPropia;
+                  setCompraPropia(activando);
+                  if (!activando) setPorCobrar(false);
+                }}
+                disabled={Boolean(appliedCoupon)}
+                className={`w-full rounded-xl border px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-colors disabled:opacity-30 ${
+                  compraPropia
+                    ? "bg-amber-500 border-amber-500 text-black"
+                    : "bg-white/5 border-white/10 text-white/60 hover:text-white"
+                }`}
+              >
+                {compraPropia ? "✓ Compra propia activa" : "Compra propia (−25%)"}
+              </button>
+
+              {compraPropia && (
+                <label className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={porCobrar}
+                    onChange={(e) => setPorCobrar(e.target.checked)}
+                    className="h-4 w-4 accent-amber-500"
+                  />
+                  <span className="text-[11px] font-bold text-amber-200">
+                    Dejar por cobrar (se descuenta del sueldo a fin de mes)
+                  </span>
+                </label>
+              )}
+
+              {/* Payment rows — ocultas cuando la compra queda por cobrar: no
+                  entra dinero a la caja, así que no hay nada que cuadrar. */}
+              <div className={`space-y-2 ${porCobrar ? "hidden" : ""}`}>
                 {payments.map((row, idx) => {
                   const Icon = METHOD_ICONS[row.method];
                   return (
                     <div key={row.id} className="flex gap-2 items-stretch">
                       <select value={row.method} onChange={e => setPaymentAt(idx, { method: e.target.value as PaymentMethod })}
-                        className="bg-black border border-white/10 rounded-xl px-2 py-2 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-emerald-500 shrink-0">
+                        className="bg-black border border-white/10 rounded-xl px-2 py-2 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-brand-500 shrink-0">
                         {(Object.keys(METHOD_LABEL) as PaymentMethod[]).map(m => (
                           <option key={m} value={m}>{METHOD_LABEL[m]}</option>
                         ))}
@@ -281,7 +367,7 @@ export default function SaleMode() {
                         <Icon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
                         <input type="number" inputMode="numeric" placeholder="0" value={row.amount || ""}
                           onChange={e => setPaymentAt(idx, { amount: Number(e.target.value) || 0 })}
-                          className="w-full bg-black border border-white/10 rounded-xl pl-8 pr-3 py-2 text-base font-black text-white outline-none focus:border-emerald-500" />
+                          className="w-full bg-black border border-white/10 rounded-xl pl-8 pr-3 py-2 text-base font-black text-white outline-none focus:border-brand-500" />
                       </div>
                       {payments.length > 1 && (
                         <button onClick={() => removePaymentRow(idx)} className="px-3 text-red-400 hover:bg-red-500/10 rounded-xl border border-red-500/20">
@@ -306,7 +392,7 @@ export default function SaleMode() {
                         </button>
                       ))}
                       <button onClick={() => setPaymentAt(0, { amount: finalTotal })}
-                        className="text-[9px] font-bold py-1.5 px-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20">
+                        className="text-[9px] font-bold py-1.5 px-2 rounded-lg bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 border border-brand-500/20">
                         Exacto
                       </button>
                     </div>
@@ -317,7 +403,7 @@ export default function SaleMode() {
               {/* Summary: remaining or change */}
               <div className={`flex justify-between items-center p-3 rounded-xl border text-sm ${
                 remaining > 0 ? "bg-red-500/10 border-red-500/30 text-red-400" :
-                change > 0   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
+                change > 0   ? "bg-brand-500/10 border-brand-500/30 text-brand-400" :
                                "bg-white/5 border-white/10 text-white/40"
               }`}>
                 <span className="text-[10px] font-black uppercase tracking-widest">
@@ -329,7 +415,7 @@ export default function SaleMode() {
               <button onClick={handleCheckout}
                 disabled={cart.length === 0 || processing || !paymentsOk}
                 className={`w-full h-14 rounded-2xl flex items-center justify-center gap-2 text-sm font-black uppercase tracking-widest transition-all ${
-                  processing || !paymentsOk ? "bg-white/5 text-white/20" : "bg-emerald-500 text-black active:bg-emerald-600"
+                  processing || !paymentsOk ? "bg-white/5 text-white/20" : "bg-brand-500 text-black active:bg-brand-600"
                 }`}>
                 {processing ? <ArrowPathIcon className="h-5 w-5 animate-spin" /> : (
                   <><CheckCircleIcon className="h-5 w-5" /> Confirmar Venta</>
@@ -352,10 +438,27 @@ export default function SaleMode() {
               onDetected={(barcode) => {
                 const found = allProducts.find(p => p.id === barcode || p.barcode === barcode);
                 if (found) { addToCart(found); showToast(`+ ${found.name}`, "success"); setShowScanner(false); }
-                else showToast(`No encontrado: ${barcode}`, "error");
+                else {
+                  showToast(`No encontrado: ${barcode}`, "error");
+                  setShowScanner(false);
+                  setQuickCreateBarcode(barcode);
+                }
               }} />
           </div>
         </div>
+      )}
+
+      {quickCreateBarcode !== null && (
+        <QuickCreateProductModal
+          initialBarcode={quickCreateBarcode}
+          onClose={() => setQuickCreateBarcode(null)}
+          onCreated={(product) => {
+            setAllProducts(prev => [product, ...prev]);
+            addToCart(product);
+            setQuickCreateBarcode(null);
+            setSearchQuery("");
+          }}
+        />
       )}
     </div>
   );

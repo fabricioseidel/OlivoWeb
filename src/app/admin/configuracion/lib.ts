@@ -6,6 +6,7 @@ import {
   SparklesIcon,
   DocumentTextIcon,
   Cog6ToothIcon,
+  PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import type { StoreSettings } from "@/app/api/admin/settings/route";
 
@@ -16,6 +17,7 @@ export const TABS = [
   { id: "payment", label: "Pagos", icon: CreditCardIcon, color: "amber" },
   { id: "email", label: "Emails", icon: EnvelopeIcon, color: "red" },
   { id: "social", label: "Redes Sociales", icon: ShareIcon, color: "pink" },
+  { id: "content", label: "Textos del sitio", icon: PencilSquareIcon, color: "sky" },
   { id: "seo", label: "SEO", icon: DocumentTextIcon, color: "indigo" },
   { id: "policy", label: "Política", icon: DocumentTextIcon, color: "gray" },
 ];

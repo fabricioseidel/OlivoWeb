@@ -1,6 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Input from "@/components/ui/Input";
 import AddressAutocomplete, { AddressResult } from "@/components/AddressAutocomplete";
+import {
+  firstSelectableDate,
+  primeraFechaEconomica,
+  slotsEconomicosForDate,
+  slotsForDate,
+} from "@/lib/delivery-slots";
 
 export interface ShippingInfo {
   fullName: string;
@@ -20,8 +26,11 @@ export interface ShippingInfo {
 export interface ShippingMethod {
   id: string;
   name: string;
+  /** Precio final a cobrar, ya con tope por comuna y envío gratis aplicados. */
   price: number;
   days: string;
+  /** Tarifa antes del ajuste, solo si difiere de `price` (se muestra tachada). */
+  originalPrice?: number;
 }
 
 interface ShippingFormProps {
@@ -32,16 +41,46 @@ interface ShippingFormProps {
   selectedMethod: string;
   onMethodChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isCalculating?: boolean;
+  /** Por qué no aparece el envío flash, si hay algo que explicar. */
+  avisoFlash?: string | null;
+  /**
+   * Detalle técnico del envío flash. Sólo llega cuando quien mira es
+   * administrador; para un cliente siempre es `null`.
+   */
+  diagnosticoFlash?: Record<string, unknown> | null;
   fieldErrors?: Partial<Record<"fullName" | "email" | "phone" | "address", string>>;
 }
 
-const getNextDays = (numDays: number) => {
-  const days = [];
+// Format YYYY-MM-DD
+const formatDateForApi = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * Próximos días con despacho. Se saltan los días en que el local no abre:
+ * ofrecer una fecha sin bloques deja al cliente mirando una lista vacía.
+ *
+ * El económico además arranca más tarde: su ronda sale en la mañana y el
+ * pedido se prepara el día anterior, así que hoy nunca es una opción.
+ */
+const getNextDays = (numDays: number, esEconomico = false) => {
+  const days: Date[] = [];
   const today = new Date();
-  for (let i = 0; i < numDays; i++) {
+  const desde = esEconomico
+    ? primeraFechaEconomica(
+        formatDateForApi(today),
+        today.getHours() * 60 + today.getMinutes()
+      )
+    : null;
+
+  for (let i = 0; days.length < numDays && i < numDays * 3; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() + i);
-    days.push(d);
+    const dStr = formatDateForApi(d);
+    if (desde && dStr < desde) continue;
+    const tiene = esEconomico
+      ? slotsEconomicosForDate(dStr).length > 0
+      : slotsForDate(dStr).length > 0;
+    if (tiene) days.push(d);
   }
   return days;
 };
@@ -54,18 +93,26 @@ export default function ShippingForm({
   selectedMethod,
   onMethodChange,
   isCalculating,
+  avisoFlash,
+  diagnosticoFlash,
   fieldErrors = {}
 }: ShippingFormProps) {
   
-  const [availableDays] = useState<Date[]>(() => getNextDays(7)); // Today + 6 = 7 days total
+  // Las dos modalidades no ofrecen los mismos días: el económico reparte en su
+  // ronda y arranca recién mañana, así que la lista se recalcula al cambiar de
+  // método en vez de fijarse una sola vez.
+  // La entrega a domicilio es siempre agendada: hay una sola ronda de reparto
+  // por franja. `esEconomico` conserva el nombre porque es el que usa la grilla
+  // de bloques del reparto propio en delivery-slots.
+  const esEconomico = selectedMethod === 'agendado';
+  const esAgendable = esEconomico;
+  const availableDays = useMemo(
+    () => (esAgendable ? getNextDays(7, esEconomico) : []),
+    [esAgendable, esEconomico]
+  ); // 7 días con despacho
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotsError, setSlotsError] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<{ id: string; label: string; available: boolean; capacityRatio: string }[]>([]);
-
-  // Format YYYY-MM-DD
-  const formatDateForApi = (d: Date) => {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  };
 
   // Format short display (Ej: Lun 13, Abr)
   const formatShortDate = (d: Date) => {
@@ -86,21 +133,32 @@ export default function ShippingForm({
   };
 
   useEffect(() => {
-    // Si el usuario no ha seleccionado fecha aún, select "Hoy" por defecto
-    if (selectedMethod === 'dynamic' && !shippingInfo.deliveryDate) {
-       const todayStr = formatDateForApi(availableDays[0]);
-       onChange({ target: { name: 'deliveryDate', value: todayStr } });
+    // Se preselecciona la primera fecha que admite despacho, no "hoy" a secas:
+    // pasada la hora de corte hoy ya no tiene bloques, y el cliente entraba
+    // directo a "no hay horarios disponibles para esta fecha".
+    if (esAgendable && !shippingInfo.deliveryDate && availableDays.length > 0) {
+       const now = new Date();
+       const hoy = formatDateForApi(now);
+       const inicial = esEconomico
+         ? primeraFechaEconomica(hoy, now.getHours() * 60 + now.getMinutes())
+         : firstSelectableDate(hoy, now.getHours());
+       if (inicial) onChange({ target: { name: 'deliveryDate', value: inicial } });
     }
-  }, [selectedMethod, shippingInfo.deliveryDate, availableDays, onChange]);
+  }, [esAgendable, esEconomico, shippingInfo.deliveryDate, availableDays, onChange]);
 
   useEffect(() => {
     const fetchSlots = async () => {
-      if (selectedMethod !== 'dynamic' || !shippingInfo.deliveryDate) return;
+      if (!esAgendable || !shippingInfo.deliveryDate) return;
       
       setSlotsLoading(true);
       setSlotsError(false);
       try {
-        const res = await fetch(`/api/shipping/slots?date=${shippingInfo.deliveryDate}`);
+        // El servidor decide la disponibilidad con la grilla de la modalidad:
+        // pedir los bloques de una y agendar en la otra ofrecería horarios en
+        // los que no sale nadie a repartir.
+        const res = await fetch(
+          `/api/shipping/slots?date=${shippingInfo.deliveryDate}${esEconomico ? "&mode=economico" : ""}`
+        );
         if (!res.ok) throw new Error(`Slots request failed (${res.status})`);
 
         const data = await res.json();
@@ -143,7 +201,7 @@ export default function ShippingForm({
 
   return (
     <div className="p-6">
-      <h2 className="text-lg font-black text-gray-900 mb-6">Información de Envío</h2>
+      <h2 className="o-h3 mb-5 text-neutral-900">Información de envío</h2>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="sm:col-span-2">
@@ -186,7 +244,7 @@ export default function ShippingForm({
         </div>
 
         <div className="sm:col-span-2">
-          <label htmlFor="address" className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Dirección</label>
+          <label htmlFor="address" className="mb-1.5 block text-sm font-medium text-neutral-700">Dirección</label>
           <AddressAutocomplete
             id="address"
             name="address"
@@ -279,18 +337,45 @@ export default function ShippingForm({
 
       <div className="mt-10">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-black text-gray-900 tracking-tight">Método de Envío</h3>
+          <h3 className="o-h3 text-neutral-900">Método de envío</h3>
           {isCalculating && (
-            <div className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full animate-pulse">
-              <div className="animate-spin h-3.3 w-3.5 border-2 border-emerald-600 border-t-transparent rounded-full mr-2" />
+            <div className="flex items-center text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full animate-pulse">
+              <div className="animate-spin h-3.3 w-3.5 border-2 border-brand-600 border-t-transparent rounded-full mr-2" />
               Calculando distancia...
             </div>
           )}
         </div>
 
         <div className="space-y-4">
-          {(!shippingMethods.find(m => m.id === 'dynamic')) && (
-            <div className="flex items-center justify-between p-5 border-2 border-dashed border-gray-100 rounded-[1.5rem] bg-gray-50/50 opacity-80">
+          {avisoFlash && (
+            <p className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
+              {avisoFlash}
+            </p>
+          )}
+
+          {/* Sólo para administradores: por qué el envío flash no está. Sin
+              esto, "falta la comuna" y "faltan las credenciales" se ven igual
+              desde acá —no pasa nada— y distinguirlos obliga a leer logs. */}
+          {diagnosticoFlash && (
+            <details className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm">
+              <summary className="cursor-pointer font-semibold text-sky-900">
+                Envío flash: diagnóstico (sólo lo ves vos)
+              </summary>
+              <dl className="mt-2 space-y-1 text-sky-900">
+                {Object.entries(diagnosticoFlash).map(([k, v]) => (
+                  <div key={k} className="flex gap-2">
+                    <dt className="font-medium">{k}:</dt>
+                    <dd className="tabular">
+                      {typeof v === "boolean" ? (v ? "sí" : "NO") : String(v ?? "—")}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </details>
+          )}
+
+          {(!shippingMethods.find(m => m.id === 'agendado')) && (
+            <div className="flex items-center justify-between p-5 rounded-xl border border-dashed border-neutral-200 bg-neutral-50">
               <div className="flex items-center">
                 <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mr-4 border border-gray-200">
                   <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -298,12 +383,12 @@ export default function ShippingForm({
                   </svg>
                 </div>
                 <div>
-                  <div className="text-gray-400 font-black uppercase tracking-[0.15em] text-[10px] mb-1">Envío a Domicilio</div>
+                  <div className="mb-0.5 text-sm font-medium text-neutral-500">Envío a domicilio</div>
                   <div className="text-gray-400 text-xs font-bold italic line-clamp-1">Esperando dirección para calcular costo...</div>
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest bg-gray-200/50 px-2 py-1 rounded-lg">Pendiente</span>
+                <span className="rounded-md bg-neutral-200 px-2 py-1 text-xs font-medium text-neutral-600">Pendiente</span>
               </div>
             </div>
           )}
@@ -311,7 +396,7 @@ export default function ShippingForm({
           {shippingMethods.map((method) => {
             const isSelected = selectedMethod === method.id;
             return (
-              <div key={method.id} className={`border-2 rounded-[1.5rem] transition-all duration-300 overflow-hidden ${isSelected ? 'border-emerald-600 bg-emerald-50/30 shadow-lg shadow-emerald-900/5 translate-y-[-2px]' : 'border-gray-50 hover:border-emerald-200 bg-white shadow-sm'}`}>
+              <div key={method.id} className={`overflow-hidden rounded-xl border transition-colors ${isSelected ? 'border-brand-500 bg-brand-50/50' : 'border-neutral-200 bg-white hover:border-neutral-300'}`}>
                 <label
                   htmlFor={method.id}
                   className="flex items-center justify-between p-5 cursor-pointer"
@@ -325,13 +410,13 @@ export default function ShippingForm({
                         value={method.id}
                         checked={isSelected}
                         onChange={onMethodChange}
-                        className="h-5 w-5 text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer"
+                        className="h-5 w-5 text-brand-600 border-gray-300 focus:ring-brand-500 cursor-pointer"
                       />
                     </div>
                     
                     <div className="ml-5 flex items-center gap-4">
-                      {method.id === 'dynamic' && (
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20">
+                      {method.id === 'agendado' && (
+                        <div className="w-12 h-12 rounded-2xl bg-brand-boton text-brand-contraste flex items-center justify-center shadow-lg shadow-brand-600/20">
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -345,25 +430,37 @@ export default function ShippingForm({
                           </svg>
                         </div>
                       )}
+                      {method.id === 'flash' && (
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                          </svg>
+                        </div>
+                      )}
                       <div>
-                        <p className="text-gray-900 font-black tracking-tight leading-none mb-1">{method.name}</p>
-                        <p className="text-gray-500 text-[11px] font-bold uppercase tracking-widest">{method.days}</p>
+                        <p className="mb-0.5 text-sm font-semibold leading-snug text-neutral-900">{method.name}</p>
+                        <p className="text-xs leading-relaxed text-neutral-500">{method.days}</p>
                       </div>
                     </div>
                   </div>
                   
                   <div className="text-right">
+                    {typeof method.originalPrice === 'number' && (
+                      <span className="block text-gray-400 line-through font-bold text-xs">
+                        ${method.originalPrice.toLocaleString('es-CL')}
+                      </span>
+                    )}
                     {method.price === 0 ? (
-                      <span className="text-emerald-600 font-black text-lg">Gratis</span>
+                      <span className="text-[15px] font-semibold text-brand-700">Gratis</span>
                     ) : (
-                      <span className="text-gray-900 font-black text-lg">${method.price.toLocaleString('es-CL')}</span>
+                      <span className="tabular text-[15px] font-semibold text-neutral-900">${method.price.toLocaleString('es-CL')}</span>
                     )}
                   </div>
                 </label>
 
-                {/* Sub UI for dynamic shipping when selected */}
-                {isSelected && method.id === 'dynamic' && (
-                  <div className="px-5 pb-5 pt-2 border-t border-emerald-100/50 mt-1">
+                {/* Agenda de entrega: la usan las dos modalidades a domicilio. */}
+                {isSelected && method.id === 'agendado' && (
+                  <div className="px-5 pb-5 pt-2 border-t border-brand-100/50 mt-1">
                      <p className="text-sm font-bold text-gray-900 mb-3">Programa tu entrega:</p>
                      
                      {/* Horizontal Days Selector */}
@@ -378,8 +475,8 @@ export default function ShippingForm({
                                onClick={() => handleDateClick(d)}
                                className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all ${
                                  isDaySelected 
-                                  ? 'border-emerald-600 bg-emerald-600 text-white shadow-md' 
-                                  : 'border-gray-200 bg-white text-gray-600 hover:border-emerald-300'
+                                  ? 'border-brand-600 bg-brand-boton text-brand-contraste shadow-md' 
+                                  : 'border-gray-200 bg-white text-gray-600 hover:border-brand-300'
                                }`}
                              >
                                {formatShortDate(d)}
@@ -391,8 +488,8 @@ export default function ShippingForm({
                      {/* Slots Selector */}
                      <div className="mt-4">
                         {slotsLoading ? (
-                           <div className="flex py-4 items-center justify-center text-emerald-600 text-xs font-bold">
-                             <div className="animate-spin h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full mr-2" />
+                           <div className="flex py-4 items-center justify-center text-brand-600 text-xs font-bold">
+                             <div className="animate-spin h-4 w-4 border-2 border-brand-600 border-t-transparent rounded-full mr-2" />
                              Cargando horarios...
                            </div>
                         ) : (
@@ -410,14 +507,14 @@ export default function ShippingForm({
                                         !slot.available 
                                          ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
                                          : isSlotSelected
-                                           ? 'border-emerald-600 bg-emerald-50'
-                                           : 'border-gray-200 hover:border-emerald-300 bg-white'
+                                           ? 'border-brand-600 bg-brand-50'
+                                           : 'border-gray-200 hover:border-brand-300 bg-white'
                                       }`}
                                     >
-                                      <p className={`text-xs font-black ${!slot.available ? 'text-gray-400' : isSlotSelected ? 'text-emerald-900' : 'text-gray-700'}`}>
+                                      <p className={`text-sm font-medium ${!slot.available ? 'text-neutral-400' : isSlotSelected ? 'text-brand-900' : 'text-neutral-700'}`}>
                                         {slot.label}
                                       </p>
-                                      <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">
+                                      <p className="mt-0.5 text-xs text-neutral-500">
                                         {!slot.available ? 'Agotado' : 'Disponible'}
                                       </p>
                                     </button>
@@ -426,12 +523,12 @@ export default function ShippingForm({
                               ) : slotsError ? (
                                 <div role="alert" className="col-span-2 text-center py-4 bg-red-50 rounded-xl border border-red-100">
                                   <p className="text-red-700 text-xs font-bold">No pudimos cargar los horarios de despacho.</p>
-                                  <p className="text-red-500 text-[10px] mt-1">Revisa tu conexión y vuelve a seleccionar la fecha.</p>
+                                  <p className="mt-1 text-xs text-red-600">Revisa tu conexión y vuelve a seleccionar la fecha.</p>
                                 </div>
                               ) : (
                                 <div className="col-span-2 text-center py-4 bg-amber-50 rounded-xl border border-amber-100">
                                   <p className="text-amber-800 text-xs font-bold">No hay horarios disponibles para esta fecha.</p>
-                                  <p className="text-amber-600 text-[10px] mt-1">Intenta seleccionando el día siguiente.</p>
+                                  <p className="mt-1 text-xs text-amber-700">Intenta seleccionando el día siguiente.</p>
                                 </div>
                               )}
                            </div>
@@ -451,7 +548,7 @@ export default function ShippingForm({
                      <div className="flex items-start gap-3">
                         <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         <p className="text-xs font-medium text-blue-900 leading-relaxed">
-                          <strong className="font-black">Importante:</strong> Su pedido estará listo en aproximadamente <strong className="font-black text-blue-700">90 minutos</strong> tras la confirmación del pago. Recibirá un correo electrónico cuando esté listo para retirar.
+                          <strong className="font-semibold">Importante:</strong> Su pedido estará listo en aproximadamente <strong className="font-semibold text-neutral-900">90 minutos</strong> tras la confirmación del pago. Recibirá un correo electrónico cuando esté listo para retirar.
                         </p>
                      </div>
                   </div>

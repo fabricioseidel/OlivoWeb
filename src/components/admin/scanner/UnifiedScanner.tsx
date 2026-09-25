@@ -125,7 +125,7 @@ export default function UnifiedScanner({
       <div className="relative p-4">
         {isProcessing && (
           <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-[2rem]">
-            <ArrowPathIcon className="w-8 h-8 text-emerald-400 animate-spin" />
+            <ArrowPathIcon className="w-8 h-8 text-brand-400 animate-spin" />
           </div>
         )}
 
@@ -139,7 +139,7 @@ export default function UnifiedScanner({
           <button
             type="button"
             onClick={() => setCamera(macroCam!.deviceId)}
-            className="w-full mb-3 mt-1 px-3 py-2 bg-emerald-500/10 border border-emerald-500/40 rounded-xl text-[10px] font-black uppercase tracking-widest text-emerald-300 hover:bg-emerald-500/20 active:scale-[0.98] transition-all"
+            className="w-full mb-3 mt-1 px-3 py-2 bg-brand-500/10 border border-brand-500/40 rounded-xl text-[10px] font-black uppercase tracking-widest text-brand-300 hover:bg-brand-500/20 active:scale-[0.98] transition-all"
           >
             ¿Código pequeño? Cambia al lente Macro
           </button>
@@ -148,14 +148,14 @@ export default function UnifiedScanner({
         <div
           ref={videoWrapRef}
           onPointerDown={handleVideoTap}
-          className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-black border border-emerald-500/30 select-none touch-manipulation"
+          className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-black border border-brand-500/30 select-none touch-manipulation"
         >
           <div id={containerId} className="absolute inset-0" />
 
           {(isStarting || (!isRunning && !error)) && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 z-20">
-              <CameraIcon className="w-8 h-8 text-emerald-400 animate-pulse" />
-              <span className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em]">
+              <CameraIcon className="w-8 h-8 text-brand-400 animate-pulse" />
+              <span className="text-brand-400 text-[10px] font-black uppercase tracking-[0.3em]">
                 Iniciando cámara…
               </span>
             </div>
@@ -170,7 +170,7 @@ export default function UnifiedScanner({
               <button
                 type="button"
                 onClick={retry}
-                className="mt-2 px-4 py-2 bg-emerald-500 text-black rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 active:scale-95"
+                className="mt-2 px-4 py-2 bg-brand-500 text-black rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 active:scale-95"
               >
                 <ArrowPathIcon className="w-4 h-4" />
                 Reintentar
@@ -195,14 +195,14 @@ export default function UnifiedScanner({
 
           {focusPulse && (
             <div
-              className="absolute z-30 w-14 h-14 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-emerald-400 pointer-events-none animate-ping"
+              className="absolute z-30 w-14 h-14 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-brand-400 pointer-events-none animate-ping"
               style={{ left: focusPulse.x, top: focusPulse.y }}
             />
           )}
 
           {flash && (
-            <div className="absolute inset-0 z-40 flex items-center justify-center bg-emerald-500/30 backdrop-blur-sm">
-              <CheckCircleIcon className="w-16 h-16 text-emerald-300 drop-shadow-lg" />
+            <div className="absolute inset-0 z-40 flex items-center justify-center bg-brand-500/30 backdrop-blur-sm">
+              <CheckCircleIcon className="w-16 h-16 text-brand-300 drop-shadow-lg" />
             </div>
           )}
 
@@ -239,7 +239,7 @@ export default function UnifiedScanner({
               value={manualValue}
               onChange={(e) => setManualValue(e.target.value)}
               placeholder="Escribe o pega un código…"
-              className="w-full text-center text-base tracking-[0.2em] font-mono p-3 bg-black border-2 border-white/15 focus:border-emerald-500 rounded-xl outline-none text-white placeholder:text-white/20"
+              className="w-full text-center text-base tracking-[0.2em] font-mono p-3 bg-black border-2 border-white/15 focus:border-brand-500 rounded-xl outline-none text-white placeholder:text-white/20"
               autoFocus
             />
           </form>

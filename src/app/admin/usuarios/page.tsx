@@ -236,7 +236,7 @@ export default function UsersPage() {
       header: <SortHeader field="name">Usuario</SortHeader>,
       cell: (u) => (
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold ring-2 ring-white shadow-sm shrink-0">
+          <div className="h-9 w-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold ring-2 ring-white shadow-sm shrink-0">
             {(u.name || u.email)[0].toUpperCase()}
           </div>
           <div className="min-w-0">
@@ -290,7 +290,7 @@ export default function UsersPage() {
             </Link>
             <button
               onClick={() => toggleUserRole(u.id, u.role)}
-              className="inline-flex items-center px-3 py-1.5 ring-1 ring-gray-200 rounded-lg text-xs font-bold text-emerald-700 bg-white hover:bg-emerald-50 hover:ring-emerald-200 transition-all min-h-[36px]"
+              className="inline-flex items-center px-3 py-1.5 ring-1 ring-gray-200 rounded-lg text-xs font-bold text-brand-700 bg-white hover:bg-brand-50 hover:ring-brand-200 transition-all min-h-[36px]"
             >
               Cambiar rol
             </button>
@@ -311,7 +311,7 @@ export default function UsersPage() {
     <div className="bg-white p-4 rounded-2xl ring-1 ring-gray-200 space-y-3">
       <div className="flex justify-between items-start gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold ring-2 ring-white shadow-sm shrink-0">
+          <div className="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold ring-2 ring-white shadow-sm shrink-0">
             {(u.name || u.email)[0].toUpperCase()}
           </div>
           <div className="min-w-0">
@@ -339,7 +339,7 @@ export default function UsersPage() {
           </Link>
           <button
             onClick={() => toggleUserRole(u.id, u.role)}
-            className="flex-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg hover:bg-emerald-100 transition-colors min-h-[36px]"
+            className="flex-1 text-xs font-bold text-brand-700 bg-brand-50 px-3 py-2 rounded-lg hover:bg-brand-100 transition-colors min-h-[36px]"
           >
             Cambiar rol
           </button>
@@ -361,11 +361,11 @@ export default function UsersPage() {
           kicker="Sistema"
           title="Usuarios"
           subtitle="Gestión de cuentas, roles y permisos"
-          icon={<UsersIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<UsersIcon className="w-6 h-6 text-brand-300" />}
           right={
             isAdmin && (
               <Link href="/admin/usuarios/nuevo">
-                <button className="px-4 py-2 bg-emerald-500 rounded-xl text-emerald-950 text-xs font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 inline-flex items-center gap-2 min-h-[36px]">
+                <button className="px-4 py-2 bg-brand-500 rounded-xl text-brand-950 text-xs font-black uppercase tracking-widest hover:bg-brand-400 transition-all shadow-lg shadow-brand-500/20 inline-flex items-center gap-2 min-h-[36px]">
                   <UserPlusIcon className="size-4" />
                   Nuevo usuario
                 </button>
@@ -407,7 +407,7 @@ export default function UsersPage() {
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              className="block w-full pl-9 pr-3 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500"
+              className="block w-full pl-9 pr-3 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-brand-500"
               placeholder="Buscar por nombre, email o ID..."
               value={searchTerm}
               onChange={(e) => {
@@ -417,7 +417,7 @@ export default function UsersPage() {
             />
           </div>
           <select
-            className="bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-emerald-500"
+            className="bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-brand-500"
             value={roleFilter}
             onChange={(e) => {
               setRoleFilter(e.target.value);
@@ -481,7 +481,7 @@ export default function UsersPage() {
                 onClick={() => paginate(index + 1)}
                 className={`relative inline-flex items-center px-4 py-2 border border-gray-200 bg-white text-sm font-medium ${
                   currentPage === index + 1
-                    ? "z-10 bg-emerald-50 border-emerald-500 text-emerald-700"
+                    ? "z-10 bg-brand-50 border-brand-500 text-brand-700"
                     : "text-gray-700 hover:bg-gray-50"
                 }`}
               >

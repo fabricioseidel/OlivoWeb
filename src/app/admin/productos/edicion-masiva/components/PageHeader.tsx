@@ -37,7 +37,7 @@ export default function PageHeader({
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
       <div>
         <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mb-1 uppercase">
-          Inventario <span className="text-emerald-600 italic">Smart</span>
+          Inventario <span className="text-brand-600 italic">Smart</span>
         </h1>
         <p className="text-sm text-gray-500 font-medium">Gestión rápida de precios y existencias.</p>
       </div>
@@ -70,7 +70,7 @@ export default function PageHeader({
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isImporting}
-          className="flex items-center gap-2 px-5 h-12 rounded-2xl font-bold border-2 bg-white text-gray-500 border-gray-200 hover:border-emerald-300 hover:text-emerald-600 transition-all disabled:opacity-50"
+          className="flex items-center gap-2 px-5 h-12 rounded-2xl font-bold border-2 bg-white text-gray-500 border-gray-200 hover:border-brand-300 hover:text-brand-600 transition-all disabled:opacity-50"
         >
           {isImporting ? (
             <ArrowPathIcon className="w-5 h-5 animate-spin" />
@@ -90,7 +90,7 @@ export default function PageHeader({
           onClick={onSaveAll}
           disabled={!hasChanges || isSaving}
           className={`rounded-2xl px-8 h-12 font-black shadow-xl transition-all ${
-            hasChanges ? "bg-emerald-600 shadow-emerald-500/20 scale-105" : "bg-gray-400 opacity-50"
+            hasChanges ? "bg-brand-600 shadow-brand-500/20 scale-105" : "bg-gray-400 opacity-50"
           }`}
         >
           {isSaving ? (

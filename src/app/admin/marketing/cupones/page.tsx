@@ -242,11 +242,11 @@ export default function CuponesPage() {
           kicker="Marketing"
           title="Cupones de descuento"
           subtitle="Creá y gestioná códigos de descuento para impulsar ventas"
-          icon={<TicketIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<TicketIcon className="w-6 h-6 text-brand-300" />}
           right={
             <button
               onClick={() => setShowForm(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 rounded-xl text-emerald-950 text-xs font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 min-h-[36px]"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-500 rounded-xl text-brand-950 text-xs font-black uppercase tracking-widest hover:bg-brand-400 transition-all shadow-lg shadow-brand-500/20 min-h-[36px]"
             >
               <PlusIcon className="h-4 w-4" />
               Nuevo cupón
@@ -265,7 +265,7 @@ export default function CuponesPage() {
         <StatsCard
           label="Activos"
           value={stats.active.toLocaleString()}
-          tone="emerald"
+          tone="brand"
           icon={<CheckCircleIcon className="w-4 h-4" />}
         />
         <StatsCard
@@ -290,7 +290,7 @@ export default function CuponesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por código, nombre o descripción…"
-            className="w-full bg-gray-50 border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+            className="w-full bg-gray-50 border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
           />
         </div>
         <FilterChips
@@ -326,13 +326,13 @@ export default function CuponesPage() {
                         code: e.target.value.toUpperCase(),
                       }))
                     }
-                    className="flex-1 bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-mono uppercase tracking-wider focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-mono uppercase tracking-wider focus:ring-2 focus:ring-brand-500"
                     placeholder="OLIVO2026"
                   />
                   <button
                     type="button"
                     onClick={generateCode}
-                    className="px-3 py-2 bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-emerald-100 min-h-[44px]"
+                    className="px-3 py-2 bg-brand-50 ring-1 ring-brand-200 text-brand-700 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-brand-100 min-h-[44px]"
                   >
                     Generar
                   </button>
@@ -346,7 +346,7 @@ export default function CuponesPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, name: e.target.value }))
                   }
-                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                   placeholder="Descuento de bienvenida"
                 />
               </Field>
@@ -358,7 +358,7 @@ export default function CuponesPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, description: e.target.value }))
                   }
-                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                 />
               </Field>
 
@@ -369,7 +369,7 @@ export default function CuponesPage() {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, discount_type: e.target.value }))
                     }
-                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                   >
                     {DISCOUNT_TYPES.map((t) => (
                       <option key={t.value} value={t.value}>
@@ -389,7 +389,7 @@ export default function CuponesPage() {
                       }))
                     }
                     disabled={form.discount_type === "free_shipping"}
-                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500 disabled:opacity-50"
                   />
                 </Field>
               </div>
@@ -405,7 +405,7 @@ export default function CuponesPage() {
                         min_purchase: Number(e.target.value),
                       }))
                     }
-                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                   />
                 </Field>
                 <Field label="Descuento máx. ($)">
@@ -418,7 +418,7 @@ export default function CuponesPage() {
                         max_discount: Number(e.target.value),
                       }))
                     }
-                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                     placeholder="0 = sin límite"
                   />
                 </Field>
@@ -435,7 +435,7 @@ export default function CuponesPage() {
                         max_uses: Number(e.target.value),
                       }))
                     }
-                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                     placeholder="0 = ilimitado"
                   />
                 </Field>
@@ -449,7 +449,7 @@ export default function CuponesPage() {
                         max_uses_per_customer: Number(e.target.value),
                       }))
                     }
-                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                   />
                 </Field>
               </div>
@@ -461,7 +461,7 @@ export default function CuponesPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, valid_until: e.target.value }))
                   }
-                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                 />
               </Field>
             </div>
@@ -476,7 +476,7 @@ export default function CuponesPage() {
               <button
                 onClick={handleSubmit}
                 disabled={saving}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 min-h-[44px]"
+                className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 disabled:opacity-50 min-h-[44px]"
               >
                 {saving ? "Guardando..." : "Crear cupón"}
               </button>
@@ -487,7 +487,7 @@ export default function CuponesPage() {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500" />
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-500" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl ring-1 ring-gray-200">
@@ -507,7 +507,7 @@ export default function CuponesPage() {
               coupons.length === 0 ? (
                 <button
                   onClick={() => setShowForm(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 min-h-[44px]"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 min-h-[44px]"
                 >
                   <PlusIcon className="h-4 w-4" />
                   Nuevo cupón
@@ -531,18 +531,18 @@ export default function CuponesPage() {
                 className={`bg-white rounded-2xl ring-1 p-4 sm:p-5 transition-all ${
                   dimmed
                     ? "ring-gray-200 opacity-70"
-                    : "ring-emerald-200 hover:ring-emerald-400 hover:shadow-lg"
+                    : "ring-brand-200 hover:ring-brand-400 hover:shadow-lg"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <code className="font-mono text-base sm:text-lg font-black text-emerald-700 tracking-wider truncate">
+                      <code className="font-mono text-base sm:text-lg font-black text-brand-700 tracking-wider truncate">
                         {c.code}
                       </code>
                       <button
                         onClick={() => copyCode(c.code)}
-                        className="text-gray-400 hover:text-emerald-600 p-1 shrink-0"
+                        className="text-gray-400 hover:text-brand-600 p-1 shrink-0"
                         title="Copiar código"
                       >
                         <ClipboardDocumentIcon className="h-4 w-4" />
@@ -562,7 +562,7 @@ export default function CuponesPage() {
                       expired
                         ? "bg-rose-100 text-rose-700 ring-rose-200"
                         : c.is_active
-                        ? "bg-emerald-100 text-emerald-700 ring-emerald-200"
+                        ? "bg-brand-100 text-brand-700 ring-brand-200"
                         : "bg-gray-100 text-gray-500 ring-gray-200"
                     }`}
                   >
@@ -575,7 +575,7 @@ export default function CuponesPage() {
                   className={`rounded-xl p-4 mb-3 text-center ring-1 ${
                     dimmed
                       ? "bg-gray-50 ring-gray-200"
-                      : "bg-gradient-to-br from-emerald-50 to-emerald-100/50 ring-emerald-200"
+                      : "bg-gradient-to-br from-brand-50 to-brand-100/50 ring-brand-200"
                   }`}
                 >
                   <div className="text-3xl font-black text-gray-900 leading-none">
@@ -600,7 +600,7 @@ export default function CuponesPage() {
                             ? "bg-rose-500"
                             : usesPct > 50
                             ? "bg-amber-500"
-                            : "bg-emerald-500"
+                            : "bg-brand-500"
                         }`}
                         style={{ width: `${usesPct}%` }}
                       />
@@ -656,7 +656,7 @@ export default function CuponesPage() {
                     className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-colors min-h-[40px] disabled:opacity-50 disabled:cursor-not-allowed ${
                       c.is_active
                         ? "bg-amber-50 text-amber-700 hover:bg-amber-100 ring-1 ring-amber-200"
-                        : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 ring-1 ring-emerald-200"
+                        : "bg-brand-50 text-brand-700 hover:bg-brand-100 ring-1 ring-brand-200"
                     }`}
                   >
                     {c.is_active ? (

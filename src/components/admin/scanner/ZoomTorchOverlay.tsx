@@ -28,7 +28,7 @@ export default function ZoomTorchOverlay({
     <div className="absolute bottom-3 left-3 right-3 z-40 flex items-center gap-3 pointer-events-none">
       {hasZoom && capabilities.zoom && (
         <div className="flex-1 flex items-center gap-2 bg-black/60 backdrop-blur-md rounded-full px-4 py-2 pointer-events-auto">
-          <MagnifyingGlassPlusIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+          <MagnifyingGlassPlusIcon className="w-4 h-4 text-brand-400 shrink-0" />
           <input
             type="range"
             min={capabilities.zoom.min}
@@ -37,10 +37,10 @@ export default function ZoomTorchOverlay({
             value={zoom}
             onChange={(e) => onZoom(Number(e.target.value))}
             data-laser-passthrough
-            className="flex-1 accent-emerald-500 h-1"
+            className="flex-1 accent-brand-500 h-1"
             aria-label="Zoom de cámara"
           />
-          <span className="text-[10px] font-black text-emerald-300 tabular-nums w-8 text-right">
+          <span className="text-[10px] font-black text-brand-300 tabular-nums w-8 text-right">
             {zoom.toFixed(1)}×
           </span>
         </div>

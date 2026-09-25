@@ -27,7 +27,7 @@ export default function StatsSection({
           <div className="text-sm text-gray-500">Total productos</div>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border">
-          <div className="text-2xl font-bold text-emerald-600">{stats.exportSelected}</div>
+          <div className="text-2xl font-bold text-brand-600">{stats.exportSelected}</div>
           <div className="text-sm text-gray-500">Para exportar</div>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border">

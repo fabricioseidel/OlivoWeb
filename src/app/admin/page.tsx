@@ -1,17 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useProducts } from "@/contexts/ProductContext";
-import {
-  ArrowPathIcon,
-  ChartBarIcon,
-  BoltIcon,
-} from "@heroicons/react/24/outline";
+import { ChartBarIcon } from "@heroicons/react/24/outline";
 import dynamic from "next/dynamic";
 import { useToast } from "@/contexts/ToastContext";
 import LiveReceptionBoard, {
   LiveOrder,
 } from "@/components/admin/LiveReceptionBoard";
+import { useAlertaPedidos } from "@/hooks/useAlertaPedidos";
+import { detectarNuevos, idsParaRecordar } from "@/lib/admin/pedidos-nuevos";
 import {
   PageShell,
   HeroHeader,
@@ -41,6 +39,11 @@ export default function AdminDashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>("reception");
   const [insights, setInsights] = useState<any[]>([]);
   const [posSales, setPosSales] = useState<any[]>([]);
+  const alerta = useAlertaPedidos();
+  // Los ids ya vistos. En un ref y no en estado: cambiarlo no tiene que
+  // repintar nada, y dentro de `loadOrders` hace falta el valor de ahora, no el
+  // que había cuando se creó la función.
+  const idsVistos = useRef<Set<string> | null>(null);
 
   const loadOrders = async () => {
     try {
@@ -62,21 +65,35 @@ export default function AdminDashboard() {
               "Invitado",
             paymentStatus: o.payment_status || "pending",
             paymentMethod: o.payment_method || "Desconocido",
+            shippingMethod: o.shipping_method || "",
+            expressStatus: o.express_status || null,
+            expressTrackingUrl: o.express_tracking_url || null,
+            expressError: o.express_error || null,
           }));
-          setOrders((prev) => {
-            const newPendingCount = mapped.filter(
-              (x: any) => x.estado === "Pendiente" || x.estado === "pending"
-            ).length;
-            const oldPendingCount = prev.filter(
-              (x: any) => x.estado === "Pendiente" || x.estado === "pending"
-            ).length;
-            if (newPendingCount > oldPendingCount) {
-              try {
-                new Audio("/notification.mp3").play().catch(() => {});
-              } catch {}
+          // La primera carga sólo siembra los ids: al abrir el panel no tiene
+          // que sonar por los pedidos que ya estaban ahí.
+          if (idsVistos.current === null) {
+            idsVistos.current = idsParaRecordar(mapped);
+          } else {
+            const nuevos = detectarNuevos(idsVistos.current, mapped);
+            idsVistos.current = idsParaRecordar(mapped);
+            if (nuevos.length > 0) {
+              const primero = nuevos[0];
+              alerta.sonar(
+                nuevos.length === 1 ? "Pedido nuevo" : `${nuevos.length} pedidos nuevos`,
+                `${primero.customer || "Invitado"} · $${Number(
+                  primero.total || 0
+                ).toLocaleString("es-CL")}`
+              );
+              showToast(
+                nuevos.length === 1
+                  ? `Pedido nuevo de ${nuevos[0].customer || "Invitado"}`
+                  : `Entraron ${nuevos.length} pedidos nuevos`,
+                "success"
+              );
             }
-            return mapped;
-          });
+          }
+          setOrders(mapped);
           setLastSync(new Date().toLocaleTimeString());
         }
       }
@@ -176,6 +193,23 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleReintentarEntrega = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/orders/${id}/reintentar-entrega`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast("Repartidor pedido. Uber ya tiene la entrega.", "success");
+      } else {
+        // El motivo de Uber tal cual: es lo que dice qué hay que arreglar.
+        showToast(data?.error || "No se pudo pedir el repartidor", "error");
+      }
+    } catch {
+      showToast("Error de red al pedir el repartidor", "error");
+    } finally {
+      loadOrders();
+    }
+  };
+
   const tabs: Tab[] = [
     { key: "reception", label: "Live Reception" },
     { key: "analytics", label: "Analytics" },
@@ -188,10 +222,10 @@ export default function AdminDashboard() {
           kicker="Resumen"
           title="Centro de Control"
           subtitle="Operaciones en tiempo real de Olivo Market"
-          icon={<ChartBarIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<ChartBarIcon className="w-6 h-6 text-brand-300" />}
           right={
-            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 ring-1 ring-white/15 text-emerald-100 text-[10px] font-black uppercase tracking-widest">
-              <span className="size-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_10px_2px_#10B981]" />
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 ring-1 ring-white/15 text-brand-100 text-[10px] font-black uppercase tracking-widest">
+              <span className="size-2 bg-brand-400 rounded-full animate-pulse shadow-[0_0_10px_2px_#10B981]" />
               Sync: {lastSync || "—"}
             </div>
           }
@@ -206,23 +240,23 @@ export default function AdminDashboard() {
 
       {viewMode === "reception" ? (
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3 bg-white p-4 rounded-2xl ring-1 ring-gray-200 shadow-sm flex-wrap">
-            <p className="text-sm font-bold text-gray-500 max-w-lg leading-relaxed">
-              Gestioná los pedidos locales en vivo. Las actualizaciones se
-              aplican de forma instantánea a clientes y repartidores.
-            </p>
-            <button
-              onClick={loadOrders}
-              className="inline-flex items-center gap-2 bg-gray-50 text-gray-600 px-4 py-2 rounded-xl text-xs font-black tracking-widest uppercase hover:bg-emerald-50 hover:text-emerald-700 transition-colors ring-1 ring-gray-200 min-h-[44px]"
-            >
-              <ArrowPathIcon className="w-4 h-4" />
-              <BoltIcon className="w-3 h-3" />
-              Forzar Scan
-            </button>
-          </div>
+          {/* Sin la alerta encendida el panel hay que mirarlo: el aviso lo dice
+              una vez, arriba de todo, en vez de esconderlo en la configuración. */}
+          {!alerta.activada && (
+            <div className="bg-amber-50 ring-1 ring-amber-200 rounded-2xl px-4 py-3 text-sm text-amber-900">
+              La alerta sonora está apagada: los pedidos nuevos entran en
+              silencio. Actívala con el botón de abajo — el navegador exige un
+              toque tuyo para poder sonar.
+            </div>
+          )}
           <LiveReceptionBoard
             orders={orders as LiveOrder[]}
             onUpdateStatus={handleUpdateOrderStatus}
+            alertaActivada={alerta.activada}
+            onAlternarAlerta={alerta.alternar}
+            onReintentarEntrega={handleReintentarEntrega}
+            onRefrescar={loadOrders}
+            ultimoSync={lastSync}
           />
         </div>
       ) : (

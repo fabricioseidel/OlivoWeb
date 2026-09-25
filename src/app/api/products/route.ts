@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { fetchAllProducts, isProductVisible } from "@/services/products";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
+import { requireApiAdminOrSeller } from "@/lib/api-auth";
+import { STOCK_REASON, setStockLevels } from "@/server/inventory.service";
 
 async function readJsonBody(req: Request) {
   const text = await req.text();
@@ -78,6 +78,7 @@ export async function GET() {
       name: p.name,
       slug: p.slug,
       price: p.price,
+      offerPrice: p.offerPrice,
       sale_price: undefined,
       image: p.image, // Use image field from ProductUI
       categories: p.categories,
@@ -96,10 +97,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return errorResponse(new Error("Unauthorized"), 401);
-    }
+    const auth = await requireApiAdminOrSeller();
+    if (!auth.ok) return auth.response;
 
     const body = await readJsonBody(req);
     const items = Array.isArray(body?.items) ? body.items : [body];
@@ -114,10 +113,37 @@ export async function POST(req: Request) {
       }
     }
 
-    // Using supabaseServer to bypass RLS policies that might block client-side inserts
-    await upsertProductsWithColumnFallback(items);
+    // `products.stock` es un valor derivado de `branch_stock`: no puede viajar
+    // en el upsert. Antes sí lo hacía, y como el navegador manda el producto
+    // completo, guardar cualquier campo reescribía el stock con el valor que
+    // el cliente tenía cacheado — pisando recepciones y ventas recién hechas.
+    // Acá se separa: el producto se guarda sin stock y la cantidad, si viene,
+    // se aplica después como ajuste de inventario.
+    const stockTargets = new Map<string, number>();
+    const payloads = items.map((item: any) => {
+      const { stock, ...rest } = item ?? {};
+      if (stock !== undefined && stock !== null && Number.isFinite(Number(stock))) {
+        stockTargets.set(String(rest.barcode), Number(stock));
+      }
+      return rest;
+    });
 
-    return successResponse({ success: true });
+    // Using supabaseServer to bypass RLS policies that might block client-side inserts
+    await upsertProductsWithColumnFallback(payloads);
+
+    const stockResult = await setStockLevels(
+      [...stockTargets].map(([barcode, target]) => ({ barcode, target })),
+      { reason: STOCK_REASON.MANUAL_ADJUSTMENT }
+    );
+
+    if (!stockResult.ok) {
+      console.error('/api/products POST: ajuste de stock falló', stockResult.error);
+    }
+
+    return successResponse({
+      success: true,
+      ...(stockResult.ok ? {} : { stockError: stockResult.error }),
+    });
   } catch (e: any) {
     if (e?.statusCode && typeof e.statusCode === "number") {
       return errorResponse(e, e.statusCode);
@@ -128,10 +154,8 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return errorResponse(new Error("Unauthorized"), 401);
-    }
+    const auth = await requireApiAdminOrSeller();
+    if (!auth.ok) return auth.response;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -141,7 +165,20 @@ export async function DELETE(req: Request) {
     }
 
     const { error } = await supabaseServer.from('products').delete().eq('barcode', id);
-    
+
+    // `order_items` tiene una clave foránea con ON DELETE RESTRICT: un producto
+    // que alguien compró no se puede borrar, porque la línea del pedido es el
+    // registro de esa venta. El error de Postgres es ilegible para quien está
+    // en el panel, así que se traduce a lo que hay que hacer.
+    if (error?.code === '23503') {
+      return errorResponse(
+        new Error(
+          'Este producto tiene pedidos registrados y no se puede borrar sin perder ese historial. Desactivalo para sacarlo de la venta.'
+        ),
+        409
+      );
+    }
+
     if (error) throw error;
 
     return successResponse({ success: true });

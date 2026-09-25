@@ -21,7 +21,13 @@ export type SupaProduct = {
   tax_rate?: number | null;
   min_stock?: number | null;
   optimum_stock?: number | null;
+  bundle_config?: import('./bundle').BundleConfig | null;
+  /** Momento del último conteo físico que tocó este producto. */
+  verified_at?: string | null;
+  verified_by?: string | null;
 };
+
+export type { BundleConfig, BundleFixedItem, BundleOptionGroup, BundleOptionItem, SelectedBundleOption } from './bundle';
 
 export type ProductUI = {
   id: string;
@@ -44,12 +50,25 @@ export type ProductUI = {
   measurementUnit?: string;
   measurementValue?: number;
   suggestedPrice?: number;
-  offerPrice?: number;
+  /**
+   * Precio de oferta. `null` es "sacale la oferta", que no es lo mismo que
+   * `undefined` —"no toques este campo"—: la columna es nullable en la base y
+   * la ficha de producto necesita poder limpiarla.
+   */
+  offerPrice?: number | null;
   isActive?: boolean;
   barcode?: string;
   purchasePrice?: number;
   minStock?: number;
   optimumStock?: number;
+  bundle_config?: import('./bundle').BundleConfig | null;
+  /**
+   * `products.verified_at`: cuándo se escaneó este producto por última vez en
+   * un conteo físico. Es lo que separa "stock real, contado en la góndola" de
+   * "stock que quedó de una carga vieja", y por eso manda al decidir qué se
+   * publica primero y cuál de dos códigos duplicados es el bueno.
+   */
+  verifiedAt?: string | null;
 };
 
 export interface CartItem {
@@ -59,6 +78,7 @@ export interface CartItem {
   image: string;
   slug: string;
   quantity: number;
+  selectedOptions?: import('./bundle').SelectedBundleOption[];
 }
 
 // ── Multi-sucursal ──────────────────────────────────────────────

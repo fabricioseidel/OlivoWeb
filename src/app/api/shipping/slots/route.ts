@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
-import { format, addDays, getHours } from "date-fns";
+import { format, addDays, getHours, getMinutes } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import {
+  MAX_ORDERS_PER_SLOT,
+  economicoSlotEsValido,
+  sameDaySlotIsAllowed,
+  slotMatches,
+  slotsEconomicosForDate,
+  slotsForDate,
+} from "@/lib/delivery-slots";
 
-const MAX_ORDERS_PER_SLOT = 5;
 const TIMEZONE = "America/Santiago";
-
-// Definición de franjas horarias
-const TIME_SLOTS = [
-  { id: "09:00-12:00", label: "09:00 - 12:00 hrs", startHour: 9 },
-  { id: "12:00-15:00", label: "12:00 - 15:00 hrs", startHour: 12 },
-  { id: "15:00-18:00", label: "15:00 - 18:00 hrs", startHour: 15 },
-  { id: "18:00-21:00", label: "18:00 - 21:00 hrs", startHour: 18 },
-];
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const requestedDateStr = searchParams.get("date"); // YYYY-MM-DD
+    // Las dos modalidades no comparten grilla: el despacho programado usa los
+    // bloques de tres horas de la jornada, y el económico la ronda de reparto
+    // del dueño. Pedir los de una y agendar en la otra ofrecería horarios en
+    // los que no sale nadie.
+    const esEconomico = searchParams.get("mode") === "economico";
 
     if (!requestedDateStr) {
       return NextResponse.json({ error: "Date parameter is required" }, { status: 400 });
@@ -27,8 +31,19 @@ export async function GET(request: NextRequest) {
     const nowUtc = new Date();
     const nowInChile = toZonedTime(nowUtc, TIMEZONE);
     const currentHour = getHours(nowInChile);
+    // El corte del económico es 22:30, así que no alcanza con la hora entera.
+    const nowMin = currentHour * 60 + getMinutes(nowInChile);
     const todayStr = format(nowInChile, "yyyy-MM-dd");
-    
+
+    // Los bloques dependen del día: el local cierra 20:30 entre semana y
+    // 18:00 los fines de semana, así que no son los mismos cuatro siempre.
+    const slotsDelDia = esEconomico
+      ? slotsEconomicosForDate(requestedDateStr)
+      : slotsForDate(requestedDateStr);
+    if (slotsDelDia.length === 0) {
+      return NextResponse.json({ date: requestedDateStr, slots: [] });
+    }
+
     // Obtenemos los pedidos pendientes (que ya fueron agendados)
     // Para simplificar, traemos aquellos de los últimos 7 días con status no cancelado.
     // Esto es manejable y evitaremos queries complejas con JSON en Supabase JS client.
@@ -44,47 +59,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch slots" }, { status: 500 });
     }
 
-    // Conteo de ocupación por slot en la fecha solicitada
-    const slotCounts: Record<string, number> = {};
-    activeOrders.forEach(order => {
-      const addr = order.shipping_address as any;
-      if (addr && addr.deliveryDate === requestedDateStr && addr.deliveryTimeSlot) {
-        slotCounts[addr.deliveryTimeSlot] = (slotCounts[addr.deliveryTimeSlot] || 0) + 1;
-      }
-    });
+    const agendados = activeOrders
+      .map((order) => order.shipping_address as any)
+      .filter((addr) => addr && addr.deliveryDate === requestedDateStr);
 
-    // Lógica principal
     const isToday = requestedDateStr === todayStr;
-    const isAfter1PM = currentHour >= 13;
-    
-    const availableSlots = TIME_SLOTS.map(slot => {
-      const currentCount = slotCounts[slot.id] || 0;
-      const hasCapacity = currentCount < MAX_ORDERS_PER_SLOT;
-      
-      let isAvailable = hasCapacity;
 
-      // Filtrado para "Mismo Día"
-      if (isToday) {
-         if (isAfter1PM) {
-           // Si es hoy y pasó la 1 PM, NINGÚN slot está disponible
-           isAvailable = false;
-         } else {
-           // Si es hoy y antes de la 1 PM, SOLO el último bloque (18-21) está disponible.
-           isAvailable = slot.id === "18:00-21:00" && hasCapacity;
-         }
-      }
+    const availableSlots = slotsDelDia.map((slot) => {
+      const currentCount = agendados.filter((addr) =>
+        slotMatches(slot, addr.deliveryTimeSlot)
+      ).length;
+      const hasCapacity = currentCount < MAX_ORDERS_PER_SLOT;
+
+      // El económico no tiene regla de "mismo día": tiene su propio corte, que
+      // depende del turno en que el pedido se prepara y no de la fecha pedida.
+      const isAvailable = esEconomico
+        ? hasCapacity && economicoSlotEsValido(requestedDateStr, slot.id, todayStr, nowMin)
+        : isToday
+          ? hasCapacity && sameDaySlotIsAllowed(slot, slotsDelDia, currentHour)
+          : hasCapacity;
 
       return {
         id: slot.id,
         label: slot.label,
         available: isAvailable,
-        capacityRatio: `${currentCount}/${MAX_ORDERS_PER_SLOT}`
+        capacityRatio: `${currentCount}/${MAX_ORDERS_PER_SLOT}`,
       };
     });
 
     return NextResponse.json({
       date: requestedDateStr,
-      slots: availableSlots
+      slots: availableSlots,
     });
 
   } catch (error: any) {

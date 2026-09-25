@@ -4,22 +4,74 @@ import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import Navbar from "./Navbar";
 import BottomNav from "./BottomNav";
+import PreviewBanner from "./PreviewBanner";
+import FranjaBienvenida from "./FranjaBienvenida";
+import FranjaDieciochera from "@/components/fiestas/FranjaDieciochera";
+import Footer from "./Footer";
 
 export default function ShopShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col print:block print:min-h-0">
       {!isAdmin && (
-        <header className="sticky top-0 z-50 bg-white shadow">
-          <Navbar />
-        </header>
+        <>
+          {/* Saltar al contenido. Sin esto, quien navega con teclado tiene que
+              pasar por los ~12 controles del navbar —logo, seis enlaces,
+              buscador, carrito, Entrar y Registrarse— antes de llegar al
+              contenido, y otra vez en cada página. Es WCAG 2.4.1, nivel A.
+              Va invisible hasta que recibe el foco, y es el primer elemento
+              del árbol para que sea la primera parada del tabulador. */}
+          <a
+            href="#contenido"
+            className="o-focus sr-only rounded-xl focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-brand-texto focus:shadow-lg"
+          >
+            Saltar al contenido
+          </a>
+          <div className="print:hidden">
+            <PreviewBanner />
+          </div>
+          {/* El descuento de bienvenida. Va antes del navbar y no dentro para
+              que el encabezado siga siendo sticky por su cuenta: la franja se
+              desplaza con la página y no se come alto de pantalla en móvil.
+              Se esconde sola para quien ya usó su cupón. */}
+          <div className="print:hidden">
+            <FranjaBienvenida />
+          </div>
+          {/* Cinta de temporada. Va sobre el encabezado y no dentro, para
+              que el navbar siga siendo sticky por su cuenta y la cinta se
+              desplace con la página. Se apaga sola fuera de septiembre. */}
+          <div className="print:hidden">
+            <FranjaDieciochera />
+          </div>
+          {/* Al imprimir un pedido, `window.print()` imprime la página entera:
+              el navbar, la cinta de temporada y el pie con sus cuatro columnas
+              de enlaces salían en el papel y la boleta terminaba ocupando
+              cuatro hojas. La boleta se imprime sola. */}
+          <header className="sticky top-0 z-50 bg-white shadow print:hidden">
+            <Navbar />
+          </header>
+        </>
       )}
-      <main className={`flex-1 ${isAdmin ? "" : "bg-white pb-20 md:pb-0"}`}>
+      <main id="contenido" tabIndex={-1} className={`flex-1 outline-none print:flex-none ${isAdmin ? "" : "bg-white"}`}>
         {children}
       </main>
-      {!isAdmin && <BottomNav />}
+      {/* El pie existía desde hace tiempo y no lo montaba nadie: el sitio se
+          servía sin footer, así que el NAP —la dirección y el teléfono que el
+          SEO local exige que aparezcan idénticos en todo el sitio— no estaba
+          en ninguna página. El padding inferior se mueve acá porque en móvil
+          el que tapa contenido es el pie, no el <main>. */}
+      {!isAdmin && (
+        <>
+          <div className="pb-20 md:pb-0 print:hidden">
+            <Footer />
+          </div>
+          <div className="print:hidden">
+            <BottomNav />
+          </div>
+        </>
+      )}
     </div>
   );
 }

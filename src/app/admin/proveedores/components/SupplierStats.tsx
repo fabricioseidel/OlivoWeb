@@ -24,7 +24,7 @@ export default function SupplierStats({ stats }: SupplierStatsProps) {
       <StatsCard
         label="Con productos"
         value={stats.withProducts.toLocaleString()}
-        tone="emerald"
+        tone="brand"
         icon={<CubeIcon className="w-4 h-4" />}
       />
       <StatsCard

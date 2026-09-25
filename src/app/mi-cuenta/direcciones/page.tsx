@@ -43,45 +43,12 @@ const formularioVacio: Direccion = {
   predeterminada: false,
 };
 
-function normalizeGoogleAddress(raw: unknown, displayName: string): Direccion | null {
-  if (!raw) return null;
-  const name = displayName?.trim() || "Principal";
-  let source = raw;
-  if (Array.isArray(raw)) source = raw[0];
 
-  const tryGet = (obj: Record<string, unknown>, keys: string[]) => {
-    for (const key of keys) {
-      if (obj && typeof obj[key] === "string" && obj[key]) return obj[key] as string;
-    }
-    return "";
-  };
-
-  if (typeof source === "string") {
-    return { id: "google-address", nombre: name, calle: source, numero: "", interior: "", colonia: "", ciudad: "", estado: "", codigoPostal: "", telefono: "", predeterminada: true };
-  }
-  if (typeof source !== "object") return null;
-
-  const src = source as Record<string, unknown>;
-  return {
-    id: "google-address",
-    nombre: name || "Principal",
-    calle: tryGet(src, ["streetAddress", "street_address", "street", "line1", "addressLine1", "formattedValue"]),
-    numero: tryGet(src, ["streetNumber", "street_number", "number"]),
-    interior: tryGet(src, ["unit", "apartment", "suite", "addressLine2", "line2"]),
-    colonia: tryGet(src, ["locality", "city", "town"]),
-    ciudad: tryGet(src, ["locality", "city", "town"]),
-    estado: tryGet(src, ["region", "state", "administrative_area_level_1", "province"]),
-    codigoPostal: tryGet(src, ["postalCode", "postal_code", "zip"]),
-    telefono: "",
-    predeterminada: true,
-  };
-}
-
-const inputClass = "w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 transition-all";
-const labelClass = "block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2";
+const inputClass = "w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 transition-all";
+const labelClass = "mb-1.5 block text-sm font-medium text-neutral-700";
 
 export default function DireccionesPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [direcciones, setDirecciones] = useState<Direccion[]>([]);
@@ -114,21 +81,17 @@ export default function DireccionesPage() {
         : [];
       let effective: Direccion[] = Array.isArray(saved) ? saved : [];
 
-      const googleAddress = (session?.user as Record<string, unknown>)?.address;
-      const googleDerived = normalizeGoogleAddress(googleAddress, session?.user?.name || session?.user?.email || "");
-      if (!effective.length && googleDerived) {
-        effective = [googleDerived];
-        saveToStorage(effective);
-      } else if (typeof window !== "undefined" && effective.length && effective[0]?.id?.startsWith("addr-")) {
+      // Las direcciones se guardan solo cuando el cliente las escribe. Antes
+      // se derivaba una del perfil de Google al entrar, así que aparecía una
+      // dirección que nadie había ingresado.
+      if (typeof window !== "undefined" && effective.length && effective[0]?.id?.startsWith("addr-")) {
         localStorage.removeItem("addresses");
-        effective = googleDerived ? [googleDerived] : [];
-        if (googleDerived) saveToStorage(effective);
+        effective = [];
       }
 
       setDirecciones(effective);
       setIsLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -231,7 +194,7 @@ export default function DireccionesPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500" />
       </div>
     );
   }
@@ -240,7 +203,7 @@ export default function DireccionesPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <Link
         href="/mi-cuenta"
-        className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-emerald-600 mb-8 transition-colors"
+        className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-brand-600 mb-8 transition-colors"
       >
         <ArrowLeftIcon className="w-4 h-4 mr-2" />
         Volver a Mi Cuenta
@@ -248,13 +211,13 @@ export default function DireccionesPage() {
 
       <div className="flex items-end justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Mis Direcciones</h1>
+          <h1 className="o-h1 mb-1 text-neutral-900">Mis direcciones</h1>
           <p className="text-gray-500 font-medium">Gestiona los domicilios de envío de tus pedidos.</p>
         </div>
         {!mostrarFormulario && (
           <button
             onClick={() => { setDireccionActual(null); setFormData(formularioVacio); setMostrarFormulario(true); }}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 active:scale-95 transition-all"
+            className="o-focus inline-flex h-11 items-center gap-2 rounded-xl bg-brand-boton px-5 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-700"
           >
             <PlusIcon className="w-4 h-4" />
             Agregar
@@ -264,15 +227,15 @@ export default function DireccionesPage() {
 
       {/* Mensaje de feedback */}
       {mensaje.texto && (
-        <div className={`mb-6 px-5 py-4 rounded-2xl text-sm font-bold ${mensaje.tipo === "exito" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
+        <div className={`mb-6 px-5 py-4 rounded-2xl text-sm font-bold ${mensaje.tipo === "exito" ? "bg-brand-50 text-brand-800 border border-brand-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
           {mensaje.texto}
         </div>
       )}
 
       {/* Formulario */}
       {mostrarFormulario && (
-        <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-8 mb-6">
-          <h2 className="text-xl font-black text-gray-900 tracking-tight mb-6">
+        <div className="o-card mb-6 p-6">
+          <h2 className="o-h3 mb-5 text-neutral-900">
             {direccionActual ? "Editar dirección" : "Nueva dirección"}
           </h2>
 
@@ -330,7 +293,7 @@ export default function DireccionesPage() {
                   name="predeterminada"
                   checked={formData.predeterminada}
                   onChange={handleChange}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                  className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-gray-300"
                 />
                 <label htmlFor="predeterminada" className="text-sm font-bold text-gray-700 cursor-pointer">
                   Establecer como dirección predeterminada
@@ -342,14 +305,14 @@ export default function DireccionesPage() {
               <button
                 type="button"
                 onClick={() => { setMostrarFormulario(false); setDireccionActual(null); }}
-                className="px-6 py-3 border-2 border-gray-200 text-gray-600 rounded-2xl font-black text-sm uppercase tracking-wider hover:border-gray-300 active:scale-95 transition-all"
+                className="o-focus h-11 rounded-xl border border-neutral-200 px-5 text-sm font-semibold text-neutral-700 transition-colors hover:border-neutral-300"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="o-focus flex h-11 items-center gap-2 rounded-xl bg-brand-boton px-5 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSubmitting && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
                 {isSubmitting ? "Guardando…" : "Guardar dirección"}
@@ -366,19 +329,19 @@ export default function DireccionesPage() {
             {direcciones.map((dir) => (
               <div
                 key={dir.id}
-                className={`bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border overflow-hidden transition-all ${dir.predeterminada ? "border-emerald-300" : "border-gray-100"}`}
+                className={`o-card overflow-hidden ${dir.predeterminada ? "border-brand-400" : ""}`}
               >
                 <div className="p-6 md:p-8">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4">
-                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${dir.predeterminada ? "bg-emerald-100" : "bg-gray-100"}`}>
-                        <MapPinIcon className={`w-5 h-5 ${dir.predeterminada ? "text-emerald-600" : "text-gray-500"}`} />
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${dir.predeterminada ? "bg-brand-100" : "bg-gray-100"}`}>
+                        <MapPinIcon className={`w-5 h-5 ${dir.predeterminada ? "text-brand-600" : "text-gray-500"}`} />
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-black text-gray-900">{dir.nombre}</h3>
+                          <h3 className="font-semibold text-neutral-900">{dir.nombre}</h3>
                           {dir.predeterminada && (
-                            <span className="px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 rounded-full">
+                            <span className="rounded-md bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-800">
                               Predeterminada
                             </span>
                           )}
@@ -402,7 +365,7 @@ export default function DireccionesPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       {confirmingDeleteId === dir.id ? (
                         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-2xl px-3 py-2">
-                          <span className="text-xs font-black text-red-700 mr-1">¿Eliminar?</span>
+                          <span className="mr-1 text-xs font-medium text-red-700">¿Eliminar?</span>
                           <button
                             onClick={() => handleEliminar(dir.id)}
                             className="p-1.5 bg-red-600 text-white rounded-xl hover:bg-red-700 active:scale-95 transition-all"
@@ -422,7 +385,7 @@ export default function DireccionesPage() {
                         <>
                           <button
                             onClick={() => { setDireccionActual(dir); setFormData(dir); setMostrarFormulario(true); }}
-                            className="p-2.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                            className="p-2.5 text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all"
                             title="Editar"
                           >
                             <PencilIcon className="w-4 h-4" />
@@ -443,7 +406,7 @@ export default function DireccionesPage() {
                     <div className="mt-4 pt-4 border-t border-gray-100">
                       <button
                         onClick={() => handleEstablecerPredeterminada(dir.id)}
-                        className="text-xs font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-wider transition-colors"
+                        className="o-focus rounded text-xs font-medium text-brand-700 transition-colors hover:text-brand-800"
                       >
                         Establecer como predeterminada →
                       </button>
@@ -454,17 +417,17 @@ export default function DireccionesPage() {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-dashed border-gray-200 py-20 px-6 text-center">
+          <div className="o-card border-dashed px-6 py-16 text-center">
             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
               <MapPinIcon className="w-10 h-10 text-gray-200" />
             </div>
-            <h3 className="text-2xl font-black text-gray-900 mb-2">Sin direcciones guardadas</h3>
+            <h3 className="o-h2 mb-2 text-neutral-900">Sin direcciones guardadas</h3>
             <p className="text-gray-400 font-medium mb-8 max-w-xs mx-auto">
               Agrega una dirección para facilitar tus próximas compras.
             </p>
             <button
               onClick={() => { setFormData(formularioVacio); setMostrarFormulario(true); }}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 active:scale-95 transition-all"
+              className="o-focus inline-flex h-11 items-center gap-2 rounded-xl bg-brand-boton px-6 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-700"
             >
               <PlusIcon className="w-4 h-4" />
               Agregar dirección

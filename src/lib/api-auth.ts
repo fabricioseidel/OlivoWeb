@@ -16,6 +16,25 @@ function normalizeRole(session: Session): "ADMIN" | "SELLER" | "USER" {
 }
 
 /**
+ * ¿Quien está llamando es administrador?
+ *
+ * A diferencia de `requireApiAdmin`, no rechaza a nadie: contesta la pregunta
+ * y deja que el llamador decida. Sirve para rutas públicas que se comportan
+ * distinto cuando las usa el dueño —por ejemplo, dejarlo probar el envío flash
+ * con el local cerrado sin abrirle esa puerta a los clientes—.
+ */
+export async function esAdmin(): Promise<boolean> {
+  try {
+    const session = await getServerSession(authOptions);
+    return Boolean(session?.user) && normalizeRole(session as Session) === "ADMIN";
+  } catch {
+    // Sin sesión legible se responde que no: la duda nunca se resuelve a favor
+    // de dar más permisos.
+    return false;
+  }
+}
+
+/**
  * Auth helper para /api/admin/**.
  *
  * Uso típico:

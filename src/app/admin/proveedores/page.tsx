@@ -22,6 +22,7 @@ import AssignmentsHeader from "./components/AssignmentsHeader";
 import AssignmentForm from "./components/AssignmentForm";
 import AssignmentsMobileCards from "./components/AssignmentsMobileCards";
 import AssignmentsTable from "./components/AssignmentsTable";
+import { aBruto, derivarCostoProveedor } from "@/lib/pricing";
 
 export default function SuppliersAdminPage() {
   const { products } = useProducts();
@@ -117,6 +118,7 @@ export default function SuppliersAdminPage() {
         setForm({
           id: supplier.id,
           name: supplier.name,
+          rut: supplier.rut ?? "",
           contact_name: supplier.contact_name ?? "",
           phone: supplier.phone ?? "",
           whatsapp: supplier.whatsapp ?? "",
@@ -146,6 +148,7 @@ export default function SuppliersAdminPage() {
       setSaving(true);
       const payload = {
         name: form.name,
+        rut: form.rut,
         contactName: form.contact_name,
         phone: form.phone,
         whatsapp: form.whatsapp,
@@ -241,12 +244,13 @@ export default function SuppliersAdminPage() {
 
   const selectProduct = (p: (typeof products)[number]) => {
     if (p.purchasePrice) {
+      // `purchase_price` se guarda sin IVA, igual que product_suppliers.unit_cost.
       const withoutVat = p.purchasePrice;
       setAssignmentForm((prev) => ({
         ...prev,
         productId: p.id,
         priceWithoutVat: withoutVat.toFixed(2),
-        priceWithVat: (withoutVat * 1.19).toFixed(2),
+        priceWithVat: (aBruto(withoutVat) ?? 0).toFixed(2),
       }));
     } else {
       handleAssignmentChange("productId", p.id);
@@ -295,21 +299,16 @@ export default function SuppliersAdminPage() {
       }));
       return;
     }
-    if (field === "with") {
-      const withoutVat = numValue / 1.19;
-      setAssignmentForm((prev) => ({
-        ...prev,
-        priceWithVat: value,
-        priceWithoutVat: withoutVat.toFixed(2),
-      }));
-    } else {
-      const withVat = numValue * 1.19;
-      setAssignmentForm((prev) => ({
-        ...prev,
-        priceWithoutVat: value,
-        priceWithVat: withVat.toFixed(2),
-      }));
-    }
+    const derivado = derivarCostoProveedor(
+      field === "with" ? "conIva" : "sinIva",
+      value
+    );
+    if (!derivado) return;
+    setAssignmentForm((prev) => ({
+      ...prev,
+      priceWithVat: derivado.conIva,
+      priceWithoutVat: derivado.sinIva,
+    }));
   };
 
   const handleSaveAssignment = async (e: React.FormEvent) => {
@@ -388,7 +387,7 @@ export default function SuppliersAdminPage() {
     setEditingProductId(assignment.product_id);
     setEditForm({
       priceWithoutVat: cost ? Number(cost).toFixed(2) : "",
-      priceWithVat: cost ? Number(cost * 1.19).toFixed(2) : "",
+      priceWithVat: cost ? (aBruto(Number(cost)) ?? 0).toFixed(2) : "",
       defaultReorderQty:
         assignment.default_reorder_qty != null
           ? String(assignment.default_reorder_qty)
@@ -411,19 +410,16 @@ export default function SuppliersAdminPage() {
       }));
       return;
     }
-    if (field === "with") {
-      setEditForm((prev) => ({
-        ...prev,
-        priceWithVat: value,
-        priceWithoutVat: (numValue / 1.19).toFixed(2),
-      }));
-    } else {
-      setEditForm((prev) => ({
-        ...prev,
-        priceWithoutVat: value,
-        priceWithVat: (numValue * 1.19).toFixed(2),
-      }));
-    }
+    const derivado = derivarCostoProveedor(
+      field === "with" ? "conIva" : "sinIva",
+      value
+    );
+    if (!derivado) return;
+    setEditForm((prev) => ({
+      ...prev,
+      priceWithVat: derivado.conIva,
+      priceWithoutVat: derivado.sinIva,
+    }));
   };
 
   const saveEditAssignment = async (productId: string) => {
@@ -570,7 +566,7 @@ export default function SuppliersAdminPage() {
                     value={assignmentSearch}
                     onChange={(e) => setAssignmentSearch(e.target.value)}
                     placeholder={`Buscar en ${assignments.length} productos asignados…`}
-                    className="w-full bg-gray-50 border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-gray-50 border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               )}

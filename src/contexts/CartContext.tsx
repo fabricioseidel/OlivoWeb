@@ -5,6 +5,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, R
 import { CartItem } from '@/types';
 import { logger } from '@/utils/logger';
 import { useToast } from "./ToastContext";
+import { formatCLP } from "@/utils/currency";
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -55,7 +56,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
             price: item.price,
             image: item.image || '',
             slug: item.slug || '',
-            quantity: item.quantity
+            quantity: item.quantity,
+            selectedOptions: Array.isArray(item.selectedOptions) ? item.selectedOptions : undefined,
           }));
           logger.log(`[OLIVO:cart] ✅ ${validatedCart.length} items cargados`, validatedCart.map(i => `${i.name} x${i.quantity} $${i.price}`));
           setCartItems(validatedCart);
@@ -98,17 +100,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Agregar producto al carrito
   const addToCart = useCallback((product: Omit<CartItem, "quantity">, quantity: number = 1) => {
     const qty = Math.max(1, Math.floor(quantity || 1));
+    const cartItemId = (product.selectedOptions && product.selectedOptions.length > 0)
+      ? `${product.id}__${product.selectedOptions.map(o => `${o.groupTitle}:${o.selection}`).join("|")}`
+      : product.id;
+
+    const itemToAdd = {
+      ...product,
+      id: cartItemId,
+    };
+
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === product.id);
+      const existingItem = prevItems.find(item => item.id === cartItemId);
       if (existingItem) {
         const newQty = existingItem.quantity + qty;
         logger.log(`[OLIVO:cart] ➕ UPDATE "${product.name}" → qty ${existingItem.quantity} → ${newQty} (precio: $${product.price})`);
         return prevItems.map(item =>
-          item.id === product.id ? { ...item, quantity: newQty } : item
+          item.id === cartItemId ? { ...item, quantity: newQty } : item
         );
       } else {
-        logger.log(`[OLIVO:cart] 🆕 ADD "${product.name}" qty:${qty} precio:$${product.price} id:${product.id}`);
-        return [...prevItems, { ...product, quantity: qty }];
+        logger.log(`[OLIVO:cart] 🆕 ADD "${product.name}" qty:${qty} precio:$${product.price} id:${cartItemId}`);
+        return [...prevItems, { ...itemToAdd, quantity: qty }];
       }
     });
   }, []);
@@ -159,6 +170,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (data.updates && data.updates.length > 0) {
         let cartChanged = false;
+        let subioAlgo = false;
         const messages: string[] = [];
         
         const nextItems = cartItems.map(item => {
@@ -167,9 +179,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
           const updatedItem = { ...item };
 
           // 1. Validar Precio
+          //
+          // "El precio cambió" a secas no le sirve a nadie: el cliente no sabe
+          // si le subió, le bajó ni cuánto, y ve el total moverse solo. Se dice
+          // el antes y el después, y se distingue una baja —que es una buena
+          // noticia— de una suba.
           if (update.priceChanged) {
-            updatedItem.price = update.newPrice;
-            messages.push(`El precio de ${item.name} cambió.`);
+            const antes = Math.round(Number(update.oldPrice ?? item.price));
+            const ahora = Math.round(Number(update.newPrice));
+            updatedItem.price = ahora;
+            messages.push(
+              ahora < antes
+                ? `${item.name} bajó de ${formatCLP(antes)} a ${formatCLP(ahora)}.`
+                : `${item.name} pasó de ${formatCLP(antes)} a ${formatCLP(ahora)}.`
+            );
+            if (ahora > antes) subioAlgo = true;
             cartChanged = true;
           }
 
@@ -192,10 +216,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (cartChanged) {
           logger.warn("[OLIVO:cart:validate] ⚠️ Carrito modificado:", messages);
           setCartItems(nextItems);
+          // Si nada subió de precio y no se tocó el stock, el aviso no es una
+          // advertencia: es una rebaja a favor del cliente.
+          const tono = subioAlgo || messages.some((m) => m.includes("stock") || m.includes("agotó"))
+            ? "warning"
+            : "success";
           if (messages.length > 2) {
-            showToast("Varios productos en tu carrito fueron actualizados por cambios en stock o precio.", "warning");
+            showToast("Actualizamos tu carrito: revisá los precios y las cantidades antes de pagar.", tono);
           } else {
-            messages.forEach(m => showToast(m, "warning"));
+            messages.forEach(m => showToast(m, tono));
           }
           console.groupEnd();
           return false;

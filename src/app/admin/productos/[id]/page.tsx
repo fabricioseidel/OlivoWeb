@@ -9,9 +9,11 @@ import { useCategories } from "@/hooks/useCategories";
 import Button from "@/components/ui/Button";
 import SingleImageUpload from "@/components/ui/SingleImageUpload";
 import MultiImageUpload from "@/components/ui/MultiImageUpload";
-import { TrashIcon, PlusIcon, CameraIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
+import { TrashIcon, PlusIcon, CameraIcon, XMarkIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import UnifiedScanner from "@/components/admin/scanner/UnifiedScanner";
 import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
+import { derivarCostoProveedor, aBruto } from "@/lib/pricing";
 
 
 interface FormState {
@@ -37,7 +39,9 @@ export default function EditProductPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
   const { getProductById, updateProduct, deleteProduct } = useProducts();
-  const { categories } = useCategories();
+  // Con las inactivas incluidas: si no, una categoría de temporada apagada
+  // no se puede asignar a un producto.
+  const { categories } = useCategories({ incluirInactivas: true });
   const { showToast } = useToast();
   const product = getProductById(id);
   const [loading, setLoading] = useState(true);
@@ -78,7 +82,9 @@ export default function EditProductPage() {
         stock: product.stock.toString(),
         featured: Boolean(product.featured),
         gallery: product.gallery || [],
-        features: (product.features || []).join("\n"),
+        features: (product.features || [])
+          .filter((f) => typeof f === "string" && !f.startsWith("__BUNDLE_CONFIG__:"))
+          .join("\n"),
         slug: product.slug,
         measurementUnit: product.measurementUnit || "ml",
         measurementValue: product.measurementValue?.toString() || "",
@@ -122,7 +128,7 @@ export default function EditProductPage() {
               supplierId: a.supplier_id,
               supplierName: a.supplier?.name || 'Desconocido',
               priceWithoutVat: Number(a.unit_cost || 0),
-              priceWithVat: Number(a.unit_cost || 0) * 1.19,
+              priceWithVat: aBruto(Number(a.unit_cost || 0)) ?? 0,
             }));
             setProductSuppliers(mappedAssignments);
             setInitialSupplierIds(mappedAssignments.map((a: any) => a.supplierId));
@@ -137,11 +143,13 @@ export default function EditProductPage() {
     fetchData();
   }, [id]);
 
-  // Lógica de cálculo de precios con/sin IVA
+  // Los dos campos de costo y el precio sugerido salen de `pricing.ts`; acá
+  // sólo se decide dónde dejar cada resultado.
   const handlePriceCalculation = (field: 'with' | 'without', value: string) => {
-    const numValue = parseFloat(value);
+    const derivado = derivarCostoProveedor(field === 'with' ? 'conIva' : 'sinIva', value);
 
-    if (isNaN(numValue)) {
+    if (!derivado) {
+      // Todavía no es un número: se respeta lo tecleado sin recalcular nada.
       setTempSupplier(prev => ({
         ...prev,
         priceWithVat: field === 'with' ? value : prev.priceWithVat,
@@ -150,30 +158,12 @@ export default function EditProductPage() {
       return;
     }
 
-    if (field === 'with') {
-      const withoutVat = numValue / 1.19;
-      setTempSupplier(prev => ({
-        ...prev,
-        priceWithVat: value,
-        priceWithoutVat: withoutVat.toFixed(2),
-      }));
-
-      // Calcular precio sugerido: (Precio Compra con IVA) / 0.65
-      const suggested = numValue / 0.65;
-      setForm(prev => prev ? ({ ...prev, suggestedPrice: suggested.toFixed(0) }) : prev);
-
-    } else {
-      const withVat = numValue * 1.19;
-      setTempSupplier(prev => ({
-        ...prev,
-        priceWithoutVat: value,
-        priceWithVat: withVat.toFixed(2),
-      }));
-
-      // Calcular precio sugerido: (Precio Compra con IVA) / 0.65
-      const suggested = withVat / 0.65;
-      setForm(prev => prev ? ({ ...prev, suggestedPrice: suggested.toFixed(0) }) : prev);
-    }
+    setTempSupplier(prev => ({
+      ...prev,
+      priceWithVat: derivado.conIva,
+      priceWithoutVat: derivado.sinIva,
+    }));
+    setForm(prev => (prev ? { ...prev, suggestedPrice: derivado.sugerido } : prev));
   };
 
   const addSupplier = () => {
@@ -250,6 +240,10 @@ export default function EditProductPage() {
       const imageUrl = await uploadIfDataUrl(form.image);
       const galleryUrls = (await Promise.all((form.gallery || []).map(g => uploadIfDataUrl(g)))).filter(Boolean);
 
+      const parsedFeatures = form.features.split('\n').map(f => f.trim()).filter(Boolean);
+      const bundleMarker = (product.features || []).find((f: any) => typeof f === 'string' && f.startsWith('__BUNDLE_CONFIG__:'));
+      const finalFeatures = bundleMarker ? [bundleMarker, ...parsedFeatures] : parsedFeatures;
+
       await updateProduct(product.id, {
         name: form.name.trim(),
         price: Number(form.price),
@@ -259,12 +253,13 @@ export default function EditProductPage() {
         stock: Number(form.stock) || 0,
         featured: form.featured,
         gallery: galleryUrls,
-        features: form.features.split('\n').map(f => f.trim()).filter(Boolean),
+        features: finalFeatures,
+        bundle_config: product.bundle_config ?? null,
         slug: form.slug.trim(),
         measurementUnit: form.measurementUnit,
         measurementValue: parseFloat(form.measurementValue) || 0,
         suggestedPrice: parseFloat(form.suggestedPrice) || 0,
-        offerPrice: parseFloat(form.offerPrice) || undefined,
+        offerPrice: form.offerPrice && form.offerPrice.trim() !== "" ? (parseFloat(form.offerPrice) || null) : null,
         isActive: form.isActive,
       });
 
@@ -280,7 +275,7 @@ export default function EditProductPage() {
       ));
 
       // 2. Guardar/Actualizar los actuales
-      await Promise.all(productSuppliers.map(ps =>
+      const respuestas = await Promise.all(productSuppliers.map(ps =>
         fetch("/api/admin/product-suppliers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -291,10 +286,26 @@ export default function EditProductPage() {
             unitCost: ps.priceWithoutVat,
             notes: "Actualizado desde edición de producto"
           }),
-        })
+        }).then(r => r.json()).catch(() => null)
       ));
 
       showToast('Producto actualizado', 'success');
+
+      // Si algún costo deja el producto vendiéndose a pérdida, se dice acá y
+      // no en un informe que hay que acordarse de abrir. El guardado ya
+      // terminó: esto informa, no bloquea. Se muestra el peor de los avisos
+      // —perder plata pesa más que ganar poco— y con más tiempo en pantalla,
+      // porque es una cifra que hay que leer.
+      const avisos = respuestas.map(r => r?.aviso).filter(Boolean);
+      const peor =
+        avisos.find((a: any) => a.nivel === 'bajo-costo') ?? avisos[0];
+      if (peor) {
+        showToast(
+          `${peor.nivel === 'bajo-costo' ? '⚠️ Se vende bajo el costo. ' : ''}${peor.mensaje}`,
+          peor.nivel === 'bajo-costo' ? 'error' : 'warning',
+          12000
+        );
+      }
       router.push('/admin/productos');
     } catch (e) {
       console.error(e);
@@ -312,6 +323,11 @@ export default function EditProductPage() {
     }
   };
 
+  const isPack =
+    product?.categories?.some((c) =>
+      ["packs", "combos", "promociones"].includes(c.toLowerCase())
+    ) || Boolean(product?.bundle_config?.isBundle);
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
@@ -321,6 +337,26 @@ export default function EditProductPage() {
           <Button variant="danger" onClick={handleDelete}>Eliminar</Button>
         </div>
       </div>
+
+      {isPack && (
+        <div className="mb-6 bg-brand-50 border border-brand-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <SparklesIcon className="size-6 text-brand-600 shrink-0" />
+            <div>
+              <h4 className="text-sm font-bold text-brand-950">Este producto es un Pack / Producto Compuesto</h4>
+              <p className="text-xs text-brand-700">
+                Puedes configurar sus productos incluidos, grupos de opciones (bebidas, salsas) y reglas en el editor de packs.
+              </p>
+            </div>
+          </div>
+          <Link href={`/admin/packs/${product.id}`}>
+            <Button type="button" size="sm" className="whitespace-nowrap">
+              Abrir Editor de Packs ✨
+            </Button>
+          </Link>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow">
         <div className="grid md:grid-cols-2 gap-6">
           <div>
@@ -339,7 +375,7 @@ export default function EditProductPage() {
               <button
                 type="button"
                 onClick={() => setShowScanner(true)}
-                className="absolute bottom-1.5 right-2 p-1.5 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors"
+                className="absolute bottom-1.5 right-2 p-1.5 bg-brand-100 text-brand-600 rounded-lg hover:bg-brand-200 transition-colors"
                 title="Escanear con cámara"
               >
                 <CameraIcon className="h-5 w-5" />
@@ -463,6 +499,10 @@ export default function EditProductPage() {
           {/* Lista de proveedores agregados */}
           {productSuppliers.length > 0 ? (
             <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+              {/* El scroll va en un div propio: `overflow-hidden` en el
+                  contenedor redondea las esquinas pero recorta las columnas
+                  que no entran, sin dejar desplazarse hasta ellas. */}
+              <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
@@ -493,6 +533,7 @@ export default function EditProductPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           ) : (
             <p className="text-sm text-gray-500 italic text-center py-2">No hay proveedores asignados.</p>

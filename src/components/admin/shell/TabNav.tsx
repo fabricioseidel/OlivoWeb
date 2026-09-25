@@ -64,12 +64,12 @@ export default function TabNav({
           variant === "pills"
             ? `inline-flex items-center min-h-[40px] px-4 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${
                 active
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
-                  : "bg-white text-gray-700 ring-1 ring-gray-200 hover:ring-emerald-300 hover:text-emerald-700"
+                  ? "bg-brand-600 text-white shadow-md shadow-brand-600/20"
+                  : "bg-white text-gray-700 ring-1 ring-gray-200 hover:ring-brand-300 hover:text-brand-700"
               } ${tab.disabled ? "opacity-50 cursor-not-allowed" : ""}`
             : `inline-flex items-center min-h-[44px] px-3 sm:px-4 border-b-2 text-sm font-semibold whitespace-nowrap transition-all ${
                 active
-                  ? "border-emerald-600 text-emerald-700"
+                  ? "border-brand-600 text-brand-700"
                   : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
               } ${tab.disabled ? "opacity-50 cursor-not-allowed" : ""}`;
 

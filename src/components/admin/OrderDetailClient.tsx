@@ -15,9 +15,13 @@ import { useToast } from "@/contexts/ToastContext";
 import PrintableInvoice from "@/components/PrintableInvoice";
 
 import { StoreSettings } from "@/app/api/admin/settings/route";
+import { leerEstadoUber } from "@/lib/uber-status";
 
 type OrderItem = { id: string; name: string; price: number; quantity: number; image: string };
-type OrderDetail = { id: string; date: string; customer: { name: string; email: string; phone: string }; shipping: { address: string; city: string; postalCode: string; country: string }; payment: { method: string; transactionId: string; status: string }; items: OrderItem[]; status: string; subtotal: number; shippingCost: number; taxes: number; total: number; notes: string };
+type OrderDetail = { id: string; date: string; customer: { name: string; email: string; phone: string }; shipping: { address: string; city: string; postalCode: string; country: string }; payment: { method: string; transactionId: string; status: string }; items: OrderItem[]; status: string; subtotal: number; shippingCost: number; taxes: number; total: number; notes: string; flash?: FlashInfo };
+
+/** Datos de la entrega de Uber, sólo en los pedidos con envío flash. */
+type FlashInfo = { deliveryId: string | null; trackingUrl: string | null; estado: string; etiqueta: string; necesitaAtencion: boolean; fee: number | null; feePaidBy: string | null };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _OrderStatusBadge({ status }: { status: string }) {
@@ -32,6 +36,73 @@ function _OrderStatusBadge({ status }: { status: string }) {
     default: bgColor = "bg-gray-100"; textColor = "text-gray-800";
   }
   return <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>{status}</span>;
+}
+
+const normalizeAdminStatus = (s: string): string => {
+  const norm = (s || '').toLowerCase().trim();
+  switch (norm) {
+    case 'processing':
+    case 'procesando':
+    case 'preparando':
+    case 'en proceso':
+      return 'Procesando';
+    case 'shipped':
+    case 'enviado':
+      return 'Enviado';
+    case 'delivered':
+    case 'completado':
+    case 'entregado':
+    case 'completed':
+      return 'Completado';
+    case 'cancelled':
+    case 'cancelado':
+    case 'canceled':
+      return 'Cancelado';
+    case 'pending':
+    case 'pendiente':
+      return 'Pendiente';
+    default:
+      return s || 'Procesando';
+  }
+};
+
+/**
+ * Arma los datos del envío flash de un pedido.
+ *
+ * Lee las columnas `express_*` y cae al JSON de `shipping_address` para las
+ * órdenes despachadas antes de que esas columnas se usaran: si no, los pedidos
+ * viejos aparecerían sin seguimiento aunque lo tengan guardado.
+ */
+function construirFlash(found: any, addr: any): FlashInfo | undefined {
+  const esFlash = (found.shipping_method || '').toLowerCase() === 'flash';
+  const deliveryId = found.express_delivery_id || addr?.uberDeliveryId || null;
+  if (!esFlash && !deliveryId) return undefined;
+
+  const estadoCrudo = found.express_status || (deliveryId ? 'pending' : '');
+  // "failed" no viene de Uber: lo escribe el webhook de pago cuando la entrega
+  // no se pudo crear, y es el caso que la tienda tiene que ver primero.
+  if (estadoCrudo === 'failed') {
+    return {
+      deliveryId,
+      trackingUrl: null,
+      estado: 'failed',
+      etiqueta: 'No se pudo crear la entrega — despachar a mano',
+      necesitaAtencion: true,
+      fee: found.express_fee ?? null,
+      feePaidBy: found.express_fee_paid_by ?? null,
+    };
+  }
+
+  const lectura = leerEstadoUber(estadoCrudo);
+  return {
+    deliveryId,
+    trackingUrl: found.express_tracking_url || addr?.uberTracking || null,
+    estado: lectura.estado,
+    etiqueta: deliveryId ? lectura.etiqueta : 'Esperando el pago para pedir el repartidor',
+    necesitaAtencion: lectura.necesitaAtencion,
+    fee: found.express_fee ?? null,
+    feePaidBy: found.express_fee_paid_by ?? null,
+  };
 }
 
 export default function OrderDetailClient({ params }: { params: { id: string } }) {
@@ -145,7 +216,7 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
         }
 
         // Clean up address: remove redundant city, state, country, zip if present in the address string
-        // This fixes the issue where Google Autocomplete returns the full string and it looks duplicated
+        // Evita que la calle quede duplicada cuando el buscador devuelve la línea completa
         if (finalAddress && typeof finalAddress === 'string') {
           const termsToRemove = [
             shippingAddressNormalized.country,
@@ -193,13 +264,14 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
             transactionId: found.transactionId || 'LOCAL-' + found.id,
             status: found.payment_status || 'pending'
           },
-          status: found.status || found.estado || 'En proceso',
+          status: normalizeAdminStatus(found.status || found.estado || 'Procesando'),
           items,
           subtotal,
           shippingCost,
           taxes,
           total,
-          notes: found.notes || ''
+          notes: found.notes || '',
+          flash: construirFlash(found, addr)
         };
         setOrder(detail);
         setNewStatus(detail.status);
@@ -345,6 +417,36 @@ export default function OrderDetailClient({ params }: { params: { id: string } }
                       <p className="text-sm text-gray-500">{order.shipping.country}</p>
                     </div>
                   </div>
+                  {order.flash && (
+                    <div className={`mb-4 rounded-lg border p-3 ${order.flash.necesitaAtencion ? 'border-red-200 bg-red-50' : 'border-blue-200 bg-blue-50'}`}>
+                      <p className={`text-sm font-medium ${order.flash.necesitaAtencion ? 'text-red-800' : 'text-blue-900'}`}>
+                        Envío flash (Uber Direct)
+                      </p>
+                      <p className={`text-sm mt-1 ${order.flash.necesitaAtencion ? 'text-red-700' : 'text-blue-800'}`}>
+                        {order.flash.etiqueta}
+                      </p>
+                      {order.flash.trackingUrl && (
+                        <a
+                          href={order.flash.trackingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                        >
+                          <TruckIcon className="h-4 w-4 mr-1.5" />
+                          Ver repartidor en vivo
+                        </a>
+                      )}
+                      {order.flash.fee !== null && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Uber cobra ${Number(order.flash.fee).toLocaleString('es-CL')}
+                          {order.flash.feePaidBy === 'store' ? ' (lo absorbe la tienda)' : ''}
+                        </p>
+                      )}
+                      {order.flash.deliveryId && (
+                        <p className="text-xs text-gray-400 mt-1">Entrega: {order.flash.deliveryId}</p>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-start">
                     <div className="h-5 w-5 flex justify-center items-center mr-2">
                       <span className="text-gray-400 text-xs">@</span>

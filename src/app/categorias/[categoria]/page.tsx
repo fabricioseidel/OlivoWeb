@@ -1,40 +1,65 @@
-"use client";
+import type { Metadata } from "next";
+import JsonLd from "@/components/seo/JsonLd";
+import { breadcrumbSchema } from "@/lib/seo/schema";
+import { BUSINESS } from "@/lib/seo/business";
+import { slugify } from "@/utils/string-utils";
+import CategoriaClient from "./CategoriaClient";
 
-import React, { useMemo } from "react";
-import { useParams } from "next/navigation";
-import { useProducts } from "@/contexts/ProductContext";
-import { isProductVisible } from "@/services/products";
-import ProductGrid from "@/components/ProductGrid";
+/**
+ * Convierte el slug de la URL en algo presentable ("frutos-secos" →
+ * "Frutos secos"). No se consulta la base aquí: la metadata debe resolverse
+ * rápido y el nombre exacto lo pone el cliente cuando carga los productos.
+ */
+function titleFromSlug(slug: string): string {
+  const words = decodeURIComponent(slug).replace(/-/g, " ").trim();
+  if (!words) return "Categoría";
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
-export default function CategoryDetailPage() {
-  const { categoria } = useParams() as { categoria: string };
-  const { products, loading, error } = useProducts();
+// Cada categoría es una página propia para el buscador: quien busca
+// "galletas venezolanas ñuñoa" debe encontrar la categoría, no la portada.
+export async function generateMetadata(
+  { params }: { params: Promise<{ categoria: string }> }
+): Promise<Metadata> {
+  const { categoria } = await params;
+  const nombre = titleFromSlug(categoria);
+  const canonical = `/categorias/${slugify(decodeURIComponent(categoria))}`;
 
-  const target = decodeURIComponent(categoria || "").toLowerCase();
+  const title = `${nombre} venezolanos en Ñuñoa | Olivo Market`;
+  const description = `${nombre} de origen venezolano en Olivo Market Ñuñoa. Compra online con despacho a Ñuñoa, Macul, Peñalolén y San Joaquín, o retira en Av. José Pedro Alessandri 2010.`;
 
-  const filtered = useMemo(() => {
-    return products.filter((p) =>
-      p.isActive !== false &&
-      isProductVisible(p) &&
-      (p.categories || []).some((c) => c.toLowerCase() === target)
-    );
-  }, [products, target]);
+  return {
+    metadataBase: new URL(BUSINESS.url),
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      locale: "es_CL",
+      siteName: BUSINESS.name,
+      type: "website",
+      title,
+      description,
+      url: canonical,
+    },
+  };
+}
 
-  if (loading) return <div className="p-6">Cargando productos...</div>;
-  if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
-  if (!filtered.length)
-    return (
-      <div className="p-6">
-        No hay productos en la categoría <strong>{decodeURIComponent(categoria)}</strong>.
-      </div>
-    );
+export default async function CategoriaPage(
+  { params }: { params: Promise<{ categoria: string }> }
+) {
+  const { categoria } = await params;
+  const nombre = titleFromSlug(categoria);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Categoría: {decodeURIComponent(categoria)}</h1>
-      </div>
-      <ProductGrid products={filtered} loading={false} />
-    </div>
+    <>
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Inicio", path: "/" },
+          { name: "Categorías", path: "/categorias" },
+          { name: nombre, path: `/categorias/${slugify(decodeURIComponent(categoria))}` },
+        ])}
+      />
+      <CategoriaClient />
+    </>
   );
 }

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
-import { requireApiAdmin } from "@/lib/api-auth";
+import { requireApiAdmin, blockInProduction } from "@/lib/api-auth";
 
 // Initialize Supabase Storage - creates uploads bucket if it doesn't exist
 export async function POST() {
+  const blocked = blockInProduction();
+  if (blocked) return blocked;
   const auth = await requireApiAdmin();
   if (!auth.ok) return auth.response;
   try {

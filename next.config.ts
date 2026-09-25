@@ -13,7 +13,6 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "**.supabase.co" },
-      { protocol: "https", hostname: "**.googleusercontent.com" },
       { protocol: "https", hostname: "res.cloudinary.com" },
     ],
   },
@@ -41,6 +40,10 @@ const nextConfig = {
       // Reabastecimiento sub-pages now live as tabs in the main page
       { source: "/admin/reabastecimiento/sugerencias", destination: "/admin/reabastecimiento?tab=sugerencias", permanent: true },
       { source: "/admin/reabastecimiento/recepcion", destination: "/admin/reabastecimiento?tab=recepcion", permanent: true },
+      // /centro-logistico y /punto-de-envio cubrían el mismo tema (paquetería) y
+      // competían entre sí por las mismas búsquedas. /punto-de-envio es la
+      // canónica: tiene FAQPage, páginas por courier y segmentación local.
+      { source: "/centro-logistico", destination: "/punto-de-envio", permanent: true },
     ];
   },
 };

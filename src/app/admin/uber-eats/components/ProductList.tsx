@@ -42,7 +42,7 @@ export default function ProductList({
           .map((product) => (
             <div
               key={product.id}
-              className={`bg-white rounded-lg shadow p-4 space-y-3 relative border-l-4 ${product.exportSelected ? "border-emerald-500" : "border-gray-200"} ${!product.isValid ? "bg-red-50 border-red-500" : ""}`}
+              className={`bg-white rounded-lg shadow p-4 space-y-3 relative border-l-4 ${product.exportSelected ? "border-brand-500" : "border-gray-200"} ${!product.isValid ? "bg-red-50 border-red-500" : ""}`}
               onClick={() => setSelectedProductForUpload(product.id)}
             >
               <div className="flex justify-between items-start gap-4">
@@ -58,7 +58,7 @@ export default function ProductList({
                   <div className="text-xs text-gray-500 font-mono">{product.barcode}</div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="text-base font-black text-emerald-600">${product.priceWithVat.toLocaleString()}</div>
+                  <div className="text-base font-black text-brand-600">${product.priceWithVat.toLocaleString()}</div>
                   <div className="text-[10px] text-gray-400 uppercase font-bold">IVA {product.vatPercentage}%</div>
                 </div>
               </div>
@@ -74,7 +74,7 @@ export default function ProductList({
                   <span className="px-2 py-0.5 bg-gray-50 text-[10px] font-bold text-gray-400 rounded-full italic">Sin categoría</span>
                 )}
                 {product.uberCategories.length > 2 && (
-                  <span className="px-2 py-0.5 bg-emerald-50 text-[10px] font-bold text-emerald-700 rounded-full">+{product.uberCategories.length - 2} más</span>
+                  <span className="px-2 py-0.5 bg-brand-50 text-[10px] font-bold text-brand-700 rounded-full">+{product.uberCategories.length - 2} más</span>
                 )}
               </div>
 
@@ -93,7 +93,7 @@ export default function ProductList({
                       type="checkbox"
                       checked={product.exportSelected}
                       onChange={() => toggleExportSelected(product.id)}
-                      className="w-4 h-4 rounded text-emerald-600"
+                      className="w-4 h-4 rounded text-brand-600"
                     />
                     <span className="text-xs font-bold text-gray-600">Export</span>
                   </label>
@@ -109,7 +109,7 @@ export default function ProductList({
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); setSelectedProductForUpload(product.id); }}
-                  className="px-3 py-1 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700"
+                  className="px-3 py-1 bg-brand-600 text-white rounded text-xs font-bold hover:bg-brand-700"
                 >
                   EDITAR
                 </button>
@@ -138,7 +138,7 @@ export default function ProductList({
                         return next;
                       });
                     }}
-                    className="rounded text-emerald-600"
+                    className="rounded text-brand-600"
                     title="Exportar todos"
                   />
                 </th>
@@ -168,7 +168,7 @@ export default function ProductList({
                 .map((product) => (
                   <tr
                     key={product.id}
-                    className={`hover:bg-gray-50 transition cursor-pointer ${product.exportSelected ? "bg-emerald-50" : ""} ${!product.isValid ? "bg-red-50" : ""
+                    className={`hover:bg-gray-50 transition cursor-pointer ${product.exportSelected ? "bg-brand-50" : ""} ${!product.isValid ? "bg-red-50" : ""
                       }`}
                     onClick={() => setSelectedProductForUpload(product.id)}
                   >
@@ -177,7 +177,7 @@ export default function ProductList({
                         type="checkbox"
                         checked={product.exportSelected}
                         onChange={() => toggleExportSelected(product.id)}
-                        className="rounded text-emerald-600"
+                        className="rounded text-brand-600"
                       />
                     </td>
                     <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
@@ -219,7 +219,7 @@ export default function ProductList({
                           product.uberCategories.length === 1 ? (
                             <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">{product.uberCategories[0]}</span>
                           ) : (
-                            <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md text-xs font-medium">
+                            <span className="px-2 py-1 bg-brand-100 text-brand-700 rounded-md text-xs font-medium">
                               {product.uberCategories.length} categorías
                             </span>
                           )
@@ -235,7 +235,7 @@ export default function ProductList({
                     <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => setSelectedProductForUpload(product.id)}
-                        className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center gap-1.5 whitespace-nowrap"
+                        className="px-3 py-1.5 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition flex items-center gap-1.5 whitespace-nowrap"
                       >
                         <PencilIcon className="w-4 h-4" />
                         Editar
@@ -256,7 +256,7 @@ export default function ProductList({
             <div className="flex items-center gap-2">
               <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50">⏮️</button>
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50">◀️</button>
-              <span className="px-3 py-1 text-sm font-semibold bg-emerald-100 text-emerald-800 rounded">Pág. {currentPage}/{Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)}</span>
+              <span className="px-3 py-1 text-sm font-semibold bg-brand-100 text-brand-800 rounded">Pág. {currentPage}/{Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)}</span>
               <button onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredProducts.length / ITEMS_PER_PAGE), p + 1))} disabled={currentPage >= Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)} className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50">▶️</button>
               <button onClick={() => setCurrentPage(Math.ceil(filteredProducts.length / ITEMS_PER_PAGE))} disabled={currentPage >= Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)} className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50">⏭️</button>
             </div>

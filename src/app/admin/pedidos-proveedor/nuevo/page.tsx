@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeftIcon, PaperAirplaneIcon, CheckIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useToast } from "@/contexts/ToastContext";
+import { esCostoHeredado } from "@/lib/pricing";
 
 interface Supplier {
   id: string;
@@ -20,7 +21,16 @@ interface Product {
   name: string;
   barcode: string;
   stock: number;
+  /**
+   * Costo unitario NETO. Lo resuelve /api/admin/suppliers/[id]/products: es el
+   * de ESTE proveedor cuando lo tiene cargado, y si no, el de `products`
+   * —heredado, de otro proveedor o de nadie—. `cost_source` dice cuál de los
+   * dos es, y hay que mirarlo: cotizar con el de otro proveedor como si fuera
+   * el de éste es cómo se arma un pedido con precios que la factura no va a
+   * respetar.
+   */
   purchase_price: number;
+  cost_source?: 'supplier' | 'product';
   min_stock?: number | null;
   optimum_stock?: number | null;
   reorder_threshold?: number | null;
@@ -136,6 +146,18 @@ export default function NuevoPedidoProveedorPage() {
     }
   };
 
+  // Líneas del pedido cotizadas con un costo que NO es de este proveedor.
+  // Se cuentan sobre lo seleccionado, no sobre el catálogo: lo que importa es
+  // con qué se va a mandar el pedido.
+  const conCostoHeredado = useMemo(
+    () =>
+      Array.from(selectedItems.keys()).filter((id) => {
+        const p = products.find((x) => x.id === id);
+        return p ? esCostoHeredado(p) : false;
+      }).length,
+    [selectedItems, products]
+  );
+
   const total = useMemo(
     () => Array.from(selectedItems.values()).reduce((s, i) => s + i.subtotal, 0),
     [selectedItems]
@@ -210,7 +232,7 @@ export default function NuevoPedidoProveedorPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-emerald-500" />
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-brand-500" />
       </div>
     );
   }
@@ -256,7 +278,7 @@ export default function NuevoPedidoProveedorPage() {
               type="date"
               value={expectedDate}
               onChange={(e) => setExpectedDate(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-500"
               min={new Date().toISOString().split("T")[0]}
             />
           </div>
@@ -268,7 +290,7 @@ export default function NuevoPedidoProveedorPage() {
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-500"
               placeholder="Ej: Pedir factura"
             />
           </div>
@@ -280,7 +302,7 @@ export default function NuevoPedidoProveedorPage() {
           placeholder="Buscar producto..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+          className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-500"
         />
       </div>
 
@@ -303,7 +325,7 @@ export default function NuevoPedidoProveedorPage() {
                 key={product.id}
                 className={`rounded-xl border p-3 transition-all ${
                   isSelected
-                    ? "bg-emerald-50 border-emerald-300 shadow-sm"
+                    ? "bg-brand-50 border-brand-300 shadow-sm"
                     : isZero
                     ? "bg-red-50/50 border-red-200"
                     : isLow
@@ -318,7 +340,7 @@ export default function NuevoPedidoProveedorPage() {
                     onClick={() => toggleProduct(product)}
                     className={`shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-all ${
                       isSelected
-                        ? "bg-emerald-600 text-white"
+                        ? "bg-brand-600 text-white"
                         : "bg-gray-200 text-gray-400 hover:bg-gray-300"
                     }`}
                   >
@@ -336,15 +358,25 @@ export default function NuevoPedidoProveedorPage() {
                     }`}>
                       Stock: {product.stock}
                     </div>
-                    <div className="text-[10px] text-gray-400">
+                    <div
+                      className={`text-[10px] ${
+                        esCostoHeredado(product) ? "text-amber-600 font-semibold" : "text-gray-400"
+                      }`}
+                      title={
+                        esCostoHeredado(product)
+                          ? "Este proveedor no tiene costo cargado. El precio que se muestra viene de la ficha del producto, así que puede no ser lo que factura."
+                          : undefined
+                      }
+                    >
                       ${product.purchase_price > 0 ? product.purchase_price.toFixed(0) : "—"}/u
+                      {esCostoHeredado(product) && " ⚠"}
                     </div>
                   </div>
                 </div>
 
                 {/* Row 2: Quantity controls (if selected) */}
                 {isSelected && item && (
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-emerald-200">
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-brand-200">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => updateQty(product.id, item.quantity - 1)}
@@ -356,7 +388,7 @@ export default function NuevoPedidoProveedorPage() {
                         type="number"
                         value={item.quantity}
                         onChange={(e) => updateQty(product.id, parseInt(e.target.value) || 1)}
-                        className="w-16 text-center py-1 border rounded-lg text-sm font-bold focus:ring-2 focus:ring-emerald-500"
+                        className="w-16 text-center py-1 border rounded-lg text-sm font-bold focus:ring-2 focus:ring-brand-500"
                         min={1}
                       />
                       <button
@@ -367,7 +399,7 @@ export default function NuevoPedidoProveedorPage() {
                       </button>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-black text-emerald-700">
+                      <div className="text-sm font-black text-brand-700">
                         ${item.subtotal.toLocaleString()}
                       </div>
                     </div>
@@ -383,6 +415,19 @@ export default function NuevoPedidoProveedorPage() {
       {selectedItems.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] p-4 z-20 pb-4">
           <div className="max-w-2xl mx-auto flex flex-col gap-3">
+            {conCostoHeredado > 0 && (
+              <div className="flex items-start gap-2 text-[11px] font-semibold text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                <span aria-hidden>⚠</span>
+                <span>
+                  {conCostoHeredado === 1
+                    ? "1 producto se está cotizando con un costo que no es de este proveedor"
+                    : `${conCostoHeredado} productos se están cotizando con un costo que no es de este proveedor`}
+                  . Sale de la ficha del producto porque este proveedor no tiene
+                  costo cargado, así que la factura puede no coincidir.
+                </span>
+              </div>
+            )}
+
             {/* Opciones de Envío Extra */}
             {supplier?.email && (
               <label className="flex items-center gap-2 text-[11px] font-bold text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100 cursor-pointer hover:bg-gray-100 transition">
@@ -390,7 +435,7 @@ export default function NuevoPedidoProveedorPage() {
                   type="checkbox" 
                   checked={sendEmail} 
                   onChange={(e) => setSendEmail(e.target.checked)}
-                  className="rounded text-emerald-600 focus:ring-emerald-500" 
+                  className="rounded text-brand-600 focus:ring-brand-500" 
                 />
                 <EnvelopeIcon className="h-4 w-4" />
                 También enviar formato PDF/Mensaje formal al correo de este proveedor ({supplier.email})
@@ -427,7 +472,7 @@ export default function NuevoPedidoProveedorPage() {
                   <button
                     onClick={() => handleSubmit(false)}
                     disabled={saving}
-                    className="flex-1 sm:flex-none py-3 px-6 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition font-bold text-sm disabled:opacity-50"
+                    className="flex-1 sm:flex-none py-3 px-6 bg-brand-600 text-white rounded-xl hover:bg-brand-700 active:scale-95 transition font-bold text-sm disabled:opacity-50"
                   >
                     {saving ? "Guardando..." : "Guardar Pedido"}
                   </button>

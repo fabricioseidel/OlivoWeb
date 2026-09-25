@@ -4,17 +4,23 @@ import React, { useState, useEffect, useCallback } from "react";
 import { getCurrentShift, closeShiftAction } from "@/actions/shifts";
 import { useToast } from "@/contexts/ToastContext";
 import { CashShift } from "@/server/shifts.service";
-import { LockClosedIcon, ArrowPathIcon, BanknotesIcon, CreditCardIcon } from "@heroicons/react/24/outline";
+import { LockClosedIcon, ArrowPathIcon, BanknotesIcon, CreditCardIcon, UserIcon } from "@heroicons/react/24/outline";
 
-type Method = "CASH" | "DEBIT" | "CREDIT" | "TRANSFER" | "WALLET" | "OTHER";
+// Incluye CARD (pago con tarjeta unificado) y STAFF_CREDIT (compra de personal
+// por cobrar). DEBIT/CREDIT/WALLET quedan sólo para registros históricos.
+type Method = "CASH" | "CARD" | "TRANSFER" | "STAFF_CREDIT" | "DEBIT" | "CREDIT" | "WALLET" | "OTHER";
 
 const METHOD_LABEL: Record<Method, string> = {
-  CASH: "Efectivo", DEBIT: "Débito", CREDIT: "Crédito",
-  TRANSFER: "Transferencia", WALLET: "Billetera", OTHER: "Otro",
+  CASH: "Efectivo", CARD: "Tarjeta", TRANSFER: "Transferencia",
+  STAFF_CREDIT: "Por cobrar (personal)",
+  DEBIT: "Tarjeta (débito)", CREDIT: "Tarjeta (crédito)", WALLET: "Tarjeta (billetera)",
+  OTHER: "Otro",
 };
 const METHOD_ICON: Record<Method, typeof BanknotesIcon> = {
-  CASH: BanknotesIcon, DEBIT: CreditCardIcon, CREDIT: CreditCardIcon,
-  TRANSFER: ArrowPathIcon, WALLET: CreditCardIcon, OTHER: CreditCardIcon,
+  CASH: BanknotesIcon, CARD: CreditCardIcon, TRANSFER: ArrowPathIcon,
+  STAFF_CREDIT: UserIcon,
+  DEBIT: CreditCardIcon, CREDIT: CreditCardIcon, WALLET: CreditCardIcon,
+  OTHER: CreditCardIcon,
 };
 
 interface SalePayment { method: Method; amount: number; sale_id: number; }
@@ -52,11 +58,12 @@ export default function CloseMode() {
           });
         } else {
           // Fallback al método único legacy
+          // Débito/crédito/billetera colapsan en tarjeta: el extracto bancario
+          // no los separa, así que el arqueo tampoco debe hacerlo.
           const m: Method =
             /cash|efectivo/i.test(s.payment_method || "") ? "CASH" :
-            /debit/i.test(s.payment_method || "")          ? "DEBIT" :
-            /credit|card|tarjeta/i.test(s.payment_method || "") ? "CREDIT" :
             /transfer/i.test(s.payment_method || "")        ? "TRANSFER" :
+            /debit|credit|card|tarjeta|wallet|prepago/i.test(s.payment_method || "") ? "CARD" :
             "OTHER";
           byMethod[m] = (byMethod[m] || 0) + Number(s.total);
         }
@@ -145,7 +152,7 @@ export default function CloseMode() {
           return (
             <div key={m} className="bg-white/5 rounded-2xl p-3 border border-white/10">
               <div className="flex items-center gap-3 mb-2">
-                <Icon className="h-5 w-5 text-emerald-400 shrink-0" />
+                <Icon className="h-5 w-5 text-brand-400 shrink-0" />
                 <span className="text-[11px] font-black uppercase tracking-widest text-white flex-1">{METHOD_LABEL[m]}</span>
                 <span className="text-[10px] text-yellow-400 font-bold">Esperado: $ {exp.toLocaleString()}</span>
               </div>
@@ -153,14 +160,14 @@ export default function CloseMode() {
                 <input type="number" inputMode="numeric" placeholder="Contado físico"
                   value={hasInput ? (act || "") : ""}
                   onChange={e => setCounts(c => ({ ...c, [m]: Number(e.target.value) || 0 }))}
-                  className="flex-1 bg-black border border-white/10 rounded-xl p-2.5 text-base font-black text-white outline-none focus:border-emerald-500" />
+                  className="flex-1 bg-black border border-white/10 rounded-xl p-2.5 text-base font-black text-white outline-none focus:border-brand-500" />
                 <button onClick={() => setCounts(c => ({ ...c, [m]: exp }))}
-                  className="px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/20">
+                  className="px-3 py-2 bg-brand-500/10 border border-brand-500/30 text-brand-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-brand-500/20">
                   = Esperado
                 </button>
               </div>
               {hasInput && (
-                <div className={`mt-2 flex justify-between items-center text-xs ${diff === 0 ? "text-white/40" : diff > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                <div className={`mt-2 flex justify-between items-center text-xs ${diff === 0 ? "text-white/40" : diff > 0 ? "text-brand-400" : "text-red-400"}`}>
                   <span className="font-bold uppercase tracking-widest text-[9px]">Diferencia</span>
                   <span className="font-black">{diff >= 0 ? "+" : ""}$ {diff.toLocaleString()}</span>
                 </div>
@@ -173,7 +180,7 @@ export default function CloseMode() {
       {/* Total */}
       <div className={`flex justify-between items-center p-4 rounded-2xl border ${
         totalDiff === 0 ? "bg-white/5 border-white/10 text-white/60" :
-        totalDiff > 0   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
+        totalDiff > 0   ? "bg-brand-500/10 border-brand-500/30 text-brand-400" :
                           "bg-red-500/10 border-red-500/30 text-red-400"
       }`}>
         <div>

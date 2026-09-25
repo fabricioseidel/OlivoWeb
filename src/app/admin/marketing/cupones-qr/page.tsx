@@ -59,14 +59,14 @@ export default function QRCouponTool() {
           kicker="Marketing"
           title="Diseñador de Cupones QR"
           subtitle="Herramienta de crecimiento offline-to-online — diseñá tarjetas físicas con QR que llevan a tu tienda"
-          icon={<QrCodeIcon className="w-6 h-6 text-emerald-300" />}
+          icon={<QrCodeIcon className="w-6 h-6 text-brand-300" />}
         />
       }
     >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         {/* Lado Izquierdo: Configuración */}
         <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm ring-1 ring-gray-200 space-y-6">
-          <div className="flex items-center gap-3 text-emerald-700">
+          <div className="flex items-center gap-3 text-brand-700">
             <SparklesIcon className="w-5 h-5" />
             <h2 className="text-base sm:text-lg font-black uppercase tracking-tight">
               Configurá tu campaña
@@ -106,14 +106,14 @@ export default function QRCouponTool() {
               <GlobeAltIcon className="w-4 h-4" />
               URL de destino final
             </div>
-            <code className="text-emerald-700 font-black break-all text-sm">
+            <code className="text-brand-700 font-black break-all text-sm">
               {finalUrl}
             </code>
           </div>
 
           <Button
             onClick={downloadQR}
-            className="w-full h-14 rounded-xl font-black text-base bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-600/20"
+            className="w-full h-14 rounded-xl font-black text-base bg-brand-600 hover:bg-brand-500 shadow-lg shadow-brand-600/20"
           >
             <ArrowDownTrayIcon className="w-5 h-5 mr-3" />
             Descargar código QR (HD)
@@ -123,7 +123,7 @@ export default function QRCouponTool() {
         {/* Lado Derecho: Previsualización */}
         <div className="flex flex-col items-center">
           <div className="w-full aspect-[1.58/1] max-w-md relative group">
-            <div className="absolute inset-4 bg-emerald-900/40 rounded-3xl blur-[40px] opacity-20 -z-10 group-hover:scale-110 transition-transform duration-500" />
+            <div className="absolute inset-4 bg-brand-900/40 rounded-3xl blur-[40px] opacity-20 -z-10 group-hover:scale-110 transition-transform duration-500" />
 
             <div
               className="w-full h-full rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden border border-white/20"
@@ -141,7 +141,7 @@ export default function QRCouponTool() {
                     <p className="text-white font-black text-lg sm:text-xl tracking-tighter leading-none mb-1">
                       {config.title}
                     </p>
-                    <p className="text-emerald-300/80 text-[10px] font-black uppercase tracking-widest italic">
+                    <p className="text-brand-300/80 text-[10px] font-black uppercase tracking-widest italic">
                       {config.subtitle}
                     </p>
                   </div>
@@ -171,7 +171,7 @@ export default function QRCouponTool() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-emerald-400 font-black italic text-xs uppercase">
+                    <p className="text-brand-400 font-black italic text-xs uppercase">
                       Scan &amp; Save
                     </p>
                   </div>

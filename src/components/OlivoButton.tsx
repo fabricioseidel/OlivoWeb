@@ -33,11 +33,11 @@ const OlivoButton = forwardRef<HTMLButtonElement, ButtonProps>(
 
         const variantStyles = {
             primary:
-                'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-sm hover:shadow-md',
+                'bg-brand-boton text-brand-contraste hover:bg-brand-700 focus:ring-brand-600 shadow-sm hover:shadow-md',
             secondary:
                 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 shadow-sm hover:shadow-md',
             outline:
-                'bg-transparent border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 focus:ring-emerald-500',
+                'bg-transparent border-2 border-brand-texto text-brand-texto hover:bg-brand-50 focus:ring-brand-600',
             danger:
                 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm hover:shadow-md',
             ghost:

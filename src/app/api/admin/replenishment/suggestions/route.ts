@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireApiAdmin } from "@/lib/api-auth";
+import { requireApiAdminOrSeller } from "@/lib/api-auth";
 import { supabaseServer } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ function parseIntParam(value: string | null, def: number, min: number, max: numb
 }
 
 export async function GET(req: Request) {
-  const auth = await requireApiAdmin();
+  const auth = await requireApiAdminOrSeller();
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);

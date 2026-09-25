@@ -6,12 +6,11 @@ import { useRouter } from "next/navigation";
 import { 
   ShieldCheckIcon, 
   MapPinIcon, 
-  CreditCardIcon, 
   UserIcon,
   ArrowLeftIcon,
-  CheckBadgeIcon,
   ClockIcon,
-  MapIcon
+  MapIcon,
+  ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import { useCart } from "@/contexts/CartContext";
@@ -19,18 +18,44 @@ import { useSession } from "next-auth/react";
 import ShippingForm, { ShippingInfo, ShippingMethod } from "./components/ShippingForm";
 import PaymentForm, { PaymentMethod } from "./components/PaymentForm";
 import OrderSummary from "./components/OrderSummary";
+import CheckoutSteps from "./components/CheckoutSteps";
 import { AddressResult } from "@/components/AddressAutocomplete";
 import { calculateDistance, calculateShippingCost } from "@/utils/shipping-calculator";
+import {
+  quoteAgendado,
+  RADIO_ZONA_PLANA_KM,
+  TARIFA_ZONA_PLANA_CLP,
+} from "@/lib/shipping-policy";
+import {
+  ventanaEconomicaPublicable,
+  horarioDeAtencionPublicable,
+} from "@/lib/delivery-slots";
+import { armarOpcionesDeEnvio, avisoFlashNoDisponible } from "@/lib/shipping-methods";
+import { quoteFlash, MINIMO_FLASH_CLP_DEFAULT } from "@/lib/flash-policy";
 
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { PREVIEW_DEFAULT_MESSAGE } from "@/lib/store-status";
 import { validateShippingInfo, type ShippingFieldErrors } from "@/schemas/checkout.schema";
+import { whatsappLink, checkoutInquiryMessage } from "@/utils/whatsapp";
+
+const clpFormat = (n: number) => `$${Math.round(n).toLocaleString("es-CL")}`;
+
+/**
+ * Espera antes de pedirle una cotización a Uber.
+ *
+ * Es el tiempo que se deja pasar sin que el cliente escriba. Medio segundo
+ * alcanza para no cotizar letra por letra y no se nota al terminar de tipear.
+ */
+const ESPERA_COTIZACION_MS = 500;
 
 const paymentMethods: PaymentMethod[] = [
   { id: "mercadopago", name: "MercadoPago" },
 ];
 
 const baseShippingMethods: ShippingMethod[] = [
-  { id: "pickup", name: "Retirar en Tienda (Providencia)", price: 0, days: "Listo en 1 hora (Gratis)" },
+  // La tienda está en Ñuñoa, no en Providencia. El retiro se confirma por
+  // correo cuando el pedido queda listo, normalmente en menos de una hora.
+  { id: "pickup", name: "Retirar en Tienda (Ñuñoa)", price: 0, days: "Te avisamos por correo, normalmente en menos de 1 hora (Gratis)" },
 ];
 
 export default function CheckoutPage() {
@@ -38,11 +63,46 @@ export default function CheckoutPage() {
   const { data: session, status } = useSession();
   const { cartItems, validateCartWithServer } = useCart();
   const { settings: storeSettings } = useStoreSettings();
+
+  // Modo vitrina: la tienda se ve pero no vende. El servidor rechaza el
+  // pedido igual; esto es para no dejar que alguien llene el carrito, escriba
+  // su dirección y recién ahí se entere.
+  const enVitrina = storeSettings?.previewMode === true;
+  const mensajeVitrina =
+    storeSettings?.previewMessage?.trim() || PREVIEW_DEFAULT_MESSAGE;
   
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   const [fieldErrors, setFieldErrors] = useState<ShippingFieldErrors>({});
   const [dynamicShipping, setDynamicShipping] = useState<ShippingMethod | null>(null);
+  // Distancia real al destino. El envío gratis se decide con esto, no con el
+  // nombre de la comuna que devuelva el buscador de direcciones.
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
+  /**
+   * Lo que contestó Uber para esta dirección.
+   *
+   * Se guarda el costo crudo y no el precio final porque el costo no depende
+   * del carrito: sólo el envío gratis. Así una dirección se cotiza una vez y
+   * cambiar el carrito no gasta otra llamada a Uber.
+   */
+  const [flashUber, setFlashUber] = useState<{
+    disponible: boolean;
+    costo: number | null;
+    etaMin: number | null;
+    quoteId: string | null;
+    motivo: string | null;
+    /** Sólo llega si quien mira es administrador. */
+    diagnostico?: Record<string, unknown>;
+  } | null>(null);
+
+  /**
+   * Por qué no se llegó ni a preguntarle a Uber.
+   *
+   * Sin esto, "falta la comuna en la dirección" y "faltan las credenciales" se
+   * ven exactamente igual desde el checkout: no pasa nada. Distinguirlos a ojo
+   * costó una tarde.
+   */
+  const [flashNoConsultado, setFlashNoConsultado] = useState<string | null>(null);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState("pickup");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("mercadopago");
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
@@ -53,6 +113,9 @@ export default function CheckoutPage() {
     freeShipping?: boolean;
     couponId?: number;
   } | null>(null);
+
+  /** La persona sacó el cupón a mano: no se lo volvemos a poner. */
+  const [cuponRechazado, setCuponRechazado] = useState(false);
 
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     fullName: "",
@@ -77,15 +140,94 @@ export default function CheckoutPage() {
     }
   }, [cartItems.length, router, status]);
 
-  const shippingMethods = useMemo(() => {
-    const list = [...baseShippingMethods];
-    if (dynamicShipping) return [dynamicShipping, ...list];
-    return list;
-  }, [dynamicShipping]);
+  // Comprar exige cuenta. Se manda al login con el destino de vuelta, para
+  // que al iniciar sesión caiga en el checkout y no en la portada con el
+  // carrito a medias. El servidor lo comprueba igual: esto es la comodidad,
+  // no la barrera.
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push(`/login?callbackUrl=${encodeURIComponent("/checkout")}`);
+    }
+  }, [status, router]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  
-  const rawShippingCost = shippingMethods.find((method) => method.id === selectedShippingMethod)?.price || 0;
+
+  /**
+   * Despacho agendado: la ronda de reparto propia.
+   *
+   * Se cotiza siempre que la opción exista, no solo cuando está seleccionada:
+   * el precio que se muestra en la tarjeta tiene que ser el mismo que entra al
+   * total. Antes la tarjeta mostraba la tarifa cruda por distancia y el resumen
+   * la ya ajustada, así que no coincidían.
+   *
+   * `dynamicShipping` sigue siendo la fuente de la tarifa por distancia, que es
+   * lo que se cobra pasada la zona de tarifa plana. Ya no se ofrece como opción
+   * suelta: es el mismo reparto, con dos tramos de precio.
+   */
+  const agendado = useMemo(() => {
+    if (!dynamicShipping) return null;
+    return quoteAgendado({
+      rawPrice: dynamicShipping.price,
+      subtotal,
+      ciudad: shippingInfo.city,
+      distanceKm,
+      maxDistanceKm: storeSettings?.shipping?.shippingMaxDistanceKm ?? null,
+      freeShippingMinimum:
+        storeSettings?.shipping?.freeShippingEnabled
+          ? Number(storeSettings.shipping.freeShippingMinimum ?? 0) || null
+          : null,
+    });
+  }, [dynamicShipping, subtotal, shippingInfo.city, distanceKm, storeSettings]);
+
+  /**
+   * Precio del flash con el carrito actual.
+   *
+   * El servidor ya comprobó tienda abierta, cobertura y tope; acá sólo se
+   * aplica el envío gratis, que es lo único que depende del carrito. El
+   * servidor lo vuelve a calcular todo al crear el pedido: esto es para
+   * mostrar.
+   */
+  const flash = useMemo(() => {
+    if (!flashUber?.disponible || flashUber.costo === null) return null;
+    return quoteFlash({
+      costoUber: flashUber.costo,
+      subtotal,
+      freeShippingMinimum: storeSettings?.shipping?.freeShippingEnabled
+        ? Number(storeSettings.shipping.freeShippingMinimumFlash ?? MINIMO_FLASH_CLP_DEFAULT) ||
+          MINIMO_FLASH_CLP_DEFAULT
+        : null,
+      tiendaAbierta: true,
+    });
+  }, [flashUber, subtotal, storeSettings]);
+
+  const shippingMethods = useMemo(
+    () =>
+      armarOpcionesDeEnvio(
+        {
+          agendado,
+          flash,
+          etaFlashMin: flashUber?.etaMin ?? null,
+          // El texto sale de las ventanas reales, no se escribe a mano: si
+          // mañana cambia la ronda, cambia solo.
+          ventanaAgendado: ventanaEconomicaPublicable(),
+        },
+        baseShippingMethods
+      ),
+    [agendado, flash, flashUber]
+  );
+
+  const selectedMethod = shippingMethods.find((method) => method.id === selectedShippingMethod);
+
+  /**
+   * Si el método elegido ya no está en la lista —por ejemplo, el cálculo de
+   * distancia falló y `dynamicShipping` quedó en null mientras seguía
+   * seleccionado "dynamic"— la expresión anterior (`?.price || 0`) daba 0 y el
+   * pedido pasaba con envío gratis sin que nadie lo notara. Ahora se distingue
+   * "no hay método válido" de "el envío cuesta 0".
+   */
+  const hasValidShippingMethod = Boolean(selectedMethod);
+  const rawShippingCost = selectedMethod?.price ?? 0;
+
   const shippingCost = appliedCoupon?.freeShipping ? 0 : rawShippingCost;
   
   const couponDiscount = appliedCoupon?.discount || 0;
@@ -119,17 +261,19 @@ export default function CheckoutPage() {
           );
           
           if (!isNaN(cost)) {
+            setDistanceKm(dist);
             setDynamicShipping({
-              id: "dynamic",
+              id: "agendado",
               name: `Envío a domicilio (${dist.toFixed(1)} km)`,
               price: Math.round(cost),
               days: "Despacho propio (Agendable)"
             });
-            setSelectedShippingMethod("dynamic");
+            setSelectedShippingMethod("agendado");
           }
         } else {
           console.error("Distance calculation failed:", result.error);
           alert(`⚠️ No pudimos calcular el costo de envío: ${result.error || 'Verifica tu dirección'}. Por favor, selecciona una dirección sugerida por el buscador.`);
+          setDistanceKm(null);
           setDynamicShipping(null);
         }
       } catch (err: any) { 
@@ -140,6 +284,76 @@ export default function CheckoutPage() {
       }
     }
   }, [storeSettings]);
+
+  /**
+   * Cotiza el flash cuando cambia la dirección.
+   *
+   * Va con `subtotal: 0` a propósito: lo que se quiere de Uber es el costo, y
+   * el envío gratis se resuelve abajo con el carrito actual. Si fuera el
+   * subtotal real, cada producto que el cliente agrega gastaría otra
+   * cotización.
+   */
+  useEffect(() => {
+    const calle = shippingInfo.address?.trim();
+    const comuna = shippingInfo.city?.trim();
+    if (!calle || !comuna) {
+      setFlashUber(null);
+      setFlashNoConsultado(
+        !calle
+          ? "todavía no hay dirección"
+          : "la dirección no trae comuna — elegí una sugerencia del buscador"
+      );
+      return;
+    }
+    setFlashNoConsultado(null);
+
+    // Cada cotización es una llamada real a Uber. Sin esta espera, el efecto
+    // corre por cada tecla que el cliente escribe en dirección, comuna o
+    // teléfono: en los logs de producción hay 30 cotizaciones de un mismo
+    // cliente en 10 segundos. El `cancelado` de abajo sólo evitaba pintar la
+    // respuesta vieja, no impedía que la petición saliera.
+    let cancelado = false;
+    const temporizador = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/shipping/flash", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            calle,
+            comuna,
+            lat: coords?.lat ?? null,
+            lng: coords?.lng ?? null,
+            telefono: shippingInfo.phone || null,
+            subtotal: 0,
+          }),
+        });
+        if (!res.ok || cancelado) return;
+        const d = await res.json();
+        if (cancelado) return;
+        if (!d.disponible) {
+          console.info("[Envío Flash] No disponible en este momento:", d.motivo || "sin-motivo");
+        } else {
+          console.info("[Envío Flash] Cotizado exitosamente:", { costo: d.rawPrice, etaMin: d.etaMin, quoteId: d.quoteId });
+        }
+        setFlashUber({
+          disponible: Boolean(d.disponible),
+          costo: typeof d.rawPrice === "number" && d.rawPrice > 0 ? d.rawPrice : null,
+          etaMin: typeof d.etaMin === "number" ? d.etaMin : null,
+          quoteId: d.quoteId ?? null,
+          motivo: d.motivo ?? null,
+          diagnostico: d.diagnostico,
+        });
+      } catch (err) {
+        console.warn("[Envío Flash] Error al consultar cotización:", err);
+        if (!cancelado) setFlashUber(null);
+      }
+    }, ESPERA_COTIZACION_MS);
+
+    return () => {
+      cancelado = true;
+      clearTimeout(temporizador);
+    };
+  }, [shippingInfo.address, shippingInfo.city, shippingInfo.phone, coords]);
 
   // Effect to trigger calculation when settings or coordinates are available
   useEffect(() => {
@@ -207,6 +421,21 @@ export default function CheckoutPage() {
     }
   }, [session, status, triggerShippingCalculation]);
 
+  /**
+   * Firma del carrito: cambia si cambia algún código o alguna cantidad.
+   *
+   * Sirve para volver a pedir el descuento cuando el carrito se mueve. Con los
+   * cupones sin acumular, cuánto descuenta depende de qué haya adentro: sacar
+   * el único producto a precio de lista deja el descuento en cero. Si el número
+   * se calculara una sola vez al aplicar el cupón, el checkout mostraría un
+   * total y el servidor cobraría otro — que es exactamente el problema que ya
+   * nos costó un pedido cobrado de más.
+   */
+  const firmaDelCarrito = useMemo(
+    () => cartItems.map((i) => `${i.id}:${i.quantity}`).join("|"),
+    [cartItems]
+  );
+
   const handleApplyCoupon = async (code: string) => {
     try {
       const response = await fetch('/api/coupons/validate', {
@@ -215,7 +444,11 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           code,
           cartTotal: subtotal,
-          customerEmail: shippingInfo.email
+          customerEmail: shippingInfo.email,
+          // Los cupones no se acumulan con las ofertas, así que el servidor
+          // necesita saber qué hay en el carrito para calcular sobre qué parte
+          // aplica. Van sólo códigos y cantidades: los precios los pone él.
+          items: cartItems.map((i) => ({ id: i.id, quantity: i.quantity })),
         }),
       });
       const data = await response.json();
@@ -237,8 +470,85 @@ export default function CheckoutPage() {
   };
 
   const handleRemoveCoupon = () => {
+    setCuponRechazado(true);
     setAppliedCoupon(null);
   };
+
+  /**
+   * Aplica solo el cupón que la persona ya tiene.
+   *
+   * `coupons.auto_apply` existía en la base desde el principio y nadie lo leía:
+   * el cliente recibía su cupón de bienvenida al registrarse y después tenía
+   * que acordarse del código y tipearlo acá. Ahora llega al pago y ya lo ve
+   * descontado.
+   *
+   * No se vuelve a aplicar si la persona lo sacó a mano (`cuponRechazado`):
+   * insistir con algo que acaba de rechazar es pelearle a la interfaz.
+   */
+  useEffect(() => {
+    if (status !== "authenticated" || appliedCoupon || cuponRechazado) return;
+    if (cartItems.length === 0) return;
+
+    let cancelado = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/coupons/mio");
+        const { cupon } = await r.json();
+        if (cancelado || !cupon?.code) return;
+        await handleApplyCoupon(cupon.code);
+      } catch {
+        // Sin cupón automático el checkout funciona igual; no se molesta al
+        // cliente con un error por algo que él no pidió.
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, appliedCoupon, cuponRechazado, cartItems.length]);
+
+  /**
+   * Recalcula el descuento cuando cambia el carrito.
+   *
+   * Cuánto descuenta el cupón depende de qué haya adentro, porque no se acumula
+   * con las ofertas. Sin esto, agregar o sacar productos dejaba el descuento
+   * viejo en pantalla mientras el servidor cobraba el correcto.
+   */
+  useEffect(() => {
+    if (!appliedCoupon?.code) return;
+
+    let cancelado = false;
+    (async () => {
+      const r = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: appliedCoupon.code,
+          cartTotal: subtotal,
+          customerEmail: shippingInfo.email,
+          items: cartItems.map((i) => ({ id: i.id, quantity: i.quantity })),
+        }),
+      }).catch(() => null);
+      if (!r || cancelado) return;
+
+      const data = await r.json().catch(() => null);
+      if (!data || cancelado) return;
+
+      if (!data.valid) {
+        setAppliedCoupon(null);
+        return;
+      }
+      if (data.discount !== appliedCoupon.discount) {
+        setAppliedCoupon((prev) => (prev ? { ...prev, discount: data.discount } : prev));
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firmaDelCarrito]);
 
   const handleShippingInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -274,6 +584,15 @@ export default function CheckoutPage() {
       alert("Por favor completa tus datos y dirección de entrega.");
       return;
     }
+    // Las dos modalidades a domicilio se agendan. El servidor rechaza el
+    // pedido sin fecha y bloque, así que sin esto el cliente se enteraba
+    // recién al apretar pagar.
+    const requiereAgenda =
+      selectedShippingMethod === "agendado";
+    if (requiereAgenda && (!shippingInfo.deliveryDate || !shippingInfo.deliveryTimeSlot)) {
+      alert("Elige la fecha y el bloque horario de tu entrega.");
+      return;
+    }
     setFieldErrors({});
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setStep(2);
@@ -285,10 +604,28 @@ export default function CheckoutPage() {
   };
 
   const handleFinalizeOrder = async () => {
+    // El botón ya está deshabilitado en vitrina, pero un submit por teclado o
+    // un doble evento no deberían llegar a llamar la ruta de cobro.
+    if (enVitrina) {
+      alert(mensajeVitrina);
+      return;
+    }
+
     setLoading(true);
     try {
+      // Si el carrito cambió (stock o precio), no se sigue: el cliente tiene
+      // que ver el pedido corregido —y el envío recalculado sobre el nuevo
+      // subtotal— antes de pagar.
       const isCartValid = await validateCartWithServer();
       if (!isCartValid) {
+        setLoading(false);
+        return;
+      }
+
+      // Sin un método de envío válido no se puede cobrar: antes este caso
+      // pasaba como envío $0.
+      if (!hasValidShippingMethod) {
+        alert('Selecciona un método de envío para continuar.');
         setLoading(false);
         return;
       }
@@ -306,6 +643,10 @@ export default function CheckoutPage() {
         items: cartItems,
         shippingInfo: { ...shippingInfo, coords: coords || undefined },
         shippingMethod: selectedShippingMethod,
+        // Regla 1: el servidor recotiza el flash antes de cobrar y compara
+        // contra esto. Si subió poco, se respeta lo que el cliente vio.
+        flashPrecioMostrado:
+          selectedShippingMethod === "flash" && flash ? flash.price : null,
         paymentMethod: selectedPaymentMethod,
         couponCode: appliedCoupon?.code,
         loyaltyRedeemed: redeemedPoints > 0 ? {
@@ -323,6 +664,12 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // La tienda pasó a vitrina mientras el cliente completaba el checkout.
+        if (data.previewMode) {
+          alert(data.error || PREVIEW_DEFAULT_MESSAGE);
+          setLoading(false);
+          return;
+        }
         // MP falló pero la orden fue creada en la DB
         if (data.orderId) {
           alert(`❌ Error en el pago:\n\n${data.error}\n\nTu pedido #${data.orderId} fue registrado pero NO está pagado. Contáctanos por WhatsApp.`);
@@ -362,109 +709,113 @@ export default function CheckoutPage() {
     }
   };
 
-  const mapEmbedUrl = null;
-
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
-        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 overflow-hidden">
-          <div className="flex-1">
-            <Link href="/carrito" className="group inline-flex items-center text-sm font-bold text-gray-400 hover:text-emerald-600 transition-colors mb-4 uppercase tracking-widest">
-              <ArrowLeftIcon className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-              Volver al Carrito
-            </Link>
-            <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter">
-              Finalizar <span className="text-emerald-600">Pedido</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm self-start">
-             <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${step === 1 ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-gray-400'}`}>1. Entrega</div>
-             <div className="h-0.5 w-6 bg-gray-100 rounded-full" />
-             <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${step === 2 ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-gray-400'}`}>2. Pago</div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-neutral-50">
+      <div className="o-container py-8 md:py-12">
+        <Link
+          href="/carrito"
+          className="o-focus group mb-4 inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-brand-700"
+        >
+          <ArrowLeftIcon className="size-4 transition-transform group-hover:-translate-x-0.5" />
+          Volver al carrito
+        </Link>
+
+        <h1 className="o-h1 mb-6 text-neutral-900">Finalizar pedido</h1>
+
+        <CheckoutSteps currentStep={step} />
 
         {storeSettings?.shipping?.isHighDemand && (
-          <div className="mb-8 p-4 rounded-3xl bg-amber-50 border-2 border-amber-200 shadow-lg shadow-amber-900/5 flex items-start gap-4">
-            <div className="h-10 w-10 flex-shrink-0 bg-amber-100/80 rounded-2xl flex items-center justify-center border border-amber-200 mt-1">
-               <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-               </svg>
-            </div>
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <ExclamationTriangleIcon className="mt-0.5 size-5 shrink-0 text-amber-600" />
             <div>
-              <h3 className="text-amber-900 font-black text-lg tracking-tight">Alta demanda activa</h3>
-              <p className="text-amber-700/80 text-sm font-medium leading-relaxed mt-1">
-                Actualmente estamos experimentando gran volumen de pedidos. Algunas franjas horarias 
-                podrían agotar sus cupos rápidamente. Te sugerimos reservar tu entrega pronto y seleccionar
-                horarios de despachos en los días siguientes.
+              <p className="text-sm font-semibold text-amber-900">Alta demanda</p>
+              <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                Estamos recibiendo muchos pedidos y algunos bloques horarios se agotan rápido.
+                Te conviene reservar tu entrega cuanto antes.
               </p>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          <div className="lg:col-span-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-8">
+          {/* ── Columna de formulario ── */}
+          <div className="space-y-5 lg:col-span-8">
             {step === 1 ? (
-              <div className="space-y-8">
-                <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
-                  <div className="flex items-center gap-4 mb-8">
-                    <div className="h-10 w-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center font-black">1</div>
-                    <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-                      <UserIcon className="h-6 w-6 text-gray-400" />
-                      Tus Datos
-                    </h2>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label>
-                      <input 
-                        name="fullName" 
-                        value={shippingInfo.fullName} 
+              <>
+                <section className="o-card p-5 sm:p-7">
+                  <h2 className="o-h3 mb-5 flex items-center gap-2 text-neutral-900">
+                    <UserIcon className="size-5 text-neutral-400" />
+                    Tus datos
+                  </h2>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <label htmlFor="fullName" className="mb-1.5 block text-sm font-medium text-neutral-700">
+                        Nombre completo
+                      </label>
+                      <input
+                        id="fullName"
+                        name="fullName"
+                        value={shippingInfo.fullName}
                         onChange={handleShippingInfoChange}
                         placeholder="Ej: Juan Pérez"
-                        className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold" 
+                        autoComplete="name"
+                        className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-brand-500"
                       />
                     </div>
-                    <div className="space-y-2">
-                       <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
-                       <input 
-                         name="email" 
-                         value={shippingInfo.email} 
-                         onChange={handleShippingInfoChange}
-                         placeholder="tu@email.com"
-                         className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold" 
-                       />
+                    <div>
+                      <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-neutral-700">
+                        Email
+                      </label>
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        inputMode="email"
+                        value={shippingInfo.email}
+                        onChange={handleShippingInfoChange}
+                        placeholder="tu@email.com"
+                        autoComplete="email"
+                        className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-brand-500"
+                      />
                     </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Teléfono</label>
-                      <input 
-                        name="phone" 
-                        value={shippingInfo.phone} 
+                    <div className="md:col-span-2">
+                      <label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-neutral-700">
+                        Teléfono
+                      </label>
+                      <input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        inputMode="tel"
+                        value={shippingInfo.phone}
                         onChange={handleShippingInfoChange}
                         placeholder="+56 9 1234 5678"
-                        className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white transition-all outline-none font-bold" 
+                        autoComplete="tel"
+                        className="h-12 w-full rounded-xl border border-neutral-200 px-4 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-brand-500"
                       />
                     </div>
                   </div>
                 </section>
 
-                <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
-                  <div className="flex items-center gap-4 mb-8">
-                    <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center font-black">2</div>
-                    <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-                      <MapPinIcon className="h-6 w-6 text-gray-400" />
-                      Despacho
-                    </h2>
-                  </div>
+                <section className="o-card p-5 sm:p-7">
+                  <h2 className="o-h3 mb-5 flex items-center gap-2 text-neutral-900">
+                    <MapPinIcon className="size-5 text-neutral-400" />
+                    Entrega
+                  </h2>
+
                   {!coords && shippingInfo.address && (
-                     <div className="mb-6 p-4 bg-amber-50 rounded-2xl border-2 border-amber-100 flex gap-4 items-start">
-                        <div className="h-10 w-10 rounded-full bg-amber-100 text-amber-600 shrink-0 flex items-center justify-center">⚠️</div>
-                        <div>
-                           <p className="text-sm font-black text-amber-900">Ubicación exacta requerida</p>
-                           <p className="text-xs font-bold text-amber-700/80 leading-relaxed">Por favor, selecciona tu dirección de la lista desplegable o usa el botón de GPS para calcular el costo de envío.</p>
-                        </div>
-                     </div>
+                    <div className="mb-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                      <ExclamationTriangleIcon className="mt-0.5 size-5 shrink-0 text-amber-600" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-900">Falta precisar la ubicación</p>
+                        <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                          Elige tu dirección de la lista que aparece al escribir, o usa el botón de GPS.
+                          Sin eso no podemos calcular el costo de envío.
+                        </p>
+                      </div>
+                    </div>
                   )}
+
                   <ShippingForm
                     shippingInfo={shippingInfo}
                     onChange={handleShippingInfoChange}
@@ -473,124 +824,134 @@ export default function CheckoutPage() {
                     selectedMethod={selectedShippingMethod}
                     onMethodChange={(e) => setSelectedShippingMethod(e.target.value)}
                     isCalculating={isCalculatingDistance}
+                    avisoFlash={avisoFlashNoDisponible(
+                      flashUber?.disponible ? null : flashUber?.motivo,
+                      horarioDeAtencionPublicable()
+                    )}
+                    diagnosticoFlash={
+                      flashNoConsultado
+                        ? { motivo: "no-consultado", detalle: flashNoConsultado }
+                        : flashUber?.diagnostico
+                          ? { motivo: flashUber.motivo, ...flashUber.diagnostico }
+                          : null
+                    }
                     fieldErrors={fieldErrors}
                   />
 
-                  <div className="mt-10 pt-8 border-t border-gray-100 flex justify-end">
-                     <Button 
-                        size="lg" 
-                        onClick={nextStep}
-                        className="rounded-2xl h-16 px-10 font-black shadow-xl shadow-emerald-600/20 active:scale-95 transition-all text-white bg-emerald-600 hover:bg-emerald-500"
-                     >
-                        Continuar a Pago →
-                     </Button>
+                  <div className="mt-6 flex justify-end border-t border-neutral-100 pt-6">
+                    <Button size="lg" onClick={nextStep} className="h-12 px-7">
+                      Continuar al pago
+                    </Button>
                   </div>
                 </section>
-              </div>
+              </>
             ) : (
-              <div className="space-y-8 animate-in slide-in-from-right-10 duration-500">
-                <button 
-                  onClick={prevStep} 
-                  className="inline-flex items-center text-xs font-black text-gray-400 hover:text-emerald-600 uppercase tracking-widest pl-2"
+              <>
+                <button
+                  onClick={prevStep}
+                  className="o-focus inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-neutral-500 transition-colors hover:text-brand-700"
                 >
-                  ← Volver a Datos de Entrega
+                  <ArrowLeftIcon className="size-4" />
+                  Volver a los datos de entrega
                 </button>
 
-                <section className="bg-white rounded-[2.5rem] p-1 shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
-                   <div className="p-8 md:p-10">
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center font-black">3</div>
-                        <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-                          <MapIcon className="h-6 w-6 text-gray-400" />
-                          Confirmar Ruta
-                        </h2>
+                <section className="o-card p-5 sm:p-7">
+                  <h2 className="o-h3 mb-5 flex items-center gap-2 text-neutral-900">
+                    <MapIcon className="size-5 text-neutral-400" />
+                    Revisa tu entrega
+                  </h2>
+
+                  <div className="space-y-4">
+                    <div className="rounded-xl bg-neutral-50 p-4">
+                      <p className="mb-1 text-xs font-medium text-neutral-500">Dirección de entrega</p>
+                      <p className="text-[15px] font-semibold leading-snug text-neutral-900">
+                        {shippingInfo.address}
+                      </p>
+                      {(shippingInfo.apartment || shippingInfo.tower) && (
+                        <p className="mt-1 text-sm text-neutral-600">
+                          {shippingInfo.apartment && `Depto ${shippingInfo.apartment}`}
+                          {shippingInfo.apartment && shippingInfo.tower && " · "}
+                          {shippingInfo.tower && `Torre ${shippingInfo.tower}`}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Feedback de las reglas de despacho: sin esto el cliente
+                        ve un precio distinto al calculado por distancia y no
+                        entiende por qué. */}
+                    {selectedShippingMethod === 'flash' && flash?.freeApplied && (
+                      <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+                        <p className="text-sm font-semibold text-brand-900">Tu envío flash es gratis</p>
+                        <p className="mt-1 text-sm text-brand-800">
+                          Tu compra supera el mínimo, así que el repartidor lo ponemos nosotros.
+                        </p>
                       </div>
-                      
-                      <div className="flex flex-col md:flex-row gap-6">
-                        <div className="flex-1 space-y-4">
-                           <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100">
-                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Dirección de Entrega</p>
-                              <p className="text-lg font-black text-gray-900 leading-tight">{shippingInfo.address}</p>
-                              {(shippingInfo.apartment || shippingInfo.tower) && (
-                                 <p className="text-sm font-bold text-gray-500 mt-2">
-                                    {shippingInfo.apartment && `Depto: ${shippingInfo.apartment} `}
-                                    {shippingInfo.tower && `| Torre: ${shippingInfo.tower}`}
-                                 </p>
-                              )}
-                           </div>
-                           
-                           {selectedShippingMethod === 'dynamic' && (
-                              <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100">
-                                 <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                    <ClockIcon className="h-3 w-3" />
-                                    Despacho Programado
-                                 </p>
-                                 <div className="w-full p-4 rounded-2xl bg-white border border-emerald-200 shadow-sm flex items-center gap-3">
-                                   <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black">
-                                      <ClockIcon className="h-5 w-5" />
-                                   </div>
-                                   <div>
-                                     <p className="text-gray-900 font-bold mb-0.5">{shippingInfo.deliveryDate || 'No especificado'}</p>
-                                     <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">{shippingInfo.deliveryTimeSlot || ''}</p>
-                                   </div>
-                                 </div>
-                              </div>
-                           )}
+                    )}
+
+                    {selectedShippingMethod === 'agendado' && agendado?.freeApplied && (
+                      <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+                        <p className="text-sm font-semibold text-brand-900">Tu envío es gratis</p>
+                        <p className="mt-1 text-sm text-brand-800">
+                          Tu compra supera el mínimo y tu dirección está dentro de nuestra zona de reparto.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Por qué el envío cuesta lo que cuesta. Con dos tramos
+                        de precio, ver un número sin explicación deja al cliente
+                        preguntándose si se equivocó de dirección. */}
+                    {selectedShippingMethod === 'agendado' && !agendado?.freeApplied && agendado?.tarifaPlana && (
+                      <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+                        <p className="text-sm font-semibold text-brand-900">Tarifa cercana</p>
+                        <p className="tabular mt-1 text-sm text-brand-800">
+                          Estás a menos de {RADIO_ZONA_PLANA_KM} km del local, así que el envío te sale
+                          ${TARIFA_ZONA_PLANA_CLP.toLocaleString('es-CL')} plano.
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedShippingMethod === 'agendado' && !agendado?.freeApplied && agendado && !agendado.tarifaPlana && (
+                      <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                        <p className="text-sm font-semibold text-neutral-900">Envío por distancia</p>
+                        <p className="tabular mt-1 text-sm text-neutral-700">
+                          Tu dirección queda a {agendado.distanceKm?.toFixed(1)} km del local, fuera de la zona
+                          de tarifa plana, así que el envío se calcula por distancia. También puedes retirar en
+                          tienda sin costo.
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedShippingMethod === 'agendado' && (
+                      <div className="flex items-center gap-3 rounded-xl border border-neutral-200 p-4">
+                        <ClockIcon className="size-5 shrink-0 text-neutral-400" />
+                        <div>
+                          <p className="text-xs font-medium text-neutral-500">Horario de despacho</p>
+                          <p className="text-[15px] font-semibold text-neutral-900">
+                            {shippingInfo.deliveryDate || 'No especificado'}
+                          </p>
+                          {shippingInfo.deliveryTimeSlot && (
+                            <p className="text-sm text-neutral-600">{shippingInfo.deliveryTimeSlot}</p>
+                          )}
                         </div>
-                        
-                        {mapEmbedUrl && (
-                          <div className="md:w-1/2 relative bg-gray-100 rounded-[2rem] overflow-hidden border border-gray-200 aspect-video md:aspect-square">
-                            <iframe 
-                               src={mapEmbedUrl} 
-                               title="Mapa de entrega" 
-                               className="w-full h-full transition-all duration-700" 
-                               style={{ border: 0 }}
-                               loading="lazy"
-                               referrerPolicy="no-referrer-when-downgrade"
-                            />
-                            <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-gray-100/50 pointer-events-none">
-                               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Ubicación de entrega confirmada</p>
-                            </div>
-                          </div>
-                        )}
                       </div>
-                   </div>
+                    )}
+                  </div>
                 </section>
 
-                <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-gray-200/50 border border-gray-100">
-                   <div className="flex items-center gap-4 mb-8">
-                     <div className="h-10 w-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center font-black">4</div>
-                     <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-                       <CreditCardIcon className="h-6 w-6 text-gray-400" />
-                       Método de Pago
-                     </h2>
-                  </div>
+                <section className="o-card p-5 sm:p-7">
                   <PaymentForm
                     paymentMethods={paymentMethods}
                     selectedMethod={selectedPaymentMethod}
                     onMethodChange={(e) => setSelectedPaymentMethod(e.target.value)}
                   />
-                  
-                  <div className="mt-10 p-6 bg-gray-50 rounded-3xl border border-gray-100">
-                     <div className="flex gap-4">
-                        <div className="h-6 w-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-1">
-                           <CheckBadgeIcon className="h-4 w-4" />
-                        </div>
-                        <div>
-                           <p className="text-sm font-black text-gray-900 uppercase tracking-tight mb-1">Confirmación Final</p>
-                           <p className="text-xs font-bold text-gray-500 leading-relaxed">Al procesar el pago, serás redirigido de forma segura a la pasarela de pago seleccionada. Tu pedido será procesado de inmediato.</p>
-                        </div>
-                     </div>
-                  </div>
                 </section>
-              </div>
+              </>
             )}
           </div>
 
-          <div className="lg:col-span-4 sticky top-10">
-            <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-emerald-900/10 p-8 border-2 border-emerald-600/5 overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none opacity-50" />
-              
+          {/* ── Resumen ── */}
+          <div className="lg:col-span-4 lg:sticky lg:top-8">
+            <div className="o-card p-5 sm:p-6">
               <OrderSummary
                 cartItems={cartItems}
                 subtotal={subtotal}
@@ -606,46 +967,63 @@ export default function CheckoutPage() {
                 minRedeem={loyaltyConfig?.min_points_redeem || 50}
               />
 
-              <div className="mt-8 pt-8 border-t border-gray-100 space-y-4">
+              <div className="mt-5 border-t border-neutral-100 pt-5">
                 {step === 1 ? (
-                   <Button 
-                    fullWidth 
-                    onClick={nextStep} 
-                    className="h-16 rounded-2xl text-lg font-black bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-600/20 active:scale-95 transition-all text-white border-none"
-                  >
-                    Resumen y Pago →
+                  <Button fullWidth onClick={nextStep} className="h-12 text-base">
+                    Continuar al pago
                   </Button>
                 ) : (
-                  <Button 
-                    fullWidth 
-                    onClick={handleFinalizeOrder} 
+                  <Button
+                    fullWidth
+                    onClick={handleFinalizeOrder}
                     loading={loading}
-                    className="h-20 rounded-[1.5rem] text-xl font-black bg-emerald-600 hover:bg-emerald-500 shadow-2xl shadow-emerald-600/40 active:scale-95 transition-all text-white relative overflow-hidden group border-none"
+                    disabled={enVitrina}
+                    className="h-13 text-base"
                   >
-                    <span className="relative z-10">{loading ? "Procesando..." : `Finalizar por $${total.toLocaleString('es-CL')}`}</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                    {loading
+                      ? "Procesando…"
+                      : enVitrina
+                        ? "Todavía no aceptamos pedidos"
+                        : `Pagar ${clpFormat(total)}`}
                   </Button>
                 )}
-                
-                <p className="text-[10px] text-center text-gray-400 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-                   <ShieldCheckIcon className="h-4 w-4" />
-                   Garantía OlivoMarket Premium
-                </p>
+
+                {enVitrina ? (
+                  <p className="mt-3 text-center text-xs leading-relaxed text-amber-800">
+                    {mensajeVitrina}
+                  </p>
+                ) : (
+                  <>
+                    <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-neutral-500">
+                      <ShieldCheckIcon className="size-4 shrink-0" />
+                      Compra protegida
+                    </p>
+                    <p className="mt-2 text-center text-[11px] leading-relaxed text-neutral-500">
+                      Al pagar aceptas los{" "}
+                      <Link href="/legal/terminos" className="underline underline-offset-2 hover:text-neutral-700">
+                        términos y condiciones
+                      </Link>{" "}
+                      y la{" "}
+                      <Link href="/legal/privacidad" className="underline underline-offset-2 hover:text-neutral-700">
+                        política de privacidad
+                      </Link>
+                      .
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="mt-6 px-6 py-8 bg-emerald-950 rounded-[2.5rem] text-white shadow-xl shadow-emerald-900/10 border border-emerald-800">
-               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 mb-2">Ayuda Inmediata</p>
-               <p className="text-base font-bold opacity-90 mb-4 font-serif italic leading-snug">&quot;¿Tienes dudas con tu pedido? Estamos para apoyarte en lo que necesites.&quot;</p>
-               <Link 
-                  href={`https://wa.me/56912345678?text=Hola!%20Tengo%20una%20consulta%20sobre%20mi%20pedido`} 
-                  target="_blank" 
-                  className="inline-flex items-center font-black text-emerald-300 hover:text-white transition-all text-sm group"
-               >
-                  Chat WhatsApp 
-                  <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
-               </Link>
-            </div>
+            {storeSettings?.storePhone && (
+              <a
+                href={whatsappLink(storeSettings.storePhone, checkoutInquiryMessage(cartItems, total))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="o-focus mt-4 block rounded-xl border border-neutral-200 bg-white px-4 py-3.5 text-center text-sm font-medium text-neutral-700 transition-colors hover:border-brand-300 hover:text-brand-700"
+              >
+                ¿Dudas con tu pedido? Escríbenos por WhatsApp
+              </a>
+            )}
           </div>
         </div>
       </div>

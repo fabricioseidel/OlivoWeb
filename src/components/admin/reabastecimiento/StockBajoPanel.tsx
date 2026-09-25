@@ -87,17 +87,17 @@ export default function StockBajoPanel({
       <button
         type="button"
         onClick={onGoToSuggestions}
-        className="block w-full text-left bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-2xl p-4 sm:p-5 shadow-md transition-colors"
+        className="block w-full text-left bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white rounded-2xl p-4 sm:p-5 shadow-md transition-colors"
       >
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[10px] font-black uppercase tracking-widest text-emerald-200 mb-1">
+            <div className="text-[10px] font-black uppercase tracking-widest text-brand-200 mb-1">
               Reposición semi-automática
             </div>
             <div className="text-base sm:text-lg font-bold leading-tight">
               Calcular sugerencias con velocidad de venta y generar borradores
             </div>
-            <div className="text-xs text-emerald-100/80 mt-1">
+            <div className="text-xs text-brand-100/80 mt-1">
               Usa ventas POS + web de los últimos 30 días para proyectar.
             </div>
           </div>
@@ -107,13 +107,13 @@ export default function StockBajoPanel({
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-emerald-500" />
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-brand-500" />
         </div>
       ) : supplierGroups.length === 0 ? (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center">
-          <CheckCircleIcon className="h-12 w-12 text-emerald-400 mx-auto mb-3" />
-          <p className="font-semibold text-emerald-800">¡Stock al día!</p>
-          <p className="text-sm text-emerald-600 mt-1">
+        <div className="bg-brand-50 border border-brand-200 rounded-2xl p-8 text-center">
+          <CheckCircleIcon className="h-12 w-12 text-brand-400 mx-auto mb-3" />
+          <p className="font-semibold text-brand-800">¡Stock al día!</p>
+          <p className="text-sm text-brand-600 mt-1">
             No hay productos por debajo del umbral de reposición.
           </p>
         </div>
@@ -183,7 +183,7 @@ function SupplierStockCard({ group }: { group: SupplierGroup }) {
       <Link
         href={`/admin/pedidos-proveedor/nuevo?supplierId=${group.supplier.id}`}
       >
-        <button className="w-full mt-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition active:scale-[0.98]">
+        <button className="w-full mt-1 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition active:scale-[0.98]">
           <ShoppingCartIcon className="h-4 w-4 inline mr-1.5 -mt-0.5" />
           Crear Pedido
         </button>

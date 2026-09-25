@@ -68,19 +68,12 @@ CREATE TRIGGER users_updated_at
   EXECUTE FUNCTION set_updated_at();
 
 -- =============================================================================
--- PASO 6: INSERTAR USUARIO ADMIN POR DEFECTO
+-- PASO 6: CREAR EL PRIMER ADMINISTRADOR
 -- =============================================================================
-
--- Contraseña: "admin123" (cambiar después del primer login)
--- Hash generado con bcryptjs rounds=10
-INSERT INTO public.users (email, password_hash, name, role)
-VALUES (
-  'admin@olivomarket.com',
-  '$2a$10$YourHashHere', -- Reemplazar con hash real
-  'Administrador',
-  'ADMIN'
-)
-ON CONFLICT (email) DO NOTHING;
+-- No se inserta un admin por defecto con contraseña de ejemplo. El primer
+-- ADMIN se crea con POST /api/admin/bootstrap (ver README, sección
+-- "Primer administrador"), que exige el header x-setup-token con el valor
+-- de ADMIN_SETUP_TOKEN y se autodeshabilita en cuanto existe un ADMIN.
 
 -- =============================================================================
 -- VERIFICACIÓN

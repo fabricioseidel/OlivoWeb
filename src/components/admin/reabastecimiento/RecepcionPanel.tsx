@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   ArrowLeftIcon,
   CheckCircleIcon,
@@ -9,11 +9,15 @@ import {
 } from "@heroicons/react/24/outline";
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
+import { useBranch } from "@/contexts/BranchContext";
+import { createReceptionAction } from "@/actions/reception";
+import { useLaserScanner } from "@/components/admin/scanner/useLaserScanner";
 import { ProductUI } from "@/types";
 
 export default function RecepcionPanel() {
-  const { products } = useProducts();
+  const { products, refresh } = useProducts();
   const { showToast } = useToast();
+  const { currentBranch } = useBranch();
 
   const [scannedCode, setScannedCode] = useState("");
   const [activeProduct, setActiveProduct] = useState<ProductUI | null>(null);
@@ -25,48 +29,9 @@ export default function RecepcionPanel() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    let barcodeBuffer = "";
-    let lastKeyTime = Date.now();
-    let timeoutId: NodeJS.Timeout;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        (e.target as HTMLElement)?.tagName === "INPUT" ||
-        (e.target as HTMLElement)?.tagName === "TEXTAREA"
-      ) {
-        return;
-      }
-
-      const currentTime = Date.now();
-      if (currentTime - lastKeyTime > 50) {
-        barcodeBuffer = "";
-      }
-      lastKeyTime = currentTime;
-
-      if (e.key === "Enter") {
-        if (barcodeBuffer.length > 2) {
-          e.preventDefault();
-          handleScannedBarcode(barcodeBuffer);
-        }
-        barcodeBuffer = "";
-      } else if (e.key.length === 1) {
-        barcodeBuffer += e.key;
-      }
-
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        barcodeBuffer = "";
-      }, 200);
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      clearTimeout(timeoutId);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products]);
+  // Pistola láser: el mismo hook que usa el escáner del POS, en vez de una
+  // tercera copia de la heurística de teclado.
+  useLaserScanner({ onDetected: (code) => handleScannedBarcode(code) });
 
   const handleScannedBarcode = (code: string) => {
     const p = products.find(
@@ -89,7 +54,7 @@ export default function RecepcionPanel() {
 
   const saveReception = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeProduct) return;
+    if (!activeProduct || isSaving) return;
     const qty = parseInt(receiveQty, 10);
     if (isNaN(qty) || qty <= 0) {
       showToast("La cantidad debe ser mayor a 0", "warning");
@@ -98,18 +63,27 @@ export default function RecepcionPanel() {
 
     try {
       setIsSaving(true);
-      const newStock = (activeProduct.stock || 0) + qty;
 
-      const res = await fetch(`/api/admin/products`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: activeProduct.id,
-          updates: { stock: newStock },
-        }),
+      // La recepción va por la misma vía que el resto del inventario: el
+      // servidor SUMA las unidades sobre el stock real. Antes se calculaba
+      // aquí `stock actual + qty` y se mandaba el total absoluto a una ruta
+      // que ni siquiera existía; cuando existía, dos recepciones seguidas del
+      // mismo producto partían las dos del stock cacheado y la primera se
+      // perdía.
+      const result = await createReceptionAction({
+        items: [
+          {
+            barcode: activeProduct.barcode || activeProduct.id,
+            qty,
+            name: activeProduct.name,
+          },
+        ],
+        branchId: currentBranch?.id ?? null,
+        reference: null,
+        notes: "RECEPTION",
       });
 
-      if (!res.ok) throw new Error("Error en el servidor");
+      if (!result.ok) throw new Error(result.error);
 
       setHistory((prev) => [
         {
@@ -127,8 +101,14 @@ export default function RecepcionPanel() {
       setActiveProduct(null);
       setReceiveQty("1");
       searchInputRef.current?.blur();
-    } catch {
-      showToast("Error al procesar la recepción", "error");
+      // El stock cambió en el servidor: sin esto el panel seguiría mostrando
+      // (y ofreciendo) el valor viejo.
+      await refresh();
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : "Error al procesar la recepción",
+        "error"
+      );
     } finally {
       setIsSaving(false);
     }
@@ -141,19 +121,19 @@ export default function RecepcionPanel() {
           onSubmit={manualSearch}
           className="relative shadow-sm rounded-2xl overflow-hidden group"
         >
-          <MagnifyingGlassIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
+          <MagnifyingGlassIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 group-focus-within:text-brand-500 transition-colors" />
           <input
             ref={searchInputRef}
             type="text"
             placeholder="Escanea el código o escribe el SKU..."
             value={scannedCode}
             onChange={(e) => setScannedCode(e.target.value)}
-            className="w-full h-14 sm:h-16 pl-14 pr-6 bg-white border-none text-base sm:text-lg font-bold placeholder-gray-300 focus:ring-4 focus:ring-emerald-500/20"
+            className="w-full h-14 sm:h-16 pl-14 pr-6 bg-white border-none text-base sm:text-lg font-bold placeholder-gray-300 focus:ring-4 focus:ring-brand-500/20"
           />
           {scannedCode && (
             <button
               type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold"
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-bold"
             >
               Buscar
             </button>
@@ -177,9 +157,9 @@ export default function RecepcionPanel() {
         ) : (
           <form
             onSubmit={saveReception}
-            className="bg-white rounded-3xl shadow-2xl shadow-emerald-500/10 border-2 border-emerald-500 overflow-hidden"
+            className="bg-white rounded-3xl shadow-2xl shadow-brand-500/10 border-2 border-brand-500 overflow-hidden"
           >
-            <div className="bg-emerald-500 p-5 sm:p-6 flex gap-4 sm:gap-6 items-center">
+            <div className="bg-brand-500 p-5 sm:p-6 flex gap-4 sm:gap-6 items-center">
               {activeProduct.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -196,7 +176,7 @@ export default function RecepcionPanel() {
                 <h2 className="text-lg sm:text-2xl font-black text-white leading-tight mb-1 truncate">
                   {activeProduct.name}
                 </h2>
-                <span className="px-2.5 py-1 rounded-md bg-emerald-900/40 font-mono text-xs text-emerald-100 font-bold border border-emerald-400/20">
+                <span className="px-2.5 py-1 rounded-md bg-brand-900/40 font-mono text-xs text-brand-100 font-bold border border-brand-400/20">
                   {activeProduct.barcode || activeProduct.id.slice(0, 8)}
                 </span>
               </div>
@@ -213,7 +193,7 @@ export default function RecepcionPanel() {
                   </p>
                 </div>
                 <ArrowLeftIcon className="w-6 h-6 text-gray-300 transform rotate-180" />
-                <div className="text-center text-emerald-600">
+                <div className="text-center text-brand-600">
                   <p className="text-[10px] font-black uppercase tracking-widest mb-1">
                     Nuevo Stock
                   </p>
@@ -246,7 +226,7 @@ export default function RecepcionPanel() {
                     autoFocus
                     value={receiveQty}
                     onChange={(e) => setReceiveQty(e.target.value)}
-                    className="flex-1 text-center text-3xl sm:text-4xl font-black tracking-tighter border-2 border-emerald-200 focus:border-emerald-500 rounded-2xl text-emerald-950 focus:ring-4 focus:ring-emerald-500/20"
+                    className="flex-1 text-center text-3xl sm:text-4xl font-black tracking-tighter border-2 border-brand-200 focus:border-brand-500 rounded-2xl text-brand-950 focus:ring-4 focus:ring-brand-500/20"
                   />
                   <button
                     type="button"
@@ -265,7 +245,7 @@ export default function RecepcionPanel() {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="w-full mt-6 sm:mt-8 h-14 sm:h-16 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] transition-all text-white font-black text-base sm:text-lg uppercase tracking-widest rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-3"
+                className="w-full mt-6 sm:mt-8 h-14 sm:h-16 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] transition-all text-white font-black text-base sm:text-lg uppercase tracking-widest rounded-2xl shadow-lg shadow-brand-600/30 flex items-center justify-center gap-3"
               >
                 {isSaving ? "Guardando..." : "Confirmar Recepción"}
                 {!isSaving && <CheckCircleIcon className="w-6 h-6" />}
@@ -292,7 +272,7 @@ export default function RecepcionPanel() {
             history.map((record, i) => (
               <div
                 key={i}
-                className="flex gap-3 p-3 rounded-2xl bg-gray-50/80 border border-gray-100 hover:border-emerald-200 transition-colors"
+                className="flex gap-3 p-3 rounded-2xl bg-gray-50/80 border border-gray-100 hover:border-brand-200 transition-colors"
               >
                 {record.product.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -317,7 +297,7 @@ export default function RecepcionPanel() {
                   </p>
                 </div>
                 <div className="shrink-0 flex items-center">
-                  <span className="px-3 py-1.5 bg-emerald-100 text-emerald-800 font-black text-sm rounded-lg border border-emerald-200">
+                  <span className="px-3 py-1.5 bg-brand-100 text-brand-800 font-black text-sm rounded-lg border border-brand-200">
                     +{record.qty}
                   </span>
                 </div>

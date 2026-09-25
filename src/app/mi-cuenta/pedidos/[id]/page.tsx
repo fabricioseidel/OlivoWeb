@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import PrintableInvoice from "@/components/PrintableInvoice";
+import { leerEstadoUber } from "@/lib/uber-status";
 
 // Tipos
 type ProductoEnPedido = {
@@ -41,7 +42,46 @@ type Pedido = {
   direccionEnvio: DatosDireccion;
   metodoPago: string;
   numeroSeguimiento?: string;
+  urlSeguimiento?: string;
+  /** Estado del repartidor, sólo en los pedidos con envío flash. */
+  flash?: { etiqueta: string; trackingUrl: string | null };
 };
+
+/**
+ * El estado del repartidor, como se lo cuenta al cliente.
+ *
+ * Las etiquetas no son las mismas que ve la tienda: al cliente no le sirve
+ * "no se pudo crear la entrega", le sirve saber que su pedido igual va a
+ * llegar. Los pedidos despachados antes de que existieran las columnas
+ * `express_*` se leen del JSON de la dirección.
+ */
+function leerFlash(found: any, addr: any): { etiqueta: string; trackingUrl: string | null } | undefined {
+  const esFlash = (found.shipping_method || '').toLowerCase() === 'flash';
+  const deliveryId = found.express_delivery_id || addr?.uberDeliveryId || null;
+  if (!esFlash && !deliveryId) return undefined;
+
+  const trackingUrl = found.express_tracking_url || addr?.uberTracking || null;
+  const estadoCrudo = found.express_status || (deliveryId ? 'pending' : '');
+
+  const etiquetas: Record<string, string> = {
+    pending: 'Estamos asignando un repartidor a tu pedido.',
+    pickup: 'El repartidor va camino al local a buscar tu pedido.',
+    pickup_complete: 'El repartidor ya tiene tu pedido.',
+    dropoff: 'Tu pedido va en camino.',
+    delivered: 'Tu pedido fue entregado.',
+    canceled: 'Hubo un problema con el repartidor. Estamos reorganizando tu entrega.',
+    returned: 'Tu pedido volvió al local. Nos vamos a contactar contigo.',
+    // Lo escribe el webhook de pago cuando Uber no aceptó la entrega: el pedido
+    // está pagado y la tienda lo despacha igual.
+    failed: 'Estamos coordinando tu entrega. Te avisamos apenas salga.',
+  };
+
+  const etiqueta =
+    etiquetas[estadoCrudo] ||
+    (deliveryId ? leerEstadoUber(estadoCrudo).etiqueta : 'Preparando tu envío flash.');
+
+  return { etiqueta, trackingUrl };
+}
 
 export default function DetallePedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -77,8 +117,8 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
           }));
 
           const subtotal = Number(found.subtotal) || productos.reduce((s, p) => s + p.precio * p.cantidad, 0);
-          const envio = Number(found.shipping_cost) || 10;
-          const impuestos = subtotal * 0.19;
+          const envio = Number(found.shipping_cost) || 0;
+          const impuestos = Number(found.tax) || 0;
 
           const direccion = found.shipping_address || {};
           // normalize address
@@ -122,7 +162,12 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
             productos,
             direccionEnvio,
             metodoPago: found.payment_method || found.paymentMethod || 'No especificado',
-            numeroSeguimiento: undefined
+            numeroSeguimiento: found.tracking_number || found.trackingNumber || undefined,
+            urlSeguimiento: found.tracking_url || found.trackingUrl || undefined,
+            // La dirección cruda y no la normalizada: el normalizador arma
+            // un objeto con campos elegidos a mano y deja fuera el seguimiento
+            // de Uber, que es justo lo que hace falta acá.
+            flash: leerFlash(found, direccion)
           };
           setPedido(pedidoObj);
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -139,18 +184,58 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
   // Generar pedido de prueba
   // Eliminada simulación
 
+  // Obtener la etiqueta legible según estado
+  const getEstadoLabel = (estado: string): string => {
+    const norm = (estado || '').toLowerCase().trim();
+    switch (norm) {
+      case "entregado":
+      case "delivered":
+      case "completado":
+      case "completed":
+        return "Entregado";
+      case "enviado":
+      case "shipped":
+        return "Enviado";
+      case "en proceso":
+      case "processing":
+      case "procesando":
+      case "preparando":
+        return "En preparación";
+      case "cancelado":
+      case "cancelled":
+      case "canceled":
+        return "Cancelado";
+      case "pendiente":
+      case "pending":
+        return "Pendiente";
+      default:
+        return estado || "En proceso";
+    }
+  };
+
   // Obtener el color de badge según estado
   const getEstadoColor = (estado: string): string => {
-    switch (estado) {
-      case "Entregado":
+    const norm = (estado || '').toLowerCase().trim();
+    switch (norm) {
+      case "entregado":
+      case "delivered":
+      case "completado":
+      case "completed":
         return "bg-green-100 text-green-800";
-      case "En proceso":
-        return "bg-yellow-100 text-yellow-800";
-      case "Enviado":
+      case "en proceso":
+      case "processing":
+      case "procesando":
+      case "preparando":
+        return "bg-amber-100 text-amber-800";
+      case "enviado":
+      case "shipped":
         return "bg-blue-100 text-blue-800";
-      case "Cancelado":
+      case "cancelado":
+      case "cancelled":
+      case "canceled":
         return "bg-red-100 text-red-800";
-      case "Pendiente":
+      case "pendiente":
+      case "pending":
         return "bg-purple-100 text-purple-800";
       default:
         return "bg-gray-100 text-gray-800";
@@ -239,11 +324,35 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
               </div>
               <div className="mt-4 md:mt-0">
                 <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getEstadoColor(pedido.estado)}`}>
-                  {pedido.estado}
+                  {getEstadoLabel(pedido.estado)}
                 </span>
               </div>
             </div>
           </div>
+
+          {/* Envío flash: el estado del repartidor, en vivo */}
+          {pedido.flash && (
+            <div className="bg-blue-50 px-6 py-4 border-b border-blue-100">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                <div>
+                  <h2 className="text-md font-medium text-blue-800">Tu pedido con envío flash</h2>
+                  <p className="text-sm text-blue-700 mt-1">{pedido.flash.etiqueta}</p>
+                </div>
+                {pedido.flash.trackingUrl && (
+                  <div className="mt-3 md:mt-0">
+                    <a
+                      href={pedido.flash.trackingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition"
+                    >
+                      Ver repartidor en vivo →
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Información de seguimiento (si está disponible) */}
           {pedido.numeroSeguimiento && (
@@ -257,12 +366,10 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
                 </div>
                 <div className="mt-3 md:mt-0">
                   <a
-                    href="#"
-                    className="text-blue-700 hover:text-blue-900 text-sm font-medium"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      alert("Esta función estaría conectada con el proveedor de logística real");
-                    }}
+                    href={pedido.urlSeguimiento || `https://seguimiento.chilexpress.cl/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition"
                   >
                     Seguir envío →
                   </a>
@@ -311,13 +418,13 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">${producto.precio.toFixed(2)}</div>
+                          <div className="text-sm text-gray-900">${Math.round(producto.precio).toLocaleString('es-CL')}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{producto.cantidad}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">${(producto.precio * producto.cantidad).toFixed(2)}</div>
+                          <div className="text-sm text-gray-900">${Math.round(producto.precio * producto.cantidad).toLocaleString('es-CL')}</div>
                         </td>
                       </tr>
                     ))}
@@ -330,20 +437,24 @@ export default function DetallePedidoPage({ params }: { params: Promise<{ id: st
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Subtotal</span>
-                    <span className="text-sm text-gray-900">${pedido.subtotal.toFixed(2)}</span>
+                    <span className="text-sm text-gray-900">${Math.round(pedido.subtotal).toLocaleString('es-CL')}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Envío</span>
-                    <span className="text-sm text-gray-900">${pedido.envio.toFixed(2)}</span>
+                    <span className="text-sm text-gray-900">
+                      {pedido.envio > 0 ? `$${Math.round(pedido.envio).toLocaleString('es-CL')}` : 'Gratis'}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Impuestos</span>
-                    <span className="text-sm text-gray-900">${pedido.impuestos.toFixed(2)}</span>
-                  </div>
+                  {pedido.impuestos > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Impuestos</span>
+                      <span className="text-sm text-gray-900">${Math.round(pedido.impuestos).toLocaleString('es-CL')}</span>
+                    </div>
+                  )}
                   <div className="border-t border-gray-200 pt-2 mt-2">
                     <div className="flex justify-between font-medium">
                       <span className="text-base text-gray-900">Total</span>
-                      <span className="text-base text-gray-900">${pedido.total.toFixed(2)}</span>
+                      <span className="text-base text-gray-900 font-bold">${Math.round(pedido.total).toLocaleString('es-CL')}</span>
                     </div>
                   </div>
                 </div>

@@ -1,20 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireApiAdmin } from "@/lib/api-auth";
 import { supabaseServer } from "@/lib/supabase-server";
-
-function isAdmin(session: any) {
-  const role = session?.role || session?.user?.role;
-  return typeof role === "string" && role.toUpperCase().includes("ADMIN");
-}
-
-async function ensureAdmin() {
-  const session: any = await getServerSession(authOptions as any);
-  if (!session || !isAdmin(session)) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  }
-  return session;
-}
 
 export async function GET(
   req: Request,
@@ -58,8 +44,8 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await ensureAdmin();
-  if (session instanceof NextResponse) return session;
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
 
   const { id: supplierId } = await params;
   if (!supplierId) {
@@ -74,6 +60,10 @@ export async function PATCH(
     const payload: Record<string, any> = {};
 
     if (body?.name !== undefined) payload.name = String(body.name).trim();
+    // Vacío se guarda como NULL: el índice único de `rut` es parcial y dos
+    // proveedores informales con cadena vacía chocarían entre sí.
+    if (body?.rut !== undefined)
+      payload.rut = body.rut && String(body.rut).trim() ? String(body.rut).trim() : null;
     if (body?.contactName !== undefined)
       payload.contact_name = body.contactName
         ? String(body.contactName).trim()
@@ -133,8 +123,8 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await ensureAdmin();
-  if (session instanceof NextResponse) return session;
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
 
   const { id: supplierId } = await params;
   if (!supplierId) {

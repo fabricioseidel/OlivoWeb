@@ -71,7 +71,7 @@ export default function ResponsiveTable<T>({
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   className={
                     onRowClick
-                      ? "cursor-pointer hover:bg-emerald-50/40 transition-colors"
+                      ? "cursor-pointer hover:bg-brand-50/40 transition-colors"
                       : ""
                   }
                 >

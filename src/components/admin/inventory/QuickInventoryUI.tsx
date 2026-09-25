@@ -39,8 +39,8 @@ export default function QuickInventoryUI({ mode }: QuickInventoryUIProps) {
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#0a0a0a] text-white rounded-[2rem] overflow-hidden relative shadow-2xl">
       {/* Header */}
-      <div className={`p-6 sm:p-8 ${isSale ? "bg-red-950/20" : "bg-emerald-950/20"} border-b border-white/5 relative shrink-0`}>
-        <div className={`absolute top-0 right-0 w-64 h-64 ${isSale ? "bg-red-500/10" : "bg-emerald-500/10"} rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none`} />
+      <div className={`p-6 sm:p-8 ${isSale ? "bg-red-950/20" : "bg-brand-950/20"} border-b border-white/5 relative shrink-0`}>
+        <div className={`absolute top-0 right-0 w-64 h-64 ${isSale ? "bg-red-500/10" : "bg-brand-500/10"} rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none`} />
         
         <div className="flex justify-between items-start relative z-10">
           <div>
@@ -68,13 +68,13 @@ export default function QuickInventoryUI({ mode }: QuickInventoryUIProps) {
         
         {/* Messages */}
         {success && (
-          <div className="bg-emerald-500/10 border border-emerald-500/50 p-4 sm:p-6 rounded-[2rem] flex items-center gap-4 shrink-0 animate-in zoom-in-95">
-            <div className="p-3 bg-emerald-500 rounded-2xl text-black shrink-0">
+          <div className="bg-brand-500/10 border border-brand-500/50 p-4 sm:p-6 rounded-[2rem] flex items-center gap-4 shrink-0 animate-in zoom-in-95">
+            <div className="p-3 bg-brand-500 rounded-2xl text-black shrink-0">
               <CheckCircleIcon className="w-6 h-6 sm:w-8 sm:h-8" />
             </div>
             <div>
-              <p className="text-base sm:text-lg font-black uppercase tracking-tight text-emerald-400">Éxito</p>
-              <p className="text-sm text-emerald-100/70">{success}</p>
+              <p className="text-base sm:text-lg font-black uppercase tracking-tight text-brand-400">Éxito</p>
+              <p className="text-sm text-brand-100/70">{success}</p>
             </div>
           </div>
         )}
@@ -180,7 +180,7 @@ export default function QuickInventoryUI({ mode }: QuickInventoryUIProps) {
             className={`flex-1 h-16 sm:h-20 rounded-[2rem] flex items-center justify-center gap-3 text-sm sm:text-lg font-black uppercase tracking-widest shadow-2xl transition-all border-2 sm:border-4 border-black ${
               isSaving ? "bg-white/10 text-white/50" : 
               items.length === 0 ? "bg-white/5 text-white/20" : 
-              isSale ? "bg-red-500 text-white active:bg-red-600" : "bg-emerald-500 text-black active:bg-emerald-600"
+              isSale ? "bg-red-500 text-white active:bg-red-600" : "bg-brand-500 text-black active:bg-brand-600"
             }`}
           >
             {isSaving ? (

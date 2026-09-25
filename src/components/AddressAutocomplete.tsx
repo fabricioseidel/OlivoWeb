@@ -1,8 +1,14 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { MapPinIcon } from "@heroicons/react/24/outline";
-import { logger } from "@/utils/logger";
+
+import { componerLineaDeCalle, elegirComuna } from "@/lib/direccion";
+
+/** Identificador de sesión para el cobro por sesión de Google Places. */
+function nuevoToken(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `s-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 export type AddressResult = {
   formattedAddress: string;
@@ -31,67 +37,80 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
   const [providerFallback, setProviderFallback] = useState(false);
   const [suggestions, setSuggestions] = useState<Array<any>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isLocating, setIsLocating] = useState(false);
   const debounceRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  /**
+   * Token de la sesión de tipeo, para el cobro de Google.
+   *
+   * Google factura el autocompletado **por sesión** —todo lo que el cliente
+   * escribe más el detalle del lugar que elige— siempre que las llamadas
+   * lleguen con el mismo token. Sin token, cada tecla es un cobro aparte. El
+   * token se renueva al elegir una dirección: ahí se cierra la sesión.
+   */
+  const sessionRef = useRef<string>("");
+  const sessionToken = () => {
+    if (!sessionRef.current) sessionRef.current = nuevoToken();
+    return sessionRef.current;
+  };
 
   const onChangeRef = useRef(onChange);
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
+  /**
+   * Al desmontar hay que cancelar las dos cosas: el temporizador pendiente y la
+   * búsqueda en vuelo.
+   *
+   * Sin esto, quien escribe su dirección y sale del checkout antes de que
+   * termine la búsqueda deja un temporizador que dispara sobre un componente
+   * que ya no existe, con la petición corriendo igual.
+   */
   useEffect(() => {
-    // Google Maps initialization removed for cost reasons.
-    return () => {};
-  }, [country]); 
-
-  const handleCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocalización no soportada por tu navegador");
-      return;
-    }
-
-    setIsLocating(true);
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { latitude, longitude } = position.coords;
-        // Google Geocoder disabled for cost reasons. 
-        setIsLocating(false);
-        alert("Geolocalización inversa (Google) desactivada por costos. Por favor busca tu dirección manualmente.");
-      },
-      (error) => {
-        logger.error("Error getting location", error);
-        setIsLocating(false);
-        let msg = "No se pudo obtener tu ubicación.";
-        if (error.code === 1) msg += " Permiso denegado.";
-        else if (error.code === 2) msg += " Ubicación no disponible.";
-        else if (error.code === 3) msg += " Tiempo de espera agotado.";
-        alert(msg);
-      }
-    );
-  };
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      abortRef.current?.abort();
+    };
+  }, []);
 
   const doNominatimSearch = useCallback(
     (q: string) => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      // Lo que ya estaba buscando dejó de importar: la consulta cambió.
+      abortRef.current?.abort();
+
       if (!q || q.trim().length < 3) {
         setSuggestions([]);
         setShowSuggestions(false);
         return;
       }
 
-      if (debounceRef.current) window.clearTimeout(debounceRef.current);
       debounceRef.current = window.setTimeout(async () => {
+        const control = new AbortController();
+        abortRef.current = control;
+
         try {
           const url = new URL("/api/address/search", window.location.origin);
           url.searchParams.set("q", q);
           url.searchParams.set("country", country.toLowerCase());
+          url.searchParams.set("session", sessionToken());
 
-          const res = await fetch(url.toString());
+          const res = await fetch(url.toString(), { signal: control.signal });
           if (!res.ok) throw new Error("Search failed");
           const data = await res.json();
+
+          // Mientras se esperaba la respuesta el usuario pudo seguir escribiendo.
+          // Sin esta guarda, una búsqueda vieja que llega tarde pisa los
+          // resultados de la nueva y le muestra sugerencias de lo que ya borró.
+          if (control.signal.aborted) return;
+
           setSuggestions(data || []);
           setShowSuggestions(true);
           setProviderFallback(false);
         } catch (e) {
+          // Cancelar a propósito no es una caída del servicio: avisarlo pondría
+          // el aviso de "escribe la dirección a mano" en cada tecla.
+          if (control.signal.aborted) return;
+
           console.warn("AddressAutocomplete: search error", e);
           setProviderFallback(true);
           setSuggestions([]);
@@ -103,11 +122,43 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
   );
 
   const handleSelectSuggestion = async (item: any) => {
-    const formatted = item.display_name || "";
+    const escrito = typeof value === "string" ? value : "";
+
+    // Las predicciones de Google traen sólo texto: la comuna y las coordenadas
+    // se piden acá, una sola vez, recién cuando el cliente ya eligió. El mismo
+    // token cierra la sesión de cobro que abrió el autocompletado.
+    let elegido = item;
+    if (item?.necesitaDetalle && item?.place_id) {
+      try {
+        const url = new URL("/api/address/details", window.location.origin);
+        url.searchParams.set("placeId", String(item.place_id));
+        url.searchParams.set("session", sessionToken());
+        const res = await fetch(url.toString());
+        if (res.ok) elegido = await res.json();
+      } catch (e) {
+        // Sin detalle se sigue con el texto de la predicción: el cliente
+        // completa comuna y ciudad a mano, que es mejor que perder lo escrito.
+        console.warn("AddressAutocomplete: detalle no disponible", e);
+      }
+    }
+    // La sesión termina con la elección, valga o no el detalle.
+    sessionRef.current = "";
+    item = elegido;
+    // OpenStreetMap casi no tiene numeración de calles en Chile: la sugerencia
+    // es la calle completa. Guardar su `display_name` tal cual borraba el
+    // número que el cliente acababa de escribir y dejaba la dirección de
+    // entrega sin altura.
+    const { linea: formatted, numero } = componerLineaDeCalle(item, escrito);
     const addr = item.address || {};
     const street = addr.road || addr.pedestrian || addr.street || null;
-    const streetNumber = addr.house_number || null;
-    const city = addr.city || addr.town || addr.village || addr.county || null;
+    const streetNumber = numero;
+    // La comuna no sale de `city`. En el Gran Santiago, OpenStreetMap pone ahí
+    // la ciudad —"Santiago"— y la comuna queda en `municipality`,
+    // `city_district` o `suburb`, según la dirección. Leer sólo `city` hacía
+    // que toda dirección de Ñuñoa, Macul o Peñalolén se guardara como
+    // "Santiago", y así se le mandaba a Uber y quedaba en el pedido.
+    const comuna = elegirComuna(addr);
+    const city = comuna.nombre;
     const state = addr.state || addr.region || null;
     const postal = addr.postcode || null;
     const countryComp = addr.country || null;
@@ -137,23 +188,10 @@ export default function AddressAutocomplete({ id, name, value = "", onChange, pl
             if (v && v.length >= 3) doNominatimSearch(v);
           }}
           placeholder={placeholder}
-          className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
           aria-autocomplete="list"
           required={required}
         />
-        <button
-          type="button"
-          onClick={handleCurrentLocation}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-blue-600 rounded-full hover:bg-blue-50 transition-colors"
-          title="Usar mi ubicación actual"
-        >
-          {isLocating ? (
-            <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full" />
-          ) : (
-            <MapPinIcon className="h-5 w-5" />
-          )}
-        </button>
-
         {showSuggestions && suggestions.length > 0 && (
           <ul className="absolute z-40 left-0 right-0 bg-white border border-slate-200 rounded mt-1 max-h-56 overflow-auto">
             {suggestions.map((s, idx) => (

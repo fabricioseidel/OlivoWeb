@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { ArrowLeft, Upload, File, Trash2, Check, X } from "lucide-react";
-import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { use } from "react";
 import { StatusBadge } from "@/components/admin/shell";
+import { type SupplierOrderChannel } from "@/lib/admin/statusMap";
+import RevisionPanel from "@/components/admin/reabastecimiento/RevisionPanel";
 
 interface SupplierOrder {
   id: string;
@@ -17,6 +18,8 @@ interface SupplierOrder {
   expected_date: string;
   delivered_date: string | null;
   status: string;
+  /** Por dónde salió el pedido. Independiente del estado. */
+  channel?: SupplierOrderChannel | null;
   payment_status: string;
   total: number;
   paid_amount: number;
@@ -183,50 +186,6 @@ export default function SupplierOrderDetailPage({
     }
   };
 
-  const generateWhatsAppMessage = () => {
-    if (!order) return '';
-
-    let message = `🛒 *Pedido #${order.id.slice(0, 8)}*\n\n`;
-    message += `📅 Fecha esperada: ${new Date(order.expected_date).toLocaleDateString()}\n\n`;
-    message += `*Productos:*\n`;
-
-    order.items.forEach((item, index) => {
-      message += `${index + 1}. ${item.product_name}\n`;
-      message += `   • Código: ${item.product_sku}\n`;
-      message += `   • Cantidad: ${item.quantity}\n`;
-      message += `   • Precio unit.: $${item.unit_cost.toFixed(2)} (aprox.)\n`;
-      message += `   • Subtotal: $${item.subtotal.toFixed(2)}\n\n`;
-    });
-
-    message += `💰 *Total aproximado: $${order.total.toFixed(2)}*\n`;
-
-    if (order.notes) {
-      message += `\n📝 Notas:\n${order.notes}`;
-    }
-
-    return message;
-  };
-
-  const sendWhatsApp = async () => {
-    if (!order) return;
-
-    const message = generateWhatsAppMessage();
-    const phone = (order.supplier_whatsapp || order.supplier_phone || '').replace(/\D/g, '');
-
-    if (!phone) {
-      alert('Este proveedor no tiene WhatsApp configurado');
-      return;
-    }
-
-    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-
-    // Cambiar estado a "enviado_por_whatsapp" si está en "pendiente" o "confirmado"
-    if (order.status === 'pendiente' || order.status === 'confirmado') {
-      await updateStatus('enviado_por_whatsapp');
-    }
-  };
-
   const markAsPaid = async () => {
     if (!order) return;
 
@@ -314,7 +273,7 @@ export default function SupplierOrderDetailPage({
           <div className="flex gap-2 shrink-0">
             <button
               onClick={() => updateStatus('pendiente')}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold"
+              className="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold"
             >
               Confirmar borrador
             </button>
@@ -328,48 +287,26 @@ export default function SupplierOrderDetailPage({
         </div>
       )}
 
-      {/* Gestión del Pedido — visible solo en estados pre-recepción */}
+      {/* Revisión y salida — antes esto era un único botón de WhatsApp, que
+          mandaba el pedido tal como lo generó el motor y sin dejar registro de
+          por dónde había salido. */}
       {canManage && (
         <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-5 sm:p-6 mb-6">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div>
-              <h2 className="text-base font-bold text-gray-900">
-                ¿Cómo procesamos este pedido?
-              </h2>
-              <p className="text-sm text-gray-500 mt-0.5">
-                Marcalo como gestionado cuando ya contactaste al proveedor.
-              </p>
-            </div>
-          </div>
+          <RevisionPanel orderId={orderId} onEnviado={fetchOrder} />
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-5 border-t border-gray-100 pt-4">
             <button
               type="button"
               onClick={() => updateStatus("gestionado")}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition active:scale-[0.98] min-h-[44px]"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white ring-1 ring-gray-200 hover:ring-brand-300 hover:text-brand-700 text-gray-700 text-sm font-bold transition active:scale-[0.98] min-h-[44px]"
             >
               <Check className="h-4 w-4" />
               Marcar como gestionado
             </button>
-
-            <button
-              type="button"
-              onClick={sendWhatsApp}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white ring-1 ring-gray-200 hover:ring-emerald-300 hover:text-emerald-700 text-gray-700 text-sm font-bold transition active:scale-[0.98] min-h-[44px]"
-            >
-              <ChatBubbleLeftRightIcon className="h-4 w-4" />
-              {order.status === "enviado_por_whatsapp"
-                ? "Reabrir WhatsApp"
-                : "Enviar por WhatsApp"}
-            </button>
-          </div>
-
-          {order.status === "enviado_por_whatsapp" && (
-            <p className="mt-3 text-xs text-purple-700 bg-purple-50 ring-1 ring-purple-200 rounded-lg px-3 py-2">
-              Pedido enviado por WhatsApp. Marcalo como gestionado cuando el
-              proveedor confirme.
+            <p className="mt-2 text-xs text-gray-500">
+              Para pedidos que se resolvieron por fuera del sistema.
             </p>
-          )}
+          </div>
         </div>
       )}
 
@@ -390,7 +327,7 @@ export default function SupplierOrderDetailPage({
                       <div className="text-[10px] text-gray-400 font-mono uppercase tracking-wider">{item.product_sku}</div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-sm font-black text-emerald-600">${item.subtotal.toFixed(2)}</div>
+                      <div className="text-sm font-black text-brand-600">${item.subtotal.toFixed(2)}</div>
                       <div className="text-[10px] text-gray-400 uppercase font-bold">Subtotal</div>
                     </div>
                   </div>
@@ -407,9 +344,9 @@ export default function SupplierOrderDetailPage({
                   </div>
                 </div>
               ))}
-              <div className="bg-emerald-50 rounded-lg p-4 flex justify-between items-center border border-emerald-100 mt-4">
-                <span className="text-sm font-bold text-emerald-800 uppercase tracking-wider">Total Pedido:</span>
-                <span className="text-lg font-black text-emerald-900">${order.total.toFixed(2)}</span>
+              <div className="bg-brand-50 rounded-lg p-4 flex justify-between items-center border border-brand-100 mt-4">
+                <span className="text-sm font-bold text-brand-800 uppercase tracking-wider">Total Pedido:</span>
+                <span className="text-lg font-black text-brand-900">${order.total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -603,7 +540,7 @@ export default function SupplierOrderDetailPage({
                   <div>
                     <button
                       onClick={() => updateStatus('recibido')}
-                      className="w-full px-4 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.98]"
+                      className="w-full px-4 py-3 bg-brand-600 text-white font-bold rounded-lg hover:bg-brand-700 flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.98]"
                     >
                       <Check className="h-5 w-5" />
                       Marcar como Recibido

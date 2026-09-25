@@ -118,12 +118,12 @@ export default function AdminAnalytics({ orders, products, posSales, insights, l
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
-        <StatCard title="Ventas Hoy" value={metrics.todaySales} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} color="emerald" helper="Web + POS" />
+        <StatCard title="Ventas Hoy" value={metrics.todaySales} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} color="brand" helper="Web + POS" />
         <StatCard title="Ingresos" value={`$ ${metrics.grossRevenue.toLocaleString('es-CL')}`} icon={<ArrowUpIcon className="h-6 w-6" />} color="blue" helper="Suma Total" />
         <StatCard title="Transf. Pendientes" value={metrics.pendingTransfers} icon={<CurrencyDollarIcon className="h-6 w-6" />} color="rose" helper="Revisión pendiente" />
         <StatCard title="Ticket Medio" value={`$ ${metrics.avgOrder.toLocaleString('es-CL')}`} icon={<ArrowDownIcon className="h-6 w-6" />} color="teal" helper="Promedio web" />
         <StatCard title="Items Vendidos" value={metrics.itemsSold} icon={<Squares2X2Icon className="h-6 w-6" />} color="indigo" helper="Unidades totales" />
-        <StatCard title="Vistas" value={metrics.totalViews} icon={<EyeIcon className="h-6 w-6" />} color="emerald" helper="Visitas a productos" />
+        <StatCard title="Vistas" value={metrics.totalViews} icon={<EyeIcon className="h-6 w-6" />} color="brand" helper="Visitas a productos" />
         <StatCard title="Conversión" value={`${metrics.intentConversion.toFixed(1)}%`} icon={<ArrowTrendingUpIcon className="h-6 w-6" />} color="amber" helper="Intentos vs Pedidos" />
         <StatCard title="Bajo Stock" value={metrics.lowStock} icon={<Squares2X2Icon className="h-6 w-6" />} color="rose" helper="Menos de 5 unids." />
       </div>
@@ -205,10 +205,10 @@ export default function AdminAnalytics({ orders, products, posSales, insights, l
   );
 }
 
-interface StatCardProps { title: string; value: string | number; icon: React.ReactNode; color: 'emerald' | 'blue' | 'indigo' | 'amber' | 'rose' | 'teal'; helper?: string; }
+interface StatCardProps { title: string; value: string | number; icon: React.ReactNode; color: 'brand' | 'blue' | 'indigo' | 'amber' | 'rose' | 'teal'; helper?: string; }
 function StatCard({ title, value, icon, color, helper }: StatCardProps) {
-  const colorMap = { emerald: "bg-emerald-50 text-emerald-600 border-emerald-100", blue: "bg-blue-50 text-blue-600 border-blue-100", indigo: "bg-indigo-50 text-indigo-600 border-indigo-100", amber: "bg-amber-50 text-amber-600 border-amber-100", rose: "bg-rose-50 text-red-600 border-red-100", teal: "bg-teal-50 text-teal-600 border-teal-100" };
-  const iconBgMap = { emerald: "bg-emerald-600 shadow-emerald-200", blue: "bg-blue-600 shadow-blue-200", indigo: "bg-indigo-600 shadow-indigo-200", amber: "bg-amber-600 shadow-amber-200", rose: "bg-rose-600 shadow-red-200", teal: "bg-teal-600 shadow-teal-200" };
+  const colorMap = { brand: "bg-brand-50 text-brand-600 border-brand-100", blue: "bg-blue-50 text-blue-600 border-blue-100", indigo: "bg-indigo-50 text-indigo-600 border-indigo-100", amber: "bg-amber-50 text-amber-600 border-amber-100", rose: "bg-rose-50 text-red-600 border-red-100", teal: "bg-teal-50 text-teal-600 border-teal-100" };
+  const iconBgMap = { brand: "bg-brand-600 shadow-brand-200", blue: "bg-blue-600 shadow-blue-200", indigo: "bg-indigo-600 shadow-indigo-200", amber: "bg-amber-600 shadow-amber-200", rose: "bg-rose-600 shadow-red-200", teal: "bg-teal-600 shadow-teal-200" };
   return (
     <div className="p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 group relative overflow-hidden">
       <div className={`absolute top-0 right-0 w-24 h-24 ${colorMap[color].split(' ')[0]} rounded-full blur-3xl opacity-50 -mr-12 -mt-12 group-hover:opacity-100 transition-opacity`} />
@@ -239,7 +239,7 @@ function MetricTable({ title, rows, headerValor, headerExtra }: MetricTableProps
             <div className="flex justify-between items-start gap-2">
               <span className="text-sm font-bold text-gray-900 line-clamp-2 flex-1">{r.nombre}</span>
               <div className="flex flex-col items-end shrink-0">
-                <span className="text-xs font-black text-emerald-600">{r.valor}</span>
+                <span className="text-xs font-black text-brand-600">{r.valor}</span>
                 <span className="text-[10px] text-gray-400 uppercase font-bold">{headerValor}</span>
               </div>
             </div>

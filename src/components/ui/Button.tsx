@@ -33,14 +33,16 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       lg: 'px-7 py-3.5 text-lg',
     };
 
-    // Tokens del tema: configurables desde Admin → Apariencia (SettingsInjector)
+    // Tokens del tema: configurables desde Admin → Apariencia (SettingsInjector).
+    // `brand-boton` y `brand-texto` no son el color elegido tal cual: son el
+    // tono más cercano que aguanta contraste AA. Ver src/lib/brand-palette.ts.
     const variantStyles = {
       primary:
-        'bg-primary text-white hover:bg-primary-hover focus:ring-primary shadow-sm hover:shadow-md',
+        'bg-brand-boton text-brand-contraste hover:bg-brand-700 focus:ring-brand-600 shadow-sm hover:shadow-md',
       secondary:
         'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 shadow-sm hover:shadow-md',
       outline:
-        'bg-transparent border-2 border-primary text-primary hover:bg-primary-soft focus:ring-primary',
+        'bg-transparent border-2 border-brand-texto text-brand-texto hover:bg-brand-50 focus:ring-brand-600',
       danger:
         'bg-error text-white hover:bg-red-700 focus:ring-error shadow-sm hover:shadow-md',
       ghost:

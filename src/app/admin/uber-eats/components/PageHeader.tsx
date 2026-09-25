@@ -58,7 +58,7 @@ export default function PageHeader({
   productModifications,
 }: PageHeaderProps) {
   return (
-    <div className="bg-gradient-to-r from-emerald-600 to-green-600 rounded-xl p-6 text-white">
+    <div className="bg-gradient-to-r from-brand-600 to-green-600 rounded-xl p-6 text-white">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -66,7 +66,7 @@ export default function PageHeader({
             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Uber_Eats_2020_logo.svg/1200px-Uber_Eats_2020_logo.svg.png" alt="Uber Eats" className="h-8" />
             Exportar a Uber Eats
           </h1>
-          <p className="text-emerald-100 mt-1">
+          <p className="text-brand-100 mt-1">
             Prepara tu catálogo de productos para subir a Uber Eats Grocery
           </p>
         </div>
@@ -182,7 +182,7 @@ export default function PageHeader({
           {/* Menú desplegable de exportación */}
           <div className="relative group">
             <button
-              className="px-4 py-2 bg-white text-emerald-700 hover:bg-emerald-50 rounded-lg flex items-center gap-2 font-semibold transition"
+              className="px-4 py-2 bg-white text-brand-700 hover:bg-brand-50 rounded-lg flex items-center gap-2 font-semibold transition"
             >
               <ArrowDownTrayIcon className="w-5 h-5" />
               Exportar CSV ▼
@@ -191,7 +191,7 @@ export default function PageHeader({
               <button
                 onClick={exportToCSV}
                 disabled={exporting || stats.exportSelectedValid === 0}
-                className="w-full px-4 py-3 text-left text-sm hover:bg-emerald-50 flex items-center gap-2 disabled:opacity-50 border-b"
+                className="w-full px-4 py-3 text-left text-sm hover:bg-brand-50 flex items-center gap-2 disabled:opacity-50 border-b"
               >
                 <span className="text-lg">🍔</span>
                 <div>

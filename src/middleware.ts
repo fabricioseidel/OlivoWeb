@@ -55,8 +55,13 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/admin",
-    "/dashboard/:path*",
-    "/dashboard",
+    // App de operaciones del teléfono: mismo control de acceso que el admin
+    "/operaciones/:path*",
+    "/operaciones",
+    // Alias público que reexporta el panel de admin de Uber Eats — sin esto
+    // quedaba sin protección de sesión (ver plan de remediación P0-2).
+    "/uber-eats-editor/:path*",
+    "/uber-eats-editor",
     "/api/admin/:path*",
   ],
 };

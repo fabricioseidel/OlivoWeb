@@ -3,7 +3,8 @@
 import { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue } from "react";
 import { useProducts } from "@/contexts/ProductContext";
 import { useCategories } from "@/contexts/CategoryContext";
-import { hasRealImage } from "@/services/products";
+import { hasRealImage, renameProductBarcode, saveProductsBulk } from "@/services/products";
+import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
 import { useToast } from "@/contexts/ToastContext";
 import { read, utils } from "xlsx";
 import {
@@ -11,14 +12,28 @@ import {
   MAX_BACKUPS,
   PAGE_SIZE,
   VIEW_KEY,
+  SORT_KEY,
   addBackup,
   createBackup,
   isProductReady,
+  getProductDiagnostics,
   loadBackups,
+  loadDismissedDuplicates,
   normalizeHeader,
   saveBackups,
+  saveDismissedDuplicates,
+  buildMergePlan,
+  findDuplicateGroups,
+  getPublishPriority,
+  getStock,
+  getVerifiedAt,
+  isRecentlyCounted,
   type Backup,
+  type DuplicateGroup,
   type ProductChanges,
+  type SortPriority,
+  type CompletenessTab,
+  type SpecificFilter,
 } from "./lib";
 import PageHeader from "./components/PageHeader";
 import HistoryPanel from "./components/HistoryPanel";
@@ -27,9 +42,10 @@ import SelectionToolbar from "./components/SelectionToolbar";
 import ProductTable from "./components/ProductTable";
 import ProductCardsGrid from "./components/ProductCardsGrid";
 import MobileSaveBar from "./components/MobileSaveBar";
+import DuplicatesPanel from "./components/DuplicatesPanel";
 
 export default function BulkEditProductsPage() {
-  const { products, updateProductsBulk } = useProducts();
+  const { products, updateProductsBulk, refresh } = useProducts();
   const { categories: allCategories } = useCategories();
   const { showToast } = useToast();
 
@@ -38,7 +54,9 @@ export default function BulkEditProductsPage() {
   const [editedChanges, setEditedChanges] = useState<Record<string, ProductChanges>>({});
   const [filterLowStock, setFilterLowStock] = useState(false);
   const [filterWithImage, setFilterWithImage] = useState(false);
-  const [filterReady, setFilterReady] = useState<"all" | "ready" | "pending">("all");
+  const [sortPriority, setSortPriority] = useState<SortPriority>("stock_real");
+  const [completenessTab, setCompletenessTab] = useState<CompletenessTab>("all");
+  const [specificFilter, setSpecificFilter] = useState<SpecificFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -46,6 +64,8 @@ export default function BulkEditProductsPage() {
   const [bulkCategory, setBulkCategory] = useState("");
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showDuplicates, setShowDuplicates] = useState(false);
+  const [dismissedDuplicates, setDismissedDuplicates] = useState<Set<string>>(new Set());
   const [backups, setBackups] = useState<Backup[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,8 +77,11 @@ export default function BulkEditProductsPage() {
 
   useEffect(() => {
     setBackups(loadBackups());
+    setDismissedDuplicates(loadDismissedDuplicates());
     const v = localStorage.getItem(VIEW_KEY);
     if (v === "cards" || v === "table") setViewMode(v);
+    const s = localStorage.getItem(SORT_KEY) as SortPriority;
+    if (s) setSortPriority(s);
   }, []);
 
   const changeViewMode = (v: "table" | "cards") => {
@@ -66,31 +89,201 @@ export default function BulkEditProductsPage() {
     localStorage.setItem(VIEW_KEY, v);
   };
 
+  const changeSortPriority = (s: SortPriority) => {
+    setSortPriority(s);
+    localStorage.setItem(SORT_KEY, s);
+  };
+
   const deferredSearch = useDeferredValue(searchTerm);
+
+  // Los posibles duplicados se calculan sobre el catálogo entero, no sobre lo
+  // filtrado: un duplicado sólo se ve comparando las dos filas, y casi siempre
+  // una de ellas está fuera del filtro con el que se está trabajando.
+  const duplicateGroups = useMemo(() => findDuplicateGroups(localProducts), [localProducts]);
+
+  // Los grupos ya revisados ("no son el mismo") o ya unificados salen de la
+  // cuenta: lo que queda es trabajo pendiente de verdad.
+  const pendingDuplicateGroups = useMemo(
+    () => duplicateGroups.filter((g) => !dismissedDuplicates.has(g.id)),
+    [duplicateGroups, dismissedDuplicates]
+  );
+
+  const duplicateIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const g of pendingDuplicateGroups) {
+      ids.add(String(g.keeper.id));
+      for (const o of g.others) ids.add(String(o.id));
+    }
+    return ids;
+  }, [pendingDuplicateGroups]);
+
+  // Conteo dinámico de productos por estado de preparación y faltantes específicos
+  const { tabCounts, missingCounts } = useMemo(() => {
+    const tc = { all: localProducts.length, missing_1: 0, missing_2: 0, missing_3_plus: 0, ready: 0 };
+    const mc = {
+      with_stock: 0,
+      counted: 0,
+      counted_today: 0,
+      uncounted: 0,
+      duplicates: duplicateIds.size,
+      missing_photo: 0,
+      missing_price: 0,
+      missing_stock: 0,
+      missing_cost: 0,
+      missing_category: 0,
+      missing_barcode: 0,
+      inactive: 0,
+    };
+
+    const ahora = Date.now();
+
+    for (const p of localProducts) {
+      const diag = getProductDiagnostics(p, editedChanges[p.id]);
+      if (diag.isReady) tc.ready++;
+      else if (diag.missingCount === 1) tc.missing_1++;
+      else if (diag.missingCount === 2) tc.missing_2++;
+      else tc.missing_3_plus++;
+
+      if (getStock(p, editedChanges[p.id]) > 0) mc.with_stock++;
+      if (getVerifiedAt(p) !== null) mc.counted++;
+      else mc.uncounted++;
+      if (isRecentlyCounted(p, ahora)) mc.counted_today++;
+
+      if (!diag.hasImage) mc.missing_photo++;
+      if (!diag.hasPrice) mc.missing_price++;
+      if (!diag.hasStock) mc.missing_stock++;
+      if (!diag.hasCost) mc.missing_cost++;
+      if (!diag.hasCategories) mc.missing_category++;
+      if (!diag.hasBarcode) mc.missing_barcode++;
+      if (!diag.isActive) mc.inactive++;
+    }
+
+    return { tabCounts: tc, missingCounts: mc };
+  }, [localProducts, editedChanges, duplicateIds]);
 
   const filteredProducts = useMemo(() => {
     const term = deferredSearch.toLowerCase();
     const catFilter = categoryFilter.toLowerCase();
+    const ahora = Date.now();
     const result = localProducts.filter((p) => {
+      const diag = getProductDiagnostics(p, editedChanges[p.id]);
+
       const matchesSearch =
         p.name.toLowerCase().includes(term) ||
         p.id?.toLowerCase().includes(term) ||
         p.barcode?.toLowerCase().includes(term);
-      const matchesLowStock = filterLowStock ? p.stock <= 5 : true;
-      const matchesImage = filterWithImage ? hasRealImage(p) : true;
-      const matchesCategory = catFilter
-        ? (p.categories || []).some((c: string) => c.toLowerCase() === catFilter)
-        : true;
-      // Se evalúa sobre los datos guardados (sin cambios pendientes) para que
-      // las filas no salten de grupo mientras se escribe; se reagrupa al guardar.
-      const ready = isProductReady(p);
-      const matchesReady =
-        filterReady === "all" ? true : filterReady === "ready" ? ready : !ready;
-      return matchesSearch && matchesLowStock && matchesImage && matchesCategory && matchesReady;
+      if (!matchesSearch) return false;
+
+      const pStock = editedChanges[p.id]?.stock ?? p.stock;
+      if (filterLowStock && pStock > 5) return false;
+      if (filterWithImage && !diag.hasImage) return false;
+
+      if (catFilter) {
+        const pCats = editedChanges[p.id]?.categories ?? p.categories ?? [];
+        if (!pCats.some((c: string) => c.toLowerCase() === catFilter)) return false;
+      }
+
+      // Pestaña de completitud
+      if (completenessTab === "missing_1" && diag.missingCount !== 1) return false;
+      if (completenessTab === "missing_2" && diag.missingCount !== 2) return false;
+      if (completenessTab === "missing_3_plus" && diag.missingCount < 3) return false;
+      if (completenessTab === "ready" && !diag.isReady) return false;
+
+      // Filtro por stock real y por lo que ya pasó por el conteo físico
+      if (specificFilter === "with_stock" && getStock(p, editedChanges[p.id]) <= 0) return false;
+      if (specificFilter === "counted" && getVerifiedAt(p) === null) return false;
+      if (specificFilter === "counted_today" && !isRecentlyCounted(p, ahora)) return false;
+      if (specificFilter === "uncounted" && getVerifiedAt(p) !== null) return false;
+      if (specificFilter === "duplicates" && !duplicateIds.has(String(p.id))) return false;
+
+      // Filtro específico por faltante
+      if (specificFilter === "missing_photo" && diag.hasImage) return false;
+      if (specificFilter === "missing_price" && diag.hasPrice) return false;
+      if (specificFilter === "missing_stock" && diag.hasStock) return false;
+      if (specificFilter === "missing_cost" && diag.hasCost) return false;
+      if (specificFilter === "missing_category" && diag.hasCategories) return false;
+      if (specificFilter === "missing_barcode" && diag.hasBarcode) return false;
+      if (specificFilter === "inactive" && diag.isActive) return false;
+
+      return true;
     });
-    // Agrupa: los productos listos para mostrar van primero
-    return result.sort((a, b) => (isProductReady(a) ? 0 : 1) - (isProductReady(b) ? 0 : 1));
-  }, [localProducts, deferredSearch, filterLowStock, filterWithImage, filterReady, categoryFilter]);
+
+    // Ordenamiento según prioridad seleccionada
+    return result.sort((a, b) => {
+      const diagA = getProductDiagnostics(a, editedChanges[a.id]);
+      const diagB = getProductDiagnostics(b, editedChanges[b.id]);
+
+      if (sortPriority === "stock_real") {
+        // Lo que hay de verdad, primero: contado y con stock. Dentro de cada
+        // tramo, los que están más cerca de poder publicarse.
+        const prioA = getPublishPriority(a, editedChanges[a.id]);
+        const prioB = getPublishPriority(b, editedChanges[b.id]);
+        if (prioA !== prioB) return prioA - prioB;
+        const faltaA = diagA.isReady ? -1 : diagA.missingCount;
+        const faltaB = diagB.isReady ? -1 : diagB.missingCount;
+        if (faltaA !== faltaB) return faltaA - faltaB;
+        const stockA = getStock(a, editedChanges[a.id]);
+        const stockB = getStock(b, editedChanges[b.id]);
+        if (stockA !== stockB) return stockB - stockA;
+        return a.name.localeCompare(b.name);
+      }
+      if (sortPriority === "near_ready") {
+        // Casi listos primero: 1 faltante, luego 2, luego 3... y al final los que ya están listos
+        const scoreA = diagA.isReady ? 999 : diagA.missingCount;
+        const scoreB = diagB.isReady ? 999 : diagB.missingCount;
+        if (scoreA !== scoreB) return scoreA - scoreB;
+        return a.name.localeCompare(b.name);
+      }
+      if (sortPriority === "most_incomplete") {
+        const scoreA = diagA.isReady ? -1 : diagA.missingCount;
+        const scoreB = diagB.isReady ? -1 : diagB.missingCount;
+        if (scoreA !== scoreB) return scoreB - scoreA;
+        return a.name.localeCompare(b.name);
+      }
+      if (sortPriority === "ready_first") {
+        return (diagB.isReady ? 1 : 0) - (diagA.isReady ? 1 : 0);
+      }
+      if (sortPriority === "name_asc") {
+        return a.name.localeCompare(b.name);
+      }
+      if (sortPriority === "name_desc") {
+        return b.name.localeCompare(a.name);
+      }
+      if (sortPriority === "stock_asc") {
+        const sA = editedChanges[a.id]?.stock ?? a.stock ?? 0;
+        const sB = editedChanges[b.id]?.stock ?? b.stock ?? 0;
+        return sA - sB;
+      }
+      if (sortPriority === "stock_desc") {
+        const sA = editedChanges[a.id]?.stock ?? a.stock ?? 0;
+        const sB = editedChanges[b.id]?.stock ?? b.stock ?? 0;
+        if (sA !== sB) return sB - sA;
+        return a.name.localeCompare(b.name);
+      }
+      if (sortPriority === "price_asc") {
+        const pA = editedChanges[a.id]?.price ?? a.price ?? 0;
+        const pB = editedChanges[b.id]?.price ?? b.price ?? 0;
+        return pA - pB;
+      }
+      if (sortPriority === "price_desc") {
+        const pA = editedChanges[a.id]?.price ?? a.price ?? 0;
+        const pB = editedChanges[b.id]?.price ?? b.price ?? 0;
+        return pB - pA;
+      }
+      return 0;
+    });
+  }, [
+    localProducts,
+    deferredSearch,
+    filterLowStock,
+    filterWithImage,
+    categoryFilter,
+    completenessTab,
+    specificFilter,
+    sortPriority,
+    editedChanges,
+    duplicateIds,
+  ]);
 
   const visibleProducts = useMemo(
     () => filteredProducts.slice(0, visibleCount),
@@ -99,12 +292,7 @@ export default function BulkEditProductsPage() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [deferredSearch, filterLowStock, filterWithImage, filterReady, categoryFilter, viewMode]);
-
-  const readyCount = useMemo(
-    () => localProducts.filter((p) => isProductReady(p, editedChanges[p.id])).length,
-    [localProducts, editedChanges]
-  );
+  }, [deferredSearch, filterLowStock, filterWithImage, completenessTab, specificFilter, categoryFilter, sortPriority, viewMode]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -134,12 +322,24 @@ export default function BulkEditProductsPage() {
     } else if (field === "offerPrice") {
       newValue = value === "" ? null : parseFloat(value as string);
       originalValue = originalProduct?.offerPrice;
+    } else if (field === "purchasePrice") {
+      newValue = value === "" ? 0 : parseFloat(value as string);
+      originalValue = originalProduct?.purchasePrice ?? 0;
+    } else if (field === "isActive") {
+      newValue = Boolean(value);
+      originalValue = originalProduct?.isActive !== false;
+    } else if (field === "image") {
+      newValue = value as string;
+      originalValue = originalProduct?.image;
     } else if (field === "stock" || field === "minStock" || field === "optimumStock") {
       newValue = parseInt(value as string, 10);
       originalValue = field === "stock" ? originalProduct?.stock : field === "minStock" ? originalProduct?.minStock : originalProduct?.optimumStock;
     } else if (field === "name") {
       newValue = value;
       originalValue = originalProduct?.name;
+    } else if (field === "barcode") {
+      newValue = (value as string).trim();
+      originalValue = originalProduct?.barcode ?? "";
     } else if (field === "categories") {
       newValue = typeof value === "string" ? value.split(",").map((s) => s.trim()).filter(Boolean) : value;
       originalValue = originalProduct?.categories;
@@ -152,6 +352,7 @@ export default function BulkEditProductsPage() {
     if (
       isSame ||
       (field === "price" && isNaN(newValue)) ||
+      (field === "purchasePrice" && isNaN(newValue)) ||
       (field === "offerPrice" && isNaN(newValue) && newValue !== null) ||
       (["stock", "minStock", "optimumStock"].includes(field) && isNaN(newValue))
     ) {
@@ -180,16 +381,18 @@ export default function BulkEditProductsPage() {
   const getBulkTargets = () =>
     selectedIds.size > 0 ? filteredProducts.filter((p) => selectedIds.has(p.id)) : filteredProducts;
 
-  const applyBulkAdjustment = (type: "price_percent" | "price_fixed" | "stock_fixed", value: number) => {
+  const applyBulkAdjustment = (type: "price_percent" | "price_fixed" | "stock_fixed" | "cost_fixed", value: number) => {
     const newChanges = { ...editedChanges };
     const targets = getBulkTargets();
 
     targets.forEach((product) => {
       const currentPrice = newChanges[product.id]?.price ?? product.price;
       const currentStock = newChanges[product.id]?.stock ?? product.stock;
+      const currentCost = newChanges[product.id]?.purchasePrice ?? product.purchasePrice ?? 0;
 
       let nextPrice = currentPrice;
       let nextStock = currentStock;
+      let nextCost = currentCost;
 
       if (type === "price_percent") {
         nextPrice = Math.round(currentPrice * (1 + value / 100));
@@ -197,13 +400,20 @@ export default function BulkEditProductsPage() {
         nextPrice = currentPrice + value;
       } else if (type === "stock_fixed") {
         nextStock = value;
+      } else if (type === "cost_fixed") {
+        nextCost = value;
       }
 
-      if (nextPrice !== product.price || nextStock !== product.stock) {
+      const changedPrice = nextPrice !== product.price;
+      const changedStock = nextStock !== product.stock;
+      const changedCost = nextCost !== (product.purchasePrice ?? 0);
+
+      if (changedPrice || changedStock || changedCost) {
         newChanges[product.id] = {
           ...newChanges[product.id],
-          ...(nextPrice !== product.price ? { price: nextPrice } : {}),
-          ...(nextStock !== product.stock ? { stock: nextStock } : {}),
+          ...(changedPrice ? { price: nextPrice } : {}),
+          ...(changedStock ? { stock: nextStock } : {}),
+          ...(changedCost ? { purchasePrice: nextCost } : {}),
         };
       }
     });
@@ -212,6 +422,27 @@ export default function BulkEditProductsPage() {
     showToast(
       `Ajuste aplicado a ${targets.length} productos${selectedIds.size > 0 ? " seleccionados" : ""}`,
       "info"
+    );
+    setShowBulkActions(false);
+  };
+
+  const toggleActiveTargetsBulk = (active: boolean) => {
+    const targets = getBulkTargets();
+    const newChanges = { ...editedChanges };
+    let count = 0;
+    targets.forEach((p) => {
+      const currentActive =
+        newChanges[p.id]?.isActive !== undefined ? newChanges[p.id].isActive : p.isActive !== false;
+      if (currentActive === active) return;
+      newChanges[p.id] = { ...newChanges[p.id], isActive: active };
+      count++;
+    });
+    setEditedChanges(newChanges);
+    showToast(
+      count > 0
+        ? `${count} productos marcados como ${active ? "Activos (en vitrina)" : "Ocultos"} (pendiente guardar)`
+        : `Los productos objetivo ya están ${active ? "activos" : "ocultos"}`,
+      count > 0 ? "success" : "info"
     );
     setShowBulkActions(false);
   };
@@ -298,6 +529,95 @@ export default function BulkEditProductsPage() {
     );
   };
 
+  // ── Duplicados ──────────────────────────────────────────────────
+  //
+  // Fusionar deja los cambios pendientes, como cualquier otra edición de esta
+  // página: nada se escribe hasta que se aprieta Guardar, y el guardado hace
+  // backup antes. Así se puede revisar la fusión (y descartarla) antes de que
+  // toque la base.
+
+  const dismissDuplicateGroup = useCallback((id: string) => {
+    setDismissedDuplicates((prev) => {
+      const next = new Set(prev).add(id);
+      saveDismissedDuplicates(next);
+      return next;
+    });
+  }, []);
+
+  const mergeDuplicateGroup = useCallback(
+    (group: DuplicateGroup) => {
+      const plan = buildMergePlan(group, editedChanges);
+
+      if (Object.keys(plan.changes).length === 0) {
+        showToast("Este grupo ya está unificado: no hay nada que corregir", "info");
+        dismissDuplicateGroup(group.id);
+        return;
+      }
+
+      setEditedChanges((prev) => {
+        const next = { ...prev };
+        for (const [id, cambios] of Object.entries(plan.changes)) {
+          next[id] = { ...next[id], ...cambios };
+        }
+        return next;
+      });
+      dismissDuplicateGroup(group.id);
+
+      const detalle = [
+        plan.rescued.length > 0 ? `se rescató ${plan.rescued.join(", ")}` : null,
+        plan.stockSumado ? `stock sumado: ${plan.stockFinal}` : null,
+        `${group.others.length} código(s) quedan ocultos en 0`,
+      ].filter(Boolean);
+
+      showToast(
+        `"${group.keeper.name}" unificado en ${group.keeper.id} — ${detalle.join(" · ")} (pendiente guardar)`,
+        "success"
+      );
+    },
+    [editedChanges, showToast, dismissDuplicateGroup]
+  );
+
+  const mergeAllDuplicates = useCallback(
+    (groups: DuplicateGroup[]) => {
+      const acumulado: Record<string, ProductChanges> = {};
+      let fusionados = 0;
+
+      for (const group of groups) {
+        const plan = buildMergePlan(group, { ...editedChanges, ...acumulado });
+        if (Object.keys(plan.changes).length === 0) continue;
+        for (const [id, cambios] of Object.entries(plan.changes)) {
+          acumulado[id] = { ...acumulado[id], ...cambios };
+        }
+        fusionados++;
+      }
+
+      if (fusionados === 0) {
+        showToast("No quedan duplicados por corregir", "info");
+        return;
+      }
+
+      setEditedChanges((prev) => {
+        const next = { ...prev };
+        for (const [id, cambios] of Object.entries(acumulado)) {
+          next[id] = { ...next[id], ...cambios };
+        }
+        return next;
+      });
+      setDismissedDuplicates((prev) => {
+        const next = new Set(prev);
+        for (const g of groups) next.add(g.id);
+        saveDismissedDuplicates(next);
+        return next;
+      });
+
+      showToast(
+        `${fusionados} grupo(s) de duplicados unificados sobre el código escaneado (pendiente guardar)`,
+        "success"
+      );
+    },
+    [editedChanges, showToast]
+  );
+
   const saveAllChanges = async () => {
     const targetIds = Object.keys(editedChanges);
     const updateCount = targetIds.length;
@@ -315,9 +635,122 @@ export default function BulkEditProductsPage() {
     setIsSaving(true);
 
     try {
-      await updateProductsBulk(editedChanges as any);
-      showToast(`¡${updateCount} productos actualizados con éxito!`, "success");
-      setEditedChanges({});
+      // 1. Subir imágenes nuevas (en base64) a Cloudinary antes de persistir
+      for (const id of targetIds) {
+        const ch = editedChanges[id];
+        if (ch?.image && ch.image.startsWith("data:image")) {
+          try {
+            const res = await uploadImageToCloudinaryServerAction(ch.image);
+            if (res.ok && res.url) {
+              ch.image = res.url;
+            } else {
+              throw new Error(res.error || "Error al subir imagen");
+            }
+          } catch (imgErr: any) {
+            console.error(`Error subiendo imagen para ${id}:`, imgErr);
+            showToast(`Error al subir imagen de producto: ${imgErr?.message || "error desconocido"}`, "error");
+          }
+        }
+      }
+
+      // El barcode es el identificador de negocio (onConflict:'barcode' en el
+      // upsert), así que un cambio de barcode no puede viajar por el mismo
+      // camino que el resto de los campos: en vez de renombrar la fila
+      // existente, el upsert crearía una fila nueva con el barcode nuevo y
+      // dejaría huérfana la original. Se resuelve aparte con un UPDATE real
+      // (rename-barcode). Además, para los productos renombrados, el resto
+      // de sus campos NO puede pasar por updateProductsBulk: esa función
+      // busca el producto existente en la caché del contexto por su id
+      // (barcode) actual, que en ese momento todavía es el viejo, así que
+      // se arma el payload a mano con los datos ya conocidos localmente.
+      const plainChanges: Record<string, ProductChanges> = {};
+      const renamedPayloads: (Partial<import("@/types").SupaProduct> & { barcode: string })[] = [];
+      const renameFailures: string[] = [];
+      let renamedCount = 0;
+
+      for (const id of targetIds) {
+        const { barcode: newBarcode, ...rest } = editedChanges[id];
+        if (newBarcode === undefined) {
+          plainChanges[id] = rest;
+          continue;
+        }
+
+        try {
+          await renameProductBarcode(id, newBarcode);
+          renamedCount++;
+          const original = localProducts.find((p) => p.id === id);
+          if (original && Object.keys(rest).length > 0) {
+            const merged = { ...original, ...rest };
+            // El stock solo viaja si esta edición lo tocó. `merged.stock` es
+            // el valor cacheado en el navegador: mandarlo siempre forzaba un
+            // ajuste de inventario a una cifra vieja cada vez que se
+            // renombraba un código de barras.
+            const stockEdit =
+              (rest as { stock?: number }).stock === undefined
+                ? {}
+                : { stock: Number((rest as { stock?: number }).stock) };
+            renamedPayloads.push({
+              barcode: newBarcode,
+              ...stockEdit,
+              name: merged.name,
+              category: Array.isArray(merged.categories) ? merged.categories.join(", ") : "",
+              purchase_price: Number((merged as any).purchasePrice ?? (original as any).purchasePrice ?? 0),
+              sale_price: Number(merged.price ?? 0),
+              image_url: (merged as any).image ?? (original as any).image,
+              gallery: (original as any).gallery,
+              featured: (original as any).featured,
+              is_active: (merged as any).isActive !== undefined ? (merged as any).isActive : (original as any).isActive,
+              measurement_unit: (original as any).measurementUnit,
+              measurement_value: (original as any).measurementValue,
+              suggested_price: (original as any).suggestedPrice,
+              offer_price: merged.offerPrice ?? undefined,
+              description: merged.description,
+              min_stock: Number(merged.minStock ?? 5),
+              optimum_stock: Number(merged.optimumStock ?? 20),
+            });
+          }
+        } catch (err: any) {
+          renameFailures.push(`${id} → ${newBarcode}: ${err?.message || "error desconocido"}`);
+          // El rename falló: la fila sigue bajo el barcode viejo, así que el
+          // resto de los campos (si los hay) se guardan normalmente ahí, y
+          // el intento de barcode queda pendiente para reintentar.
+          plainChanges[id] = { ...rest, barcode: newBarcode };
+        }
+      }
+
+      if (Object.keys(plainChanges).length > 0) {
+        await updateProductsBulk(plainChanges as any);
+      }
+      if (renamedPayloads.length > 0) {
+        await saveProductsBulk(renamedPayloads);
+      }
+      // updateProductsBulk ya refresca por su cuenta, pero corre antes de
+      // guardar renamedPayloads (que no pasa por el contexto) — se refresca
+      // siempre al final para que la lista quede consistente con todo lo guardado.
+      if (renamedCount > 0 || renamedPayloads.length > 0) {
+        await refresh();
+      }
+
+      if (renameFailures.length > 0) {
+        showToast(
+          `${renamedCount > 0 ? `${renamedCount} código(s) renombrado(s). ` : ""}${renameFailures.length} código(s) no se pudieron renombrar: ${renameFailures.join("; ")}`,
+          "error"
+        );
+      } else {
+        showToast(`¡${updateCount} productos actualizados con éxito!`, "success");
+      }
+
+      // Los productos con rename fallido quedan con su cambio de barcode
+      // visible (para reintentar); el resto se limpia.
+      setEditedChanges((prev) => {
+        const next: Record<string, ProductChanges> = {};
+        for (const id of Object.keys(prev)) {
+          if (renameFailures.some((f) => f.startsWith(`${id} →`))) {
+            next[id] = { barcode: prev[id].barcode };
+          }
+        }
+        return next;
+      });
     } catch {
       showToast("Ocurrió un error al guardar los cambios", "error");
     } finally {
@@ -497,17 +930,30 @@ export default function BulkEditProductsPage() {
         />
       )}
 
+      {showDuplicates && (
+        <DuplicatesPanel
+          groups={duplicateGroups}
+          dismissed={dismissedDuplicates}
+          onDismiss={dismissDuplicateGroup}
+          onMerge={mergeDuplicateGroup}
+          onMergeAll={mergeAllDuplicates}
+          onClose={() => setShowDuplicates(false)}
+        />
+      )}
+
       <FiltersToolbar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        sortPriority={sortPriority}
+        setSortPriority={changeSortPriority}
+        completenessTab={completenessTab}
+        setCompletenessTab={setCompletenessTab}
+        specificFilter={specificFilter}
+        setSpecificFilter={setSpecificFilter}
         filterLowStock={filterLowStock}
         setFilterLowStock={setFilterLowStock}
         filterWithImage={filterWithImage}
         setFilterWithImage={setFilterWithImage}
-        filterReady={filterReady}
-        setFilterReady={setFilterReady}
-        readyCount={readyCount}
-        totalProductsCount={localProducts.length}
         categoryFilter={categoryFilter}
         setCategoryFilter={setCategoryFilter}
         allCategories={allCategories}
@@ -522,10 +968,16 @@ export default function BulkEditProductsPage() {
         backupsCount={backups.length}
         selectedCount={selectedIds.size}
         filteredCount={filteredProducts.length}
+        tabCounts={tabCounts}
+        missingCounts={missingCounts}
+        duplicateGroupCount={pendingDuplicateGroups.length}
+        showDuplicates={showDuplicates}
+        setShowDuplicates={setShowDuplicates}
         applyBulkAdjustment={applyBulkAdjustment}
         bulkCategory={bulkCategory}
         setBulkCategory={setBulkCategory}
         assignCategoryToTargets={assignCategoryToTargets}
+        toggleActiveTargetsBulk={toggleActiveTargetsBulk}
         fillMissingStockDefaults={fillMissingStockDefaults}
         normalizeCategoriesBulk={normalizeCategoriesBulk}
       />
@@ -561,7 +1013,7 @@ export default function BulkEditProductsPage() {
           <div className="mt-6 text-center">
             <button
               onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-              className="px-8 h-12 rounded-2xl bg-white border-2 border-gray-200 hover:border-emerald-400 font-black text-xs uppercase tracking-widest text-gray-500 hover:text-emerald-600 transition-colors shadow-sm"
+              className="px-8 h-12 rounded-2xl bg-white border-2 border-gray-200 hover:border-brand-400 font-black text-xs uppercase tracking-widest text-gray-500 hover:text-brand-600 transition-colors shadow-sm"
             >
               Mostrar más ({filteredProducts.length - visibleCount} restantes)
             </button>
@@ -586,7 +1038,7 @@ export default function BulkEditProductsPage() {
 
       <div className="hidden md:flex mt-8 justify-center gap-6 text-[10px] font-black uppercase tracking-widest text-gray-400 opacity-60">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" /> Cambios detectados
+          <span className="w-2 h-2 rounded-full bg-brand-500" /> Cambios detectados
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-amber-500" /> Alerta Stock Bajo

@@ -2,7 +2,13 @@
 
 import React, { useState } from "react";
 
-export default function NewsletterWidget() {
+export default function NewsletterWidget({
+  title,
+  description,
+}: {
+  title?: string;
+  description?: string;
+} = {}) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -35,35 +41,44 @@ export default function NewsletterWidget() {
   };
 
   return (
-    <div className="w-full bg-gradient-to-r from-emerald-900 to-teal-900 rounded-2xl p-6 md:p-8">
+    <div className="w-full bg-gradient-to-r from-brand-900 to-teal-900 rounded-2xl p-6 md:p-8">
       <div className="max-w-xl mx-auto text-center">
-        <h3 className="text-xl md:text-2xl font-black text-white mb-2">
-          🌿 Únete a la familia Olivo
+        <h3 className="mb-2 font-semibold text-white">
+          {title || "🌿 Únete a la familia Olivo"}
         </h3>
-        <p className="text-emerald-200/70 text-sm mb-6">
-          Recibe ofertas exclusivas, cupones de descuento y novedades directamente en tu email.
+        <p className="text-brand-200/70 text-sm mb-6">
+          {description || "Recibe ofertas exclusivas, cupones de descuento y novedades directamente en tu email."}
         </p>
 
         {status === "success" ? (
-          <div className="bg-emerald-500/20 border border-emerald-400/30 rounded-xl p-4 text-emerald-200 font-bold text-sm">
+          <div className="bg-brand-500/20 border border-brand-400/30 rounded-xl p-4 text-brand-200 font-bold text-sm">
             {message}
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex gap-2">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row">
+            {/* En pantallas angostas los controles se apilan. Antes iban
+                siempre en fila: un elemento flex tiene min-width:auto, así que
+                el campo no se encogía y empujaba el botón fuera del bloque. */}
+            <label htmlFor="newsletter-email" className="sr-only">
+              Correo electrónico
+            </label>
             <input
+              id="newsletter-email"
               type="email"
+              inputMode="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tu@email.com"
               required
-              className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 text-sm outline-none focus:border-emerald-400 focus:bg-white/15 transition-all"
+              className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-white/40 focus:border-brand-400 focus:bg-white/15"
             />
             <button
               type="submit"
               disabled={status === "loading"}
-              className="bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-6 py-3 rounded-xl text-sm transition-colors disabled:opacity-50 whitespace-nowrap"
+              className="shrink-0 whitespace-nowrap rounded-xl bg-brand-boton px-6 py-3 text-sm font-semibold text-brand-contraste transition-colors hover:bg-brand-400 disabled:opacity-50"
             >
-              {status === "loading" ? "..." : "Suscribirme"}
+              {status === "loading" ? "Enviando…" : "Suscribirme"}
             </button>
           </form>
         )}
@@ -72,7 +87,7 @@ export default function NewsletterWidget() {
           <p className="text-red-300 text-xs mt-2">{message}</p>
         )}
 
-        <p className="text-emerald-200/40 text-[10px] mt-3">
+        <p className="mt-3 text-xs text-brand-200/70">
           Puedes cancelar tu suscripción en cualquier momento.
         </p>
       </div>

@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { supabaseServer } from '@/lib/supabase-server';
 import { auditLog } from '@/server/audit.service';
+import { restoreOrderStock } from '@/server/inventory.service';
+import { despacharPedidoFlash } from '@/server/entrega-flash.service';
+import { addBonusPoints, earnPoints } from '@/server/loyalty.service';
+import { sendOrderCancelledEmail } from '@/server/email.service';
 import crypto from 'crypto';
+import { montoCobrado } from '@/lib/mercadopago-monto';
 
 /**
  * Valida la firma HMAC-SHA256 del webhook de MercadoPago.
@@ -12,10 +17,13 @@ import crypto from 'crypto';
 function verifyMercadoPagoSignature(request: NextRequest, dataId: string): boolean {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
   if (!secret) {
-    // Sin secret configurado no podemos validar origen. Se permite para no
-    // romper producción, pero debe configurarse cuanto antes en Vercel.
-    console.warn('[MP Webhook] ⚠️ MERCADOPAGO_WEBHOOK_SECRET no configurado — firma NO verificada');
-    return true;
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[MP Webhook] ⚠️ Sin secret en desarrollo — firma NO verificada');
+      return true;
+    }
+    // En producción, sin secret no se procesa nada: fail-closed.
+    console.error('[MP Webhook] ❌ MERCADOPAGO_WEBHOOK_SECRET ausente en producción — notificación rechazada');
+    return false;
   }
 
   const xSignature = request.headers.get('x-signature');
@@ -76,91 +84,206 @@ export async function POST(request: NextRequest) {
         // Verificar que el monto pagado coincide con el total de la orden
         const { data: order } = await supabaseServer
           .from('orders')
-          .select('total')
+          .select('total, shipping_cost, shipping_method, shipping_address, express_delivery_id')
           .eq('id', orderId)
           .single();
 
-        const paidAmount = paymentData.transaction_amount ?? 0;
+        const paidAmount = montoCobrado(paymentData);
         if (order && Math.abs(Number(order.total) - paidAmount) > 1) {
+          // El desglose va en el log a propósito: la vez que esto falló de
+          // verdad, el número suelto no decía que la diferencia era exactamente
+          // el envío, y por ahí pasaba el error.
           console.error(
-            `[MP Webhook] ❌ Monto pagado (${paidAmount}) no coincide con el total de la orden ${orderId} (${order.total}) — no se marca como pagada`
+            `[MP Webhook] ❌ Monto pagado (${paidAmount} = ítems ${paymentData.transaction_amount ?? 0} + envío ${(paymentData as { shipping_amount?: number }).shipping_amount ?? 0}) no coincide con el total de la orden ${orderId} (${order.total}) — no se marca como pagada`
           );
           return NextResponse.json({ received: true, flagged: 'amount_mismatch' }, { status: 200 });
         }
 
-        // Update Order Status in Supabase to PAID
-        const { error } = await supabaseServer
+        // Marcar como pagada, una sola vez. MercadoPago reenvía la misma
+        // notificación varias veces —hoy llegaron siete del mismo pago—, y sin
+        // el filtro dentro del UPDATE cada reintento volvía a acreditar los
+        // puntos de fidelidad y a duplicar el registro de auditoría.
+        const { data: acreditadas, error } = await supabaseServer
           .from('orders')
-          .update({ 
+          .update({
             payment_status: 'paid',
             status: 'processing',
             updated_at: new Date().toISOString()
           })
-          .eq('id', orderId);
+          .eq('id', orderId)
+          .neq('payment_status', 'paid')
+          .select('id');
 
         if (error) {
           console.error('[MP Webhook] Error updating order:', error);
           return NextResponse.json({ error: 'DB update failed' }, { status: 500 });
         }
 
-        console.log(`[MP Webhook] ✅ Order ${orderId} marked as PAID`);
+        const primeraVez = (acreditadas?.length ?? 0) > 0;
+
+        if (primeraVez) {
+          console.log(`[MP Webhook] ✅ Order ${orderId} marked as PAID`);
+          await auditLog({
+            action: 'ORDER_PAID',
+            entity: 'orders',
+            entityId: orderId,
+            actor: 'mp-webhook',
+            details: { paymentId: String(paymentId), amount: paidAmount, mpStatus: status },
+          });
+
+          // Los puntos se ganan acá y no al crear el pedido. Antes se daban al
+          // apretar comprar, sin nada que los revirtiera: bastaba llegar al
+          // checkout y abandonar el pago para acumular puntos gastables.
+          try {
+            const dirPuntos = (order?.shipping_address ?? {}) as Record<string, any>;
+            if (dirPuntos.email) {
+              await earnPoints({
+                customerEmail: dirPuntos.email,
+                amount: Number(order?.total) || 0,
+                referenceType: 'order',
+                referenceId: orderId,
+              });
+            }
+          } catch (e) {
+            console.warn('[MP Webhook] No se pudieron acreditar los puntos:', e);
+          }
+        } else {
+          console.log(`[MP Webhook] La orden ${orderId} ya estaba pagada; no se acredita dos veces.`);
+        }
+
+        // Regla 4 del envío flash: la entrega de Uber se crea acá y en ningún
+        // otro lado. Al apretar comprar todavía no: un pago que después se
+        // rechaza dejaría un repartidor en camino a buscar un pedido que nadie
+        // pagó, y esa entrega se cobra igual.
+        if (order?.shipping_method === 'flash') {
+          await despacharPedidoFlash({ id: orderId, ...order }, 'mp-webhook');
+        }
+      } else if (orderId && status === 'in_mediation') {
+        // Una disputa abierta **no** es un pago fallido: la plata sigue ahí
+        // mientras MercadoPago decide. Tratarla como rechazo cancelaba un
+        // pedido ya pagado y devolvía al inventario stock que muy
+        // probablemente ya salió del local. Se registra y se deja quieto.
+        console.warn(`[MP Webhook] ⚠️ Orden ${orderId} en mediación — no se toca el pedido`);
         await auditLog({
-          action: 'ORDER_PAID',
+          action: 'ORDER_IN_MEDIATION',
           entity: 'orders',
           entityId: orderId,
           actor: 'mp-webhook',
-          details: { paymentId: String(paymentId), amount: paidAmount, mpStatus: status },
+          details: { paymentId: String(paymentId) },
         });
-      } else if (orderId && (status === 'rejected' || status === 'cancelled' || status === 'refunded' || status === 'in_mediation')) {
-        console.log(`[MP Webhook] 🔄 Restaurando stock para orden ${orderId} debido a estado: ${status}`);
-
-        // 1. Obtener items de la orden con barcode (la RPC nueva usa barcode + branch)
-        const { data: items, error: itemsErr } = await supabaseServer
-          .from('order_items')
-          .select('product_id, quantity, products(barcode)')
-          .eq('order_id', orderId);
-
-        if (!itemsErr && items) {
-          // 2. Devolver stock a cada producto en la sucursal por defecto
-          //    (las RPCs hacen el fallback a la sucursal default en SQL)
-          for (const item of items as any[]) {
-            const product = Array.isArray(item.products) ? item.products[0] : item.products;
-            const barcode = product?.barcode;
-            if (!barcode) {
-              console.warn(`[MP Webhook] Producto ${item.product_id} sin barcode, skip rollback`);
-              continue;
-            }
-            try {
-              await supabaseServer.rpc('increment_product_stock', {
-                p_barcode: barcode,
-                p_quantity: item.quantity,
-                p_branch_id: null,
-                p_reference: String(orderId),
-                p_reason: `MP_${status.toUpperCase()}`
-              });
-            } catch (err) {
-              console.error(`[MP Webhook] Error incrementando stock para barcode ${barcode}:`, err);
-            }
-          }
-        }
-
-        // 3. Marcar orden como cancelada/fallida
-        await supabaseServer
+        return NextResponse.json({ received: true, flagged: 'in_mediation' }, { status: 200 });
+      } else if (orderId && (status === 'rejected' || status === 'cancelled' || status === 'refunded')) {
+        // Toma la orden en exclusiva antes de deshacer nada. MercadoPago
+        // reenvía la misma notificación, y sin este filtro dentro del UPDATE
+        // cada reintento devolvía el stock **otra vez** —inflando el
+        // inventario—, regalaba de nuevo los puntos redimidos y mandaba un
+        // segundo correo de cancelación.
+        const { data: tomadas, error: errorTomar } = await supabaseServer
           .from('orders')
-          .update({ 
+          .update({
             payment_status: status,
             status: status === 'refunded' ? 'refunded' : 'cancelled',
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', orderId);
-          
-        console.log(`[MP Webhook] ❌ Orden ${orderId} actualizada a ${status} y stock restaurado.`);
+          .eq('id', orderId)
+          .not('payment_status', 'in', '("rejected","cancelled","refunded")')
+          .select('id');
+
+        if (errorTomar) {
+          console.error(`[MP Webhook] Error marcando la orden ${orderId}:`, errorTomar);
+          return NextResponse.json({ received: true, flagged: 'update_failed' }, { status: 200 });
+        }
+        if (!tomadas || tomadas.length === 0) {
+          console.log(`[MP Webhook] La orden ${orderId} ya estaba cancelada; no se deshace dos veces.`);
+          return NextResponse.json({ received: true, flagged: 'ya_cancelada' }, { status: 200 });
+        }
+
+        console.log(`[MP Webhook] 🔄 Restaurando stock para orden ${orderId} debido a estado: ${status}`);
+
+        // Devolver al inventario lo que la orden tenía reservado.
+        // La traducción de `order_items.product_id` (que guarda `products.id`)
+        // al código de barras que usan las RPC vive en el servicio de
+        // inventario; acá sólo se informa el resultado.
+        const devolucion = await restoreOrderStock(orderId, {
+          reason: `MP_${status.toUpperCase()}`,
+        });
+
+        // 2b. Revertir puntos redimidos y notificar cancelación al cliente
+        try {
+          const { data: orderData } = await supabaseServer
+            .from('orders')
+            .select('shipping_address')
+            .eq('id', orderId)
+            .maybeSingle();
+
+          if (orderData?.shipping_address) {
+            const addr = typeof orderData.shipping_address === 'string'
+              ? JSON.parse(orderData.shipping_address)
+              : orderData.shipping_address;
+
+            const customerEmail = addr.email;
+            const pointsRedeemed = Number(addr.pointsRedeemed) || 0;
+
+            if (customerEmail && pointsRedeemed > 0) {
+              await addBonusPoints({
+                customerEmail,
+                points: pointsRedeemed,
+                description: `Reverso de ${pointsRedeemed} puntos por orden #${orderId} cancelada`,
+                referenceType: 'order_cancellation',
+              });
+              console.log(`[MP Webhook] 🌟 Se revirtieron ${pointsRedeemed} puntos a ${customerEmail}`);
+            }
+
+            if (customerEmail) {
+              await sendOrderCancelledEmail({
+                to: customerEmail,
+                customerName: addr.fullName || 'Cliente',
+                orderId,
+                cancelReason: status === 'refunded' ? 'Pago reembolsado en Mercado Pago' : 'Pago no completado o rechazado en Mercado Pago',
+                pointsRefunded: pointsRedeemed > 0 ? pointsRedeemed : undefined,
+                paymentRefunded: status === 'refunded',
+              });
+            }
+          }
+        } catch (postCancelErr) {
+          console.warn('[MP Webhook] Error en post-procesamiento de cancelación (puntos/email):', postCancelErr);
+        }
+
+        // 3. Informar lo que pasó de verdad. Este log decía siempre "stock
+        //    restaurado", incluso cuando no se había devuelto nada — que era
+        //    exactamente el caso, porque el paso 1 fallaba en silencio.
+        const quedoPendiente =
+          !devolucion.ok || devolucion.fallidos > 0 || devolucion.sinResolver.length > 0;
+
+        if (quedoPendiente) {
+          console.error(
+            `[MP Webhook] ⚠️ Orden ${orderId} actualizada a ${status}, pero el stock NO se devolvió por completo:`,
+            devolucion.ok
+              ? { devueltos: devolucion.devueltos, fallidos: devolucion.fallidos, sinResolver: devolucion.sinResolver }
+              : { error: devolucion.error }
+          );
+        } else {
+          console.log(
+            `[MP Webhook] ❌ Orden ${orderId} actualizada a ${status}; se devolvieron ${devolucion.devueltos} ítems al stock.`
+          );
+        }
+
         await auditLog({
           action: 'ORDER_PAYMENT_FAILED',
           entity: 'orders',
           entityId: orderId,
           actor: 'mp-webhook',
-          details: { paymentId: String(paymentId), mpStatus: status },
+          details: {
+            paymentId: String(paymentId),
+            mpStatus: status,
+            stock: devolucion.ok
+              ? {
+                  devueltos: devolucion.devueltos,
+                  fallidos: devolucion.fallidos,
+                  sinResolver: devolucion.sinResolver,
+                }
+              : { error: devolucion.error },
+          },
         });
       }
     }
@@ -172,4 +295,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
-

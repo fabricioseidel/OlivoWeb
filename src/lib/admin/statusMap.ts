@@ -1,11 +1,28 @@
 export type SupplierOrderStatus =
   | "borrador"
+  | "en_revision"
   | "pendiente"
+  | "enviado"
   | "confirmado"
-  | "enviado_por_whatsapp"
   | "gestionado"
   | "recibido"
   | "cancelado";
+
+/**
+ * Cómo se compró, independiente de en qué punto del flujo va el pedido.
+ *
+ * Antes esto vivía dentro del estado, como `enviado_por_whatsapp`. Eso obligaba
+ * a inventar un estado por canal y hacía imposible contar cuántos pedidos están
+ * enviados sin enumerarlos todos.
+ */
+export type SupplierOrderChannel = "whatsapp" | "online" | "presencial" | "telefono";
+
+export const CHANNEL_LABEL: Record<SupplierOrderChannel, string> = {
+  whatsapp: "WhatsApp",
+  online: "Online",
+  presencial: "En persona",
+  telefono: "Teléfono",
+};
 
 export type CustomerOrderStatus =
   | "pendiente"
@@ -48,8 +65,8 @@ const config: Record<string, StatusConfig> = {
     classes: "bg-sky-100 text-sky-800 ring-sky-200",
     dot: "bg-sky-500",
   },
-  enviado_por_whatsapp: {
-    label: "WhatsApp",
+  en_revision: {
+    label: "En revisión",
     classes: "bg-purple-100 text-purple-800 ring-purple-200",
     dot: "bg-purple-500",
   },

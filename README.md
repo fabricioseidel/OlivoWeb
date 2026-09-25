@@ -61,13 +61,8 @@ NEXTAUTH_URL=http://localhost:3000
 NEXT_PUBLIC_SUPABASE_URL=tu_url_supabase
 NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key
 SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
-# OAuth con Google (opcional, requerido para login con Gmail)
-GOOGLE_CLIENT_ID=tu_client_id_google.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=tu_client_secret_google
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=tu_client_id_google.apps.googleusercontent.com
-NEXT_PUBLIC_AUTH_GOOGLE=1
 ```
-> Establece `NEXT_PUBLIC_AUTH_GOOGLE=1` (o define `NEXT_PUBLIC_GOOGLE_CLIENT_ID`) para mostrar el botón de Google en el login/registro. El `GOOGLE_CLIENT_SECRET` nunca debe exponerse en el cliente.
+> El acceso es solo con correo y contraseña. No hay inicio de sesión con proveedores externos.
 
 ### 4. Configurar la base de datos (Supabase)
 - Ejecuta los scripts SQL en `scripts/` para crear/ajustar columnas (por ejemplo, `products.image_url` y `products.gallery`).
@@ -121,15 +116,15 @@ src/
 └── __tests__/            # Tests unitarios
 ```
 
-## 🔐 Credenciales por Defecto
+## 🔐 Primer administrador
 
-**Administrador:**
-- Email: admin@example.com
-- Password: admin123
+El primer usuario ADMIN se crea con `POST /api/admin/bootstrap`, que exige la
+cabecera `x-setup-token` con el valor de `ADMIN_SETUP_TOKEN`. El endpoint se
+deshabilita solo una vez que existe un ADMIN en la base.
 
-**Usuario de prueba:**
-- Email: user@example.com  
-- Password: user123
+Generar el token con:
+
+    openssl rand -hex 32
 
 ## 📊 Características Técnicas
 

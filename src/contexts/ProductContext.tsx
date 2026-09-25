@@ -4,6 +4,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useMemo,
   ReactNode,
@@ -32,6 +33,8 @@ interface ProductContextType {
   trackProductView: (id: string) => void;
   trackOrderIntent: (id: string) => void;
   fetchDetails: (id: string) => Promise<Product>;
+  /** Dispara la carga del catálogo la primera vez que alguien lo consume. */
+  ensureLoaded: () => void;
   // Back-compat alias expected by some admin pages
   addProduct: (productData: Partial<Product>) => Promise<void>;
   createProduct: (productData: Partial<Product>) => Promise<void>;
@@ -74,11 +77,15 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     return () => { mounted = false; };
   }, []);
 
-  useEffect(() => {
-    const cleanup = load();
-    return () => {
-      cleanup.then((fn) => fn && fn());
-    };
+  // Carga perezosa: el catálogo completo sólo se pide cuando algún componente
+  // realmente lo consume. Antes se cargaba en el layout raíz, así que abrir
+  // /admin/operaciones desde el teléfono descargaba los ~650 productos de la
+  // tienda antes de mostrar la caja, sin que ninguna pantalla los usara.
+  const solicitado = useRef(false);
+  const ensureLoaded = useCallback(() => {
+    if (solicitado.current) return;
+    solicitado.current = true;
+    load();
   }, [load]);  const refresh = async () => {
     await load();
   };
@@ -104,8 +111,16 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const getProductById = (id: string) =>
-    products.find((p) => String(p.id) === String(id));
+  const getProductById = (id: string) => {
+    if (!id) return undefined;
+    const cleanId = String(id).trim().toLowerCase();
+    return products.find(
+      (p) =>
+        String(p.id).toLowerCase() === cleanId ||
+        (p.barcode && String(p.barcode).toLowerCase() === cleanId) ||
+        (p.slug && p.slug.toLowerCase() === cleanId)
+    );
+  };
 
   const trackProductView = (id: string) => {
     setProducts((prev) => prev.map(p => p.id === id ? ({ ...p, viewCount: (p.viewCount ?? 0) + 1 }) : p));
@@ -125,24 +140,34 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       String((productData as any).barcode ?? productData.id ?? '').trim();
     if (!barcode) throw new Error('Se requiere un código (barcode)');
 
+    const offerPrice =
+      productData.offerPrice !== undefined
+        ? productData.offerPrice
+        : (productData as any).offer_price !== undefined
+        ? (productData as any).offer_price
+        : null;
+
     await saveProduct({
       barcode,
       name: productData.name ?? '',
       category: Array.isArray(productData.categories)
         ? productData.categories.join(', ')
         : (productData as any).category ?? null,
-      purchase_price: 0,
+      purchase_price: Number(productData.purchasePrice ?? (productData as any).purchase_price ?? 0),
       sale_price: Number(productData.price ?? 0),
       expiry_date: null,
       stock: Number(productData.stock ?? 0),
-      image_url: (productData as any).image ?? null,
+      image_url: (productData as any).image ?? (productData as any).image_url ?? null,
       gallery: (productData as any).gallery ?? null,
       featured: !!productData.featured,
       is_active: (productData as any).isActive ?? (productData as any).is_active ?? false,
-      measurement_unit: (productData as any).measurementUnit ?? null,
-      measurement_value: (productData as any).measurementValue ?? null,
-      suggested_price: (productData as any).suggestedPrice ?? null,
-      offer_price: (productData as any).offerPrice ?? null,
+      measurement_unit: (productData as any).measurementUnit ?? (productData as any).measurement_unit ?? null,
+      measurement_value: (productData as any).measurementValue ?? (productData as any).measurement_value ?? null,
+      suggested_price: (productData as any).suggestedPrice ?? (productData as any).suggested_price ?? null,
+      offer_price: offerPrice && Number(offerPrice) > 0 ? Number(offerPrice) : null,
+      description: productData.description ?? (productData as any).description ?? null,
+      features: (productData as any).features ?? null,
+      bundle_config: (productData as any).bundle_config ?? null,
     } as any);
 
     await load();
@@ -151,25 +176,61 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   // Actualiza en la nube por "id" (equivale a barcode)
   const updateProduct = async (id: string, updateData: Partial<Product>) => {
     const barcode = String(id).trim();
-    const existing = getProductById(id);
+    let existing = getProductById(id);
+    if (!existing) {
+      try {
+        existing = await fetchProductDetails(barcode);
+      } catch {}
+    }
 
     if (!existing) {
-      throw new Error(`Producto ${id} no encontrado localmente para actualizar.`);
+      existing = {
+        id: barcode,
+        barcode,
+        name: updateData.name || '',
+        price: updateData.price || 0,
+        slug: updateData.slug || '',
+        image: updateData.image || '',
+        categories: updateData.categories || [],
+        stock: updateData.stock || 0,
+        featured: !!updateData.featured,
+        isActive: updateData.isActive ?? true,
+      } as Product;
+    }
+
+    // Resolucion explicita del precio de oferta:
+    // Si updateData trae offerPrice o offer_price (incluido null o 0), se actualiza.
+    // Si no viene definido en updateData, se conserva el que ya existia.
+    let resolvedOfferPrice = existing.offerPrice ?? null;
+    if (updateData.offerPrice !== undefined) {
+      resolvedOfferPrice = updateData.offerPrice && Number(updateData.offerPrice) > 0 ? Number(updateData.offerPrice) : null;
+    } else if ((updateData as any).offer_price !== undefined) {
+      resolvedOfferPrice = (updateData as any).offer_price && Number((updateData as any).offer_price) > 0 ? Number((updateData as any).offer_price) : null;
     }
 
     // Combinar datos actuales con los nuevos cambios para evitar pérdida de campos
-    const merged: Product = { ...existing, ...updateData };
+    const merged: Product = {
+      ...existing,
+      ...updateData,
+      offerPrice: resolvedOfferPrice ? Math.round(resolvedOfferPrice) : undefined,
+    };
 
-    // Update product data in Supabase (includes optional image_url/gallery)
+    // El stock viaja SOLO si esta edición lo tocó. `merged.stock` es el valor
+    // que el navegador tenía cacheado: mandarlo siempre hacía que guardar
+    // cualquier campo pisara la recepción o la venta recién registrada.
+    const stockEdit =
+      updateData.stock === undefined ? {} : { stock: Number(updateData.stock) };
+
+    // Update product data in Supabase (includes optional image_url/gallery/features/bundle_config)
     await saveProduct({
       barcode,
+      ...stockEdit,
       name: merged.name,
       category: Array.isArray(merged.categories)
         ? merged.categories.join(', ')
         : (merged as any).category ?? '',
       purchase_price: Number(merged.purchasePrice ?? 0),
       sale_price: Number(merged.price ?? 0),
-      stock: Number(merged.stock ?? 0),
       image_url: merged.image,
       gallery: merged.gallery,
       featured: merged.featured,
@@ -177,8 +238,10 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       measurement_unit: merged.measurementUnit,
       measurement_value: merged.measurementValue,
       suggested_price: merged.suggestedPrice,
-      offer_price: merged.offerPrice,
+      offer_price: resolvedOfferPrice ? Math.round(resolvedOfferPrice) : null,
       description: merged.description,
+      features: (merged as any).features ?? null,
+      bundle_config: (merged as any).bundle_config ?? null,
     } as any);
 
     await load();
@@ -193,16 +256,30 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       const existing = fullProducts.find(p => String(p.id) === barcode);
       if (!existing) return null;
 
-      const merged = { ...existing, ...updates[id] };
+      const upd = updates[id];
+      let resolvedOfferPrice = existing.offerPrice ?? null;
+      if (upd.offerPrice !== undefined) {
+        resolvedOfferPrice = upd.offerPrice && Number(upd.offerPrice) > 0 ? Number(upd.offerPrice) : null;
+      } else if ((upd as any).offer_price !== undefined) {
+        resolvedOfferPrice = (upd as any).offer_price && Number((upd as any).offer_price) > 0 ? Number((upd as any).offer_price) : null;
+      }
+
+      const merged = {
+        ...existing,
+        ...upd,
+        offerPrice: resolvedOfferPrice ? Math.round(resolvedOfferPrice) : undefined,
+      };
+      const stockEdit =
+        upd.stock === undefined ? {} : { stock: Number(upd.stock) };
       return {
         barcode,
+        ...stockEdit,
         name: merged.name,
         category: Array.isArray(merged.categories)
           ? merged.categories.join(', ')
           : (merged as any).category ?? '',
         purchase_price: Number(merged.purchasePrice ?? 0),
         sale_price: Number(merged.price ?? 0),
-        stock: Number(merged.stock ?? 0),
         image_url: merged.image,
         gallery: merged.gallery,
         featured: merged.featured,
@@ -210,7 +287,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         measurement_unit: merged.measurementUnit,
         measurement_value: merged.measurementValue,
         suggested_price: merged.suggestedPrice,
-        offer_price: merged.offerPrice,
+        offer_price: resolvedOfferPrice ? Math.round(resolvedOfferPrice) : null,
         description: merged.description,
       };
     }).filter(Boolean) as any[];
@@ -243,7 +320,6 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         purchase_price: 0,
         sale_price: Number(product.price),
         expiry_date: null,
-        stock: Number(product.stock),
         image_url: (product as any).image ?? null,
         gallery: (product as any).gallery ?? null,
         featured: value,
@@ -273,7 +349,6 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         purchase_price: 0,
         sale_price: Number(product.price),
         expiry_date: null,
-        stock: Number(product.stock),
         image_url: (product as any).image ?? null,
         gallery: (product as any).gallery ?? null,
         featured: product.featured, // Preserve featured state
@@ -296,6 +371,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     trackProductView,
     trackOrderIntent,
     fetchDetails: fetchProductDetails,
+    ensureLoaded,
     addProduct: createProduct,
     createProduct,
     updateProduct,
@@ -317,5 +393,11 @@ export function useProducts() {
   if (!ctx) {
     throw new Error('useProducts debe usarse dentro de ProductProvider');
   }
+  // Consumir el contexto es lo que dispara la carga. Así las pantallas que no
+  // necesitan el catálogo (todo el POS y operaciones) no lo descargan.
+  const { ensureLoaded } = ctx;
+  useEffect(() => {
+    ensureLoaded();
+  }, [ensureLoaded]);
   return ctx;
 }

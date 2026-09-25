@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireApiAdmin } from "@/lib/api-auth";
 import { supabaseServer } from "@/lib/supabase-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
@@ -31,10 +30,8 @@ interface UberEatsProductInput {
 // POST: Sincronizar productos con Supabase
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return errorResponse(new Error("Unauthorized"), 401);
-    }
+    const auth = await requireApiAdmin();
+    if (!auth.ok) return auth.response;
 
     const body = await request.json();
     const { products, action } = body as { 
@@ -131,10 +128,8 @@ export async function POST(request: NextRequest) {
 // GET: Obtener productos de Uber Eats desde Supabase
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return errorResponse(new Error("Unauthorized"), 401);
-    }
+    const auth = await requireApiAdmin();
+    if (!auth.ok) return auth.response;
 
     const { searchParams } = new URL(request.url);
     const includeExcluded = searchParams.get('includeExcluded') === 'true';
@@ -189,10 +184,8 @@ export async function GET(request: NextRequest) {
 // DELETE: Eliminar productos de la lista Uber Eats (marcar como excluidos)
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return errorResponse(new Error("Unauthorized"), 401);
-    }
+    const auth = await requireApiAdmin();
+    if (!auth.ok) return auth.response;
 
     const body = await request.json();
     const { barcodes, permanent } = body as { 

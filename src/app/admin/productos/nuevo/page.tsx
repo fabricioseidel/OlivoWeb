@@ -12,12 +12,15 @@ import MultiImageUpload from "@/components/ui/MultiImageUpload";
 import { uploadImageToCloudinaryServerAction } from "@/actions/upload";
 import { useProducts } from "@/contexts/ProductContext";
 import { useToast } from "@/contexts/ToastContext";
+import { useLaserScanner } from "@/components/admin/scanner/useLaserScanner";
 import { useCategories } from "@/hooks/useCategories";
+import { derivarCostoProveedor } from "@/lib/pricing";
 
 export default function NewProductPage() {
   const router = useRouter();
   const { addProduct } = useProducts();
-  const { categories } = useCategories();
+  // Con las inactivas incluidas, por la misma razón que en la edición.
+  const { categories } = useCategories({ incluirInactivas: true });
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -95,39 +98,14 @@ export default function NewProductPage() {
     fetchSuppliers();
   }, []);
 
-  // --- Escáner Bluetooth / Lasers USB ---
-  useEffect(() => {
-    let barcodeBuffer = "";
-    let timeoutId: NodeJS.Timeout;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignorar si el usuario está escribiendo explícitamente en un input o textarea
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
-        return;
-      }
-
-      if (e.key === 'Enter') {
-        if (barcodeBuffer.length > 3) { // Código de barras mínimo
-          setFormData(prev => ({ ...prev, barcode: barcodeBuffer }));
-          showToast(`Código escaneado: ${barcodeBuffer}`, "success");
-        }
-        barcodeBuffer = "";
-      } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        barcodeBuffer += e.key;
-        clearTimeout(timeoutId);
-        // Escáneres de pistola teclean rápido (10-30ms)
-        timeoutId = setTimeout(() => {
-          barcodeBuffer = "";
-        }, 100); 
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      clearTimeout(timeoutId);
-    };
-  }, [showToast]);
+  // Pistola láser / lector Bluetooth: hook compartido con el POS y la
+  // recepción, en vez de una heurística de teclado propia por pantalla.
+  useLaserScanner({
+    onDetected: (code) => {
+      setFormData((prev) => ({ ...prev, barcode: code }));
+      showToast(`Código escaneado: ${code}`, "success");
+    },
+  });
 
   // Estado para errores de validación
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -160,11 +138,13 @@ export default function NewProductPage() {
     });
   };
 
-  // Lógica de cálculo de precios con/sin IVA
+  // Los dos campos de costo y el precio sugerido salen de `pricing.ts`; acá
+  // sólo se decide dónde dejar cada resultado.
   const handlePriceCalculation = (field: 'with' | 'without', value: string) => {
-    const numValue = parseFloat(value);
+    const derivado = derivarCostoProveedor(field === 'with' ? 'conIva' : 'sinIva', value);
 
-    if (isNaN(numValue)) {
+    if (!derivado) {
+      // Todavía no es un número: se respeta lo tecleado sin recalcular nada.
       setTempSupplier(prev => ({
         ...prev,
         priceWithVat: field === 'with' ? value : prev.priceWithVat,
@@ -173,32 +153,12 @@ export default function NewProductPage() {
       return;
     }
 
-    if (field === 'with') {
-      // Si ingresa con IVA, calculamos sin IVA (dividiendo por 1.19)
-      const withoutVat = numValue / 1.19;
-      setTempSupplier(prev => ({
-        ...prev,
-        priceWithVat: value,
-        priceWithoutVat: withoutVat.toFixed(2),
-      }));
-      
-      // Calcular precio sugerido: (Precio Compra con IVA) / 0.65
-      const suggested = numValue / 0.65;
-      setFormData(prev => ({ ...prev, suggestedPrice: suggested.toFixed(0) }));
-
-    } else {
-      // Si ingresa sin IVA, calculamos con IVA (multiplicando por 1.19)
-      const withVat = numValue * 1.19;
-      setTempSupplier(prev => ({
-        ...prev,
-        priceWithoutVat: value,
-        priceWithVat: withVat.toFixed(2),
-      }));
-
-      // Calcular precio sugerido: (Precio Compra con IVA) / 0.65
-      const suggested = withVat / 0.65;
-      setFormData(prev => ({ ...prev, suggestedPrice: suggested.toFixed(0) }));
-    }
+    setTempSupplier(prev => ({
+      ...prev,
+      priceWithVat: derivado.conIva,
+      priceWithoutVat: derivado.sinIva,
+    }));
+    setFormData(prev => ({ ...prev, suggestedPrice: derivado.sugerido }));
   };
 
   const addSupplier = () => {
@@ -320,11 +280,16 @@ export default function NewProductPage() {
         gallery: galleryUrls.filter(url => url && url.trim() !== ""),
         features: formData.features.filter(feature => feature.trim() !== ""),
         slug: formData.name.toLowerCase().replace(/[^\w ]+/g, '').replace(/ +/g, '-'),
+        measurementUnit: formData.measurementUnit,
+        measurementValue: parseFloat(formData.measurementValue) || 0,
+        suggestedPrice: parseFloat(formData.suggestedPrice) || 0,
+        offerPrice: formData.offerPrice && formData.offerPrice.trim() !== "" ? (parseFloat(formData.offerPrice) || null) : null,
         measurement_unit: formData.measurementUnit,
         measurement_value: parseFloat(formData.measurementValue) || 0,
         suggested_price: parseFloat(formData.suggestedPrice) || 0,
-        offer_price: parseFloat(formData.offerPrice) || null,
+        offer_price: formData.offerPrice && formData.offerPrice.trim() !== "" ? (parseFloat(formData.offerPrice) || null) : null,
         is_active: formData.isActive,
+        isActive: formData.isActive,
       };
 
       // Usar el contexto para añadir el producto
@@ -412,7 +377,7 @@ export default function NewProductPage() {
                     <button
                       type="button"
                       onClick={() => setShowScanner(true)}
-                      className="absolute top-[34px] right-2 p-2 h-10 w-10 flex items-center justify-center bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-200 transition-colors shadow-sm"
+                      className="absolute top-[34px] right-2 p-2 h-10 w-10 flex items-center justify-center bg-brand-100 text-brand-600 rounded-xl hover:bg-brand-200 transition-colors shadow-sm"
                       title="Escanear con cámara"
                     >
                       <CameraIcon className="h-6 w-6" />
@@ -577,6 +542,10 @@ export default function NewProductPage() {
                   {/* Lista de proveedores agregados */}
                   {productSuppliers.length > 0 ? (
                     <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                      {/* El scroll va en un div propio: `overflow-hidden` en el
+                          contenedor redondea las esquinas pero recorta las
+                          columnas que no entran, sin dejar llegar a ellas. */}
+                      <div className="overflow-x-auto">
                       <table className="min-w-full divide-y divide-gray-300">
                         <thead className="bg-gray-50">
                           <tr>
@@ -607,6 +576,7 @@ export default function NewProductPage() {
                           ))}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   ) : (
                     <p className="text-sm text-gray-500 italic text-center py-2">No hay proveedores asignados.</p>

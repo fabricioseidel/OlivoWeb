@@ -1,0 +1,237 @@
+/**
+ * Reglas del envío flash (Uber Direct).
+ *
+ * Módulo puro y sin red: acá vive sólo la aritmética y las decisiones, para
+ * que se puedan probar sin llamar a Uber. El cliente HTTP vive aparte, en
+ * `src/server/uber-direct.service.ts`.
+ *
+ * Las cuatro reglas que sostiene, acordadas con el dueño:
+ *
+ *  1. Se cotiza dos veces —al ingresar la dirección y antes de cobrar—. Si la
+ *     segunda subió poco se respeta lo que el cliente vio; si se disparó, se le
+ *     avisa antes de cobrarle.
+ *  2. Hay un tope sobre el cual el flash no se ofrece, para que un pico de
+ *     lluvia o demanda no le muestre al cliente un envío absurdo ni deje un
+ *     envío gratis en pérdida.
+ *  3. No se llama a Uber con la tienda cerrada: no hay quien entregue el
+ *     paquete al repartidor.
+ *  4. La entrega se crea recién cuando el pago se confirma, nunca al apretar
+ *     comprar — si no, un pago fallido deja un repartidor pagado al pedo.
+ */
+
+/**
+ * El `fee` de Uber viene en la unidad mínima de la moneda con exponente 2 fijo,
+ * aunque el peso chileno no tenga centavos.
+ *
+ * Medido el 2026-08-28 contra la API real: una entrega de 2 km devolvió
+ * `fee: 338400` con `currency_type: "CLP"`, que son $3.384 y no $338.400. La
+ * referencia de Uber describe el campo en cents, con el ejemplo `"fee": 558`
+ * para USD.
+ */
+export const UBER_FEE_DIVISOR = 100;
+
+/** Convierte el `fee` crudo de Uber a pesos chilenos. */
+export function feeUberACLP(feeCrudo: number): number {
+  return Math.round(feeCrudo / UBER_FEE_DIVISOR);
+}
+
+/**
+ * Tope sobre el cual el flash no se ofrece, en CLP.
+ *
+ * Provisorio y deliberadamente conservador. Las cotizaciones que lo justifican
+ * se tomaron un viernes a las 16:05 con buen tiempo: entre $2.953 y $4.726 en
+ * Ñuñoa y Macul, con un máximo absoluto de $5.675 en San Joaquín. **Falta medir
+ * en hora punta y con lluvia**, que es cuando Uber sube, así que este número
+ * hay que revisarlo con datos y no dejarlo envejecer.
+ *
+ * Sostiene también el envío gratis: con el mínimo del flash en $50.000 y el
+ * margen real medido del catálogo (36,8%) menos la comisión de MercadoPago, un
+ * pedido regalado aguanta bastante más de $9.000 de costo. Cortar en $6.500
+ * deja el pedido en azul incluso sumándole el cupón de bienvenida.
+ */
+export const TOPE_FLASH_CLP = 6500;
+
+/**
+ * Tope al recotizar en el despacho, cuando el cliente **ya pagó**, en CLP.
+ *
+ * `TOPE_FLASH_CLP` decide si el flash se **ofrece**; quien lo supera al
+ * cotizar simplemente elige otra cosa y nadie pierde nada. Este otro decide si
+ * se **despacha** un pedido ya cobrado, y ahí la situación es distinta: la
+ * cotización guardada caduca a los pocos minutos, así que entre el pago y el
+ * despacho se pide una nueva —y esa nueva no la vio nadie—.
+ *
+ * Sin tope, esa recotización se creaba al precio que fuera. Un pico de lluvia
+ * o de demanda entre el pago y la confirmación de MercadoPago podía dejar una
+ * entrega de $20.000 sobre un envío cobrado a $3.000, o sobre uno regalado, en
+ * silencio y sin nada que lo frenara.
+ *
+ * Es más alto que el de la oferta a propósito: el cliente ya pagó y dejarlo
+ * sin entrega para ahorrar $1.000 es peor negocio que absorberlos. 1,5 veces
+ * el tope de oferta cae además cerca de los ~$9.300 que aguanta un pedido
+ * regalado antes de perder plata, que es el peor caso posible.
+ *
+ * Por encima de esto el pedido queda marcado como fallido —con el precio a la
+ * vista en el panel— y lo resuelve una persona: reintentar más tarde, cuando
+ * el pico pase, o llevarlo con el reparto propio. Se pierde una entrega, no
+ * una cantidad de plata desconocida.
+ */
+export const TOPE_FLASH_DESPACHO_CLP = Math.round(TOPE_FLASH_CLP * 1.5);
+
+/**
+ * ¿Se puede crear la entrega a este precio, con el pedido ya pagado?
+ *
+ * `null` —Uber no cubre la dirección— no se puede despachar tampoco.
+ */
+export function despachoAceptable(
+  costoUber: number | null,
+  tope: number = TOPE_FLASH_DESPACHO_CLP
+): boolean {
+  if (costoUber === null || !Number.isFinite(costoUber)) return false;
+  return costoUber <= tope;
+}
+
+/**
+ * Cuánto puede subir la segunda cotización sin volver a preguntarle al cliente.
+ *
+ * Por debajo de esto se le cobra lo que vio, y la diferencia la absorbe la
+ * tienda: discutir $200 con alguien que ya decidió comprar cuesta más que los
+ * $200. Por encima se le avisa antes de cobrar.
+ */
+export const MARGEN_REVALIDACION_FLASH = 0.1;
+
+/**
+ * Mínimo de envío gratis del flash, en CLP.
+ *
+ * Bastante más alto que el del agendado ($35.000) porque el costo es de otra
+ * naturaleza: regalar el reparto propio cuesta bencina, regalar uno de Uber
+ * cuesta plata contante, lo que Uber cobre ese día.
+ *
+ * Subió de $40.000 a $50.000 el 2026-09-16. A $40.000 el pedido se daba vuelta
+ * cuando el cliente además usaba un cupón: con el margen real medido del
+ * catálogo (36,8%), un 20% de descuento y Uber en el techo de su rango, el
+ * pedido quedaba unos $1.100 en rojo. A $50.000 el mismo caso queda en azul
+ * —apenas, +$240 en el peor escenario admitido— y holgado en el rango normal
+ * de Uber ($3.000 a $4.700).
+ *
+ * Es el valor de fábrica: si la configuración de la tienda trae uno propio,
+ * manda ese. Hoy la tienda tiene $50.000 cargado.
+ */
+export const MINIMO_FLASH_CLP_DEFAULT = 50000;
+
+export type FlashQuote = {
+  /** Si es `false`, la opción no se muestra. `motivo` dice por qué. */
+  disponible: boolean;
+  /** Lo que paga el cliente, en CLP. */
+  price: number;
+  /** Lo que cuesta el envío antes del envío gratis. */
+  rawPrice: number;
+  freeApplied: boolean;
+  motivo: "tienda-cerrada" | "sobre-el-tope" | "sin-cobertura" | null;
+};
+
+/**
+ * Decide si el flash se ofrece y a qué precio.
+ *
+ * `costoUber` es lo que Uber cobra, ya convertido a pesos. `null` significa que
+ * Uber no cubre esa dirección.
+ */
+export function quoteFlash(params: {
+  costoUber: number | null;
+  subtotal: number;
+  /** Mínimo de envío gratis del flash. `null` desactiva la regla. */
+  freeShippingMinimum: number | null;
+  tiendaAbierta: boolean;
+  /** Tope sobre el cual no se ofrece. Se inyecta para poder probarlo. */
+  topeCLP?: number;
+}): FlashQuote {
+  const vacio = { price: 0, rawPrice: 0, freeApplied: false };
+
+  // El orden importa: con la tienda cerrada no se llega ni a cotizar, así que
+  // ese motivo manda por sobre los demás.
+  if (!params.tiendaAbierta) {
+    return { disponible: false, ...vacio, motivo: "tienda-cerrada" };
+  }
+  // `!Number.isFinite` y no sólo `=== null`: un NaN pasaría también la
+  // comparación con el tope de abajo y saldría como disponible sin precio.
+  if (params.costoUber === null || !Number.isFinite(params.costoUber)) {
+    return { disponible: false, ...vacio, motivo: "sin-cobertura" };
+  }
+
+  const tope = typeof params.topeCLP === "number" ? params.topeCLP : TOPE_FLASH_CLP;
+  if (params.costoUber > tope) {
+    return { disponible: false, ...vacio, motivo: "sobre-el-tope" };
+  }
+
+  const gratis =
+    params.freeShippingMinimum !== null && params.subtotal >= params.freeShippingMinimum;
+
+  return {
+    disponible: true,
+    price: gratis ? 0 : params.costoUber,
+    rawPrice: params.costoUber,
+    freeApplied: gratis,
+    motivo: null,
+  };
+}
+
+export type Revalidacion = {
+  /** `true` si se puede cobrar sin volver a preguntar. */
+  aceptable: boolean;
+  /** Lo que efectivamente se cobra. */
+  precioACobrar: number;
+  /** Cuánto pone la tienda de su bolsillo por respetar el precio mostrado. */
+  diferenciaAbsorbida: number;
+};
+
+/**
+ * Segunda cotización, justo antes de cobrar (regla 1).
+ *
+ * Si bajó o subió poco, se le cobra al cliente lo que vio y la tienda absorbe
+ * la diferencia. Si se disparó, no se cobra: hay que avisarle.
+ *
+ * Que el precio mostrado mande —y no el nuevo— es a propósito: cambiarle el
+ * total a alguien que ya apretó pagar es la clase de sorpresa que hace que no
+ * vuelva.
+ */
+export function revalidarFlash(params: {
+  precioMostrado: number;
+  precioNuevo: number;
+  margen?: number;
+}): Revalidacion {
+  const margen =
+    typeof params.margen === "number" ? params.margen : MARGEN_REVALIDACION_FLASH;
+  const techo = params.precioMostrado * (1 + margen);
+
+  if (params.precioNuevo <= techo) {
+    return {
+      aceptable: true,
+      precioACobrar: params.precioMostrado,
+      diferenciaAbsorbida: Math.max(0, params.precioNuevo - params.precioMostrado),
+    };
+  }
+
+  return {
+    aceptable: false,
+    precioACobrar: params.precioNuevo,
+    diferenciaAbsorbida: 0,
+  };
+}
+
+/**
+ * ¿Se está salteando el horario para poder probar el flash fuera de hora?
+ *
+ * Existe porque el flash sólo se puede ver con la tienda abierta, y eso deja
+ * las pruebas atadas al horario del local. Pero se decide **sólo en el
+ * servidor**: una versión anterior aceptaba un `ignoreStoreHours` que venía en
+ * el cuerpo del pedido, y eso lo puede mandar cualquiera desde el navegador
+ * —con lo cual la regla dejaba de existir para todos, no sólo para quien
+ * prueba—. Además terminaba en un `|| true` fijo, así que quedaba desactivada
+ * siempre.
+ *
+ * Con la variable puesta, un cliente podría pedir un flash de madrugada y no
+ * habría nadie en el local para entregarle el paquete al repartidor, que se
+ * cobra igual. Se enciende para probar y se apaga.
+ */
+export function horarioIgnorado(): boolean {
+  return process.env.UBER_DIRECT_IGNORE_STORE_HOURS === "true";
+}

@@ -74,13 +74,13 @@ export default function HeroCarouselEditor({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-4">
               <InputField
-                label="T\u00EDtulo"
+                label="Título"
                 value={slide.title || ""}
                 onChange={(val) => updateSlide(slide.id, "title", val)}
                 placeholder="Ej: Ofertas del Mes"
               />
               <TextAreaField
-                label="Descripci\u00F3n"
+                label="Descripción"
                 value={slide.description || ""}
                 onChange={(val) => updateSlide(slide.id, "description", val)}
                 rows={2}
@@ -88,7 +88,7 @@ export default function HeroCarouselEditor({
               />
               <div className="grid grid-cols-2 gap-4">
                 <InputField
-                  label="Texto del Bot\u00F3n"
+                  label="Texto del Botón"
                   value={slide.linkText || ""}
                   onChange={(val) => updateSlide(slide.id, "linkText", val)}
                   placeholder="Ver ofertas"

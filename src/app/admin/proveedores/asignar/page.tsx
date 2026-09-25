@@ -207,7 +207,7 @@ export default function BulkAssignSuppliersPage() {
           title="Asignación masiva de proveedores"
           subtitle="Vinculá o reasigná productos a un proveedor con sus defaults de costo, pack y umbrales. Esto alimenta el motor de reposición."
           icon={
-            <ArrowsRightLeftIcon className="w-6 h-6 text-emerald-300" />
+            <ArrowsRightLeftIcon className="w-6 h-6 text-brand-300" />
           }
           right={
             <Link
@@ -230,7 +230,7 @@ export default function BulkAssignSuppliersPage() {
           <select
             value={supplierId}
             onChange={(e) => setSupplierId(e.target.value)}
-            className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-emerald-500"
+            className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-brand-500"
             disabled={loadingSuppliers}
           >
             <option value="">Selecciona…</option>
@@ -273,12 +273,12 @@ export default function BulkAssignSuppliersPage() {
           placeholder="1"
         />
 
-        <label className="flex items-center gap-2 text-sm text-gray-700 bg-emerald-50 rounded-xl px-3 py-2.5 ring-1 ring-emerald-100 cursor-pointer self-end min-h-[44px]">
+        <label className="flex items-center gap-2 text-sm text-gray-700 bg-brand-50 rounded-xl px-3 py-2.5 ring-1 ring-brand-100 cursor-pointer self-end min-h-[44px]">
           <input
             type="checkbox"
             checked={overwrite}
             onChange={(e) => setOverwrite(e.target.checked)}
-            className="rounded text-emerald-600 focus:ring-emerald-500"
+            className="rounded text-brand-600 focus:ring-brand-500"
           />
           <span className="font-semibold">
             Sobrescribir si ya existe la asignación
@@ -299,7 +299,7 @@ export default function BulkAssignSuppliersPage() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") loadProducts();
               }}
-              className="w-full bg-gray-50 border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-gray-50 border-none rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <input
@@ -310,7 +310,7 @@ export default function BulkAssignSuppliersPage() {
             onKeyDown={(e) => {
               if (e.key === "Enter") loadProducts();
             }}
-            className="bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-emerald-500 sm:w-48"
+            className="bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-brand-500 sm:w-48"
           />
           <Button onClick={loadProducts}>Buscar</Button>
         </div>
@@ -346,7 +346,7 @@ export default function BulkAssignSuppliersPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={toggleAllVisible}
-              className="text-xs font-bold uppercase tracking-wider text-emerald-700 hover:text-emerald-900 min-h-[36px]"
+              className="text-xs font-bold uppercase tracking-wider text-brand-700 hover:text-brand-900 min-h-[36px]"
               disabled={visibleProducts.length === 0}
             >
               {allVisibleSelected
@@ -389,15 +389,15 @@ export default function BulkAssignSuppliersPage() {
             return (
               <label
                 key={p.barcode}
-                className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-emerald-50/40 transition-colors min-h-[64px] ${
-                  checked ? "bg-emerald-50" : ""
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-brand-50/40 transition-colors min-h-[64px] ${
+                  checked ? "bg-brand-50" : ""
                 }`}
               >
                 <input
                   type="checkbox"
                   checked={checked}
                   onChange={() => toggle(p.barcode)}
-                  className="rounded text-emerald-600 focus:ring-emerald-500"
+                  className="rounded text-brand-600 focus:ring-brand-500"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -405,7 +405,7 @@ export default function BulkAssignSuppliersPage() {
                       {p.name || "(sin nombre)"}
                     </span>
                     {sameSupplierAssigned && (
-                      <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md ring-1 ring-emerald-200 whitespace-nowrap">
+                      <span className="text-[9px] font-black uppercase tracking-widest bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded-md ring-1 ring-brand-200 whitespace-nowrap">
                         Ya asignado
                       </span>
                     )}
@@ -515,7 +515,7 @@ export default function BulkAssignSuppliersPage() {
 
       {/* Resultado última operación */}
       {lastResult && (
-        <div className="bg-emerald-50 ring-1 ring-emerald-200 rounded-xl p-4 text-sm text-emerald-900">
+        <div className="bg-brand-50 ring-1 ring-brand-200 rounded-xl p-4 text-sm text-brand-900">
           <div className="font-bold mb-1">Asignación completada</div>
           <div>· Nuevos vínculos: {lastResult.inserted}</div>
           {lastResult.updated > 0 && (
@@ -569,7 +569,7 @@ function Field({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+        className="w-full bg-gray-50 border-none rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-500"
       />
     </div>
   );

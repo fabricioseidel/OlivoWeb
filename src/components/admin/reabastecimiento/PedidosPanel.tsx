@@ -19,12 +19,15 @@ export interface SupplierOrder {
   deliveredDate?: string;
   status:
     | "borrador"
+    | "en_revision"
     | "pendiente"
+    | "enviado"
     | "confirmado"
-    | "enviado_por_whatsapp"
     | "gestionado"
     | "recibido"
     | "cancelado";
+  /** Por dónde salió el pedido. Va aparte del estado a propósito. */
+  channel?: "whatsapp" | "online" | "presencial" | "telefono" | null;
   paymentStatus: "pendiente" | "parcial" | "pagado";
   total: number;
   itemCount: number;
@@ -41,8 +44,9 @@ const STATUS_FILTER_OPTIONS = [
   { value: "todos", label: "Todos" },
   { value: "borrador", label: "Borrador" },
   { value: "pendiente", label: "Pendiente" },
+  { value: "en_revision", label: "En revisión" },
   { value: "confirmado", label: "Confirmado" },
-  { value: "enviado_por_whatsapp", label: "WhatsApp" },
+  { value: "enviado", label: "Enviado" },
   { value: "gestionado", label: "Gestionado" },
   { value: "recibido", label: "Recibido" },
   { value: "cancelado", label: "Cancelado" },
@@ -105,13 +109,13 @@ export default function PedidosPanel({
             placeholder="Buscar..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
+          className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500"
         >
           {STATUS_FILTER_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -123,7 +127,7 @@ export default function PedidosPanel({
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-emerald-500" />
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-brand-500" />
         </div>
       ) : filteredOrders.length === 0 ? (
         <EmptyState
@@ -139,7 +143,7 @@ export default function PedidosPanel({
               href={`/admin/pedidos-proveedor/${order.id}`}
               className="block"
             >
-              <div className="bg-white rounded-2xl ring-1 ring-gray-200 hover:ring-emerald-300 hover:shadow-md transition-all p-4 space-y-2 active:scale-[0.99]">
+              <div className="bg-white rounded-2xl ring-1 ring-gray-200 hover:ring-brand-300 hover:shadow-md transition-all p-4 space-y-2 active:scale-[0.99]">
                 <div className="flex justify-between items-start gap-3">
                   <div className="min-w-0">
                     <div className="text-sm font-bold text-gray-900 truncate">
@@ -150,11 +154,11 @@ export default function PedidosPanel({
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-base font-black text-emerald-600">
+                    <div className="text-base font-black text-brand-600">
                       ${order.total.toLocaleString()}
                     </div>
                     <div className="text-[10px] text-gray-400">
-                      {order.itemCount} prod.
+                      {order.itemCount} prod. · IVA incl.
                     </div>
                   </div>
                 </div>

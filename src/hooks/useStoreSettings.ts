@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { StoreSettings } from "@/app/api/admin/settings/route";
+import { WHATSAPP_PHONE } from "@/config/constants";
 
 // Module-level cache — shared across ALL instances of the hook so the
 // network request fires only once per session (or after settings:updated).
@@ -16,9 +17,11 @@ async function _fetchOnce(): Promise<StoreSettings> {
     console.log("[OLIVO:settings] ⏳ fetch ya en curso — esperando promise compartida");
     return _pending;
   }
-  console.group("[OLIVO:settings] 🌐 FETCH /api/admin/settings");
+  // Endpoint público: /api/admin/settings queda detrás del middleware de auth
+  // y los visitantes anónimos recibían 401 (y con eso, los defaults del código).
+  console.group("[OLIVO:settings] 🌐 FETCH /api/settings");
   const t0 = Date.now();
-  _pending = fetch("/api/admin/settings", { cache: "no-store" })
+  _pending = fetch("/api/settings", { cache: "no-store" })
     .then((r) => {
       if (!r.ok) throw new Error(r.statusText);
       return r.json() as Promise<StoreSettings>;
@@ -39,10 +42,10 @@ async function _fetchOnce(): Promise<StoreSettings> {
   return _pending;
 }
 
-const DEFAULT_SETTINGS: StoreSettings = {
+export const DEFAULT_SETTINGS: StoreSettings = {
   storeName: "OLIVOMARKET",
   storeEmail: "contacto@olivomarket.cl",
-  storePhone: "+56 9 1234 5678",
+  storePhone: WHATSAPP_PHONE,
   currency: "CLP",
   language: "es",
   timezone: "America/Santiago",
@@ -56,7 +59,8 @@ const DEFAULT_SETTINGS: StoreSettings = {
   shipping: {
     enableShipping: true,
     freeShippingEnabled: false,
-    freeShippingMinimum: 50000,
+    freeShippingMinimum: 30000,
+    freeShippingMinimumFlash: 40000,
     localDeliveryEnabled: true,
     localDeliveryFee: 5000,
     localDeliveryTimeDays: 3,
@@ -71,9 +75,14 @@ const DEFAULT_SETTINGS: StoreSettings = {
     mercadoPago: false,
     crypto: false,
   },
-  paymentTestMode: true,
   emailFromName: "OLIVOMARKET",
   emailFromAddress: "noreply@olivomarket.cl",
+  // Igual que en el servidor: si no se pudo leer la configuración, la tienda
+  // se muestra en vitrina. El servidor rechaza el pedido de todos modos, así
+  // que dejar el botón de pagar habilitado solo conseguiría que el cliente
+  // llenara el carrito, escribiera su dirección y recién ahí se topara con un
+  // error.
+  previewMode: true,
 };
 
 type UseStoreSettingsReturn = {
@@ -159,21 +168,6 @@ export function useShippingSettings() {
 
   return {
     shipping: settings.shipping || DEFAULT_SETTINGS.shipping,
-    loading,
-    error,
-    refresh,
-  };
-}
-
-/**
- * Hook para obtener solo la configuración de pagos
- */
-export function usePaymentSettings() {
-  const { settings, loading, error, refresh } = useStoreSettings();
-
-  return {
-    paymentMethods: settings.paymentMethods || DEFAULT_SETTINGS.paymentMethods,
-    paymentTestMode: settings.paymentTestMode ?? DEFAULT_SETTINGS.paymentTestMode,
     loading,
     error,
     refresh,

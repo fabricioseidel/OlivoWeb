@@ -1,24 +1,10 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireApiAdmin } from "@/lib/api-auth";
 import { supabaseServer } from "@/lib/supabase-server";
 
-function isAdmin(session: any) {
-  const role = session?.role || session?.user?.role;
-  return typeof role === "string" && role.toUpperCase().includes("ADMIN");
-}
-
-async function ensureAdmin() {
-  const session: any = await getServerSession(authOptions as any);
-  if (!session || !isAdmin(session)) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  }
-  return session;
-}
-
 export async function GET(req: Request) {
-  const session = await ensureAdmin();
-  if (session instanceof NextResponse) return session;
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search")?.trim() ?? "";
@@ -73,13 +59,16 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await ensureAdmin();
-  if (session instanceof NextResponse) return session;
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
 
   try {
     const body = await req.json();
     const payload = {
       name: String(body?.name ?? "").trim(),
+      // Vacío se guarda como NULL y no como cadena vacía: el índice único es
+      // parcial y dos proveedores informales con "" chocarían entre sí.
+      rut: body?.rut && String(body.rut).trim() ? String(body.rut).trim() : null,
       contact_name: body?.contactName ? String(body.contactName).trim() : null,
       phone: body?.phone ? String(body.phone).trim() : null,
       whatsapp: body?.whatsapp ? String(body.whatsapp).trim() : null,

@@ -2,9 +2,9 @@
 
 export default function SkeletonCard() {
   return (
-    <div className="rounded-[2.5rem] bg-white border border-gray-100 animate-pulse overflow-hidden">
+    <div className="o-card animate-pulse overflow-hidden">
       <div className="aspect-square w-full bg-gray-50 flex items-center justify-center p-8">
-        <div className="w-20 h-20 bg-gray-100 rounded-[2rem]" />
+        <div className="size-20 rounded-2xl bg-neutral-100" />
       </div>
       <div className="p-5 sm:p-6 space-y-4">
         <div className="space-y-2">

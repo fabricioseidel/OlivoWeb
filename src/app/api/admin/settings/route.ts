@@ -1,129 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { supabaseServer } from "@/lib/supabase-server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireApiAdmin } from "@/lib/api-auth";
+import { invalidateStoreStatusCache } from "@/server/store-status.service";
+import { mapSettingsRow, FALLBACK_SETTINGS } from "@/lib/settings-shared";
+import { RADIO_DESPACHO_KM_DEFAULT } from "@/lib/shipping-policy";
 
-export type PageBlock = {
-  id: string;
-  type: 'hero' | 'categories' | 'products' | 'features' | 'newsletter' | 'banner';
-  enabled: boolean;
-  title?: string;
-  subtitle?: string;
-  description?: string;
-  buttonText?: string;
-  buttonLink?: string;
-  imageUrl?: string;
-  backgroundColor?: string;
-  textColor?: string;
-  itemsToShow?: number;
-  config?: any;
-};
-
-// Type para la configuración completa
-export type StoreSettings = {
-  // General
-  storeName?: string;
-  storeEmail?: string;
-  storePhone?: string;
-  storeAddress?: string;
-  storeCity?: string;
-  storeCountry?: string;
-  storePostalCode?: string;
-
-  // Regional
-  currency?: string;
-  language?: string;
-  timezone?: string;
-
-  // Apariencia
-  appearance?: {
-    primaryColor?: string;
-    secondaryColor?: string;
-    accentColor?: string;
-    logoUrl?: string;
-    faviconUrl?: string;
-    bannerUrl?: string;
-    footerBackgroundColor?: string;
-    footerTextColor?: string;
-    enableDarkMode?: boolean;
-    blocks?: PageBlock[];
-  };
-
-  // Envíos
-  shipping?: {
-    enableShipping?: boolean;
-    freeShippingEnabled?: boolean;
-    freeShippingMinimum?: number;
-    localDeliveryEnabled?: boolean;
-    localDeliveryFee?: number;
-    localDeliveryTimeDays?: number;
-    internationalShippingEnabled?: boolean;
-    internationalShippingFee?: number;
-
-    // Configuración Dinámica (Haversine)
-    enableDynamicShipping?: boolean;
-    shippingBaseFee?: number;
-    shippingPricePerKm?: number;
-    shippingOriginLat?: number;
-    shippingOriginLng?: number;
-
-    // Alta Demanda
-    isHighDemand?: boolean;
-  };
-
-  // Pagos
-  paymentMethods?: {
-    creditCard?: boolean;
-    debitCard?: boolean;
-    paypal?: boolean;
-    bankTransfer?: boolean;
-    mercadoPago?: boolean;
-    crypto?: boolean;
-  };
-  paymentTestMode?: boolean;
-
-  // Emails
-  emailFromAddress?: string;
-  emailFromName?: string;
-  orderConfirmationEnabled?: boolean;
-  shippingConfirmationEnabled?: boolean;
-  orderCancellationEnabled?: boolean;
-  customerSignupWelcomeEnabled?: boolean;
-  marketingEmailsEnabled?: boolean;
-
-  // Redes Sociales
-  socialMedia?: {
-    facebook?: string | null;
-    instagram?: string | null;
-    twitter?: string | null;
-    tiktok?: string | null;
-    youtube?: string | null;
-    linkedin?: string | null;
-    whatsapp?: string | null;
-  };
-
-  // SEO
-  seoTitle?: string;
-  seoDescription?: string;
-  seoKeywords?: string;
-  ogImageUrl?: string;
-  ogImageWidth?: number;
-  ogImageHeight?: number;
-
-  // Política
-  termsUrl?: string;
-  privacyUrl?: string;
-  returnPolicyUrl?: string;
-  faqUrl?: string;
-  maintenanceMode?: boolean;
-  maintenanceMessage?: string;
-
-  heroTitle?: string;
-  heroDescription?: string;
-
-  updatedAt?: string;
-};
+// Tipos movidos a @/lib/settings-shared (re-export para los imports existentes)
+export type { StoreSettings, PageBlock } from "@/lib/settings-shared";
 
 // GET: Obtener todas las configuraciones
 export async function GET() {
@@ -143,125 +27,10 @@ export async function GET() {
 
     // Si no existe, retornar valores por defecto
     if (!data) {
-      return NextResponse.json({
-        storeName: "OLIVOMARKET",
-        currency: "CLP",
-        language: "es",
-        timezone: "America/Santiago",
-        appearance: {
-          primaryColor: "#10B981",
-          secondaryColor: "#059669",
-          accentColor: "#047857",
-          logoUrl: undefined,
-          enableDarkMode: false,
-          blocks: [
-            { id: 'b1', type: 'hero', enabled: true, title: 'Sabor que te conecta con casa', description: 'Llevamos lo mejor de Venezuela directo a tu puerta en Chile.' },
-            { id: 'b2', type: 'categories', enabled: true, title: 'Nuestras Categorías' },
-            { id: 'b3', type: 'products', enabled: true, title: 'Lo Más Vendido', itemsToShow: 8 },
-            { id: 'b4', type: 'features', enabled: true },
-            { id: 'b5', type: 'newsletter', enabled: true }
-          ]
-        },
-        shipping: {
-          enableShipping: true,
-          freeShippingEnabled: false,
-          freeShippingMinimum: 50000,
-          localDeliveryEnabled: true,
-          localDeliveryFee: 5000,
-          localDeliveryTimeDays: 3,
-          internationalShippingEnabled: false,
-          internationalShippingFee: 15000,
-          enableDynamicShipping: true,
-          shippingBaseFee: 1500,
-          shippingPricePerKm: 250,
-          shippingOriginLat: -33.4312,
-          shippingOriginLng: -70.6166,
-          isHighDemand: false,
-        },
-        paymentMethods: {
-          creditCard: true,
-          debitCard: true,
-          paypal: false,
-          bankTransfer: true,
-          mercadoPago: false,
-          crypto: false,
-        },
-        paymentTestMode: true,
-        emailFromName: "OLIVOMARKET",
-        emailFromAddress: "noreply@olivomarket.cl",
-        heroTitle: "Sabor que te conecta con casa",
-        heroDescription: "Llevamos lo mejor de Venezuela directo a tu puerta en Chile. Calidad garantizada, frescura y el sabor que ya conoces.",
-      } as StoreSettings);
+      return NextResponse.json(FALLBACK_SETTINGS);
     }
 
-    // Mapear snake_case de DB a camelCase para la respuesta
-    const settings: StoreSettings = {
-      storeName: data.store_name,
-      storeEmail: data.store_email,
-      storePhone: data.store_phone,
-      storeAddress: data.store_address,
-      storeCity: data.store_city,
-      storeCountry: data.store_country,
-      storePostalCode: data.store_postal_code,
-      currency: data.currency,
-      language: data.language,
-      timezone: data.timezone,
-      appearance: {
-        primaryColor: data.primary_color,
-        secondaryColor: data.secondary_color,
-        accentColor: data.accent_color,
-        logoUrl: data.logo_url,
-        faviconUrl: data.favicon_url,
-        bannerUrl: data.banner_url,
-        footerBackgroundColor: data.footer_background_color,
-        footerTextColor: data.footer_text_color,
-        enableDarkMode: data.enable_dark_mode,
-        blocks: data.blocks || [],
-      },
-      shipping: {
-        enableShipping: data.enable_shipping,
-        freeShippingEnabled: data.free_shipping_enabled,
-        freeShippingMinimum: data.free_shipping_minimum,
-        localDeliveryEnabled: data.local_delivery_enabled,
-        localDeliveryFee: data.local_delivery_fee,
-        localDeliveryTimeDays: data.local_delivery_time_days,
-        internationalShippingEnabled: data.international_shipping_enabled,
-        internationalShippingFee: data.international_shipping_fee,
-        enableDynamicShipping: data.enable_dynamic_shipping,
-        shippingBaseFee: data.shipping_base_fee,
-        shippingPricePerKm: data.shipping_price_per_km,
-        shippingOriginLat: data.shipping_origin_lat,
-        shippingOriginLng: data.shipping_origin_lng,
-        isHighDemand: data.is_high_demand ?? false,
-      },
-      paymentMethods: data.payment_methods || {},
-      paymentTestMode: data.payment_test_mode,
-      emailFromAddress: data.email_from_address,
-      emailFromName: data.email_from_name,
-      orderConfirmationEnabled: data.order_confirmation_enabled,
-      shippingConfirmationEnabled: data.shipping_confirmation_enabled,
-      orderCancellationEnabled: data.order_cancellation_enabled,
-      customerSignupWelcomeEnabled: data.customer_signup_welcome_enabled,
-      marketingEmailsEnabled: data.marketing_emails_enabled,
-      socialMedia: data.social_media || {},
-      seoTitle: data.seo_title,
-      seoDescription: data.seo_description,
-      seoKeywords: data.seo_keywords,
-      ogImageUrl: data.og_image_url,
-      ogImageWidth: data.og_image_width,
-      ogImageHeight: data.og_image_height,
-      termsUrl: data.terms_url,
-      privacyUrl: data.privacy_url,
-      returnPolicyUrl: data.return_policy_url,
-      faqUrl: data.faq_url,
-      maintenanceMode: data.maintenance_mode,
-      maintenanceMessage: data.maintenance_message,
-      heroTitle: data.hero_title,
-      heroDescription: data.hero_description,
-      updatedAt: data.updated_at,
-    };
-
-    return NextResponse.json(settings);
+    return NextResponse.json(mapSettingsRow(data));
   } catch (error: any) {
     console.error("[SETTINGS][GET]", error);
     return NextResponse.json(
@@ -274,16 +43,8 @@ export async function GET() {
 // PATCH: Actualizar configuraciones (solo admin)
 export async function PATCH(req: Request) {
   try {
-    // Verificar que el usuario es admin
-    const session: any = await getServerSession(authOptions as any);
-    const role = session?.role || session?.user?.role || "";
-
-    if (!session || !String(role).toUpperCase().includes("ADMIN")) {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
-    }
+    const auth = await requireApiAdmin();
+    if (!auth.ok) return auth.response;
 
     const body = await req.json();
 
@@ -313,6 +74,8 @@ export async function PATCH(req: Request) {
       enable_shipping: body.shipping?.enableShipping ?? true,
       free_shipping_enabled: body.shipping?.freeShippingEnabled ?? false,
       free_shipping_minimum: body.shipping?.freeShippingMinimum ?? null,
+      free_shipping_minimum_flash: body.shipping?.freeShippingMinimumFlash ?? null,
+      flash_delivery_enabled: body.shipping?.flashDeliveryEnabled ?? false,
       local_delivery_enabled: body.shipping?.localDeliveryEnabled ?? true,
       local_delivery_fee: body.shipping?.localDeliveryFee ?? null,
       local_delivery_time_days: body.shipping?.localDeliveryTimeDays ?? 3,
@@ -323,6 +86,12 @@ export async function PATCH(req: Request) {
       shipping_price_per_km: body.shipping?.shippingPricePerKm ?? 0,
       shipping_origin_lat: body.shipping?.shippingOriginLat ?? null,
       shipping_origin_lng: body.shipping?.shippingOriginLng ?? null,
+      // La columna es NOT NULL: un radio vacío o 0 desactivaría el reparto
+      // entero sin que nadie lo pidiera, así que cae al valor por defecto.
+      shipping_max_distance_km:
+        Number(body.shipping?.shippingMaxDistanceKm) > 0
+          ? Number(body.shipping.shippingMaxDistanceKm)
+          : RADIO_DESPACHO_KM_DEFAULT,
       is_high_demand: body.shipping?.isHighDemand ?? false,
       payment_methods: body.paymentMethods ?? {},
       payment_test_mode: body.paymentTestMode ?? true,
@@ -333,6 +102,7 @@ export async function PATCH(req: Request) {
       order_cancellation_enabled: body.orderCancellationEnabled ?? true,
       customer_signup_welcome_enabled: body.customerSignupWelcomeEnabled ?? true,
       marketing_emails_enabled: body.marketingEmailsEnabled ?? false,
+      site_copy: body.siteCopy ?? {},
       social_media: body.socialMedia ?? {},
       seo_title: body.seoTitle ?? null,
       seo_description: body.seoDescription ?? null,
@@ -346,6 +116,11 @@ export async function PATCH(req: Request) {
       faq_url: body.faqUrl ?? null,
       maintenance_mode: body.maintenanceMode ?? false,
       maintenance_message: body.maintenanceMessage ?? null,
+      // Ante un body sin el campo se mantiene la vitrina: abrir la tienda
+      // tiene que ser un acto explícito, nunca el efecto de un guardado
+      // parcial desde otra pestaña de configuración.
+      preview_mode: body.previewMode ?? true,
+      preview_message: body.previewMessage ?? null,
       hero_title: body.heroTitle ?? null,
       hero_description: body.heroDescription ?? null,
       updated_at: new Date().toISOString(),
@@ -373,6 +148,10 @@ export async function PATCH(req: Request) {
         { status: 500 }
       );
     }
+
+    // El estado comercial se cachea unos segundos en el servidor. Sin esto,
+    // abrir la tienda tardaría en surtir efecto justo cuando más se mira.
+    invalidateStoreStatusCache();
 
     return NextResponse.json({ ok: true, message: "Configuración actualizada" });
   } catch (error: any) {

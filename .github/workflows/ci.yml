@@ -4,6 +4,13 @@ on:
   push:
     branches: [ main ]
   pull_request:
+  # Permite lanzar CI a mano desde la pestaña Actions.
+  #
+  # Hace falta porque un pull request abierto por una app —no por un push— no
+  # dispara el evento `pull_request`, así que la rama se queda sin ninguna
+  # ejecución y no hay forma de pedirla sin recurrir a un commit vacío o a
+  # cerrar y reabrir el PR. Con esto se elige la rama y se ejecuta.
+  workflow_dispatch:
 
 jobs:
   build-test:
@@ -13,22 +20,20 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install
         run: npm ci
 
       - name: Typecheck
-        run: npm run -s typecheck || npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Lint
-        run: npm run -s lint || npx eslint . --ext .ts,.tsx
-
-  # Prisma removed
+        run: npm run lint
 
       - name: Tests
-        run: npm test --silent -- --coverage || npm test --silent || true
+        run: npm test
 
       - name: Build
-        run: npm run -s build
+        run: npm run build

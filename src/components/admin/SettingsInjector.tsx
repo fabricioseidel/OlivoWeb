@@ -1,13 +1,26 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { escalaDeMarca, superficieDeBoton, textoDeMarca, PASOS } from "@/lib/brand-palette";
 
 /**
  * Componente que aplica dinámicamente los colores y configuraciones de la tienda
  * Inyecta CSS variables globales y meta tags
  */
 export function SettingsInjector() {
+  // El admin no usa los colores ni el favicon de la tienda: saltarse el fetch
+  // aquí evita una request extra al abrir el POS desde el teléfono.
+  const pathname = usePathname();
+  const esAdmin = pathname?.startsWith("/admin") ?? false;
+
+  if (esAdmin) return null;
+
+  return <SettingsInjectorInner />;
+}
+
+function SettingsInjectorInner() {
   const { settings } = useStoreSettings();
 
   useEffect(() => {
@@ -18,6 +31,34 @@ export function SettingsInjector() {
     
     if (settings.appearance?.primaryColor) {
       root.style.setProperty("--color-primary", settings.appearance.primaryColor);
+
+      // Y con él, los once pasos de la escala de marca. Sin esto el color
+      // primario sólo movía un par de reglas sueltas mientras el resto del
+      // sitio seguía pintado de verde fijo: el selector del panel prometía
+      // algo que no hacía.
+      //
+      // `escalaDeMarca` devuelve null si el color no se entiende; en ese caso
+      // no se toca nada y queda la escala por defecto, que es lo correcto —
+      // mejor el verde de siempre que un sitio a medio pintar.
+      const escala = escalaDeMarca(settings.appearance.primaryColor);
+      if (escala) {
+        for (const paso of PASOS) {
+          root.style.setProperty(`--color-brand-${paso}`, escala[paso]);
+        }
+        // El botón primario no usa el color elegido tal cual: usa el tono más
+        // cercano que aguanta su propio texto con contraste AA. Con un amarillo
+        // el texto sale negro; con un verde de marca sale blanco pero el fondo
+        // baja un punto, porque el verde de catálogo con blanco encima queda
+        // por debajo del mínimo legible.
+        const boton = superficieDeBoton(settings.appearance.primaryColor);
+        root.style.setProperty("--color-brand-boton", boton.fondo);
+        root.style.setProperty("--color-brand-contraste", boton.texto);
+        // Y el espejo: el mismo color cuando va como texto sobre fondo claro.
+        root.style.setProperty(
+          "--color-brand-texto",
+          textoDeMarca(settings.appearance.primaryColor)
+        );
+      }
     }
     if (settings.appearance?.secondaryColor) {
       root.style.setProperty("--color-secondary", settings.appearance.secondaryColor);

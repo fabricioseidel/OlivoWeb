@@ -1,6 +1,56 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { requireApiAdminOrSeller } from '@/lib/api-auth';
+import { applyReception, reverseReception } from '@/server/inventory.service';
+
+/** Columnas de una línea de pedido que la API expone. */
+const COLUMNAS_ITEM = `
+  id,
+  product_id,
+  supplier_sku,
+  quantity,
+  unit_cost,
+  tax_rate,
+  subtotal,
+  notes,
+  qty_confirmed,
+  availability,
+  qty_received,
+  unit_cost_received,
+  products (name, barcode)
+`;
+
+/**
+ * Da forma a una línea de pedido para la API.
+ *
+ * El GET y el PATCH devolvían la misma línea con dos mapeos distintos escritos
+ * a mano, así que agregar un campo obligaba a acordarse de los dos — y al
+ * añadir los campos del ciclo de compra, efectivamente se olvidó uno.
+ */
+function formatearItem(item: any) {
+  const producto = Array.isArray(item.products) ? item.products[0] : item.products;
+  const numero = (valor: unknown) =>
+    valor === null || valor === undefined ? null : Number(valor);
+
+  return {
+    id: item.id,
+    product_id: item.product_id,
+    product_name: producto?.name || 'Producto desconocido',
+    product_sku: producto?.barcode || item.supplier_sku,
+    supplier_sku: item.supplier_sku,
+    quantity: item.quantity,
+    unit_cost: Number(item.unit_cost) || 0,
+    tax_rate: numero(item.tax_rate) ?? 19,
+    subtotal: Number(item.subtotal) || 0,
+    notes: item.notes ?? null,
+    // Ciclo de compra: qué confirmó el proveedor y qué llegó de verdad.
+    qty_confirmed: numero(item.qty_confirmed),
+    availability: item.availability ?? 'pendiente',
+    qty_received: numero(item.qty_received),
+    unit_cost_received: numero(item.unit_cost_received),
+  };
+}
+
 
 export async function GET(
   request: Request,
@@ -31,16 +81,7 @@ export async function GET(
     // Obtener los items del pedido con información del producto
     const { data: items, error: itemsError } = await supabaseServer
       .from('supplier_order_items')
-      .select(`
-        id,
-        product_id,
-        supplier_sku,
-        quantity,
-        unit_cost,
-        subtotal,
-        notes,
-        products (name, barcode)
-      `)
+      .select(COLUMNAS_ITEM)
       .eq('order_id', id)
       .order('id');
 
@@ -52,21 +93,7 @@ export async function GET(
       );
     }
 
-    // Formatear respuesta
-    const formattedItems = (items || []).map((item: any) => {
-      const product = Array.isArray(item.products) ? item.products[0] : item.products;
-      return {
-        id: item.id,
-        product_id: item.product_id,
-        product_name: product?.name || 'Producto desconocido',
-        product_sku: product?.barcode || item.supplier_sku,
-        supplier_sku: item.supplier_sku,
-        quantity: item.quantity,
-        unit_cost: parseFloat(item.unit_cost),
-        subtotal: parseFloat(item.subtotal),
-        notes: item.notes,
-      };
-    });
+    const formattedItems = (items || []).map(formatearItem);
 
     const supplierName = Array.isArray(order.suppliers)
       ? order.suppliers[0]?.name
@@ -90,6 +117,7 @@ export async function GET(
       expected_date: order.expected_date,
       delivered_date: order.delivered_date,
       status: order.status,
+      channel: order.channel ?? null,
       payment_status: order.payment_status,
       total: parseFloat(order.total),
       paid_amount: parseFloat(order.paid_amount),
@@ -145,15 +173,25 @@ export async function PATCH(
       updates.delivered_date = new Date().toISOString().split('T')[0];
     }
 
-    const { data, error } = await supabaseServer
-      .from('supplier_orders')
-      .update(updates)
-      .eq('id', id)
+    // El cambio de estado se hace condicionado al estado que acabamos de leer.
+    // Sin esto, dos peticiones simultáneas (un doble clic en "Marcar como
+    // Recibido") leían ambas el estado anterior y aplicaban la recepción dos
+    // veces: el stock entraba duplicado.
+    const isStatusChange = Boolean(body.status) && body.status !== previousStatus;
+
+    let query = supabaseServer.from('supplier_orders').update(updates).eq('id', id);
+    if (isStatusChange) {
+      query = previousStatus
+        ? query.eq('status', previousStatus)
+        : query.is('status', null);
+    }
+
+    const { data: updated, error } = await query
       .select(`
         *,
         suppliers (name, whatsapp, phone)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error updating order:', error);
@@ -163,6 +201,27 @@ export async function PATCH(
       );
     }
 
+    // Sin fila: otra petición ganó la carrera y ya hizo esta transición.
+    // Se devuelve el pedido tal como quedó, sin volver a mover stock.
+    const didTransition = Boolean(updated);
+    let data = updated;
+
+    if (!data) {
+      const { data: current } = await supabaseServer
+        .from('supplier_orders')
+        .select(`
+          *,
+          suppliers (name, whatsapp, phone)
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (!current) {
+        return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+      }
+      data = current;
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // STOCK: recepción / cancelación vía RPC apply_reception(_reverse).
     // Las RPCs actualizan branch_stock como fuente de verdad, recalculan
@@ -170,41 +229,64 @@ export async function PATCH(
     // de modo que el POS (que lee branch_stock) ve el mismo stock que
     // la web.
     // ═══════════════════════════════════════════════════════════════
-    const isReception = body.status === 'recibido' && previousStatus !== 'recibido';
-    const isReversal  = body.status === 'cancelado' && previousStatus === 'recibido';
+    const isReception = didTransition && body.status === 'recibido' && previousStatus !== 'recibido';
+    const isReversal  = didTransition && body.status === 'cancelado' && previousStatus === 'recibido';
 
     if (isReception || isReversal) {
       try {
         const { data: orderItems } = await supabaseServer
           .from('supplier_order_items')
-          .select('quantity, products(barcode)')
+          .select('id, quantity, qty_received, products(barcode)')
           .eq('order_id', id);
 
-        const payload = (orderItems || [])
+        // El stock se mueve con lo que REALMENTE llegó. Antes se movía con
+        // `quantity` —la cantidad pedida—, así que un "pedí 24, llegaron 18"
+        // metía 24 al inventario y el sistema quedaba mintiendo por seis
+        // unidades. Como `products.stock` se recalcula desde `branch_stock`,
+        // ese error llegaba hasta la venta web.
+        //
+        // Cuando nadie anotó la recepción línea por línea, marcar el pedido
+        // como recibido sigue significando "llegó todo como se pidió", que es
+        // el caso habitual; para revertir, en cambio, lo que hay que sacar es
+        // exactamente lo que entró.
+        const items = (orderItems || [])
           .map((it: any) => {
             const prod = Array.isArray(it.products) ? it.products[0] : it.products;
             const barcode = prod?.barcode;
-            return barcode ? { barcode, qty: Number(it.quantity) || 0 } : null;
+            if (!barcode) return null;
+            const cantidad = it.qty_received ?? it.quantity;
+            return { id: it.id as string, barcode, qty: Number(cantidad) || 0 };
           })
-          .filter(Boolean);
+          .filter((it): it is { id: string; barcode: string; qty: number } => it !== null)
+          .filter((it) => it.qty > 0);
 
-        if (payload.length > 0) {
-          const rpcName = isReception ? 'apply_reception' : 'apply_reception_reverse';
-          const reason  = isReception
+        // Dejar anotado lo recibido cierra el hueco: sin esto, revertir después
+        // no sabría cuánto había entrado.
+        if (isReception) {
+          const sinAnotar = (orderItems || []).filter((it: any) => it.qty_received === null);
+          if (sinAnotar.length > 0) {
+            await Promise.all(
+              sinAnotar.map((it: any) =>
+                supabaseServer
+                  .from('supplier_order_items')
+                  .update({ qty_received: it.quantity, received_at: new Date().toISOString() })
+                  .eq('id', it.id)
+              )
+            );
+          }
+        }
+
+        if (items.length > 0) {
+          const reason = isReception
             ? `Recepción pedido proveedor #${id.slice(0, 8)}`
             : `Cancelación pedido proveedor #${id.slice(0, 8)}`;
 
-          const { error: rpcErr } = await supabaseServer.rpc(rpcName, {
-            p_items:     payload,
-            p_branch_id: null,
-            p_reference: id,
-            p_notes:     reason,
-          });
+          const result = isReception
+            ? await applyReception(items, { reference: id, reason })
+            : await reverseReception(items, { reference: id, reason });
 
-          if (rpcErr) {
-            console.error(`Error en ${rpcName}:`, rpcErr);
-          } else {
-            console.log(`✅ ${isReception ? 'Recepción' : 'Reversión'} aplicada: pedido ${id.slice(0, 8)}, ${payload.length} ítems`);
+          if (!result.ok) {
+            console.error(`Error moviendo stock del pedido ${id.slice(0, 8)}:`, result.error);
           }
         }
       } catch (invError) {
@@ -216,30 +298,10 @@ export async function PATCH(
     // ── Fetch updated items for response ──
     const { data: items } = await supabaseServer
       .from('supplier_order_items')
-      .select(`
-        id,
-        product_id,
-        supplier_sku,
-        quantity,
-        unit_cost,
-        subtotal,
-        products (name, barcode)
-      `)
+      .select(COLUMNAS_ITEM)
       .eq('order_id', id);
 
-    const formattedItems = (items || []).map((item: any) => {
-      const product = Array.isArray(item.products) ? item.products[0] : item.products;
-      return {
-        id: item.id,
-        product_id: item.product_id,
-        product_name: product?.name || 'Producto desconocido',
-        product_sku: product?.barcode || item.supplier_sku,
-        supplier_sku: item.supplier_sku,
-        quantity: item.quantity,
-        unit_cost: parseFloat(item.unit_cost),
-        subtotal: parseFloat(item.subtotal),
-      };
-    });
+    const formattedItems = (items || []).map(formatearItem);
 
     const supplierName = Array.isArray(data.suppliers)
       ? data.suppliers[0]?.name
@@ -263,6 +325,7 @@ export async function PATCH(
       expected_date: data.expected_date,
       delivered_date: data.delivered_date,
       status: data.status,
+      channel: data.channel ?? null,
       payment_status: data.payment_status,
       total: parseFloat(data.total),
       paid_amount: parseFloat(data.paid_amount),

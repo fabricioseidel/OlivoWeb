@@ -81,9 +81,9 @@ export default function CategoryPopover({
                   updateProduct(p.id, 'uberCategories', newCategories);
                   updateProduct(p.id, 'uberCategory', newCategories[0] || '');
                 }}
-                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
               />
-              <span className={p.uberCategories.includes(cat) ? 'font-medium text-emerald-700' : ''}>
+              <span className={p.uberCategories.includes(cat) ? 'font-medium text-brand-700' : ''}>
                 {cat}
               </span>
             </label>

@@ -5,6 +5,43 @@
    runtime con los colores de Admin → Apariencia. Los derivados (hover/soft)
    se calculan con color-mix para seguir al color base configurado. */
 @theme {
+  /* Escala de marca. Los valores por defecto son emerald exacto; cuando el
+     panel define otro color primario, `SettingsInjector` recalcula los once
+     pasos con `escalaDeMarca()` y los sobreescribe en runtime.
+
+     Se declaran acá para que Tailwind v4 genere las utilidades `bg-brand-600`,
+     `text-brand-100`, `ring-brand-500`, etc. */
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+  --color-brand-950: #022c22;
+
+  /* Superficie del botón primario y su texto.
+     No es `brand-600` a secas porque el verde de marca es demasiado claro para
+     llevar texto blanco: `#059669` con blanco da 3,8:1 y el mínimo WCAG AA
+     para texto normal es 4,5. Este tono es el punto más cercano a `brand-600`
+     que sí llega (4,5:1), o sea el mismo verde apenas más profundo.
+     `superficieDeBoton()` lo calcula; el default de acá tiene que coincidir con
+     lo que esa función devuelve para el primario por defecto, y hay un test que
+     lo verifica para que no se separen. Cuando el panel define otro primario,
+     SettingsInjector recalcula ambos. */
+  --color-brand-boton: #00875e;
+  --color-brand-contraste: #ffffff;
+
+  /* El mismo verde pero cuando va como TEXTO sobre fondo claro: enlaces,
+     botones de contorno, migas. Es el fallo espejo del botón —el verde de
+     catálogo sobre blanco da los mismos 3,8:1— y por eso hace falta un token
+     propio: acá el que se mueve es el texto, porque el fondo blanco no es
+     negociable. Lo calcula `textoDeMarca()`. */
+  --color-brand-texto: #00875e;
+
   --color-primary: #059669; /* emerald-600 */
   --color-primary-hover: color-mix(in srgb, var(--color-primary), black 14%);
   --color-primary-soft: color-mix(in srgb, var(--color-primary), white 92%);
@@ -13,8 +50,10 @@
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
-  --color-footer-bg: #1f2937;
-  --color-footer-text: #f3f4f6;
+  /* El pie sigue al color de marca por defecto. Si en el panel se define un
+     color propio de pie, SettingsInjector sobreescribe estas dos y manda ese. */
+  --color-footer-bg: var(--color-brand-950);
+  --color-footer-text: #ffffff;
 }
 
 /* Restricciones específicas para SVG e iconos */
@@ -53,10 +92,15 @@ svg[aria-hidden="true"] {
   height: 1.25rem !important;
 }
 
-/* Fix para imágenes en general */
-img {
-  max-width: 100%;
-  height: auto;
+/* Fix para imágenes en general.
+   En @layer base para que las utilidades de Tailwind (h-full, h-28, etc.)
+   puedan sobreescribirlo; sin capa, esta regla les ganaba a todas y las
+   imágenes ignoraban su alto asignado. */
+@layer base {
+  img {
+    max-width: 100%;
+    height: auto;
+  }
 }
 
 /* line-clamp util si no tienes el plugin (Tailwind 3.3+ ya trae truncation básica) */
@@ -255,4 +299,338 @@ body {
 .bg-dots {
   background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
   background-size: 24px 24px;
+}
+/* ═══════════════════════════════════════════════════════════════════════
+   SISTEMA DE DISEÑO OLIVO
+   ═══════════════════════════════════════════════════════════════════════
+
+   El sitio venía con 705 usos de `font-black`, 336 de `tracking-widest` y
+   seis escalas de radio distintas conviviendo. Con todo en el peso máximo
+   no hay jerarquía: el ojo no sabe qué mirar primero y el conjunto se lee
+   como una plantilla genérica.
+
+   Reglas de este sistema:
+   1. El peso comunica jerarquía. 400 cuerpo · 500 apoyo · 600 títulos ·
+      700 solo cifras y titulares. `font-black` (900) no se usa.
+   2. Los grises estructuran, el verde de marca solo marca acciones.
+      Si todo es verde, nada destaca.
+   3. Una sola escala de radios y dos niveles de sombra.
+   4. Espaciado en múltiplos de 4px, con un ritmo vertical fijo por sección.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* ── Radios: una sola escala ── */
+  --radius-control: 0.625rem; /* 10px — botones, inputs, chips */
+  --radius-surface: 1rem;     /* 16px — tarjetas y paneles */
+  --radius-modal: 1.25rem;    /* 20px — modales y hojas */
+
+  /* ── Sombras: elevación discreta, no dramática ── */
+  --shadow-raised: 0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.06);
+  --shadow-floating: 0 4px 12px -2px rgb(16 24 40 / 0.08), 0 2px 6px -2px rgb(16 24 40 / 0.04);
+
+  /* ── Ritmo vertical de secciones ── */
+  --space-section: 3rem;
+  --space-section-lg: 4.5rem;
+}
+
+@layer base {
+  /* Tabulares para precios: evita que los montos "bailen" al actualizarse
+     en el carrito, donde los dígitos cambian pero la columna debe quedar fija. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* ── Contenedor y ritmo ──────────────────────────────────────────────
+     Ancho de línea controlado: a más de ~1280px el ojo pierde el renglón. */
+  .o-container {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .o-container { padding-inline: 1.5rem; }
+  }
+  @media (min-width: 1024px) {
+    .o-container { padding-inline: 2rem; }
+  }
+
+  .o-section {
+    padding-block: var(--space-section);
+  }
+  @media (min-width: 768px) {
+    .o-section { padding-block: var(--space-section-lg); }
+  }
+
+  /* ── Escala tipográfica ──────────────────────────────────────────────
+     Cada nivel baja de peso a medida que baja de tamaño; así la jerarquía
+     se sostiene incluso cuando dos niveles quedan uno al lado del otro. */
+  .o-display {
+    font-size: clamp(1.875rem, 1.2rem + 2.4vw, 3rem);
+    line-height: 1.08;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+  .o-h1 {
+    font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2rem);
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .o-h2 {
+    font-size: clamp(1.25rem, 1.05rem + 0.7vw, 1.5rem);
+    line-height: 1.25;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  .o-h3 {
+    font-size: 1.0625rem;
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .o-body {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+  .o-caption {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    font-weight: 400;
+  }
+
+  /* Etiqueta de sección. Reemplaza al patrón
+     `text-[10px] font-black uppercase tracking-widest`, que a ese tamaño
+     resulta ilegible y aparecía sobre casi todos los bloques. */
+  .o-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+    color: color-mix(in srgb, var(--color-primary), black 8%);
+  }
+
+  /* ── Superficies ─────────────────────────────────────────────────────
+     Una tarjeta se define por su borde, no por una sombra pesada. La
+     sombra solo sube al levantarse por interacción. */
+  .o-card {
+    background: #fff;
+    border: 1px solid rgb(229 231 235);
+    border-radius: var(--radius-surface);
+  }
+  .o-card-interactive {
+    transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  }
+  .o-card-interactive:hover {
+    border-color: rgb(209 213 219);
+    box-shadow: var(--shadow-floating);
+  }
+
+  /* ── Foco visible y consistente en todo el sitio ── */
+  .o-focus:focus-visible {
+    /* El anillo se pintaba con --color-primary, que es el color crudo elegido
+       en el panel: sobre blanco da 2,54:1 y el mínimo para contraste no
+       textual es 3. `brand-texto` es el mismo color ya ajustado —4,54:1 sobre
+       blanco, 3,34:1 sobre el verde oscuro del encabezado— así que sirve en
+       los dos fondos donde hay controles. */
+    outline: 2px solid var(--color-brand-texto);
+    outline-offset: 2px;
+  }
+}
+
+/* Respeta a quien pidió menos movimiento en su sistema operativo. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* ───── Pie de página ─────
+   Antes el pie tenía los colores fijos en las clases, así que los dos
+   selectores del panel («color de fondo» y «color de texto» del pie) no hacían
+   absolutamente nada. Ahora lee las variables, que por defecto siguen al color
+   de marca y sólo se separan si alguien las define a propósito.
+
+   El texto atenuado usa opacidad sobre el color de texto en vez de un tono
+   fijo: con un tono fijo, poner un pie claro dejaba el texto secundario
+   ilegible. */
+.o-footer {
+  background-color: var(--color-footer-bg);
+  color: var(--color-footer-text);
+}
+.o-footer-muted {
+  color: var(--color-footer-text);
+  opacity: 0.8;
+}
+.o-footer-faint {
+  color: var(--color-footer-text);
+  opacity: 0.65;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TEMPORADA DIECIOCHERA (septiembre)
+   ═══════════════════════════════════════════════════════════════════════
+
+   Vestir el sitio de Fiestas Patrias sin romper el sistema de diseño ni el
+   color de marca: todo lo festivo vive detrás del prefijo `fp-` y sólo se
+   monta durante septiembre. Al terminar el mes, los componentes dejan de
+   renderizarse y estas reglas quedan sin efecto — no hay que "desinstalar"
+   nada ni volver a tocar colores.
+
+   Los tonos NO son los del emoji de la bandera. El rojo #EE1C25 y el azul
+   #0033A0 oficiales fallan contraste con texto blanco a tamaño de cuerpo
+   (4,0:1 y 4,4:1). Estos dos son los mismos colores apenas más profundos:
+   se leen igual de patrios y sí pasan AA.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  --color-fp-rojo: #c8102e;       /* 5,9:1 con blanco */
+  --color-fp-rojo-claro: #e8455b;
+  --color-fp-azul: #0f3b8c;       /* 10,4:1 con blanco */
+  --color-fp-azul-claro: #2c5fc4;
+  --color-fp-crema: #fff8ee;
+  --color-fp-tierra: #2a1a12;     /* fondo del asado, no negro puro */
+}
+
+@layer components {
+  /* ── Guirnalda de banderines ─────────────────────────────────────────
+     Los banderines se dibujan con gradientes cónicos en vez de imágenes:
+     escalan a cualquier ancho, pesan cero y siguen viéndose nítidos en
+     pantallas retina. Va como cinta decorativa, siempre aria-hidden. */
+  .fp-guirnalda {
+    height: 14px;
+    background-image:
+      linear-gradient(135deg, transparent 50%, var(--color-fp-rojo) 50%),
+      linear-gradient(225deg, transparent 50%, var(--color-fp-rojo) 50%);
+    background-size: 14px 14px;
+    background-position: 0 0, 7px 0;
+    background-repeat: repeat-x;
+  }
+  .fp-guirnalda-azul {
+    background-image:
+      linear-gradient(135deg, transparent 50%, var(--color-fp-azul) 50%),
+      linear-gradient(225deg, transparent 50%, var(--color-fp-azul) 50%);
+  }
+
+  /* Franja tricolor fina: el recurso más barato para que una sección
+     "se vea de septiembre" sin gritar. */
+  .fp-tricolor {
+    height: 4px;
+    background: linear-gradient(
+      to right,
+      var(--color-fp-azul) 0 33.33%,
+      #f4f6f9 33.33% 66.66%,
+      var(--color-fp-rojo) 66.66% 100%
+    );
+    box-shadow: inset 0 0 0 1px rgb(16 24 40 / 0.05);
+  }
+
+  /* Fondo de la sección: crema cálida con textura de rombos, que recuerda
+     al mantel de la ramada sin caer en la imagen de stock. */
+  .fp-fondo {
+    background-color: var(--color-fp-crema);
+    background-image:
+      linear-gradient(45deg, rgb(200 16 46 / 0.045) 25%, transparent 25%, transparent 75%, rgb(200 16 46 / 0.045) 75%),
+      linear-gradient(45deg, rgb(15 59 140 / 0.045) 25%, transparent 25%, transparent 75%, rgb(15 59 140 / 0.045) 75%);
+    background-size: 36px 36px;
+    background-position: 0 0, 18px 18px;
+  }
+
+  /* Encabezado nocturno de ramada: el asado, la fogata y la noche del 18. */
+  .fp-hero {
+    background:
+      radial-gradient(120% 90% at 12% 0%, rgb(232 69 91 / 0.28) 0%, transparent 55%),
+      radial-gradient(110% 90% at 92% 10%, rgb(44 95 196 / 0.30) 0%, transparent 55%),
+      linear-gradient(160deg, #3a2418 0%, var(--color-fp-tierra) 55%, #1a0f0a 100%);
+  }
+
+  /* Cinta/banderola de titular, como la del afiche impreso. */
+  .fp-cinta {
+    display: inline-block;
+    padding: 0.375rem 1.25rem;
+    background: var(--color-fp-rojo);
+    color: #fff;
+    font-weight: 700;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 50%, 100% 100%, 0 100%, 12px 50%);
+  }
+  .fp-cinta-azul { background: var(--color-fp-azul); }
+
+  /* Estrella solitaria de la bandera, para acentos tipográficos. */
+  .fp-estrella {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background: currentColor;
+    clip-path: polygon(
+      50% 0%, 61.8% 34.5%, 98% 34.5%, 68.8% 55.9%,
+      80.9% 90.5%, 50% 69.1%, 19.1% 90.5%, 31.2% 55.9%,
+      2% 34.5%, 38.2% 34.5%
+    );
+  }
+
+  /* Chip de urgencia de la cuenta regresiva. */
+  .fp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+}
+
+@layer utilities {
+  /* Ondeo suave para la bandera y los banderines. Amplitud corta: un
+     movimiento grande en una cinta fija arriba marea al hacer scroll. */
+  .fp-ondea {
+    animation: fp-ondea 4.5s ease-in-out infinite;
+    transform-origin: top center;
+  }
+}
+
+@keyframes fp-ondea {
+  0%, 100% { transform: rotate(-1.5deg) translateY(0); }
+  50%      { transform: rotate(1.5deg) translateY(1px); }
+}
+
+/* ── Impresión ─────────────────────────────────────────────────────────────
+   Una boleta impresa debe traer el pedido y nada más. `window.print()` imprime
+   la página completa, así que además de ocultar la cabecera y el pie (ver
+   ShopShell) hay que sacar el fondo gris, los márgenes de pantalla y los
+   elementos flotantes: avisos, tostadas y botones fijos, que si no aparecen
+   estampados encima del documento. */
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Nada fijo o pegajoso: en papel no hay scroll, así que se imprime en el
+     lugar donde quedó y tapa el contenido. */
+  [class*="fixed"],
+  [class*="sticky"] {
+    position: static !important;
+  }
+
+  /* Diálogos, tostadas y widgets flotantes no son parte del documento. */
+  [role="dialog"],
+  [role="alert"],
+  [role="status"],
+  [data-print="hidden"] {
+    display: none !important;
+  }
 }

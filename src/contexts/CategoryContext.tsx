@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, ReactNode, useCallback } from "react";
 import { fetchAllCategories, upsertCategory, deleteCategory } from "@/services/categories";
 
 type CategoryContextType = {
@@ -9,6 +9,8 @@ type CategoryContextType = {
   refresh: () => Promise<void>;
   createCategory: (name: string) => Promise<void>;
   removeCategory: (name: string) => Promise<void>;
+  /** Dispara la carga la primera vez que alguien consume el contexto. */
+  ensureLoaded: () => void;
 };
 
 const CategoryContext = createContext<CategoryContextType | undefined>(undefined);
@@ -31,7 +33,14 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // Carga perezosa, misma razón que en ProductContext: el layout raíz envuelve
+  // también al admin, y el POS del teléfono no necesita las categorías.
+  const solicitado = useRef(false);
+  const ensureLoaded = useCallback(() => {
+    if (solicitado.current) return;
+    solicitado.current = true;
+    load();
+  }, [load]);
 
   const refresh = async () => { await load(); };
 
@@ -46,7 +55,7 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <CategoryContext.Provider value={{ categories, loading, error, refresh, createCategory, removeCategory }}>
+    <CategoryContext.Provider value={{ categories, loading, error, refresh, createCategory, removeCategory, ensureLoaded }}>
       {children}
     </CategoryContext.Provider>
   );
@@ -55,5 +64,9 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
 export function useCategories() {
   const ctx = useContext(CategoryContext);
   if (!ctx) throw new Error("useCategories debe usarse dentro de CategoryProvider");
+  const { ensureLoaded } = ctx;
+  useEffect(() => {
+    ensureLoaded();
+  }, [ensureLoaded]);
   return ctx;
 }

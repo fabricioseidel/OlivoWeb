@@ -1,3 +1,5 @@
+import { aNeto } from "@/lib/pricing";
+
 // ====== SISTEMA DE LOGGING ======
 const LOG_PREFIX = "🍔 [UBER-EATS]";
 export const log = {
@@ -742,7 +744,7 @@ export async function exportOriginalListCsv() {
     const rows = (Array.isArray(data) ? data : []).map((p: any) => {
       // `sale_price` ya viene como precio final con IVA incluido.
       const priceWithVat = Math.round(Number(p.sale_price || 0));
-      const netPrice = Math.round(priceWithVat / 1.19);
+      const netPrice = Math.round(aNeto(priceWithVat) ?? 0);
 
       return [
         p.barcode || "",
