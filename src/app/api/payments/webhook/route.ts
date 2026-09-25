@@ -6,6 +6,7 @@ import { restoreOrderStock } from '@/server/inventory.service';
 import { despacharPedidoFlash } from '@/server/entrega-flash.service';
 import { addBonusPoints, earnPoints } from '@/server/loyalty.service';
 import { sendOrderCancelledEmail } from '@/server/email.service';
+import { releaseCouponUsage } from '@/server/coupon.service';
 import crypto from 'crypto';
 import { montoCobrado } from '@/lib/mercadopago-monto';
 
@@ -172,13 +173,41 @@ export async function POST(request: NextRequest) {
           details: { paymentId: String(paymentId) },
         });
         return NextResponse.json({ received: true, flagged: 'in_mediation' }, { status: 200 });
-      } else if (orderId && (status === 'rejected' || status === 'cancelled' || status === 'refunded')) {
+      } else if (orderId && status === 'rejected') {
+        // Un pago rechazado es **un intento** fallido, no el fin del pedido: la
+        // tarjeta sin fondos o mal tipeada se arregla probando otra vez, y la
+        // pantalla de confirmación ofrece justamente eso. Antes el rechazo
+        // cancelaba el pedido en el acto, así que el botón "reintentar"
+        // respondía "pedido cancelado" y el cupón de un solo uso quedaba
+        // gastado. Se marca el intento y el pedido sigue pendiente.
+        //
+        // No se pisa un pedido ya pagado: si el cliente reintentó y pagó, el
+        // aviso atrasado del primer rechazo puede llegar después.
+        await supabaseServer
+          .from('orders')
+          .update({ payment_status: 'rejected', updated_at: new Date().toISOString() })
+          .eq('id', orderId)
+          .neq('payment_status', 'paid')
+          .not('status', 'in', '("cancelled","refunded")');
+
+        await auditLog({
+          action: 'ORDER_PAYMENT_REJECTED',
+          entity: 'orders',
+          entityId: orderId,
+          actor: 'mp-webhook',
+          details: { paymentId: String(paymentId) },
+        });
+        return NextResponse.json({ received: true, flagged: 'rejected_retryable' }, { status: 200 });
+      } else if (orderId && (status === 'cancelled' || status === 'refunded')) {
         // Toma la orden en exclusiva antes de deshacer nada. MercadoPago
         // reenvía la misma notificación, y sin este filtro dentro del UPDATE
         // cada reintento devolvía el stock **otra vez** —inflando el
         // inventario—, regalaba de nuevo los puntos redimidos y mandaba un
         // segundo correo de cancelación.
-        const { data: tomadas, error: errorTomar } = await supabaseServer
+        //
+        // El filtro va sobre `status` y no sobre `payment_status`: un pedido
+        // con un intento rechazado sigue vivo y tiene que poder cancelarse.
+        let tomar = supabaseServer
           .from('orders')
           .update({
             payment_status: status,
@@ -186,8 +215,11 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', orderId)
-          .not('payment_status', 'in', '("rejected","cancelled","refunded")')
-          .select('id');
+          .not('status', 'in', '("cancelled","refunded")');
+        // Un pago cancelado de un intento viejo no cancela un pedido que se
+        // terminó pagando con otro intento. Un reembolso sí aplica a pagados.
+        if (status === 'cancelled') tomar = tomar.neq('payment_status', 'paid');
+        const { data: tomadas, error: errorTomar } = await tomar.select('id');
 
         if (errorTomar) {
           console.error(`[MP Webhook] Error marcando la orden ${orderId}:`, errorTomar);
@@ -207,6 +239,14 @@ export async function POST(request: NextRequest) {
         const devolucion = await restoreOrderStock(orderId, {
           reason: `MP_${status.toUpperCase()}`,
         });
+
+        // 2a. Devolver el cupón: el uso se registró al crear el pedido, y un
+        //     pedido que no se pagó no debería gastar el de primera compra.
+        try {
+          await releaseCouponUsage(orderId);
+        } catch (e) {
+          console.warn(`[MP Webhook] No se pudo liberar el cupón de la orden ${orderId}:`, e);
+        }
 
         // 2b. Revertir puntos redimidos y notificar cancelación al cliente
         try {

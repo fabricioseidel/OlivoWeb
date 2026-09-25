@@ -202,6 +202,44 @@ export async function recordCouponUsage(data: {
   }
 }
 
+// ── Release coupon usage ────────────────────────────────────────────────
+/**
+ * Devuelve el cupón que consumió un pedido que se canceló.
+ *
+ * El uso se registra al crear el pedido, antes de cobrar. Sin esto, un pago
+ * que no se concretaba dejaba el cupón gastado: el de bienvenida es de un
+ * solo uso, así que el cliente se quedaba sin su descuento de primera compra
+ * por un pedido que nunca pagó.
+ *
+ * Idempotente: borra las filas del pedido y descuenta sólo las que borró.
+ */
+export async function releaseCouponUsage(orderId: string) {
+  const { data: borradas, error } = await supabaseServer
+    .from("coupon_usage")
+    .delete()
+    .eq("order_id", orderId)
+    .select("coupon_id");
+
+  if (error) throw error;
+
+  for (const fila of borradas ?? []) {
+    const { data: c } = await supabaseServer
+      .from("coupons")
+      .select("uses_count")
+      .eq("id", fila.coupon_id)
+      .single();
+
+    if (c) {
+      await supabaseServer
+        .from("coupons")
+        .update({ uses_count: Math.max(0, (c.uses_count || 0) - 1) })
+        .eq("id", fila.coupon_id);
+    }
+  }
+
+  return borradas?.length ?? 0;
+}
+
 // ── Create coupon ───────────────────────────────────────────────────────
 export async function createCoupon(data: Partial<Coupon>): Promise<Coupon> {
   const payload = {

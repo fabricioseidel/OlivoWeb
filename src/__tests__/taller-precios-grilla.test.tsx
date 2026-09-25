@@ -84,7 +84,26 @@ describe("la grilla recalcula mientras se escribe", () => {
     // 1000 / 10 = 100 neto => 119 con IVA. Que se muestre el bruto importa:
     // es contra ese que se mide el margen, y confundirlo con el neto es
     // exactamente lo que inflaba el margen del catálogo.
-    await waitFor(() => expect(screen.getByText("$119")).toBeInTheDocument());
+    const conIva = screen.getByLabelText(/Costo con IVA de Pomarola/i) as HTMLInputElement;
+    await waitFor(() => expect(conIva.placeholder).toBe("119"));
+  });
+
+  it("el costo con IVA también se puede escribir, y el de factura se calcula", async () => {
+    await montar();
+
+    fireEvent.change(screen.getByLabelText(/Costo de factura de Pomarola/i), {
+      target: { value: "5000" },
+    });
+    fireEvent.change(screen.getByLabelText(/Costo con IVA de Pomarola/i), {
+      target: { value: "1190" },
+    });
+
+    // Escribir el bruto reemplaza lo tecleado en factura: son el mismo dato.
+    const factura = screen.getByLabelText(/Costo de factura de Pomarola/i) as HTMLInputElement;
+    await waitFor(() => expect(factura.value).toBe(""));
+    expect(
+      (screen.getByLabelText(/Costo con IVA de Pomarola/i) as HTMLInputElement).value
+    ).toBe("1190");
   });
 
   it("ofrece el precio sugerido como botón, no como texto para copiar a mano", async () => {
