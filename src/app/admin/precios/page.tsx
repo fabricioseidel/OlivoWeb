@@ -32,7 +32,7 @@ import {
   EmptyState,
   type Tab,
 } from "@/components/admin/shell";
-import { calcularFilaCosto, formatearMargen } from "@/lib/pricing";
+import { aNeto, calcularFilaCosto, formatearMargen } from "@/lib/pricing";
 
 type Fila = {
   barcode: string;
@@ -66,6 +66,8 @@ type Totales = {
 type Edicion = {
   precioVenta?: string;
   costoBulto?: string;
+  /** Costo unitario con IVA: la alternativa a teclear el neto de la factura. */
+  costoConIva?: string;
   unidadesPorBulto?: string;
   proveedorId?: string;
 };
@@ -129,7 +131,14 @@ export default function TallerPreciosPage() {
   }, [cargar, busqueda]);
 
   const editar = (barcode: string, campo: keyof Edicion, valor: string) =>
-    setEdiciones((prev) => ({ ...prev, [barcode]: { ...prev[barcode], [campo]: valor } }));
+    setEdiciones((prev) => {
+      const fila = { ...prev[barcode], [campo]: valor };
+      // Costo factura y costo con IVA son el mismo dato escrito de dos
+      // formas: el último que se tecleó manda y el otro vuelve a calcularse.
+      if (campo === "costoBulto") delete fila.costoConIva;
+      if (campo === "costoConIva") delete fila.costoBulto;
+      return { ...prev, [barcode]: fila };
+    });
 
   /**
    * Lo que va a mostrar la fila, con lo tecleado ya aplicado.
@@ -139,8 +148,16 @@ export default function TallerPreciosPage() {
    */
   const proyectar = (f: Fila) => {
     const e = ediciones[f.barcode] ?? {};
-    const costoBulto = num(e.costoBulto);
     const unidades = num(e.unidadesPorBulto);
+    // Si se tecleó el costo con IVA, se lleva a neto del bulto para que el
+    // resto (cálculo y guardado) no distinga cómo se cargó. Se redondea al
+    // centavo: más decimales son ruido de la división por 1,19.
+    const conIva = num(e.costoConIva);
+    const netoDesdeIva = conIva == null ? null : aNeto(conIva, f.tasa);
+    const costoBulto =
+      netoDesdeIva != null
+        ? Math.round(netoDesdeIva * (unidades ?? 1) * 100) / 100
+        : num(e.costoBulto);
     const precio = num(e.precioVenta);
 
     // Las unidades por bulto se aplican también sobre el costo YA guardado, no
@@ -419,8 +436,19 @@ export default function TallerPreciosPage() {
                       />
                     </td>
 
-                    <td className="tabular px-3 py-2 text-right text-neutral-700">
-                      {clp(p.costoUnitarioBruto)}
+                    <td className="px-3 py-2 text-right">
+                      <input
+                        aria-label={`Costo con IVA de ${f.nombre ?? f.barcode}`}
+                        inputMode="decimal"
+                        value={e.costoConIva ?? ""}
+                        onChange={(ev) => editar(f.barcode, "costoConIva", ev.target.value)}
+                        placeholder={
+                          p.costoUnitarioBruto != null
+                            ? String(Math.round(p.costoUnitarioBruto))
+                            : "c/IVA"
+                        }
+                        className="tabular w-24 rounded-lg border border-gray-500 px-2 py-1.5 text-right"
+                      />
                     </td>
 
                     <td className="px-3 py-2 text-right">
