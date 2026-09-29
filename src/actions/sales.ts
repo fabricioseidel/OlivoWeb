@@ -1,12 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { createSale, type SalePaymentInput } from "@/server/sales.service";
 import { supabaseServer } from "@/lib/supabase-server";
 import type { ToastType } from "@/components/ui/Toast";
 import { normalizePaymentMethod, STAFF_CREDIT } from "@/lib/pos/payments";
+import { exigirRol, PERSONAL } from "@/lib/action-auth";
 
 type SaleActionState = {
   ok?: boolean;
@@ -48,8 +47,11 @@ interface CreateSaleActionInput {
 }
 
 export async function createSaleAction(data: CreateSaleActionInput): Promise<SaleActionState> {
+  // Una venta mueve stock y caja: sólo el personal la registra.
+  const acceso = await exigirRol(PERSONAL);
+  if (!acceso.ok) return { ok: false, toastMessage: acceso.mensaje, toastType: "error" };
   try {
-    const session = await getServerSession(authOptions);
+    const session = acceso.session;
     const sellerName = session?.user?.name || "Web POS";
     const sellerId = (session?.user as { id?: string } | undefined)?.id ?? null;
 
