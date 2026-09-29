@@ -16,6 +16,7 @@ import {
   ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell,
 } from "recharts";
 import type { LiveOrder } from "./LiveReceptionBoard";
+import { hoyEnChile } from "@/lib/documentos/vencimientos";
 
 interface Props {
   orders: LiveOrder[];
@@ -34,9 +35,16 @@ export default function AdminAnalytics({ orders, products, posSales, insights, l
     const totalViews = products.reduce((sum, p) => sum + (p.viewCount || 0), 0);
     const totalOrderIntents = products.reduce((sum, p) => sum + (p.orderClicks || 0), 0);
     const lowStock = products.filter(p => p.stock > 0 && p.stock <= 5).length;
-    const totalWebOrders = orders.length;
-    const webRevenue = orders.reduce((s, o) => s + (Number(o.total) || 0), 0);
-    const itemsSold = orders.reduce((s, o) => s + (o.productos || (Array.isArray(o.items) ? (o.items as any[]).reduce((acc: number, it: any) => acc + (Number(it.quantity) || 0), 0) : 0)), 0);
+    // Sólo pedidos web PAGADOS y no cancelados cuentan como venta. Antes se
+    // sumaban también los impagos y cancelados, y el ingreso del Dashboard no
+    // cuadraba con Reportes.
+    const pagados = orders.filter(o =>
+      String(o.paymentStatus ?? '').toLowerCase() === 'paid' &&
+      !/cancel/i.test(String(o.estado ?? ''))
+    );
+    const totalWebOrders = pagados.length;
+    const webRevenue = pagados.reduce((s, o) => s + (Number(o.total) || 0), 0);
+    const itemsSold = pagados.reduce((s, o) => s + (o.productos || (Array.isArray(o.items) ? (o.items as any[]).reduce((acc: number, it: any) => acc + (Number(it.quantity) || 0), 0) : 0)), 0);
     const intentConversion = totalOrderIntents ? (totalWebOrders / totalOrderIntents) * 100 : 0;
     const webPendingTransfers = orders.filter(o =>
       o.paymentMethod?.toLowerCase().includes('transfer') &&
@@ -45,10 +53,9 @@ export default function AdminAnalytics({ orders, products, posSales, insights, l
     const posPendingTransfers = posSales.filter(s =>
       s.payment_method?.toLowerCase().includes('transfer') && s.transfer_status === 'pending'
     ).length;
-    const todayWebCount = orders.filter(o => {
-      const d = o.createdAt ? new Date(o.createdAt).toISOString().split('T')[0] : '';
-      return d === new Date().toISOString().split('T')[0];
-    }).length;
+    // "Hoy" es el día de Chile, no el de UTC (que cambia a las 20:00/21:00).
+    const hoy = hoyEnChile();
+    const todayWebCount = pagados.filter(o => o.createdAt && hoyEnChile(new Date(o.createdAt)) === hoy).length;
     const posRevenue = posSales.reduce((s, o) => s + (Number(o.total) || 0), 0);
     const totalGrossRevenue = webRevenue + posRevenue;
     const totalAllOrders = totalWebOrders + posSales.length;
@@ -62,8 +69,8 @@ export default function AdminAnalytics({ orders, products, posSales, insights, l
   }, [products, orders, posSales]);
 
   const salesByDay = useMemo(() => {
-    const grouped = orders.reduce((acc, o) => {
-      const d = o.createdAt ? new Date(o.createdAt).toISOString().split('T')[0] : 'N/A';
+    const grouped = orders.filter(o => String(o.paymentStatus ?? '').toLowerCase() === 'paid').reduce((acc, o) => {
+      const d = o.createdAt ? hoyEnChile(new Date(o.createdAt)) : 'N/A';
       acc[d] = (acc[d] || 0) + (o.total || 0);
       return acc;
     }, {} as Record<string, number>);
