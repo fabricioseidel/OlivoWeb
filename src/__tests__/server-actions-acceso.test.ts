@@ -17,7 +17,8 @@ vi.mock("@/server/shifts.service", () => ({
   getCurrentShift: async () => (llamadas.push("getCurrentShift"), { id: "t1" }),
   addCashMovement: async () => llamadas.push("addCashMovement"),
 }));
-vi.mock("@/server/sales.service", () => ({ createSale: async () => (llamadas.push("createSale"), { id: 1 }) }));
+const ventas: any[] = [];
+vi.mock("@/server/sales.service", () => ({ createSale: async (v: any) => (llamadas.push("createSale"), ventas.push(v), { id: 1 }) }));
 vi.mock("@/server/reception.service", () => ({ createReception: async () => (llamadas.push("createReception"), { ok: true, count: 1 }) }));
 vi.mock("@/server/branches.service", () => ({ getBranches: async () => (llamadas.push("getBranches"), [{ id: "b1" }]) }));
 vi.mock("@/lib/supabase-server", () => ({
@@ -74,5 +75,18 @@ describe("server actions", () => {
     expect(llamadas).toEqual([
       "openShift", "closeShift", "addCashMovement", "getCurrentShift", "createSale", "createReception", "getBranches",
     ]);
+  });
+});
+
+describe("venta idempotente", () => {
+  it("el mismo ID de la pantalla llega a apply_sale; uno inválido se descarta", async () => {
+    estado.session = cajero;
+    ventas.length = 0;
+    const sales = await import("@/actions/sales");
+    const base = { total: 1000, paymentMethod: "cash", items: [{ product_id: "1", quantity: 1, unit_price: 1000, total_price: 1000 }] };
+    await sales.createSaleAction({ ...base, clientSaleId: "0b6f1c1e-6b1f-4c3a-9f1e-2a7c1d9e0f11" });
+    await sales.createSaleAction({ ...base, clientSaleId: "x'; drop" });
+    expect(ventas[0].clientSaleId).toBe("pos-0b6f1c1e-6b1f-4c3a-9f1e-2a7c1d9e0f11");
+    expect(ventas[1].clientSaleId).toBeUndefined();
   });
 });

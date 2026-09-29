@@ -35,6 +35,12 @@ export default function POSPage() {
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const { showToast } = useToast();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const ventaIdRef = useRef<string | null>(null);
+  // Carrito distinto = cobro distinto: un reintento con otro carrito no puede
+  // devolver la venta anterior como si fuera esta.
+  useEffect(() => {
+    ventaIdRef.current = null;
+  }, [cart]);
   const [transferReceipt, setTransferReceipt] = useState<File | null>(null);
 
   const change = useMemo(() => Math.max(0, cashReceived - finalTotal), [cashReceived, finalTotal]);
@@ -75,7 +81,11 @@ export default function POSPage() {
     }
   }, [products.length]);
 
+  // Un ID por cobro, el mismo si se reintenta: el servidor no registra dos
+  // veces la venta aunque se toque "Cobrar" de nuevo o la respuesta se pierda.
+  // Se renueva al terminar bien o al cambiar el carrito.
   const handleCheckout = async () => {
+    ventaIdRef.current ??= crypto.randomUUID();
     if (cart.length === 0 || processing) return;
     if (paymentMethod === "cash" && cashReceived < finalTotal) {
       showToast("El monto recibido es menor al total", "error");
@@ -84,6 +94,7 @@ export default function POSPage() {
     setProcessing(true);
     try {
       const result = await createSaleAction({
+        clientSaleId: ventaIdRef.current ?? undefined,
         total: finalTotal, paymentMethod,
         cashReceived: paymentMethod === 'cash' ? cashReceived : finalTotal,
         changeGiven: paymentMethod === 'cash' ? change : 0,
@@ -98,6 +109,7 @@ export default function POSPage() {
         customerEmail: customerEmail || undefined
       });
       if (result.ok) {
+        ventaIdRef.current = null;
         // Send receipt email if customer provided email
         if (customerEmail && customerEmail.includes("@")) {
           setSendingReceipt(true);
@@ -120,9 +132,9 @@ export default function POSPage() {
                 })),
               }),
             });
-            showToast(`📧 Boleta enviada a ${customerEmail}`, "success");
+            showToast(`📧 Comprobante enviado a ${customerEmail}`, "success");
           } catch {
-            showToast("Venta OK pero no se pudo enviar la boleta", "error");
+            showToast("Venta OK pero no se pudo enviar el comprobante", "error");
           } finally {
             setSendingReceipt(false);
           }

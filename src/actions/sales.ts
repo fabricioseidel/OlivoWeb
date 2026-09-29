@@ -44,6 +44,12 @@ interface CreateSaleActionInput {
   staffDiscountRate?: number;
   /** Monto de descuento aplicado a la venta. */
   discount?: number;
+  /**
+   * ID de la venta generado en la pantalla, el mismo en cada reintento del
+   * mismo cobro. apply_sale lo usa para no registrar dos veces la misma
+   * venta si la respuesta se pierde o se toca "Cobrar" de nuevo.
+   */
+  clientSaleId?: string;
 }
 
 export async function createSaleAction(data: CreateSaleActionInput): Promise<SaleActionState> {
@@ -92,7 +98,13 @@ export async function createSaleAction(data: CreateSaleActionInput): Promise<Sal
             },
           ];
 
+    const clientSaleId =
+      typeof data.clientSaleId === "string" && /^[\w-]{8,64}$/.test(data.clientSaleId)
+        ? `pos-${data.clientSaleId}`
+        : undefined;
+
     const result = await createSale({
+      clientSaleId,
       branchId: data.branchId ?? null,
       shiftId,
       total: data.total,
