@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { normalizarTexto } from "@/lib/fiestas-patrias";
 import { usePOS } from "@/contexts/POSContext";
 import { ProductUI } from "@/types";
 import OlivoButton from "@/components/OlivoButton";
@@ -47,10 +48,11 @@ export default function POSPage() {
 
   // Filtered products based on search
   const products = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
+    // Sin tildes: "cafe" encuentra "Café".
+    const q = normalizarTexto(searchQuery.trim());
     if (!q) return allProducts;
-    return allProducts.filter(p => 
-      p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)
+    return allProducts.filter(p =>
+      normalizarTexto(p.name).includes(q) || p.id.toLowerCase().includes(q)
     );
   }, [searchQuery, allProducts]);
 
@@ -211,6 +213,26 @@ export default function POSPage() {
               className="w-full bg-slate-900 border border-slate-800 rounded-xl py-3 pl-10 pr-10 text-white focus:border-brand-500 outline-none text-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                // El lector láser escribe el código y manda Enter. Antes eso
+                // sólo filtraba la grilla y había que tocar el producto: ahora
+                // lo agrega directo. Si hay un único resultado, también.
+                if (e.key !== "Enter") return;
+                const q = searchQuery.trim();
+                if (!q) return;
+                const exacto = allProducts.find((p) => p.id === q || p.barcode === q);
+                const unico = products.length === 1 ? products[0] : null;
+                const elegido = exacto ?? unico;
+                if (elegido) {
+                  addToCart(elegido);
+                  showToast(`Añadido: ${elegido.name}`, "success");
+                  setSearchQuery("");
+                } else if (/^\d{6,14}$/.test(q)) {
+                  showToast(`No encontrado: ${q}`, "error");
+                  setQuickCreateBarcode(q);
+                  setSearchQuery("");
+                }
+              }}
               autoFocus
             />
             {searchQuery && (
@@ -439,8 +461,8 @@ export default function POSPage() {
                 </div>
               )}
               {/* Quick cash buttons */}
-              <div className="grid grid-cols-4 gap-1">
-                {[1000, 2000, 5000, 10000].map(v => (
+              <div className="grid grid-cols-5 gap-1">
+                {[1000, 2000, 5000, 10000, 20000].map(v => (
                   <button key={v} onClick={() => setCashReceived(v)}
                     className={`text-[10px] font-bold py-2 rounded-lg transition-colors ${cashReceived === v ? 'bg-brand-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
                     ${(v/1000)}k
