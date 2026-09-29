@@ -43,6 +43,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { POSProvider } from "@/contexts/POSContext";
 import { BranchProvider } from "@/contexts/BranchContext";
 import BranchSelector from "@/components/admin/BranchSelector";
+import AvisoPedidosNuevos from "@/components/admin/AvisoPedidosNuevos";
 
 // ── Sidebar Groups ──────────────────────────────────────────────────────
 // `soloAdmin`: el vendedor (SELLER) no lo ve en el menú ni puede entrar por
@@ -507,6 +508,7 @@ export default function AdminLayout({
         <main className={`flex-1 ${isPOS ? 'p-0' : 'py-4 px-3 sm:px-6 lg:px-8'}`}>
           {wrappedContent}
         </main>
+        <AvisoPedidosNuevos />
       </div>
     </div>
     </BranchProvider>
