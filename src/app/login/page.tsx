@@ -147,7 +147,7 @@ function LoginForm() {
           <p className="mt-2 text-center text-sm text-gray-500 font-medium">
             ¿No tienes una cuenta?{" "}
             <Link
-              href="/registro"
+              href={callbackUrl !== "/" ? `/registro?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/registro"}
               className="o-focus rounded font-semibold text-brand-700 transition-colors hover:text-brand-800"
             >
               Regístrate aquí

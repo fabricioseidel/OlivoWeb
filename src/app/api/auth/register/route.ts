@@ -7,6 +7,7 @@ import { BIENVENIDA } from "@/lib/bienvenida";
 import { addBonusPoints } from "@/server/loyalty.service";
 import { sendWelcomeEmail } from "@/server/email.service";
 import { enviarVerificacion } from "@/server/verificacion-correo.service";
+import { rutaDeVuelta } from "@/lib/site-url";
 import { getClientIp } from "@/lib/rate-limit";
 import { limiteGlobal } from "@/server/limite-intentos";
 
@@ -16,6 +17,8 @@ const registerSchema = z.object({
   email: z.string().email("Correo electrónico inválido"),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   source: z.string().optional(),
+  /** Adónde volver después de confirmar el correo (p. ej. /checkout). */
+  volver: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -144,7 +147,7 @@ export async function POST(req: NextRequest) {
     //    pero sin `email_verified_at`, y el login la rechaza hasta que use el
     //    enlace.
     try {
-      await enviarVerificacion({ email, nombre: name });
+      await enviarVerificacion({ email, nombre: name, volver: rutaDeVuelta(validation.data.volver) });
     } catch (verifErr) {
       console.error("[Register] No se pudo enviar la verificación:", verifErr);
     }

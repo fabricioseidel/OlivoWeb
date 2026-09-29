@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, ShoppingCart, Heart, PartyPopper, User } from "lucide-react";
+import { Home, ShoppingCart, Tag, PartyPopper, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/contexts/CartContext";
@@ -9,7 +9,9 @@ import { RUTA_FIESTAS_PATRIAS, enTemporadaDieciochera } from "@/lib/fiestas-patr
 const navItems = [
     { href: "/", icon: Home, label: "Inicio" },
     { href: "/carrito", icon: ShoppingCart, label: "Carrito" },
-    { href: "/ofertas", icon: Heart, label: "Favoritos" },
+    // Decía "Favoritos" con un corazón, pero lleva a Ofertas: quien buscaba
+    // sus favoritos no los encontraba y quien buscaba ofertas no lo miraba.
+    { href: "/ofertas", icon: Tag, label: "Ofertas" },
     { href: "/mi-cuenta", icon: User, label: "Perfil" },
 ];
 
@@ -18,7 +20,7 @@ const navItems = [
  *
  * La barra tiene cuatro columnas fijas y agregar una quinta deja los rótulos
  * ilegibles en pantallas de 320px; se reemplaza la que menos aporta —
- * "Favoritos", que en realidad apunta a /ofertas y esa vitrina igual está en
+ * "Ofertas", porque esa vitrina igual está en
  * el menú— y vuelve sola el 1 de octubre.
  */
 function itemsDeTemporada() {

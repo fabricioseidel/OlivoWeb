@@ -7,7 +7,7 @@ import { useProducts } from "@/contexts/ProductContext";
 import { slugify } from "@/utils/string-utils";
 import { isProductVisible } from "@/services/products";
 import { useCategories } from "@/hooks/useCategories";
-import { enTemporadaDieciochera, esProductoDieciochero, RUTA_FIESTAS_PATRIAS } from "@/lib/fiestas-patrias";
+import { enTemporadaDieciochera, esProductoDieciochero, normalizarTexto, RUTA_FIESTAS_PATRIAS } from "@/lib/fiestas-patrias";
 import BanderaChile from "@/components/fiestas/BanderaChile";
 import { Search } from "lucide-react";
 
@@ -42,7 +42,8 @@ function ProductsContent() {
   const isDieciocheroCategory = categoriaParam === "fiestas-patrias" || categoriaParam === "dieciocho";
 
   const filteredProducts = useMemo(() => {
-    const term = searchText.trim().toLowerCase();
+    // Sin tildes ni mayúsculas: "limon" encuentra "Limón" y "cafe" "Café".
+    const term = normalizarTexto(searchText.trim());
     let list = activeProducts;
     if (isDieciocheroCategory) {
       list = list.filter(esProductoDieciochero);
@@ -53,8 +54,8 @@ function ProductsContent() {
     }
     if (term) {
       list = list.filter(p =>
-        p.name.toLowerCase().includes(term) ||
-        (p.categories || []).some(c => c.toLowerCase().includes(term))
+        normalizarTexto(p.name).includes(term) ||
+        (p.categories || []).some(c => normalizarTexto(c).includes(term))
       );
     }
     const sorted = [...list];

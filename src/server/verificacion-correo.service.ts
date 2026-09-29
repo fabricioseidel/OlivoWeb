@@ -28,6 +28,8 @@ function hashear(token: string): string {
 export async function enviarVerificacion(params: {
   email: string;
   nombre: string;
+  /** Ruta a la que volver tras confirmar (p. ej. /checkout). Ya validada. */
+  volver?: string | null;
 }): Promise<boolean> {
   const token = crypto.randomBytes(32).toString('hex');
 
@@ -45,7 +47,9 @@ export async function enviarVerificacion(params: {
     return false;
   }
 
-  const verifyUrl = `${urlPublica()}/api/auth/verificar-correo?token=${token}`;
+  const verifyUrl =
+    `${urlPublica()}/api/auth/verificar-correo?token=${token}` +
+    (params.volver ? `&volver=${encodeURIComponent(params.volver)}` : '');
   await sendEmailVerification({
     to: params.email,
     customerName: params.nombre || 'Cliente',

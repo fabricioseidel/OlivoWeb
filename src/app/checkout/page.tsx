@@ -684,10 +684,14 @@ export default function CheckoutPage() {
       if (selectedPaymentMethod === 'mercadopago') {
         if (!data.initPoint) {
           // NUNCA ir a confirmación si MP no generó el link de pago
+          // Al cliente no le sirve saber de variables de entorno: le sirve
+          // saber que no se le cobró y qué hacer. El detalle técnico va a la
+          // consola para quien lo investigue.
+          console.error('[Checkout] MercadoPago no devolvió initPoint', data);
           alert(
-            '❌ Error de configuración: MercadoPago no generó el link de pago.\n\n' +
-            'Verifica en Vercel que la variable MERCADOPAGO_ACCESS_TOKEN esté configurada.\n\n' +
-            `Pedido #${data.orderId} creado pero NO pagado.`
+            'No pudimos abrir el pago y no se te cobró nada.\n\n' +
+            `Tu pedido #${data.orderId} quedó guardado: puedes pagarlo desde "Mis pedidos" ` +
+            'o escribirnos por WhatsApp y te ayudamos.'
           );
           setLoading(false);
           return;

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { rutaDeVuelta } from "@/lib/site-url";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -43,6 +44,11 @@ export default function RegisterPage() {
     try {
       // Registrar usuario con fuente opcional
       const source = typeof window !== "undefined" ? sessionStorage.getItem("registration_source") : null;
+      // Si llegó desde el checkout (login → registro), se conserva adónde
+      // volver: al confirmar el correo e iniciar sesión, sigue comprando.
+      const volver = typeof window !== "undefined"
+        ? rutaDeVuelta(new URLSearchParams(window.location.search).get("callbackUrl"))
+        : null;
       
       const registerRes = await fetch("/api/auth/register", {
         method: "POST",
@@ -52,6 +58,7 @@ export default function RegisterPage() {
           email: formData.email,
           password: formData.password,
           source: source || undefined,
+          volver: volver || undefined,
         }),
       });
 
@@ -64,7 +71,10 @@ export default function RegisterPage() {
       // el login la rechaza, así que intentarlo sólo produciría un error
       // incomprensible justo después de registrarse. Se manda al login con el
       // aviso de que revise el correo.
-      router.push(`/login?verificacion=enviada&email=${encodeURIComponent(formData.email)}`);
+      router.push(
+        `/login?verificacion=enviada&email=${encodeURIComponent(formData.email)}` +
+          (volver ? `&callbackUrl=${encodeURIComponent(volver)}` : "")
+      );
       router.refresh();
     } catch (error: any) {
       setError(
