@@ -22,7 +22,7 @@ export async function GET() {
   // Fetch product counts
   const { data: productsData, error: productsError } = await supabase
     .from("products")
-    .select("category, name, is_active, image_url, sale_price, purchase_price");
+    .select("category, name, is_active, image_url, sale_price, costo_cargado");
 
   // Dos conteos distintos porque se usan para cosas distintas:
   // - `productCounts`: todo lo que existe en la tabla. El admin lo necesita
@@ -49,7 +49,7 @@ export async function GET() {
           Boolean(p.image_url) &&
           p.image_url !== DEFAULT_IMAGE &&
           Number(p.sale_price ?? 0) > 0 &&
-          Number(p.purchase_price ?? 0) > 0;
+          p.costo_cargado === true;
         cats.forEach(cat => {
           productCounts[cat] = (productCounts[cat] || 0) + 1;
           if (visible) visibleCounts[cat] = (visibleCounts[cat] || 0) + 1;

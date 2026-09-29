@@ -11,6 +11,7 @@ import React, {
   useCallback,
 } from 'react';
 
+import { SessionContext } from 'next-auth/react';
 import type { ProductUI } from '@/types';
 import {
   fetchAllProducts,
@@ -48,6 +49,20 @@ interface ProductContextType {
 export const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export function ProductProvider({ children }: { children: ReactNode }) {
+  // El personal con sesión lee el catálogo por el servidor (con costos, si es
+  // ADMIN); el resto, directo y sin costos. Ver src/services/products.ts.
+  // useContext y no useSession: fuera de un SessionProvider (tests, vistas
+  // sueltas) se comporta como "sin sesión" en vez de romper.
+  const sesion = useContext(SessionContext);
+  const session = sesion?.data;
+  const status = sesion?.status ?? 'unauthenticated';
+  const rol = String((session as any)?.user?.role ?? (session as any)?.role ?? '').toUpperCase();
+  const panel = status === 'authenticated' && (rol === 'ADMIN' || rol === 'SELLER');
+  const panelRef = useRef(panel);
+  panelRef.current = panel;
+  /** Con qué fuente se cargó lo que hay en memoria (null = nada todavía). */
+  const cargadoComoPanel = useRef<boolean | null>(null);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [fullProducts, setFullProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +79,9 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       setError(undefined);
-      const data = await fetchAllProducts();
+      const comoPanel = panelRef.current;
+      const data = await fetchAllProducts({ panel: comoPanel });
+      cargadoComoPanel.current = comoPanel;
       if (mounted) {
         setProducts(normalize(data));
         setFullProducts(normalize(data));
@@ -86,7 +103,16 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     if (solicitado.current) return;
     solicitado.current = true;
     load();
-  }, [load]);  const refresh = async () => {
+  }, [load]);
+
+  // Si el catálogo se cargó como público (p. ej. el dueño miraba la tienda
+  // antes de que llegara la sesión) y ahora quien mira es personal, se vuelve
+  // a cargar con costos: editar un producto sin su costo en memoria podría
+  // guardarlo sin él.
+  useEffect(() => {
+    if (status === 'loading' || !solicitado.current) return;
+    if (cargadoComoPanel.current !== null && cargadoComoPanel.current !== panel) load();
+  }, [panel, status, load]);  const refresh = async () => {
     await load();
   };
 
@@ -179,7 +205,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     let existing = getProductById(id);
     if (!existing) {
       try {
-        existing = await fetchProductDetails(barcode);
+        existing = await fetchProductDetails(barcode, { panel: panelRef.current });
       } catch {}
     }
 
@@ -229,7 +255,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       category: Array.isArray(merged.categories)
         ? merged.categories.join(', ')
         : (merged as any).category ?? '',
-      purchase_price: Number(merged.purchasePrice ?? 0),
+      // Sin costo en memoria no se manda: guardar 0 borraría el cargado a mano.
+      ...(merged.purchasePrice === undefined ? {} : { purchase_price: Number(merged.purchasePrice) }),
       sale_price: Number(merged.price ?? 0),
       image_url: merged.image,
       gallery: merged.gallery,
@@ -237,7 +264,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       is_active: merged.isActive,
       measurement_unit: merged.measurementUnit,
       measurement_value: merged.measurementValue,
-      suggested_price: merged.suggestedPrice,
+      ...(merged.suggestedPrice === undefined ? {} : { suggested_price: merged.suggestedPrice }),
       offer_price: resolvedOfferPrice ? Math.round(resolvedOfferPrice) : null,
       description: merged.description,
       features: (merged as any).features ?? null,
@@ -278,7 +305,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         category: Array.isArray(merged.categories)
           ? merged.categories.join(', ')
           : (merged as any).category ?? '',
-        purchase_price: Number(merged.purchasePrice ?? 0),
+        ...(merged.purchasePrice === undefined ? {} : { purchase_price: Number(merged.purchasePrice) }),
         sale_price: Number(merged.price ?? 0),
         image_url: merged.image,
         gallery: merged.gallery,
@@ -286,7 +313,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         is_active: merged.isActive,
         measurement_unit: merged.measurementUnit,
         measurement_value: merged.measurementValue,
-        suggested_price: merged.suggestedPrice,
+        ...(merged.suggestedPrice === undefined ? {} : { suggested_price: merged.suggestedPrice }),
         offer_price: resolvedOfferPrice ? Math.round(resolvedOfferPrice) : null,
         description: merged.description,
       };
@@ -317,7 +344,6 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         category: Array.isArray(product.categories)
           ? product.categories.join(', ')
           : (product as any).category ?? null,
-        purchase_price: 0,
         sale_price: Number(product.price),
         expiry_date: null,
         image_url: (product as any).image ?? null,
@@ -346,7 +372,6 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         category: Array.isArray(product.categories)
           ? product.categories.join(', ')
           : (product as any).category ?? null,
-        purchase_price: 0,
         sale_price: Number(product.price),
         expiry_date: null,
         image_url: (product as any).image ?? null,
@@ -370,7 +395,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     getProductById,
     trackProductView,
     trackOrderIntent,
-    fetchDetails: fetchProductDetails,
+    fetchDetails: (id: string) => fetchProductDetails(id, { panel: panelRef.current }),
     ensureLoaded,
     addProduct: createProduct,
     createProduct,

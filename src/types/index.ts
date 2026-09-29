@@ -3,6 +3,8 @@ export type SupaProduct = {
   name: string | null;
   category: string | null;
   purchase_price: number | null;
+  /** Columna generada: purchase_price > 0. La tienda pública lee esto y no el costo. */
+  costo_cargado?: boolean | null;
   sale_price: number | null;
   expiry_date: string | null;
   stock: number | null;
@@ -59,6 +61,11 @@ export type ProductUI = {
   isActive?: boolean;
   barcode?: string;
   purchasePrice?: number;
+  /**
+   * ¿Tiene costo de compra cargado? La tienda pública lo necesita para decidir
+   * qué se publica, pero no puede ver el costo: por eso es un sí/no aparte.
+   */
+  costoCargado?: boolean;
   minStock?: number;
   optimumStock?: number;
   bundle_config?: import('./bundle').BundleConfig | null;
