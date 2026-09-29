@@ -23,3 +23,20 @@ ALTER TABLE public.products
 COMMENT ON COLUMN public.products.costo_cargado IS
   'purchase_price > 0. La tienda pública lo usa para decidir qué se publica sin poder leer el costo.';
 
+
+-- ---------------------------------------------------------------------
+-- Bucket privado para comprobantes de venta y documentos de pedidos a
+-- proveedor. Hasta hoy iban al bucket público `uploads`, con nombres
+-- predecibles: cualquiera con la URL veía la transferencia de un cliente o la
+-- factura de un proveedor. Se sirven por /api/admin/archivos, con sesión.
+-- ---------------------------------------------------------------------
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'comprobantes',
+  'comprobantes',
+  false,
+  10485760,
+  ARRAY['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+)
+ON CONFLICT (id) DO NOTHING;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { requireApiAdminOrSeller } from '@/lib/api-auth';
+import { subirComprobante } from '@/server/archivos-privados';
 
 export async function POST(
   request: NextRequest,
@@ -27,35 +28,13 @@ export async function POST(
       }, { status: 400 });
     }
 
-    // Generar nombre único para el archivo
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(2, 10);
-    const ext = file.name.split('.').pop() || 'jpg';
-    const fileName = `comprobante-${saleId}-${timestamp}-${randomStr}.${ext}`;
-
-    // Convertir File a ArrayBuffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Subir a Supabase Storage
-    const { error: uploadError } = await supabaseServer.storage
-      .from('uploads')
-      .upload(fileName, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error('Error uploading file:', uploadError);
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'El archivo no debe superar los 10MB' }, { status: 400 });
     }
 
-    // Obtener URL pública
-    const { data: urlData } = supabaseServer.storage
-      .from('uploads')
-      .getPublicUrl(fileName);
-
-    const publicUrl = urlData.publicUrl;
+    // Bucket privado: el comprobante de transferencia de un cliente trae su
+    // nombre, banco y RUT. En la base queda la ruta interna, que pide sesión.
+    const { path: fileName, url: publicUrl } = await subirComprobante(`ventas/${saleId}`, file, 'comprobante');
 
     // Actualizar la venta con la URL del comprobante
     const { error: updateError } = await supabaseServer
