@@ -330,6 +330,10 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = (session?.user as any)?.id || null;
+    // Puntos y cupones son de la CUENTA, no del correo que se escribe en el
+    // formulario de envío: con ese correo se podían gastar los puntos de otra
+    // persona o saltarse el límite de usos por cliente de un cupón.
+    const correoCuenta = String(session.user.email ?? '').toLowerCase().trim();
 
     // La entrega a domicilio se agenda: hay una sola ronda de reparto por
     // franja y el pedido tiene que caber en ella.
@@ -521,7 +525,7 @@ export async function POST(request: NextRequest) {
       const validation = await validateCoupon(
         String(couponCode),
         calculatedSubtotal,
-        shippingInfo?.email,
+        correoCuenta || shippingInfo?.email,
         base
       );
       if (!validation.valid) {
@@ -537,12 +541,12 @@ export async function POST(request: NextRequest) {
     let pointsDiscount = 0;
     const pointsToRedeem = Number(loyaltyRedeemed?.points) || 0;
     if (pointsToRedeem > 0) {
-      if (!shippingInfo?.email) {
-        return NextResponse.json({ error: 'Se requiere email para canjear puntos.' }, { status: 400 });
+      if (!correoCuenta) {
+        return NextResponse.json({ error: 'Tu cuenta no tiene correo: no se pueden canjear puntos.' }, { status: 400 });
       }
       const [loyaltyConfig, currentPoints] = await Promise.all([
         getLoyaltyConfig(),
-        getCustomerPoints(shippingInfo.email),
+        getCustomerPoints(correoCuenta),
       ]);
       if (pointsToRedeem > currentPoints) {
         return NextResponse.json({ error: 'No tienes suficientes puntos para este canje.' }, { status: 400 });
@@ -731,10 +735,10 @@ export async function POST(request: NextRequest) {
     // cortarse apenas se responde— el cliente paga menos y conserva los
     // puntos, y dos checkouts a la vez podían gastar los mismos puntos dos
     // veces.
-    if (customerEmail && pointsToRedeem > 0) {
+    if (correoCuenta && pointsToRedeem > 0) {
       try {
         await redeemPoints({
-          customerEmail,
+          customerEmail: correoCuenta,
           points: pointsToRedeem,
           description: `Pago parcial de orden ${order.id}`,
         });
