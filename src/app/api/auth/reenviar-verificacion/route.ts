@@ -6,7 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { getClientIp } from "@/lib/rate-limit";
+import { limiteGlobal } from "@/server/limite-intentos";
 import { supabaseServer } from '@/lib/supabase-server';
 import { enviarVerificacion } from '@/server/verificacion-correo.service';
 
@@ -15,7 +16,7 @@ const MISMA_RESPUESTA = {
 };
 
 export async function POST(request: NextRequest) {
-  const { allowed, retryAfterSeconds } = rateLimit(`reenviar-verif:${getClientIp(request)}`, {
+  const { allowed, retryAfterSeconds } = await limiteGlobal(`reenviar-verif:${getClientIp(request)}`, {
     limit: 5,
     windowMs: 60 * 60 * 1000,
   });

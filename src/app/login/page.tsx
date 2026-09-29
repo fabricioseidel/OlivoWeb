@@ -14,6 +14,8 @@ function mapNextAuthError(code?: string) {
     // contraseña buena una y otra vez.
     case "EMAIL_NO_VERIFICADO":
       return "Tu correo todavía no está confirmado. Revisa tu bandeja y usa el enlace que te enviamos.";
+    case "DEMASIADOS_INTENTOS":
+      return "Demasiados intentos fallidos. Espera unos 15 minutos o recupera tu contraseña.";
     case "CredentialsSignin":
     case "OAuthAccountNotLinked":
     case "AccessDenied":

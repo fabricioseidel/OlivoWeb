@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createPasswordResetToken } from '@/server/password-reset.service';
 import { sendPasswordResetEmail } from '@/server/email.service';
-import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { getClientIp } from "@/lib/rate-limit";
+import { limiteGlobal } from "@/server/limite-intentos";
 import { urlPublica } from '@/lib/site-url';
 
 const schema = z.object({
@@ -18,7 +19,7 @@ const GENERIC_OK = {
 export async function POST(req: NextRequest) {
   try {
     const ip = getClientIp(req);
-    const { allowed, retryAfterSeconds } = rateLimit(`forgot-password:${ip}`, {
+    const { allowed, retryAfterSeconds } = await limiteGlobal(`forgot-password:${ip}`, {
       limit: 5,
       windowMs: 60 * 60 * 1000,
     });

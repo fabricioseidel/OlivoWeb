@@ -2,6 +2,13 @@ import { type NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { getUserByEmail } from "@/services/auth-users";
+import { ipDeHeaders } from "@/lib/rate-limit";
+import {
+  FALLOS_POR_CORREO,
+  FALLOS_POR_IP,
+  VENTANA_LOGIN_MS,
+  limiteGlobal,
+} from "@/server/limite-intentos";
 
 const __dev = process.env.NODE_ENV !== "production";
 
@@ -15,7 +22,7 @@ function buildProviders() {
         email: { label: "Email", type: "email" },
         password: { label: "Contraseña", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const email = credentials?.email?.toLowerCase().trim();
         const password = credentials?.password;
         
@@ -24,20 +31,37 @@ function buildProviders() {
           if (__dev) console.log("[AUTH] Missing email or password");
           return null;
         }
+
+        // Límite de intentos fallidos por cuenta y por IP, compartido entre
+        // instancias. Sin esto se podían probar contraseñas sin freno.
+        const headers = (req?.headers ?? {}) as Record<string, string | undefined>;
+        const ip = ipDeHeaders((k) => headers[k]);
+        const claves = [
+          { clave: `login:email:${email}`, limit: FALLOS_POR_CORREO },
+          { clave: `login:ip:${ip}`, limit: FALLOS_POR_IP },
+        ];
+        for (const c of claves) {
+          const r = await limiteGlobal(c.clave, { limit: c.limit, windowMs: VENTANA_LOGIN_MS, soloConsultar: true });
+          if (!r.allowed) throw new Error("DEMASIADOS_INTENTOS");
+        }
+        const fallo = async () => {
+          await Promise.all(claves.map((c) => limiteGlobal(c.clave, { limit: c.limit, windowMs: VENTANA_LOGIN_MS })));
+          return null;
+        };
         
         const user = await getUserByEmail(email);
         if (__dev) console.log("[AUTH] User found:", !!user, user ? { id: user.id, email: user.email, role: user.role } : null);
-        if (!user) return null;
+        if (!user) return fallo();
         
         const hash = (user as any).password_hash;
         if (!hash || typeof hash !== 'string' || hash.length < 20) {
           if (__dev) console.log("[AUTH] Invalid hash");
-          return null;
+          return fallo();
         }
         
         const ok = await bcrypt.compare(password, hash);
         if (__dev) console.log("[AUTH] Password valid:", ok);
-        if (!ok) return null;
+        if (!ok) return fallo();
 
         // Correo sin confirmar: no entra. Se comprueba **después** de validar
         // la contraseña a propósito — antes, cualquiera podría averiguar qué

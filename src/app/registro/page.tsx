@@ -33,8 +33,8 @@ export default function RegisterPage() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres");
+    if (formData.password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres");
       return;
     }
 
@@ -134,7 +134,7 @@ export default function RegisterPage() {
                 type="password"
                 autoComplete="new-password"
                 required
-                placeholder="Contraseña (mín. 6 caracteres)"
+                placeholder="Contraseña (mín. 8 caracteres)"
                 value={formData.password}
                 onChange={handleChange}
                 label="Contraseña"

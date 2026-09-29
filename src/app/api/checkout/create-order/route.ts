@@ -27,7 +27,8 @@ import {
 } from '@/lib/delivery-slots';
 import { format, getHours, getMinutes } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { getClientIp } from "@/lib/rate-limit";
+import { limiteGlobal } from "@/server/limite-intentos";
 import { assertOrdersEnabled } from '@/server/store-status.service';
 import { PREVIEW_HTTP_STATUS } from '@/lib/store-status';
 import {
@@ -263,7 +264,7 @@ async function calculateServerShippingCost(params: {
 
 export async function POST(request: NextRequest) {
   try {
-    const { allowed, retryAfterSeconds } = rateLimit(`create-order:${getClientIp(request)}`, {
+    const { allowed, retryAfterSeconds } = await limiteGlobal(`create-order:${getClientIp(request)}`, {
       limit: 10,
       windowMs: 5 * 60 * 1000,
     });
