@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { supabaseServer } from "@/lib/supabase-server";
-import { requireApiAdmin } from "@/lib/api-auth";
+import { requireApiAdmin, requireApiAdminOrSeller } from "@/lib/api-auth";
 import { invalidateStoreStatusCache } from "@/server/store-status.service";
 import { mapSettingsRow, FALLBACK_SETTINGS } from "@/lib/settings-shared";
 import { RADIO_DESPACHO_KM_DEFAULT } from "@/lib/shipping-policy";
@@ -11,6 +11,10 @@ export type { StoreSettings, PageBlock } from "@/lib/settings-shared";
 
 // GET: Obtener todas las configuraciones
 export async function GET() {
+  // La configuración completa sólo para el personal; lo público de la tienda
+  // se sirve por /api/settings.
+  const auth = await requireApiAdminOrSeller();
+  if (!auth.ok) return auth.response;
   try {
     const { data, error } = await supabase
       .from("settings")

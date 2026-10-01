@@ -183,36 +183,26 @@ export async function redeemPoints(data: {
   description?: string;
 }): Promise<{ discount: number; newBalance: number }> {
   const config = await getLoyaltyConfig();
-  const currentBalance = await getCustomerPoints(data.customerEmail);
-
-  if (data.points > currentBalance) {
-    throw new Error("Puntos insuficientes");
-  }
 
   if (data.points < config.min_points_redeem) {
     throw new Error(`Mínimo ${config.min_points_redeem} puntos para canjear`);
   }
 
   const discount = data.points * config.redemption_value;
-  const newBalance = currentBalance - data.points;
 
-  await supabaseServer.from("loyalty_transactions").insert({
-    customer_id: data.customerEmail,
-    customer_email: data.customerEmail,
-    type: "redeem",
-    points: -data.points,
-    balance_after: newBalance,
-    description: data.description || `Canje de ${data.points} puntos por $${discount.toLocaleString("es-CL")}`,
-    reference_type: "redemption",
-    reference_id: null,
+  // Saldo, comprobación y movimiento en una sola transacción con candado por
+  // cliente (función canjear_puntos). Leer el saldo y después insertar
+  // dejaba que dos canjes simultáneos gastaran los mismos puntos.
+  const { data: nuevoSaldo, error } = await supabaseServer.rpc("canjear_puntos", {
+    p_email: data.customerEmail,
+    p_puntos: data.points,
+    p_descripcion: data.description || `Canje de ${data.points} puntos por $${discount.toLocaleString("es-CL")}`,
   });
+  if (error) {
+    throw new Error(/insuficientes/i.test(error.message) ? "Puntos insuficientes" : `No se pudo canjear: ${error.message}`);
+  }
 
-  await supabaseServer
-    .from("customers")
-    .update({ loyalty_points: newBalance })
-    .eq("email", data.customerEmail);
-
-  return { discount, newBalance };
+  return { discount, newBalance: Number(nuevoSaldo) };
 }
 
 // ── Get customer points ─────────────────────────────────────────────────

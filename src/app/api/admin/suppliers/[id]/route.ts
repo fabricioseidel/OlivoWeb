@@ -6,6 +6,9 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Ficha del proveedor: RUT, contacto, condiciones de pago. Sólo ADMIN.
+  const auth = await requireApiAdmin();
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params;
 
