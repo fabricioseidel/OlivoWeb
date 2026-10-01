@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { getCurrentShift, closeShiftAction } from "@/actions/shifts";
+import { esperadoPorMetodo } from "@/lib/pos/arqueo";
 import { useToast } from "@/contexts/ToastContext";
 import { CashShift } from "@/server/shifts.service";
 import { LockClosedIcon, ArrowPathIcon, BanknotesIcon, CreditCardIcon, UserIcon } from "@heroicons/react/24/outline";
@@ -23,7 +24,6 @@ const METHOD_ICON: Record<Method, typeof BanknotesIcon> = {
   OTHER: CreditCardIcon,
 };
 
-interface SalePayment { method: Method; amount: number; sale_id: number; }
 
 export default function CloseMode() {
   const { showToast } = useToast();
@@ -47,34 +47,8 @@ export default function CloseMode() {
       if (!res.ok) return;
       const data = await res.json();
 
-      const sales: Array<{ id: number; sale_payments?: SalePayment[]; payment_method?: string; total: number }> = data.sales || [];
-      const movements: Array<{ amount: number; type: "IN" | "OUT" }> = data.movements || [];
-
-      const byMethod: Partial<Record<Method, number>> = {};
-      sales.forEach(s => {
-        if (Array.isArray((s as any).sale_payments) && (s as any).sale_payments.length) {
-          (s as any).sale_payments.forEach((p: SalePayment) => {
-            byMethod[p.method] = (byMethod[p.method] || 0) + Number(p.amount);
-          });
-        } else {
-          // Fallback al método único legacy
-          // Débito/crédito/billetera colapsan en tarjeta: el extracto bancario
-          // no los separa, así que el arqueo tampoco debe hacerlo.
-          const m: Method =
-            /cash|efectivo/i.test(s.payment_method || "") ? "CASH" :
-            /transfer/i.test(s.payment_method || "")        ? "TRANSFER" :
-            /debit|credit|card|tarjeta|wallet|prepago/i.test(s.payment_method || "") ? "CARD" :
-            "OTHER";
-          byMethod[m] = (byMethod[m] || 0) + Number(s.total);
-        }
-      });
-
-      // Cash incluye efectivo inicial + movimientos
-      const cashIn = movements.filter(m => m.type === "IN").reduce((a, m) => a + Number(m.amount), 0);
-      const cashOut = movements.filter(m => m.type === "OUT").reduce((a, m) => a + Number(m.amount), 0);
-      byMethod.CASH = (byMethod.CASH || 0) + Number(s.starting_cash) + cashIn - cashOut;
-
-      setExpected(byMethod);
+      // El mismo cálculo que hace close_shift al cerrar.
+      setExpected(esperadoPorMetodo(s.starting_cash, data.sales || [], data.movements || []) as Partial<Record<Method, number>>);
     } catch (e) {
       console.error(e);
     } finally {

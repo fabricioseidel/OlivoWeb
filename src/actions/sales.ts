@@ -6,6 +6,7 @@ import { supabaseServer } from "@/lib/supabase-server";
 import type { ToastType } from "@/components/ui/Toast";
 import { normalizePaymentMethod, STAFF_CREDIT } from "@/lib/pos/payments";
 import { exigirRol, PERSONAL } from "@/lib/action-auth";
+import { calcularPreciosVenta, type PrecioBase } from "@/lib/pos/precios-venta";
 
 type SaleActionState = {
   ok?: boolean;
@@ -85,6 +86,23 @@ export async function createSaleAction(data: CreateSaleActionInput): Promise<Sal
       };
     }
 
+    // Precios vigentes de la base: el que manda la pantalla no se usa.
+    const barcodes = [...new Set(data.items.map((it) => String(it.product_id)))];
+    const { data: filas, error: errPrecios } = await supabaseServer
+      .from("products")
+      .select("barcode, sale_price, offer_price")
+      .in("barcode", barcodes);
+    if (errPrecios) throw errPrecios;
+    const precios = new Map<string, PrecioBase>(
+      (filas ?? []).map((f) => [String(f.barcode), { sale_price: f.sale_price, offer_price: f.offer_price }]),
+    );
+    const calculo = calcularPreciosVenta(
+      data.items.map((it) => ({ barcode: String(it.product_id), qty: Number(it.quantity), name: it.name })),
+      precios,
+      { compraPersonal: Boolean(data.isStaffPurchase), totalCobrado: Number(data.total) },
+    );
+    if (!calculo.ok) return { ok: false, toastMessage: calculo.mensaje, toastType: "error" };
+
     // Resolver pagos: si vienen explícitos, validar y usarlos. Si no, derivar del método único.
     const payments: SalePaymentInput[] =
       data.payments && data.payments.length > 0
@@ -108,7 +126,7 @@ export async function createSaleAction(data: CreateSaleActionInput): Promise<Sal
       branchId: data.branchId ?? null,
       shiftId,
       total: data.total,
-      discount: data.discount ?? 0,
+      discount: calculo.descuento,
       tax: data.tax ?? 0,
       notes: data.notas,
       cashReceived: data.cashReceived,
@@ -121,12 +139,12 @@ export async function createSaleAction(data: CreateSaleActionInput): Promise<Sal
       transferReceiptUri: data.transferReceiptUri,
       transferReceiptName: data.transferReceiptName,
       payments,
-      items: data.items.map((it) => ({
-        barcode: it.product_id,
+      items: calculo.items.map((it) => ({
+        barcode: it.barcode,
         name: it.name,
-        qty: it.quantity,
+        qty: it.qty,
         unit_price: it.unit_price,
-        subtotal: it.total_price,
+        subtotal: it.subtotal,
       })),
     });
 
