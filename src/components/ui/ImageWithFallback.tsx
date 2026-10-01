@@ -32,8 +32,13 @@ const ImageWithFallback: React.FC<Props> = ({
   const [hasError, setHasError] = useState(false);
 
   return (
+    // Diferida por defecto: un catálogo de cientos de productos descargaba
+    // todas las fotos al abrir la página. Quien necesite la imagen de
+    // inmediato (la principal de un producto) pasa loading="eager".
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      loading="lazy"
+      decoding="async"
       {...rest}
       src={imgSrc}
       alt={alt || "Imagen"}

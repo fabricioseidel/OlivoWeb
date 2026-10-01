@@ -11,6 +11,8 @@ import { enTemporadaDieciochera, esProductoDieciochero, normalizarTexto, RUTA_FI
 import BanderaChile from "@/components/fiestas/BanderaChile";
 import { Search } from "lucide-react";
 
+const POR_TANDA = 48;
+
 type SortKey = "name" | "price-asc" | "price-desc" | "offers";
 
 function ProductsContent() {
@@ -76,6 +78,18 @@ function ProductsContent() {
     }
     return sorted;
   }, [activeProducts, categoriaParam, isDieciocheroCategory, searchText, sortKey]);
+
+  // Se dibujan de a tandas: cientos de tarjetas de una vez hacían lenta la
+  // página en celulares. Cambiar filtro, búsqueda u orden vuelve a la primera.
+  const claveFiltro = `${categoriaParam}|${searchText}|${sortKey}`;
+  const [tanda, setTanda] = useState({ clave: claveFiltro, cantidad: POR_TANDA });
+  const cantidadVisible = tanda.clave === claveFiltro ? tanda.cantidad : POR_TANDA;
+  const setCantidadVisible = (f: (n: number) => number) =>
+    setTanda({ clave: claveFiltro, cantidad: f(cantidadVisible) });
+  const productosVisibles = useMemo(
+    () => filteredProducts.slice(0, cantidadVisible),
+    [filteredProducts, cantidadVisible],
+  );
 
   const activeCategoryName = useMemo(() => {
     if (isDieciocheroCategory) return "Especial Fiestas Patrias 🇨🇱";
@@ -181,7 +195,7 @@ function ProductsContent() {
         ) : null}
 
         <ProductGrid
-          products={filteredProducts}
+          products={productosVisibles}
           loading={loading}
           emptyMessage={
             searchText.trim()
@@ -191,6 +205,17 @@ function ProductsContent() {
               : "No hay productos"
           }
         />
+        {!loading && filteredProducts.length > productosVisibles.length && (
+          <div className="mt-8 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setCantidadVisible((n) => n + POR_TANDA)}
+              className="o-focus h-12 rounded-xl px-6 text-sm font-semibold text-brand-texto ring-1 ring-brand-200 hover:bg-brand-50"
+            >
+              Ver más productos ({filteredProducts.length - productosVisibles.length} más)
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

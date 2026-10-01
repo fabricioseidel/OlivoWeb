@@ -193,6 +193,8 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
                 key={allImages[selectedImage] || 'main-image'}
                 src={allImages[selectedImage] || product.image || "/file.svg"}
                 alt={product.name}
+                loading="eager"
+                fetchPriority="high"
                 className="max-h-full max-w-full object-contain"
               />
               <div className="absolute left-4 top-4 z-10 flex flex-col items-start gap-1.5 pointer-events-none">
