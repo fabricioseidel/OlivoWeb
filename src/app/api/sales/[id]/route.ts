@@ -17,7 +17,7 @@ export async function GET(
     // Obtener detalles de la venta
     const { data: saleData, error: saleError } = await supabaseServer
       .from('sales')
-      .select('*')
+      .select('*, sale_payments(method, amount, reference)')
       .eq('id', saleId)
       .single();
 

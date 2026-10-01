@@ -23,6 +23,8 @@ export default function POSPage() {
   const { cart, addToCart, updateQuantity, removeFromCart, clearCart, total, isScanning, appliedCoupon, discount, finalTotal, setAppliedCoupon, applyDiscount } = usePOS();
   
   const [searchQuery, setSearchQuery] = useState("");
+  /** Última venta registrada, para ofrecer su ticket. */
+  const [ultimaVentaId, setUltimaVentaId] = useState<string | number | null>(null);
   const [allProducts, setAllProducts] = useState<ProductUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "transfer">("cash");
@@ -112,6 +114,7 @@ export default function POSPage() {
       });
       if (result.ok) {
         ventaIdRef.current = null;
+        setUltimaVentaId(result.saleId ?? null);
         // Send receipt email if customer provided email
         if (customerEmail && customerEmail.includes("@")) {
           setSendingReceipt(true);
@@ -478,6 +481,16 @@ export default function POSPage() {
           )}
 
           {/* Checkout button */}
+          {ultimaVentaId && cart.length === 0 && (
+            <a
+              href={`/admin/ventas/${ultimaVentaId}/ticket`}
+              target="_blank"
+              rel="noopener"
+              className="mb-2 block text-center text-sm font-semibold text-brand-400 underline"
+            >
+              Imprimir ticket de la venta #{ultimaVentaId}
+            </a>
+          )}
           <OlivoButton fullWidth size="lg" disabled={cart.length === 0 || processing || (paymentMethod === 'cash' && cashReceived < finalTotal && cart.length > 0)}
             onClick={handleCheckout} className="h-14 text-sm uppercase tracking-widest">
             {processing ? "Procesando..." : (

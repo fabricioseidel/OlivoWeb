@@ -756,10 +756,18 @@ function SaleDetailModal({
               </p>
             )}
           </div>
+          <a
+            href={`/admin/ventas/${sale.id}/ticket`}
+            target="_blank"
+            rel="noopener"
+            className="ml-auto mr-2 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 min-h-[44px] inline-flex items-center"
+          >
+            Ticket
+          </a>
           {onAnular && !sale.voided && (
             <button
               onClick={() => onAnular(sale)}
-              className="ml-auto mr-2 px-3 py-2 rounded-xl text-xs font-bold text-red-700 ring-1 ring-red-200 hover:bg-red-50 min-h-[44px]"
+              className="mr-2 px-3 py-2 rounded-xl text-xs font-bold text-red-700 ring-1 ring-red-200 hover:bg-red-50 min-h-[44px]"
             >
               Anular venta
             </button>
