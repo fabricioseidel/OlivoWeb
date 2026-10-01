@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { fetchAllProducts, isProductVisible } from "@/services/products";
 import { supabaseServer } from "@/lib/supabase-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { requireApiAdminOrSeller } from "@/lib/api-auth";
+import { requireApiAdmin, requireApiAdminOrSeller } from "@/lib/api-auth";
+import { auditLog } from "@/server/audit.service";
 import { STOCK_REASON, setStockLevels } from "@/server/inventory.service";
+
+/** Lo que sólo el ADMIN puede cambiar en un producto que ya existe. */
+const CAMPOS_DE_PRECIO = ['sale_price', 'offer_price', 'purchase_price', 'suggested_price', 'margin_override'] as const;
 
 async function readJsonBody(req: Request) {
   const text = await req.text();
@@ -128,8 +132,46 @@ export async function POST(req: Request) {
       return rest;
     });
 
+    // Estado anterior de los precios, para dos cosas: que el cajero no cambie
+    // el precio de un producto que ya existe (sí puede crear uno nuevo con su
+    // precio, desde la creación rápida del POS) y dejar registro de quién
+    // cambió qué precio.
+    const barcodes = payloads.map((p: any) => String(p.barcode));
+    const { data: previos } = await supabaseServer
+      .from('products')
+      .select('barcode, sale_price, offer_price, purchase_price')
+      .in('barcode', barcodes);
+    const antes = new Map((previos ?? []).map((r: any) => [String(r.barcode), r]));
+
+    if (auth.role !== 'ADMIN') {
+      for (const p of payloads) {
+        if (antes.has(String(p.barcode))) {
+          for (const campo of CAMPOS_DE_PRECIO) delete p[campo];
+        }
+      }
+    }
+
     // Using supabaseServer to bypass RLS policies that might block client-side inserts
     await upsertProductsWithColumnFallback(payloads);
+
+    const cambiosDePrecio = payloads
+      .flatMap((p: any) => {
+        const prev = antes.get(String(p.barcode));
+        return ['sale_price', 'offer_price', 'purchase_price']
+          .filter((c) => c in p && Number(prev?.[c] ?? null) !== Number(p[c] ?? null))
+          .map((c) => ({ barcode: p.barcode, campo: c, antes: prev?.[c] ?? null, despues: p[c] ?? null }));
+      })
+      .slice(0, 200);
+    await auditLog({
+      action: 'products.save',
+      entity: 'products',
+      actor: auth.session.user?.email ?? auth.userId,
+      details: {
+        productos: payloads.length,
+        nuevos: payloads.filter((p: any) => !antes.has(String(p.barcode))).length,
+        cambiosDePrecio,
+      },
+    });
 
     const stockResult = await setStockLevels(
       [...stockTargets].map(([barcode, target]) => ({ barcode, target })),
@@ -154,7 +196,8 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const auth = await requireApiAdminOrSeller();
+    // Borrar un producto es irreversible: sólo ADMIN.
+    const auth = await requireApiAdmin();
     if (!auth.ok) return auth.response;
 
     const { searchParams } = new URL(req.url);
@@ -181,6 +224,7 @@ export async function DELETE(req: Request) {
 
     if (error) throw error;
 
+    await auditLog({ action: 'products.delete', entity: 'products', entityId: id, actor: auth.session.user?.email ?? auth.userId });
     return successResponse({ success: true });
   } catch (e: any) {
     return errorResponse(e);
