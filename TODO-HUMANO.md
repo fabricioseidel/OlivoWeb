@@ -13,6 +13,26 @@ Al resolver cada punto, edita el archivo indicado y borra el comentario
 
 ---
 
+## 🔐 Seguridad — revisión del 1-oct-2026 (PR #109)
+
+1. **Después de desplegar el PR #109**, aplicar la migración
+   `supabase/migrations/20260929000100_cerrar_acceso_directo_clave_publica.sql`.
+   Antes NO: el sitio viejo todavía lee `products` con `select=*` y se rompería.
+   Claude puede aplicarla si se lo pides.
+2. **Cambiar las contraseñas `Admin2025` y `Venta2025`**: están en texto plano en
+   `supabase/19_crear_usuario_admin.sql` y `supabase/14_regenerar_hashes.sql`
+   (públicos en el repo). Después borrar esos dos archivos.
+3. **Proteger `main` en GitHub** (Settings → Branches): exigir PR y que pase `build-test`.
+4. **68 archivos viejos** (boletas/facturas) siguen en el bucket público `uploads`.
+   Decidir: moverlos al bucket privado `comprobantes` o borrarlos.
+5. **3 tablas de respaldo sin RLS** (`respaldo_categorias_20260904`,
+   `propuesta_categorias`, `respaldo_duplicados_20260912`): la migración del punto 1
+   las cierra; si ya no sirven, borrarlas.
+6. Confirmar en Vercel que existen `MERCADOPAGO_WEBHOOK_SECRET` y `CRON_SECRET`.
+
+
+---
+
 ## 🚦 Estado actual: la tienda está ABIERTA
 
 `preview_mode` está en `false`: el checkout acepta pedidos y cobra de verdad.
