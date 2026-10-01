@@ -2,9 +2,10 @@
 -- 20261001000000_cierre_caja_por_turno.sql
 --
 -- close_shift calculaba lo esperado con las ventas de la MISMA SUCURSAL y
--- dentro del horario del turno. Pero /admin/pos registra las ventas sin
--- sucursal (branch_id null): si el turno tiene sucursal, esas ventas no se
--- contaban y el arqueo mostraba un faltante que no existía.
+-- dentro del horario del turno. Pero /admin/pos no indica sucursal y
+-- apply_sale le pone la sucursal por defecto: si el turno es de otra
+-- sucursal, esas ventas no se contaban y el arqueo mostraba un faltante que
+-- no existía.
 --
 -- Cada venta ya guarda su turno (sales.shift_id, obligatorio desde que el
 -- POS exige caja abierta). Ahora cuentan las ventas de ESTE turno, y por

@@ -15,10 +15,10 @@ Al resolver cada punto, edita el archivo indicado y borra el comentario
 
 ## 🔐 Seguridad — revisión del 1-oct-2026 (PR #109)
 
-1. **Después de desplegar el PR #109**, aplicar la migración
-   `supabase/migrations/20260929000100_cerrar_acceso_directo_clave_publica.sql`.
-   Antes NO: el sitio viejo todavía lee `products` con `select=*` y se rompería.
-   Claude puede aplicarla si se lo pides.
+1. ~~Aplicar `20260929000100_cerrar_acceso_directo_clave_publica.sql`~~ —
+   **hecho el 1-oct-2026** tras desplegar el #109. Verificado: la clave pública
+   lee 306 productos visibles y 31 categorías, y pedir costos da
+   "permission denied".
 2. **Cambiar las contraseñas `Admin2025` y `Venta2025`**: están en texto plano en
    `supabase/19_crear_usuario_admin.sql` y `supabase/14_regenerar_hashes.sql`
    (públicos en el repo). Después borrar esos dos archivos.
@@ -28,7 +28,12 @@ Al resolver cada punto, edita el archivo indicado y borra el comentario
 5. **3 tablas de respaldo sin RLS** (`respaldo_categorias_20260904`,
    `propuesta_categorias`, `respaldo_duplicados_20260912`): la migración del punto 1
    las cierra; si ya no sirven, borrarlas.
-6. Confirmar en Vercel que existen `MERCADOPAGO_WEBHOOK_SECRET` y `CRON_SECRET`.
+6. ~~Variables en Vercel~~ — `MERCADOPAGO_WEBHOOK_SECRET` ya estaba;
+   `CRON_SECRET` no existía (el cierre automático de turnos nunca corría) y se
+   creó el 1-oct-2026 con un valor aleatorio.
+7. **Actualizar Postgres en Supabase** (Settings → Infrastructure): el
+   asesor de seguridad avisa que la versión 17.4.1.074 tiene parches pendientes.
+   Implica unos minutos sin base de datos: hazlo fuera del horario de la tienda.
 
 
 ---
