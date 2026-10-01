@@ -24,7 +24,11 @@ vi.mock("@/server/branches.service", () => ({ getBranches: async () => (llamadas
 vi.mock("@/lib/supabase-server", () => ({
   supabaseServer: {
     from: () => {
-      const q: any = { select: () => q, eq: () => q, order: () => q, limit: () => q, maybeSingle: async () => ({ data: { id: "t1" } }) };
+      const q: any = {
+        select: () => q, eq: () => q, order: () => q, limit: () => q,
+        maybeSingle: async () => ({ data: { id: "t1" } }),
+        in: async () => ({ data: [{ barcode: "1", sale_price: 1000, offer_price: null }], error: null }),
+      };
       return q;
     },
   },
@@ -88,5 +92,25 @@ describe("venta idempotente", () => {
     await sales.createSaleAction({ ...base, clientSaleId: "x'; drop" });
     expect(ventas[0].clientSaleId).toBe("pos-0b6f1c1e-6b1f-4c3a-9f1e-2a7c1d9e0f11");
     expect(ventas[1].clientSaleId).toBeUndefined();
+  });
+});
+
+describe("precios de la venta", () => {
+  it("usa el precio de la base aunque la pantalla mande otro unitario", async () => {
+    estado.session = cajero;
+    ventas.length = 0;
+    const sales = await import("@/actions/sales");
+    const r = await sales.createSaleAction({ total: 1000, paymentMethod: "cash", items: [{ product_id: "1", quantity: 1, unit_price: 1, total_price: 1 }] });
+    expect(r.ok).toBe(true);
+    expect(ventas[0].items[0]).toMatchObject({ unit_price: 1000, subtotal: 1000 });
+  });
+
+  it("rechaza un total que no calza con los precios vigentes", async () => {
+    estado.session = cajero;
+    ventas.length = 0;
+    const sales = await import("@/actions/sales");
+    const r = await sales.createSaleAction({ total: 10, paymentMethod: "cash", items: [{ product_id: "1", quantity: 1, unit_price: 10, total_price: 10 }] });
+    expect(r.ok).toBe(false);
+    expect(ventas).toHaveLength(0);
   });
 });

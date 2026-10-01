@@ -8,6 +8,7 @@ import {
   closeShiftAction,
   addCashMovementAction,
 } from "@/actions/shifts";
+import { esperadoPorMetodo } from "@/lib/pos/arqueo";
 import { CashShift } from "@/server/shifts.service";
 import OlivoButton from "@/components/OlivoButton";
 import {
@@ -91,22 +92,11 @@ export default function CajaPage() {
     if (shift?.id) fetchShiftData(shift.id);
   }, [shift?.id, fetchShiftData]);
 
-  const totalCashSales = shiftSales
-    .filter(
-      (s) => s.payment_method === "cash" || s.payment_method === "efectivo"
-    )
-    .reduce((acc, s) => acc + Number(s.total), 0);
-  const totalIn = movements
-    .filter((m) => m.type === "IN")
-    .reduce((acc, m) => acc + Number(m.amount), 0);
-  const totalOut = movements
-    .filter((m) => m.type === "OUT")
-    .reduce((acc, m) => acc + Number(m.amount), 0);
-  const expectedCash =
-    (shift ? Number(shift.starting_cash) : 0) +
-    totalCashSales +
-    totalIn -
-    totalOut;
+  // El mismo cálculo que hace close_shift al cerrar: pagos de cada venta
+  // (un pago mixto aporta sólo su parte en efectivo) y movimientos por método.
+  const esperado = esperadoPorMetodo(shift ? Number(shift.starting_cash) : 0, shiftSales, movements);
+  const expectedCash = esperado.CASH ?? 0;
+  const totalCashSales = esperadoPorMetodo(0, shiftSales, []).CASH ?? 0;
   const totalAllSales = shiftSales.reduce(
     (acc, s) => acc + Number(s.total),
     0

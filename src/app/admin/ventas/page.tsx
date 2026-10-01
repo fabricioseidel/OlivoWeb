@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
+import { useSession } from "next-auth/react";
 import {
   MagnifyingGlassIcon,
   CalendarIcon,
@@ -47,6 +48,9 @@ interface Sale {
   tax: number;
   notes: string | null;
   voided: boolean;
+  voided_at?: string | null;
+  void_reason?: string | null;
+  voided_by?: string | null;
   device_id: string;
   client_sale_id: string;
   seller_id: string | null;
@@ -189,6 +193,36 @@ export default function VentasPage() {
   useEffect(() => {
     loadSales();
   }, [loadSales]);
+
+  const { data: session } = useSession();
+  const esAdmin = (session?.user as { role?: string } | undefined)?.role?.toUpperCase() === "ADMIN";
+
+  // Anular devuelve el stock y saca la venta de los totales. Se pide el
+  // motivo para que quede registrado quién anuló qué y por qué.
+  const anularVenta = async (sale: Sale) => {
+    const motivo = window.prompt(
+      `Anular la venta #${sale.id} por ${fmt(sale.total)}.\nEl stock vuelve al inventario. ¿Motivo?`,
+    );
+    if (motivo === null) return;
+    if (motivo.trim().length < 3) {
+      showToast("Escribe el motivo de la anulación", "error");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/sales/${sale.id}/anular`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ motivo }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "No se pudo anular la venta");
+      showToast(`Venta #${sale.id} anulada`, "success");
+      setSelectedSale(null);
+      loadSales();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "No se pudo anular la venta", "error");
+    }
+  };
 
   const loadSaleDetail = async (saleId: number) => {
     setDetailLoading(true);
@@ -643,6 +677,7 @@ export default function VentasPage() {
             uploading={uploadingReceipt}
             onClose={() => setSelectedSale(null)}
             onPickReceipt={pickFile}
+            onAnular={esAdmin ? anularVenta : undefined}
           />,
           document.body
         )}
@@ -677,6 +712,7 @@ function SaleDetailModal({
   uploading,
   onClose,
   onPickReceipt,
+  onAnular,
 }: {
   sale: Sale;
   items: SaleItem[];
@@ -684,6 +720,8 @@ function SaleDetailModal({
   uploading: boolean;
   onClose: () => void;
   onPickReceipt: (id: number) => void;
+  /** Sólo llega para el ADMIN. */
+  onAnular?: (sale: Sale) => void;
 }) {
   return (
     <div
@@ -711,7 +749,21 @@ function SaleDetailModal({
               {fmtTime(sale.ts)} · {sale.branch_name ?? "Sin sucursal"} ·{" "}
               {sale.seller_name ?? "Mostrador"}
             </p>
+            {sale.voided && sale.void_reason && (
+              <p className="text-xs text-red-700 mt-1">
+                Anulada{sale.voided_by ? ` por ${sale.voided_by}` : ""}
+                {sale.voided_at ? ` el ${fmtTime(sale.voided_at)}` : ""}: {sale.void_reason}
+              </p>
+            )}
           </div>
+          {onAnular && !sale.voided && (
+            <button
+              onClick={() => onAnular(sale)}
+              className="ml-auto mr-2 px-3 py-2 rounded-xl text-xs font-bold text-red-700 ring-1 ring-red-200 hover:bg-red-50 min-h-[44px]"
+            >
+              Anular venta
+            </button>
+          )}
           <button
             onClick={onClose}
             className="p-2 text-gray-500 hover:bg-gray-100 rounded-xl min-h-[44px] min-w-[44px]"

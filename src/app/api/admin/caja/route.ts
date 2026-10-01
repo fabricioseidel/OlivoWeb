@@ -21,12 +21,12 @@ export async function GET(request: NextRequest) {
     const [movRes, salesRes] = await Promise.all([
       supabaseServer
         .from('cash_movements')
-        .select('id, amount, type, reason, created_at')
+        .select('id, amount, type, method, reason, created_at')
         .eq('shift_id', shiftId)
         .order('created_at', { ascending: false }),
       supabaseServer
         .from('sales')
-        .select('id, total, payment_method, ts, sale_payments(method, amount, reference)')
+        .select('id, total, payment_method, ts, voided, sale_payments(method, amount, reference)')
         .eq('shift_id', shiftId)
         .order('ts', { ascending: false }),
     ]);
