@@ -1,5 +1,6 @@
 "use client";
 
+import { RADIO_ZONA_PLANA_KM, TARIFA_ZONA_PLANA_CLP } from "@/lib/shipping-policy";
 import { useMemo } from "react";
 import Link from "next/link";
 import { TrashIcon, MinusIcon, PlusIcon, ShoppingBagIcon } from "@heroicons/react/24/outline";
@@ -50,6 +51,15 @@ export default function CartPage() {
   // algo distinto de lo que el checkout cobraba.
   const freeShippingEnabled = settings?.shipping?.freeShippingEnabled ?? false;
   const freeShippingMinimum = Number(settings?.shipping?.freeShippingMinimum ?? 0);
+  // Lo menos que cuesta el despacho a domicilio: la tarifa plana cerca de la
+  // tienda, o la tarifa por distancia justo al salir de esa zona si es menor.
+  const despachoDesde = settings?.shipping?.enableDynamicShipping
+    ? Math.min(
+        TARIFA_ZONA_PLANA_CLP,
+        Number(settings?.shipping?.shippingBaseFee ?? 0) +
+          RADIO_ZONA_PLANA_KM * Number(settings?.shipping?.shippingPricePerKm ?? 0),
+      )
+    : 0;
   const showFreeShippingMeter = freeShippingEnabled && freeShippingMinimum > 0;
   const reachedFreeShipping = showFreeShippingMeter && subtotal >= freeShippingMinimum;
   const missingForFreeShipping = Math.max(0, freeShippingMinimum - subtotal);
@@ -272,7 +282,15 @@ export default function CartPage() {
               </div>
               <div className="flex items-baseline justify-between gap-3">
                 <dt className="o-body text-neutral-600">Envío</dt>
-                <dd className="o-caption text-neutral-500">Se calcula al pagar</dd>
+                {/* Sin dirección no hay costo exacto (depende de la distancia),
+                    pero el cliente quiere saber de qué orden es antes de pagar. */}
+                <dd className="o-caption text-right text-neutral-500">
+                  {despachoDesde > 0 ? (
+                    <>Retiro gratis · despacho desde {clp(despachoDesde)}</>
+                  ) : (
+                    "Se calcula al pagar"
+                  )}
+                </dd>
               </div>
             </dl>
 
