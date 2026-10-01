@@ -813,7 +813,7 @@ export default function CheckoutPage() {
                       <div>
                         <p className="text-sm font-semibold text-amber-900">Falta precisar la ubicación</p>
                         <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                          Elige tu dirección de la lista que aparece al escribir, o usa el botón de GPS.
+                          Elige tu dirección de la lista de sugerencias que aparece al escribir.
                           Sin eso no podemos calcular el costo de envío.
                         </p>
                       </div>

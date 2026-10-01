@@ -1,3 +1,24 @@
+/**
+ * Política de contenido en modo SÓLO REPORTE: no bloquea nada, el navegador
+ * avisa a /api/csp-report cada vez que la página carga algo fuera de la
+ * lista. Cuando los reportes muestren sólo ruido (extensiones del navegador),
+ * se puede pasar a `Content-Security-Policy` y empezar a bloquear.
+ */
+const CSP_SOLO_REPORTE = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://*.supabase.co https://res.cloudinary.com https://images.unsplash.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://*.googleusercontent.com",
+  "font-src 'self' data:",
+  "connect-src 'self' https://*.supabase.co https://vitals.vercel-insights.com",
+  "frame-src 'self'",
+  "frame-ancestors 'self'",
+  "form-action 'self' https://*.mercadopago.com https://*.mercadopago.cl https://accounts.google.com",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "report-uri /api/csp-report",
+].join("; ");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   compress: true,
@@ -26,6 +47,7 @@ const nextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          { key: "Content-Security-Policy-Report-Only", value: CSP_SOLO_REPORTE },
         ],
       },
     ];
