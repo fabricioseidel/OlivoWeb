@@ -7,20 +7,24 @@ import { BIENVENIDA } from "@/lib/bienvenida";
 import { addBonusPoints } from "@/server/loyalty.service";
 import { sendWelcomeEmail } from "@/server/email.service";
 import { enviarVerificacion } from "@/server/verificacion-correo.service";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { rutaDeVuelta } from "@/lib/site-url";
+import { getClientIp } from "@/lib/rate-limit";
+import { limiteGlobal } from "@/server/limite-intentos";
 
 // Esquema de validación
 const registerSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Correo electrónico inválido"),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   source: z.string().optional(),
+  /** Adónde volver después de confirmar el correo (p. ej. /checkout). */
+  volver: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const ip = getClientIp(req);
-    const { allowed, retryAfterSeconds } = rateLimit(`register:${ip}`, {
+    const { allowed, retryAfterSeconds } = await limiteGlobal(`register:${ip}`, {
       limit: 5,
       windowMs: 60 * 60 * 1000,
     });
@@ -143,7 +147,7 @@ export async function POST(req: NextRequest) {
     //    pero sin `email_verified_at`, y el login la rechaza hasta que use el
     //    enlace.
     try {
-      await enviarVerificacion({ email, nombre: name });
+      await enviarVerificacion({ email, nombre: name, volver: rutaDeVuelta(validation.data.volver) });
     } catch (verifErr) {
       console.error("[Register] No se pudo enviar la verificación:", verifErr);
     }

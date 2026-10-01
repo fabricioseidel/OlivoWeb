@@ -62,3 +62,15 @@ export function normalizarUrlPublica(cruda?: string | null): string {
 export function urlPublica(): string {
   return normalizarUrlPublica(process.env.NEXT_PUBLIC_SITE_URL);
 }
+
+/**
+ * Ruta interna segura para volver después de registrarse o confirmar el
+ * correo ("/checkout"). Cualquier otra cosa —otro dominio, "//x.com",
+ * "javascript:"— se descarta para no convertir el enlace en una redirección
+ * abierta.
+ */
+export function rutaDeVuelta(valor: string | null | undefined): string | null {
+  const v = (valor ?? "").trim();
+  if (!v.startsWith("/") || v.startsWith("//") || v.includes("\\") || v.length > 200) return null;
+  return v;
+}

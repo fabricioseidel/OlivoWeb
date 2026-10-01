@@ -24,6 +24,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (email) {
+      // El saldo y el historial de puntos son de cada cliente: sólo los ve
+      // el dueño de la cuenta o el personal (panel de puntos, caja).
+      const session: any = await getServerSession(authOptions as any);
+      const rol = String(session?.role || session?.user?.role || "").toUpperCase();
+      const propio = String(session?.user?.email ?? "").toLowerCase().trim() === email.toLowerCase().trim();
+      if (!session?.user) {
+        return NextResponse.json({ error: "Inicia sesión para ver tus puntos" }, { status: 401 });
+      }
+      if (!propio && rol !== "ADMIN" && rol !== "SELLER") {
+        return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+      }
       const loyalty = await getCustomerLoyalty(email);
       const history = await getTransactionHistory(email);
       return NextResponse.json({ ...loyalty, history });
@@ -62,6 +73,11 @@ export async function POST(request: NextRequest) {
       }
 
       case "redeem": {
+        // Canjear gasta puntos: sólo el personal (en caja o en el panel).
+        // El cliente canjea en el checkout, que usa el correo de su sesión.
+        if (!["ADMIN", "SELLER"].includes(role)) {
+          return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+        }
         if (!body.customerEmail || !body.points) {
           return NextResponse.json({ error: "Email y puntos requeridos" }, { status: 400 });
         }

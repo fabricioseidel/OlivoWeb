@@ -9,6 +9,7 @@ import {
   type ShiftPaymentMethod,
 } from "@/server/shifts.service";
 import type { ToastType } from "@/components/ui/Toast";
+import { exigirRol, PERSONAL } from "@/lib/action-auth";
 
 const PATHS_TO_REVALIDATE = ["/admin/caja", "/admin/pos", "/admin/ventas", "/admin/operaciones"];
 
@@ -30,6 +31,8 @@ export async function openShiftAction(
   branchId?: string | null,
   autoCloseAt?: string | null
 ): Promise<ShiftActionState> {
+  const acceso = await exigirRol(PERSONAL);
+  if (!acceso.ok) return { ok: false, toastMessage: acceso.mensaje, toastType: "error" };
   try {
     await dbOpenShift({
       starting_cash: startingCash,
@@ -56,6 +59,8 @@ export async function closeShiftAction(
   counts: Partial<Record<ShiftPaymentMethod, number>> | number,
   notes?: string
 ): Promise<ShiftActionState & { breakdown?: Record<string, { expected: number; actual: number; difference: number }> }> {
+  const acceso = await exigirRol(PERSONAL);
+  if (!acceso.ok) return { ok: false, toastMessage: acceso.mensaje, toastType: "error" };
   try {
     const closed = await dbCloseShift(shiftId, counts, notes);
     revalidateAll();
@@ -72,6 +77,8 @@ export async function closeShiftAction(
 }
 
 export async function addCashMovementAction(shiftId: string, amount: number, type: 'IN' | 'OUT', reason: string): Promise<ShiftActionState> {
+  const acceso = await exigirRol(PERSONAL);
+  if (!acceso.ok) return { ok: false, toastMessage: acceso.mensaje, toastType: "error" };
   try {
     console.log("📦 addCashMovementAction:", { shiftId, amount, type, reason });
     await dbAddCashMovement({ shift_id: shiftId, amount, type, reason });
@@ -84,5 +91,9 @@ export async function addCashMovementAction(shiftId: string, amount: number, typ
 }
 
 export async function getCurrentShift() {
+  // Sin permiso se responde "no hay turno", igual que si la caja estuviera
+  // cerrada: el estado de la caja no es información pública.
+  const acceso = await exigirRol(PERSONAL);
+  if (!acceso.ok) return null;
   return await dbGetCurrentShift();
 }

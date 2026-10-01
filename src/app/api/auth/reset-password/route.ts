@@ -4,13 +4,14 @@ import {
   consumePasswordResetToken,
   checkPasswordResetToken,
 } from '@/server/password-reset.service';
-import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { getClientIp } from "@/lib/rate-limit";
+import { limiteGlobal } from "@/server/limite-intentos";
 
 // Mismo mínimo que el registro, para no pedir en la recuperación algo distinto
 // de lo que se exigió al crear la cuenta.
 const schema = z.object({
   token: z.string().min(1, 'Falta el token'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
 });
 
 const REASON_MESSAGES: Record<string, string> = {
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const ip = getClientIp(req);
-    const { allowed, retryAfterSeconds } = rateLimit(`reset-password:${ip}`, {
+    const { allowed, retryAfterSeconds } = await limiteGlobal(`reset-password:${ip}`, {
       limit: 10,
       windowMs: 60 * 60 * 1000,
     });

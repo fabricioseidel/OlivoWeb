@@ -37,6 +37,13 @@ describe("getClientIp", () => {
     expect(getClientIp(req)).toBe("1.2.3.4");
   });
 
+  it("prefiere x-real-ip, que pone Vercel y el cliente no controla", () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-forwarded-for": "6.6.6.6", "x-real-ip": "1.2.3.4" },
+    });
+    expect(getClientIp(req)).toBe("1.2.3.4");
+  });
+
   it("devuelve unknown sin header", () => {
     expect(getClientIp(new Request("http://localhost"))).toBe("unknown");
   });

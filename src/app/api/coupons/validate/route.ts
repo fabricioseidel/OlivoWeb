@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateCoupon } from "@/server/coupon.service";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/rate-limit";
+import { limiteGlobal } from "@/server/limite-intentos";
 import { supabaseServer } from "@/lib/supabase-server";
 import { baseDescontable, precioEfectivo } from "@/lib/pricing";
 
@@ -17,7 +18,7 @@ import { baseDescontable, precioEfectivo } from "@/lib/pricing";
  */
 export async function POST(request: NextRequest) {
   try {
-    const { allowed, retryAfterSeconds } = rateLimit(`cupon:${getClientIp(request)}`, {
+    const { allowed, retryAfterSeconds } = await limiteGlobal(`cupon:${getClientIp(request)}`, {
       limit: 10,
       windowMs: 60 * 1000,
     });

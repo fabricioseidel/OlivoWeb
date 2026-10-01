@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
-import { ensureUploadsBucket } from '@/utils/supabaseStorage';
+import { borrarComprobante, pathDeRutaInterna, subirComprobante } from '@/server/archivos-privados';
 import { requireApiAdminOrSeller } from '@/lib/api-auth';
 
 export async function POST(
@@ -11,9 +11,6 @@ export async function POST(
   if (!auth.ok) return auth.response;
   try {
     const { id: orderId } = await params;
-
-    // Asegurar que el bucket existe
-    await ensureUploadsBucket();
 
     const formData = await request.formData();
 
@@ -28,10 +25,10 @@ export async function POST(
     }
 
     // Validar tipo de archivo
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
     if (!validTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Solo se permiten archivos JPG, PNG o PDF' },
+        { error: 'Solo se permiten archivos JPG, PNG, WEBP o PDF' },
         { status: 400 }
       );
     }
@@ -44,39 +41,17 @@ export async function POST(
       );
     }
 
-    // Generar nombre único para el archivo
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${orderId}_${type}_${Date.now()}.${fileExt}`;
-    const filePath = `supplier-orders/${fileName}`;
-
-    // Subir archivo a Supabase Storage
-    const fileBuffer = await file.arrayBuffer();
-    const { error: uploadError } = await supabaseServer.storage
-      .from('uploads')
-      .upload(filePath, fileBuffer, {
-        contentType: file.type,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error('Error uploading file:', uploadError);
-      return NextResponse.json(
-        { error: 'Error al subir el archivo' },
-        { status: 500 }
-      );
+    // Bucket privado: una factura de proveedor no es pública. En la base
+    // queda la ruta interna /api/admin/archivos, que pide sesión.
+    let subido: { path: string; url: string };
+    try {
+      subido = await subirComprobante(`pedidos-proveedor/${orderId}`, file, type === 'receipt' ? 'comprobante' : 'factura');
+    } catch (e) {
+      console.error('Error uploading file:', e);
+      return NextResponse.json({ error: 'Error al subir el archivo' }, { status: 500 });
     }
-
-    // Obtener URL pública
-    const { data: urlData } = supabaseServer.storage
-      .from('uploads')
-      .getPublicUrl(filePath);
-
-    if (!urlData?.publicUrl) {
-      return NextResponse.json(
-        { error: 'Error al obtener URL del archivo' },
-        { status: 500 }
-      );
-    }
+    const filePath = subido.path;
+    const urlData = { publicUrl: subido.url };
 
     // Actualizar el pedido con la URL del documento
     const updates: any = {};
@@ -97,7 +72,7 @@ export async function POST(
 
     if (error) {
       // Si falla la actualización, intentar eliminar el archivo subido
-      await supabaseServer.storage.from('uploads').remove([filePath]);
+      await borrarComprobante(filePath);
 
       console.error('Error updating order:', error);
       return NextResponse.json(
@@ -155,19 +130,17 @@ export async function DELETE(
 
     const fileUrl = type === 'receipt' ? order.payment_receipt_url : order.invoice_url;
 
-    // Extraer el path del archivo de la URL
+    // Borrar el archivo: en el bucket privado (lo nuevo) o en el público
+    // `uploads` (lo subido antes de pasar a privado).
     if (fileUrl) {
-      const urlParts = fileUrl.split('/uploads/');
-      if (urlParts.length > 1) {
-        const filePath = urlParts[1];
-
-        // Eliminar archivo de Storage
-        const { error: deleteError } = await supabaseServer.storage
-          .from('uploads')
-          .remove([filePath]);
-
-        if (deleteError) {
-          console.error('Error deleting file from storage:', deleteError);
+      const privado = pathDeRutaInterna(fileUrl);
+      if (privado) {
+        await borrarComprobante(privado);
+      } else {
+        const urlParts = fileUrl.split('/uploads/');
+        if (urlParts.length > 1) {
+          const { error: deleteError } = await supabaseServer.storage.from('uploads').remove([urlParts[1]]);
+          if (deleteError) console.error('Error deleting file from storage:', deleteError);
         }
       }
     }

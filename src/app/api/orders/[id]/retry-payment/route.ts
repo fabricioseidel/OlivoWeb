@@ -3,7 +3,8 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/config/auth.config';
 import { createPaymentPreference } from '@/server/payments.service';
-import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { getClientIp } from "@/lib/rate-limit";
+import { limiteGlobal } from "@/server/limite-intentos";
 import { assertOrdersEnabled } from '@/server/store-status.service';
 import { PREVIEW_HTTP_STATUS } from '@/lib/store-status';
 import { toZonedTime } from 'date-fns-tz';
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const session = await getServerSession(authOptions);
     const sessionUserId = (session?.user as any)?.id || null;
 
-    const { allowed, retryAfterSeconds } = rateLimit(`retry-payment:${getClientIp(request)}`, {
+    const { allowed, retryAfterSeconds } = await limiteGlobal(`retry-payment:${getClientIp(request)}`, {
       limit: 10,
       windowMs: 5 * 60 * 1000,
     });

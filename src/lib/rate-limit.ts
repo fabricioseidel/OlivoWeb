@@ -42,8 +42,20 @@ export function rateLimit(
   return { allowed: true, retryAfterSeconds: 0 };
 }
 
-/** IP del cliente detrás del proxy de Vercel. */
+/**
+ * IP del cliente detrás del proxy de Vercel.
+ *
+ * `x-real-ip` lo pone Vercel y el cliente no lo controla. El primer valor de
+ * `x-forwarded-for` sí lo puede inventar quien llama, así que queda sólo como
+ * respaldo fuera de Vercel.
+ */
 export function getClientIp(req: Request): string {
-  const forwarded = req.headers.get("x-forwarded-for");
+  return ipDeHeaders((k) => req.headers.get(k));
+}
+
+export function ipDeHeaders(get: (k: string) => string | null | undefined): string {
+  const real = get("x-real-ip")?.trim();
+  if (real) return real;
+  const forwarded = get("x-forwarded-for");
   return forwarded?.split(",")[0]?.trim() || "unknown";
 }

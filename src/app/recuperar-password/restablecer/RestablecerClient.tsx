@@ -54,8 +54,8 @@ export default function RestablecerClient() {
     e.preventDefault();
     setError(null);
 
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres.");
       return;
     }
     if (password !== confirm) {
@@ -127,7 +127,7 @@ export default function RestablecerClient() {
                   <LockClosedIcon className="size-7 text-neutral-500" />
                 </div>
                 <h1 className="o-h2 mb-2 text-neutral-900">Crea tu nueva contraseña</h1>
-                <p className="o-body text-neutral-600">Debe tener al menos 6 caracteres.</p>
+                <p className="o-body text-neutral-600">Debe tener al menos 8 caracteres.</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">

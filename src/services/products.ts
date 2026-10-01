@@ -24,7 +24,9 @@ export function isProductVisible(p: ProductUI): boolean {
   // `purchasePrice` es products.purchase_price, derivado por trigger desde
   // product_suppliers.unit_cost (doctrina #2): en 0 significa que nadie cargó
   // el costo de compra, y sin costo no se sabe si el precio deja margen o pierde.
-  if (!p.purchasePrice || Number(p.purchasePrice) <= 0) return false;
+  // En la tienda pública el costo no viaja: llega sólo `costoCargado`.
+  const conCosto = p.costoCargado ?? (Number(p.purchasePrice) > 0);
+  if (!conCosto) return false;
   return true;
 }
 
@@ -84,6 +86,7 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
     isActive: p.is_active ?? true,
     barcode: p.barcode,
     purchasePrice: p.purchase_price ? Number(p.purchase_price) : undefined,
+    costoCargado: p.costo_cargado ?? (p.purchase_price != null ? Number(p.purchase_price) > 0 : undefined),
     minStock: p.min_stock ?? 5,
     optimumStock: p.optimum_stock ?? 20,
     bundle_config: bundleConfig,
@@ -91,34 +94,26 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
   };
 }
 
-export async function fetchAllProducts(): Promise<ProductUI[]> {
-  const baseSelect = 'barcode, name, category, sale_price, offer_price, image_url, stock, featured, is_active, min_stock, optimum_stock, measurement_unit, measurement_value, suggested_price, updated_at, purchase_price, reorder_threshold, description, features, verified_at';
-  const fullSelect = `${baseSelect}, bundle_config`;
+/**
+ * Columnas que puede leer cualquiera con la clave pública (la tienda).
+ *
+ * El costo de compra, el precio sugerido y el margen NO están: son del
+ * negocio. La base sólo le concede a `anon` estas columnas (ver la migración
+ * `ocultar_costos_a_la_clave_publica`), así que pedir otra desde el navegador
+ * falla en vez de filtrarla en silencio. Para saber si un producto tiene
+ * costo cargado —requisito para publicarlo— existe `costo_cargado`.
+ */
+export const COLUMNAS_PUBLICAS =
+  'barcode, name, category, sale_price, offer_price, image_url, gallery, stock, featured, is_active, by_weight, min_stock, optimum_stock, measurement_unit, measurement_value, updated_at, description, features, verified_at, costo_cargado';
 
-  let rows: any[] = [];
-  const { data, error } = await supabase
-    .from('products')
-    .select(fullSelect)
-    .order('updated_at', { ascending: false })
-    .limit(1000);
+/** Lo que ve el panel: lo público más costos y márgenes. Sólo desde el servidor. */
+export const COLUMNAS_PANEL = `${COLUMNAS_PUBLICAS}, purchase_price, suggested_price, reorder_threshold, margin_override, price_reviewed_at`;
 
-  if (error) {
-    // Si falla por columna inexistente en Supabase, reintento sin bundle_config
-    const fallback = await supabase
-      .from('products')
-      .select(baseSelect)
-      .order('updated_at', { ascending: false })
-      .limit(1000);
-    if (fallback.error) throw fallback.error;
-    rows = (fallback.data ?? []).map((r: any) => ({ ...r, bundle_config: null }));
-  } else {
-    rows = (data ?? []) as any[];
-  }
+type ClienteSupabase = typeof supabase;
 
-  const mapped = rows.map((r) => mapSupaToUI(r as SupaProduct));
+function conStockDePacks(mapped: ProductUI[]): ProductUI[] {
   const stockMap = new Map<string, number>();
   mapped.forEach((p) => stockMap.set(String(p.id), Number(p.stock) || 0));
-
   return mapped.map((p) => {
     if (p.bundle_config?.isBundle) {
       const { stock: derivedStock } = calculateBundleStock(
@@ -131,10 +126,40 @@ export async function fetchAllProducts(): Promise<ProductUI[]> {
   });
 }
 
-export async function fetchProductDetails(barcode: string): Promise<ProductUI> {
-  const { data, error } = await supabase
+/**
+ * Catálogo completo con el cliente y las columnas que se le pasen. El
+ * servidor la usa con la service key y `COLUMNAS_PANEL`; el navegador, con la
+ * clave pública y `COLUMNAS_PUBLICAS`.
+ */
+export async function leerCatalogo(cliente: ClienteSupabase, columnas: string): Promise<ProductUI[]> {
+  let rows: any[] = [];
+  const { data, error } = await cliente
     .from('products')
-    .select('*')
+    .select(`${columnas}, bundle_config`)
+    .order('updated_at', { ascending: false })
+    .limit(1000);
+
+  if (error) {
+    // Si falla por columna inexistente en Supabase, reintento sin bundle_config
+    const fallback = await cliente
+      .from('products')
+      .select(columnas)
+      .order('updated_at', { ascending: false })
+      .limit(1000);
+    if (fallback.error) throw fallback.error;
+    rows = (fallback.data ?? []).map((r: any) => ({ ...r, bundle_config: null }));
+  } else {
+    rows = (data ?? []) as any[];
+  }
+
+  return conStockDePacks(rows.map((r) => mapSupaToUI(r as SupaProduct)));
+}
+
+/** Un producto, con el stock de sus componentes si es un pack. */
+export async function leerProducto(cliente: ClienteSupabase, columnas: string, barcode: string): Promise<ProductUI> {
+  const { data, error } = await cliente
+    .from('products')
+    .select(columnas)
     .eq('barcode', barcode)
     .single();
 
@@ -150,7 +175,7 @@ export async function fetchProductDetails(barcode: string): Promise<ProductUI> {
     ].filter(Boolean);
 
     if (componentBarcodes.length > 0) {
-      const { data: compRows } = await supabase
+      const { data: compRows } = await cliente
         .from('products')
         .select('barcode, stock')
         .in('barcode', componentBarcodes);
@@ -169,19 +194,57 @@ export async function fetchProductDetails(barcode: string): Promise<ProductUI> {
   return mapped;
 }
 
-export async function searchProducts(query: string): Promise<ProductUI[]> {
-  const q = query.trim();
-  if (!q) return fetchAllProducts();
+/**
+ * Deja un término de búsqueda apto para un filtro `.or()` de PostgREST: sin
+ * comas, paréntesis ni comodines que cambien el filtro que se arma.
+ */
+export function terminoSeguro(q: string): string {
+  return q.replace(/[,()*%\\:"']/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+}
 
-  const { data, error } = await supabase
+/** Búsqueda por nombre, código o categoría (máx. 100). Sólo desde el servidor. */
+export async function buscarEnCatalogo(cliente: ClienteSupabase, columnas: string, query: string): Promise<ProductUI[]> {
+  const q = terminoSeguro(query);
+  if (!q) return leerCatalogo(cliente, columnas);
+  const { data, error } = await cliente
     .from('products')
-    .select('*')
+    .select(columnas)
     .or(`name.ilike.%${q}%,barcode.ilike.%${q}%,category.ilike.%${q}%`)
     .order('updated_at', { ascending: false })
     .limit(100);
-
   if (error) throw error;
   return (data as unknown as SupaProduct[]).map(mapSupaToUI);
+}
+
+async function pedirAlPanel(params: Record<string, string>): Promise<any> {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`/api/admin/products/catalogo${qs ? `?${qs}` : ''}`, { cache: 'no-store' });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error || `Error ${res.status} cargando productos`);
+  return body;
+}
+
+/**
+ * Catálogo. `panel: true` (personal con sesión) lo pide al servidor con
+ * costos; si no, se lee directo con la clave pública y sin costos.
+ */
+export async function fetchAllProducts(opciones: { panel?: boolean } = {}): Promise<ProductUI[]> {
+  if (opciones.panel && typeof window !== 'undefined') {
+    return (await pedirAlPanel({})).items as ProductUI[];
+  }
+  return leerCatalogo(supabase, COLUMNAS_PUBLICAS);
+}
+
+export async function fetchProductDetails(barcode: string, opciones: { panel?: boolean } = {}): Promise<ProductUI> {
+  if (opciones.panel && typeof window !== 'undefined') {
+    return (await pedirAlPanel({ barcode })).item as ProductUI;
+  }
+  return leerProducto(supabase, COLUMNAS_PUBLICAS, barcode);
+}
+
+/** Búsqueda del POS y el inventario rápido: siempre pasa por el servidor. */
+export async function searchProducts(query: string): Promise<ProductUI[]> {
+  return (await pedirAlPanel(query.trim() ? { q: query.trim() } : {})).items as ProductUI[];
 }
 
 /**
@@ -204,7 +267,11 @@ function toProductPayload(p: Partial<SupaProduct> & { barcode: string }) {
     barcode: p.barcode,
     name: p.name ?? null,
     category: p.category ?? null,
-    purchase_price: p.purchase_price ?? 0,
+    // Costo, sugerido y umbral viajan SÓLO si quien guarda los trae. Mandar 0
+    // "por defecto" borraba el costo cargado a mano de los productos sin
+    // proveedor (el trigger sólo lo deriva cuando hay proveedor con costo),
+    // y pasaba cada vez que alguien destacaba o activaba un producto.
+    ...(p.purchase_price === undefined ? {} : { purchase_price: p.purchase_price ?? 0 }),
     sale_price: p.sale_price ?? 0,
     expiry_date: p.expiry_date ?? null,
     ...(p.stock === undefined || p.stock === null ? {} : { stock: p.stock }),
@@ -212,12 +279,12 @@ function toProductPayload(p: Partial<SupaProduct> & { barcode: string }) {
     image_url: p.image_url ?? null,
     gallery: Array.isArray(p.gallery) ? p.gallery : null,
     featured: p.featured,
-    reorder_threshold: p.reorder_threshold ?? null,
+    ...(p.reorder_threshold === undefined ? {} : { reorder_threshold: p.reorder_threshold }),
     description: p.description ?? null,
     features: featuresPayload.length > 0 ? featuresPayload : null,
     measurement_unit: p.measurement_unit ?? null,
     measurement_value: p.measurement_value ?? null,
-    suggested_price: p.suggested_price ?? null,
+    ...(p.suggested_price === undefined ? {} : { suggested_price: p.suggested_price }),
     offer_price: p.offer_price ?? null,
     is_active: p.is_active ?? false,
     tax_rate: p.tax_rate ?? 19,

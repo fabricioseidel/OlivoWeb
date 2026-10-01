@@ -14,6 +14,8 @@ function mapNextAuthError(code?: string) {
     // contraseña buena una y otra vez.
     case "EMAIL_NO_VERIFICADO":
       return "Tu correo todavía no está confirmado. Revisa tu bandeja y usa el enlace que te enviamos.";
+    case "DEMASIADOS_INTENTOS":
+      return "Demasiados intentos fallidos. Espera unos 15 minutos o recupera tu contraseña.";
     case "CredentialsSignin":
     case "OAuthAccountNotLinked":
     case "AccessDenied":
@@ -145,7 +147,7 @@ function LoginForm() {
           <p className="mt-2 text-center text-sm text-gray-500 font-medium">
             ¿No tienes una cuenta?{" "}
             <Link
-              href="/registro"
+              href={callbackUrl !== "/" ? `/registro?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/registro"}
               className="o-focus rounded font-semibold text-brand-700 transition-colors hover:text-brand-800"
             >
               Regístrate aquí

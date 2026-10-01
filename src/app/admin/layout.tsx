@@ -43,6 +43,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { POSProvider } from "@/contexts/POSContext";
 import { BranchProvider } from "@/contexts/BranchContext";
 import BranchSelector from "@/components/admin/BranchSelector";
+import AvisoPedidosNuevos from "@/components/admin/AvisoPedidosNuevos";
 
 // ── Sidebar Groups ──────────────────────────────────────────────────────
 // `soloAdmin`: el vendedor (SELLER) no lo ve en el menú ni puede entrar por
@@ -57,7 +58,7 @@ const menuGroupsOlivoTeam: MenuGroup[] = [
     label: "Resumen",
     items: [
       { name: "Dashboard", href: "/admin", icon: ChartBarIcon },
-      { name: "Estado de apertura", href: "/admin/apertura", icon: ClipboardDocumentCheckIcon },
+      { name: "Estado de apertura", href: "/admin/apertura", icon: ClipboardDocumentCheckIcon, soloAdmin: true },
     ],
   },
   {
@@ -76,14 +77,14 @@ const menuGroupsOlivoTeam: MenuGroup[] = [
       { name: "Packs y Combos", href: "/admin/packs", icon: SparklesIcon },
       { name: "Categorías", href: "/admin/categorias", icon: TagIcon },
       { name: "Edición masiva", href: "/admin/productos/edicion-masiva", icon: Squares2X2Icon },
-      { name: "Precios y costos", href: "/admin/precios", icon: BanknotesIcon },
+      { name: "Precios y costos", href: "/admin/precios", icon: BanknotesIcon, soloAdmin: true },
     ],
   },
   {
     label: "Compras",
     items: [
-      { name: "Reabastecimiento", href: "/admin/reabastecimiento", icon: ArrowPathIcon },
-      { name: "Proveedores", href: "/admin/proveedores", icon: TruckIcon },
+      { name: "Reabastecimiento", href: "/admin/reabastecimiento", icon: ArrowPathIcon, soloAdmin: true },
+      { name: "Proveedores", href: "/admin/proveedores", icon: TruckIcon, soloAdmin: true },
     ],
   },
   {
@@ -108,6 +109,15 @@ const menuGroupsOlivoTeam: MenuGroup[] = [
   },
 ];
 
+/**
+ * Pantallas que no están en el menú pero se abren desde una que sí: un
+ * pedido a proveedor se crea y se abre desde Reabastecimiento. Sin esto, el
+ * guardia de rutas las mandaba al Dashboard.
+ */
+const RUTAS_HIJAS: Record<string, string> = {
+  "/admin/pedidos-proveedor": "/admin/reabastecimiento",
+};
+
 /** El menú que corresponde al rol: sin los ítems `soloAdmin` para el vendedor. */
 function menuParaRol(grupos: MenuGroup[], rol: string): MenuGroup[] {
   if (rol === "ADMIN") return grupos;
@@ -121,25 +131,25 @@ const menuGroupsLaboratorioFabri: MenuGroup[] = [
   {
     label: "Marketing",
     items: [
-      { name: "Central", href: "/admin/marketing", icon: MegaphoneIcon },
-      { name: "Campañas", href: "/admin/marketing/campanas", icon: RocketLaunchIcon },
-      { name: "Cupones", href: "/admin/marketing/cupones", icon: TicketIcon },
-      { name: "Cupones QR", href: "/admin/marketing/cupones-qr", icon: QrCodeIcon },
-      { name: "Programa Puntos", href: "/admin/marketing/puntos", icon: StarIcon },
-      { name: "Emails", href: "/admin/marketing/emails", icon: EnvelopeIcon },
-      { name: "Newsletter", href: "/admin/marketing/newsletter", icon: NewspaperIcon },
-      { name: "Historial", href: "/admin/marketing/historial", icon: ClockIcon },
+      { name: "Central", href: "/admin/marketing", icon: MegaphoneIcon, soloAdmin: true },
+      { name: "Campañas", href: "/admin/marketing/campanas", icon: RocketLaunchIcon, soloAdmin: true },
+      { name: "Cupones", href: "/admin/marketing/cupones", icon: TicketIcon, soloAdmin: true },
+      { name: "Cupones QR", href: "/admin/marketing/cupones-qr", icon: QrCodeIcon, soloAdmin: true },
+      { name: "Programa Puntos", href: "/admin/marketing/puntos", icon: StarIcon, soloAdmin: true },
+      { name: "Emails", href: "/admin/marketing/emails", icon: EnvelopeIcon, soloAdmin: true },
+      { name: "Newsletter", href: "/admin/marketing/newsletter", icon: NewspaperIcon, soloAdmin: true },
+      { name: "Historial", href: "/admin/marketing/historial", icon: ClockIcon, soloAdmin: true },
     ],
   },
   {
     label: "Sistema",
     items: [
-      { name: "Usuarios", href: "/admin/usuarios", icon: UsersIcon },
+      { name: "Usuarios", href: "/admin/usuarios", icon: UsersIcon, soloAdmin: true },
       // "Constructor Visual" en el grupo Sistema era imposible de encontrar:
       // quien quiere corregir el título de la portada no busca entre Usuarios y
       // Configuración. Se llama por lo que hace y vive donde se lo busca.
-      { name: "Textos de la portada", href: "/admin/constructor", icon: SparklesIcon },
-      { name: "Configuración", href: "/admin/configuracion", icon: Cog6ToothIcon },
+      { name: "Textos de la portada", href: "/admin/constructor", icon: SparklesIcon, soloAdmin: true },
+      { name: "Configuración", href: "/admin/configuracion", icon: Cog6ToothIcon, soloAdmin: true },
     ],
   },
 ];
@@ -272,20 +282,27 @@ export default function AdminLayout({
     // las pantallas `soloAdmin` antes de saber quién es.
     if (status !== "authenticated") return;
 
-    const currentMenuGroups = menuParaRol(
-      panelMode === "OLIVOTEAM" ? menuGroupsOlivoTeam : menuGroupsLaboratorioFabri,
-      rolActual,
-    );
-    const allowedHrefs = currentMenuGroups.flatMap(g => g.items.map(item => item.href));
+    const permitida = (grupos: MenuGroup[]) => {
+      const hrefs = menuParaRol(grupos, rolActual).flatMap(g => g.items.map(item => item.href));
+      return hrefs.some(href => pathname === href || pathname.startsWith(href + "/")) ||
+        // Pantallas que no están en el menú pero cuelgan de una que sí.
+        Object.entries(RUTAS_HIJAS).some(([hija, madre]) =>
+          (pathname === hija || pathname.startsWith(hija + "/")) &&
+          hrefs.some(href => madre === href));
+    };
 
-    const isAllowed = allowedHrefs.some(href => {
-      return pathname === href || pathname.startsWith(href + "/");
-    });
+    const actual = panelMode === "OLIVOTEAM" ? menuGroupsOlivoTeam : menuGroupsLaboratorioFabri;
+    const otro = panelMode === "OLIVOTEAM" ? menuGroupsLaboratorioFabri : menuGroupsOlivoTeam;
+    if (permitida(actual)) return;
 
-    if (!isAllowed) {
-      const defaultPage = panelMode === "OLIVOTEAM" ? "/admin" : "/admin/configuracion";
-      router.push(defaultPage);
+    // Un enlace o marcador a una pantalla del otro modo: se cambia de modo en
+    // vez de expulsar al Dashboard sin explicación.
+    if (permitida(otro)) {
+      updatePanelMode(panelMode === "OLIVOTEAM" ? "LABORATORIO_FABRI" : "OLIVOTEAM");
+      return;
     }
+
+    router.push("/admin");
   }, [panelMode, pathname, router, rolActual, status]);
 
   // Close mobile menu on navigate
@@ -308,16 +325,18 @@ export default function AdminLayout({
   const isPOS = pathname === "/admin/pos";
 
   // ── Sidebar nav content (shared between desktop and mobile) ──
+  const esAdmin = userRole === "ADMIN";
   const NavContent = ({ mobile = false }: { mobile?: boolean }) => {
+    // El cajero siempre ve OLIVOTEAM: el modo LAB no tiene nada para él.
     const currentMenuGroups = menuParaRol(
-      panelMode === "OLIVOTEAM" ? menuGroupsOlivoTeam : menuGroupsLaboratorioFabri,
+      panelMode === "OLIVOTEAM" || !esAdmin ? menuGroupsOlivoTeam : menuGroupsLaboratorioFabri,
       userRole,
     );
 
     return (
       <>
-        {/* Panel Selector (Pill Dropdown) */}
-        {(!isCollapsed || mobile) && (
+        {/* Panel Selector (Pill Dropdown). El modo LAB es sólo de ADMIN. */}
+        {esAdmin && (!isCollapsed || mobile) && (
           <div className="px-4 py-3 border-b border-white/5">
             <MenuDropdown
               currentMode={panelMode}
@@ -325,7 +344,7 @@ export default function AdminLayout({
             />
           </div>
         )}
-        {isCollapsed && !mobile && (
+        {esAdmin && isCollapsed && !mobile && (
           <div className="py-3 border-b border-white/5 flex justify-center">
             <button
               onClick={() => updatePanelMode(panelMode === "OLIVOTEAM" ? "LABORATORIO_FABRI" : "OLIVOTEAM")}
@@ -375,7 +394,7 @@ export default function AdminLayout({
         </nav>
 
         {/* Toggle Switch X-LAB */}
-        {(!isCollapsed || mobile) && (
+        {esAdmin && (!isCollapsed || mobile) && (
           <div className="px-4 py-3 border-t border-white/5 flex items-center justify-between">
             <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest flex items-center gap-1.5">
               <BeakerIcon className="h-3.5 w-3.5 shrink-0" />
@@ -489,6 +508,7 @@ export default function AdminLayout({
         <main className={`flex-1 ${isPOS ? 'p-0' : 'py-4 px-3 sm:px-6 lg:px-8'}`}>
           {wrappedContent}
         </main>
+        <AvisoPedidosNuevos />
       </div>
     </div>
     </BranchProvider>

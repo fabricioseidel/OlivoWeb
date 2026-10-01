@@ -807,10 +807,14 @@ function SaleDetailModal({
                   rel="noopener noreferrer"
                   className="block relative w-full h-48 rounded-lg overflow-hidden border border-gray-200 bg-white"
                 >
+                  {/* unoptimized: el comprobante está en un bucket privado y se
+                      pide con la sesión del navegador. El optimizador de Next lo
+                      pediría desde el servidor, sin sesión, y fallaría. */}
                   <Image
                     src={sale.transfer_receipt_uri}
                     alt="Comprobante"
                     fill
+                    unoptimized
                     className="object-contain"
                   />
                 </a>

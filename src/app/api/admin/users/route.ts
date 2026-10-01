@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAdmin } from "@/lib/api-auth";
+import { auditLog } from "@/server/audit.service";
 import { supabaseServer } from "@/lib/supabase-server";
 import bcrypt from "bcryptjs";
 
@@ -30,6 +31,10 @@ export async function PATCH(req: NextRequest) {
     if (!userId || !['USER', 'ADMIN'].includes(role)) {
       return NextResponse.json({ message: 'Datos inválidos' }, { status: 400 });
     }
+    // Quitarse el rol a uno mismo deja la tienda sin nadie que pueda volver a darlo.
+    if (userId === auth.userId && role !== 'ADMIN') {
+      return NextResponse.json({ message: 'No puedes quitarte tu propio rol de administrador.' }, { status: 400 });
+    }
     // Update only role to avoid failures if updated_at column doesn't exist
     const { data, error } = await supabaseServer
       .from('users')
@@ -41,6 +46,7 @@ export async function PATCH(req: NextRequest) {
       console.error('[ADMIN/USERS][PATCH] Error:', error?.message || error);
       throw error;
     }
+    await auditLog({ action: 'user.role', entity: 'users', entityId: userId, actor: auth.session.user?.email ?? auth.userId, details: { role } });
     return NextResponse.json({ message: 'Rol actualizado', user: { id: data?.id, role: data?.role } });
   } catch (e: any) {
     return NextResponse.json({ message: 'Error', detail: e.message }, { status: 500 });
@@ -77,6 +83,7 @@ export async function POST(req: NextRequest) {
       .select('id,name,email,role')
       .maybeSingle();
     if (error) throw error;
+    await auditLog({ action: 'user.create', entity: 'users', entityId: data?.id, actor: auth.session.user?.email ?? auth.userId, details: { email: emailNorm, role: finalRole } });
     return NextResponse.json({ message: 'Usuario creado', user: data }, { status: 201 });
   } catch (e: any) {
     console.error('[ADMIN/USERS][POST] Error:', e?.message || e);
@@ -95,7 +102,10 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ message: 'Datos inválidos' }, { status: 400 });
     }
     const emailNorm = String(email).toLowerCase().trim();
-    
+    if (userId === auth.userId && role !== 'ADMIN') {
+      return NextResponse.json({ message: 'No puedes quitarte tu propio rol de administrador.' }, { status: 400 });
+    }
+
     // Preparar objeto de actualización
     const updateData: any = { name, email: emailNorm, role };
     if (password && String(password).length >= 8) {
@@ -110,6 +120,10 @@ export async function PUT(req: NextRequest) {
       .maybeSingle();
 
     if (error) throw error;
+    await auditLog({
+      action: 'user.update', entity: 'users', entityId: userId, actor: auth.session.user?.email ?? auth.userId,
+      details: { email: emailNorm, role, cambioContrasena: Boolean(updateData.password_hash) },
+    });
     return NextResponse.json({ message: 'Usuario actualizado', user: data });
   } catch (e: any) {
     console.error('[ADMIN/USERS][PUT] Error:', e?.message || e);
@@ -127,11 +141,15 @@ export async function DELETE(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ message: 'Falta ID' }, { status: 400 });
     }
+    if (userId === auth.userId) {
+      return NextResponse.json({ message: 'No puedes borrar tu propia cuenta desde aquí.' }, { status: 400 });
+    }
     const { error } = await supabaseServer
       .from('users')
       .delete()
       .eq('id', userId);
     if (error) throw error;
+    await auditLog({ action: 'user.delete', entity: 'users', entityId: userId, actor: auth.session.user?.email ?? auth.userId });
     return NextResponse.json({ message: 'Usuario eliminado' });
   } catch (e: any) {
     console.error('[ADMIN/USERS][DELETE] Error:', e?.message || e);

@@ -50,3 +50,20 @@ describe("la URL pública que reciben MercadoPago y Resend", () => {
     expect(normalizarUrlPublica("http://localhost:3000")).toBe("http://localhost:3000");
   });
 });
+
+import { rutaDeVuelta } from "@/lib/site-url";
+
+describe("rutaDeVuelta", () => {
+  it("acepta rutas internas", () => {
+    expect(rutaDeVuelta("/checkout")).toBe("/checkout");
+    expect(rutaDeVuelta("/productos?q=pan")).toBe("/productos?q=pan");
+  });
+
+  it("rechaza lo que sacaría del sitio", () => {
+    expect(rutaDeVuelta("https://malo.com")).toBeNull();
+    expect(rutaDeVuelta("//malo.com")).toBeNull();
+    expect(rutaDeVuelta("/\\malo.com")).toBeNull();
+    expect(rutaDeVuelta("javascript:alert(1)")).toBeNull();
+    expect(rutaDeVuelta(null)).toBeNull();
+  });
+});

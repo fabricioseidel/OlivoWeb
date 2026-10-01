@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { normalizarTexto } from "@/lib/fiestas-patrias";
 import { usePOS } from "@/contexts/POSContext";
 import { ProductUI } from "@/types";
 import OlivoButton from "@/components/OlivoButton";
@@ -35,16 +36,23 @@ export default function POSPage() {
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const { showToast } = useToast();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const ventaIdRef = useRef<string | null>(null);
+  // Carrito distinto = cobro distinto: un reintento con otro carrito no puede
+  // devolver la venta anterior como si fuera esta.
+  useEffect(() => {
+    ventaIdRef.current = null;
+  }, [cart]);
   const [transferReceipt, setTransferReceipt] = useState<File | null>(null);
 
   const change = useMemo(() => Math.max(0, cashReceived - finalTotal), [cashReceived, finalTotal]);
 
   // Filtered products based on search
   const products = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
+    // Sin tildes: "cafe" encuentra "Café".
+    const q = normalizarTexto(searchQuery.trim());
     if (!q) return allProducts;
-    return allProducts.filter(p => 
-      p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)
+    return allProducts.filter(p =>
+      normalizarTexto(p.name).includes(q) || p.id.toLowerCase().includes(q)
     );
   }, [searchQuery, allProducts]);
 
@@ -75,7 +83,11 @@ export default function POSPage() {
     }
   }, [products.length]);
 
+  // Un ID por cobro, el mismo si se reintenta: el servidor no registra dos
+  // veces la venta aunque se toque "Cobrar" de nuevo o la respuesta se pierda.
+  // Se renueva al terminar bien o al cambiar el carrito.
   const handleCheckout = async () => {
+    ventaIdRef.current ??= crypto.randomUUID();
     if (cart.length === 0 || processing) return;
     if (paymentMethod === "cash" && cashReceived < finalTotal) {
       showToast("El monto recibido es menor al total", "error");
@@ -84,6 +96,7 @@ export default function POSPage() {
     setProcessing(true);
     try {
       const result = await createSaleAction({
+        clientSaleId: ventaIdRef.current ?? undefined,
         total: finalTotal, paymentMethod,
         cashReceived: paymentMethod === 'cash' ? cashReceived : finalTotal,
         changeGiven: paymentMethod === 'cash' ? change : 0,
@@ -98,6 +111,7 @@ export default function POSPage() {
         customerEmail: customerEmail || undefined
       });
       if (result.ok) {
+        ventaIdRef.current = null;
         // Send receipt email if customer provided email
         if (customerEmail && customerEmail.includes("@")) {
           setSendingReceipt(true);
@@ -120,9 +134,9 @@ export default function POSPage() {
                 })),
               }),
             });
-            showToast(`📧 Boleta enviada a ${customerEmail}`, "success");
+            showToast(`📧 Comprobante enviado a ${customerEmail}`, "success");
           } catch {
-            showToast("Venta OK pero no se pudo enviar la boleta", "error");
+            showToast("Venta OK pero no se pudo enviar el comprobante", "error");
           } finally {
             setSendingReceipt(false);
           }
@@ -199,6 +213,26 @@ export default function POSPage() {
               className="w-full bg-slate-900 border border-slate-800 rounded-xl py-3 pl-10 pr-10 text-white focus:border-brand-500 outline-none text-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                // El lector láser escribe el código y manda Enter. Antes eso
+                // sólo filtraba la grilla y había que tocar el producto: ahora
+                // lo agrega directo. Si hay un único resultado, también.
+                if (e.key !== "Enter") return;
+                const q = searchQuery.trim();
+                if (!q) return;
+                const exacto = allProducts.find((p) => p.id === q || p.barcode === q);
+                const unico = products.length === 1 ? products[0] : null;
+                const elegido = exacto ?? unico;
+                if (elegido) {
+                  addToCart(elegido);
+                  showToast(`Añadido: ${elegido.name}`, "success");
+                  setSearchQuery("");
+                } else if (/^\d{6,14}$/.test(q)) {
+                  showToast(`No encontrado: ${q}`, "error");
+                  setQuickCreateBarcode(q);
+                  setSearchQuery("");
+                }
+              }}
               autoFocus
             />
             {searchQuery && (
@@ -427,8 +461,8 @@ export default function POSPage() {
                 </div>
               )}
               {/* Quick cash buttons */}
-              <div className="grid grid-cols-4 gap-1">
-                {[1000, 2000, 5000, 10000].map(v => (
+              <div className="grid grid-cols-5 gap-1">
+                {[1000, 2000, 5000, 10000, 20000].map(v => (
                   <button key={v} onClick={() => setCashReceived(v)}
                     className={`text-[10px] font-bold py-2 rounded-lg transition-colors ${cashReceived === v ? 'bg-brand-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
                     ${(v/1000)}k

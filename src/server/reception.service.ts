@@ -1,4 +1,6 @@
-"use server";
+// Servicio de servidor, NO una server action: sin "use server". Con esa
+// directiva cada export quedaba invocable desde el navegador sin sesión.
+// El punto de entrada con control de acceso es src/actions/reception.ts.
 
 import { applyReception, type StockItem } from "@/server/inventory.service";
 

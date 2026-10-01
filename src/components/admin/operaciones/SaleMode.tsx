@@ -57,6 +57,12 @@ export default function SaleMode() {
   const [porCobrar, setPorCobrar] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const searchRef = useRef<HTMLInputElement>(null);
+  const ventaIdRef = useRef<string | null>(null);
+  // Carrito distinto = cobro distinto: un reintento con otro carrito no puede
+  // devolver la venta anterior como si fuera esta.
+  useEffect(() => {
+    ventaIdRef.current = null;
+  }, [cart]);
 
   // El descuento se recalcula cuando cambia el carrito para que siga siendo el
   // 25% del total vigente, no un monto congelado del momento en que se activó.
@@ -122,7 +128,11 @@ export default function SaleMode() {
     setPayments(p => p.filter((_, i) => i !== idx));
   };
 
+  // Un ID por cobro, el mismo si se reintenta: el servidor no registra dos
+  // veces la venta aunque se toque "Cobrar" de nuevo o la respuesta se pierda.
+  // Se renueva al terminar bien o al cambiar el carrito.
   const handleCheckout = async () => {
+    ventaIdRef.current ??= crypto.randomUUID();
     if (cart.length === 0 || processing) return;
     if (!paymentsOk) {
       showToast(remaining > 0 ? `Faltan $${remaining.toLocaleString()}` : "Pagos inválidos", "error");
@@ -145,6 +155,7 @@ export default function SaleMode() {
         .filter((p): p is { method: PaymentMethod; amount: number; reference?: string } => p !== null && p.amount > 0);
 
       const result = await createSaleAction({
+        clientSaleId: ventaIdRef.current ?? undefined,
         total: finalTotal,
         branchId: currentBranch?.id ?? null,
         cashReceived: porCobrar ? 0 : payments.filter(p => p.method === "CASH").reduce((a, p) => a + p.amount, 0),
@@ -163,6 +174,7 @@ export default function SaleMode() {
         })),
       });
       if (result.ok) {
+        ventaIdRef.current = null;
         clearCart();
         setPayments([{ id: "p1", method: "CASH", amount: 0 }]);
         setCompraPropia(false);
