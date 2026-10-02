@@ -11,6 +11,7 @@ import {
 import { compressImageFile } from "@/utils/image";
 import { getProductDiagnostics, type ProductChanges } from "../lib";
 import CategorySelector from "./CategorySelector";
+import NumericInput from "./NumericInput";
 
 interface EditableRowProps {
   product: any;
@@ -197,12 +198,11 @@ const EditableRow = memo(function EditableRow({
       <td className="px-2 py-2.5 text-right w-24">
         <div className="inline-flex items-center relative w-full justify-end">
           <span className="absolute left-2 text-xs font-bold text-indigo-400 pointer-events-none">$</span>
-          <input
-            type="number"
+          <NumericInput
             inputMode="decimal"
             placeholder="0"
-            value={purchasePrice !== undefined && purchasePrice !== null ? purchasePrice : ""}
-            onChange={(e) => onChange(product.id, "purchasePrice", e.target.value)}
+            value={purchasePrice}
+            onValueChange={(raw) => onChange(product.id, "purchasePrice", raw)}
             className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 pl-5 focus:ring-4 focus:ring-indigo-500/10 transition-all ${
               changes?.purchasePrice !== undefined
                 ? "border-indigo-500 text-indigo-700"
@@ -214,11 +214,10 @@ const EditableRow = memo(function EditableRow({
       <td className="px-3 py-2.5 text-right w-28">
         <div className="inline-flex items-center relative w-full justify-end">
           <span className="absolute left-2 text-xs font-bold text-gray-400 pointer-events-none">$</span>
-          <input
-            type="number"
+          <NumericInput
             inputMode="decimal"
             value={changes?.price ?? product.price}
-            onChange={(e) => onChange(product.id, "price", e.target.value)}
+            onValueChange={(raw) => onChange(product.id, "price", raw)}
             className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 pl-5 focus:ring-4 focus:ring-brand-500/10 transition-all ${
               changes?.price !== undefined ? "border-brand-500 text-brand-700" : "border-transparent text-gray-900 hover:border-gray-200 shadow-sm"
             }`}
@@ -228,12 +227,11 @@ const EditableRow = memo(function EditableRow({
       <td className="px-3 py-2.5 text-right w-28">
         <div className="inline-flex items-center relative w-full justify-end">
           <span className="absolute left-2 text-xs font-bold text-gray-400 pointer-events-none">$</span>
-          <input
-            type="number"
+          <NumericInput
             inputMode="decimal"
             placeholder="-"
-            value={changes?.offerPrice !== undefined ? changes.offerPrice ?? "" : product.offerPrice || ""}
-            onChange={(e) => onChange(product.id, "offerPrice", e.target.value)}
+            value={changes?.offerPrice !== undefined ? changes.offerPrice : product.offerPrice || ""}
+            onValueChange={(raw) => onChange(product.id, "offerPrice", raw)}
             className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 pl-5 focus:ring-4 focus:ring-amber-500/10 transition-all ${
               changes?.offerPrice !== undefined && changes?.offerPrice !== null
                 ? "border-amber-400 text-amber-700"
@@ -244,11 +242,10 @@ const EditableRow = memo(function EditableRow({
       </td>
       <td className="px-3 py-2.5 text-right w-24">
         <div className="inline-flex items-center relative w-full justify-end">
-          <input
-            type="number"
+          <NumericInput
             inputMode="numeric"
             value={changes?.stock ?? product.stock}
-            onChange={(e) => onChange(product.id, "stock", e.target.value)}
+            onValueChange={(raw) => onChange(product.id, "stock", raw)}
             className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 focus:ring-4 focus:ring-brand-500/10 transition-all ${
               changes?.stock !== undefined
                 ? "border-brand-500 text-brand-700"
@@ -264,11 +261,10 @@ const EditableRow = memo(function EditableRow({
       </td>
       <td className="px-3 py-2.5 text-right w-20">
         <div className="inline-flex items-center relative w-full justify-end">
-          <input
-            type="number"
+          <NumericInput
             inputMode="numeric"
             value={changes?.minStock ?? product.minStock}
-            onChange={(e) => onChange(product.id, "minStock", e.target.value)}
+            onValueChange={(raw) => onChange(product.id, "minStock", raw)}
             className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 focus:ring-4 focus:ring-brand-500/10 transition-all ${
               changes?.minStock !== undefined ? "border-brand-500 text-brand-700" : "border-transparent text-gray-600 hover:border-gray-200 shadow-sm"
             }`}
@@ -277,11 +273,10 @@ const EditableRow = memo(function EditableRow({
       </td>
       <td className="px-3 py-2.5 text-right w-20">
         <div className="inline-flex items-center relative w-full justify-end">
-          <input
-            type="number"
+          <NumericInput
             inputMode="numeric"
             value={changes?.optimumStock ?? product.optimumStock}
-            onChange={(e) => onChange(product.id, "optimumStock", e.target.value)}
+            onValueChange={(raw) => onChange(product.id, "optimumStock", raw)}
             className={`w-full h-9 bg-white text-right font-black text-sm rounded-lg border-2 px-2 focus:ring-4 focus:ring-brand-500/10 transition-all ${
               changes?.optimumStock !== undefined
                 ? "border-brand-500 text-brand-700"

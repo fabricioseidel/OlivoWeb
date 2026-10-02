@@ -24,10 +24,12 @@ import {
   saveDismissedDuplicates,
   buildMergePlan,
   findDuplicateGroups,
-  getPublishPriority,
   getStock,
   getVerifiedAt,
   isRecentlyCounted,
+  matchesBulkFilters,
+  compareBySortPriority,
+  type BulkFilterCriteria,
   type Backup,
   type DuplicateGroup,
   type ProductChanges,
@@ -161,117 +163,23 @@ export default function BulkEditProductsPage() {
     return { tabCounts: tc, missingCounts: mc };
   }, [localProducts, editedChanges, duplicateIds]);
 
+  // El filtro y el orden se calculan sobre el producto GUARDADO, sin los
+  // cambios en curso: si dependieran de `editedChanges`, cada tecla recalcularía
+  // la lista y la fila que se está editando saldría del filtro con el cursor
+  // dentro. La lista se reacomoda al guardar, cuando `localProducts` cambia.
   const filteredProducts = useMemo(() => {
-    const term = deferredSearch.toLowerCase();
-    const catFilter = categoryFilter.toLowerCase();
+    const criteria: BulkFilterCriteria = {
+      search: deferredSearch,
+      filterLowStock,
+      filterWithImage,
+      categoryFilter,
+      completenessTab,
+      specificFilter,
+    };
     const ahora = Date.now();
-    const result = localProducts.filter((p) => {
-      const diag = getProductDiagnostics(p, editedChanges[p.id]);
-
-      const matchesSearch =
-        p.name.toLowerCase().includes(term) ||
-        p.id?.toLowerCase().includes(term) ||
-        p.barcode?.toLowerCase().includes(term);
-      if (!matchesSearch) return false;
-
-      const pStock = editedChanges[p.id]?.stock ?? p.stock;
-      if (filterLowStock && pStock > 5) return false;
-      if (filterWithImage && !diag.hasImage) return false;
-
-      if (catFilter) {
-        const pCats = editedChanges[p.id]?.categories ?? p.categories ?? [];
-        if (!pCats.some((c: string) => c.toLowerCase() === catFilter)) return false;
-      }
-
-      // Pestaña de completitud
-      if (completenessTab === "missing_1" && diag.missingCount !== 1) return false;
-      if (completenessTab === "missing_2" && diag.missingCount !== 2) return false;
-      if (completenessTab === "missing_3_plus" && diag.missingCount < 3) return false;
-      if (completenessTab === "ready" && !diag.isReady) return false;
-
-      // Filtro por stock real y por lo que ya pasó por el conteo físico
-      if (specificFilter === "with_stock" && getStock(p, editedChanges[p.id]) <= 0) return false;
-      if (specificFilter === "counted" && getVerifiedAt(p) === null) return false;
-      if (specificFilter === "counted_today" && !isRecentlyCounted(p, ahora)) return false;
-      if (specificFilter === "uncounted" && getVerifiedAt(p) !== null) return false;
-      if (specificFilter === "duplicates" && !duplicateIds.has(String(p.id))) return false;
-
-      // Filtro específico por faltante
-      if (specificFilter === "missing_photo" && diag.hasImage) return false;
-      if (specificFilter === "missing_price" && diag.hasPrice) return false;
-      if (specificFilter === "missing_stock" && diag.hasStock) return false;
-      if (specificFilter === "missing_cost" && diag.hasCost) return false;
-      if (specificFilter === "missing_category" && diag.hasCategories) return false;
-      if (specificFilter === "missing_barcode" && diag.hasBarcode) return false;
-      if (specificFilter === "inactive" && diag.isActive) return false;
-
-      return true;
-    });
-
-    // Ordenamiento según prioridad seleccionada
-    return result.sort((a, b) => {
-      const diagA = getProductDiagnostics(a, editedChanges[a.id]);
-      const diagB = getProductDiagnostics(b, editedChanges[b.id]);
-
-      if (sortPriority === "stock_real") {
-        // Lo que hay de verdad, primero: contado y con stock. Dentro de cada
-        // tramo, los que están más cerca de poder publicarse.
-        const prioA = getPublishPriority(a, editedChanges[a.id]);
-        const prioB = getPublishPriority(b, editedChanges[b.id]);
-        if (prioA !== prioB) return prioA - prioB;
-        const faltaA = diagA.isReady ? -1 : diagA.missingCount;
-        const faltaB = diagB.isReady ? -1 : diagB.missingCount;
-        if (faltaA !== faltaB) return faltaA - faltaB;
-        const stockA = getStock(a, editedChanges[a.id]);
-        const stockB = getStock(b, editedChanges[b.id]);
-        if (stockA !== stockB) return stockB - stockA;
-        return a.name.localeCompare(b.name);
-      }
-      if (sortPriority === "near_ready") {
-        // Casi listos primero: 1 faltante, luego 2, luego 3... y al final los que ya están listos
-        const scoreA = diagA.isReady ? 999 : diagA.missingCount;
-        const scoreB = diagB.isReady ? 999 : diagB.missingCount;
-        if (scoreA !== scoreB) return scoreA - scoreB;
-        return a.name.localeCompare(b.name);
-      }
-      if (sortPriority === "most_incomplete") {
-        const scoreA = diagA.isReady ? -1 : diagA.missingCount;
-        const scoreB = diagB.isReady ? -1 : diagB.missingCount;
-        if (scoreA !== scoreB) return scoreB - scoreA;
-        return a.name.localeCompare(b.name);
-      }
-      if (sortPriority === "ready_first") {
-        return (diagB.isReady ? 1 : 0) - (diagA.isReady ? 1 : 0);
-      }
-      if (sortPriority === "name_asc") {
-        return a.name.localeCompare(b.name);
-      }
-      if (sortPriority === "name_desc") {
-        return b.name.localeCompare(a.name);
-      }
-      if (sortPriority === "stock_asc") {
-        const sA = editedChanges[a.id]?.stock ?? a.stock ?? 0;
-        const sB = editedChanges[b.id]?.stock ?? b.stock ?? 0;
-        return sA - sB;
-      }
-      if (sortPriority === "stock_desc") {
-        const sA = editedChanges[a.id]?.stock ?? a.stock ?? 0;
-        const sB = editedChanges[b.id]?.stock ?? b.stock ?? 0;
-        if (sA !== sB) return sB - sA;
-        return a.name.localeCompare(b.name);
-      }
-      if (sortPriority === "price_asc") {
-        const pA = editedChanges[a.id]?.price ?? a.price ?? 0;
-        const pB = editedChanges[b.id]?.price ?? b.price ?? 0;
-        return pA - pB;
-      }
-      if (sortPriority === "price_desc") {
-        const pA = editedChanges[a.id]?.price ?? a.price ?? 0;
-        const pB = editedChanges[b.id]?.price ?? b.price ?? 0;
-        return pB - pA;
-      }
-      return 0;
-    });
+    return localProducts
+      .filter((p) => matchesBulkFilters(p, criteria, duplicateIds, ahora))
+      .sort((a, b) => compareBySortPriority(a, b, sortPriority));
   }, [
     localProducts,
     deferredSearch,
@@ -281,7 +189,6 @@ export default function BulkEditProductsPage() {
     completenessTab,
     specificFilter,
     sortPriority,
-    editedChanges,
     duplicateIds,
   ]);
 
