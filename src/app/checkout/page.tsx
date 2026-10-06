@@ -111,6 +111,8 @@ export default function CheckoutPage() {
     code: string;
     discount: number;
     freeShipping?: boolean;
+    fullCart?: boolean;
+    subtotalLista?: number;
     couponId?: number;
   } | null>(null);
 
@@ -150,7 +152,12 @@ export default function CheckoutPage() {
     }
   }, [status, router]);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // Con un cupón de carrito completo se muestran los precios de lista (sin
+  // ofertas) y el cupón los descuenta enteros; lo calcula el servidor.
+  const subtotal =
+    appliedCoupon?.fullCart && typeof appliedCoupon.subtotalLista === 'number'
+      ? appliedCoupon.subtotalLista
+      : cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   /**
    * Despacho agendado: la ronda de reparto propia.
@@ -457,6 +464,8 @@ export default function CheckoutPage() {
           code: data.coupon.code,
           discount: data.discount,
           freeShipping: data.coupon.discount_type === 'free_shipping',
+          fullCart: data.coupon.discount_type === 'full_cart',
+          subtotalLista: data.subtotalLista,
           couponId: data.coupon.id
         });
         return { valid: true, message: data.message, discount: data.discount };
@@ -539,8 +548,10 @@ export default function CheckoutPage() {
         setAppliedCoupon(null);
         return;
       }
-      if (data.discount !== appliedCoupon.discount) {
-        setAppliedCoupon((prev) => (prev ? { ...prev, discount: data.discount } : prev));
+      if (data.discount !== appliedCoupon.discount || data.subtotalLista !== appliedCoupon.subtotalLista) {
+        setAppliedCoupon((prev) =>
+          prev ? { ...prev, discount: data.discount, subtotalLista: data.subtotalLista } : prev
+        );
       }
     })();
 

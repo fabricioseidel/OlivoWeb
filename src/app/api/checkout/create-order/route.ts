@@ -445,6 +445,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Con un cupón `full_cart` los productos se cobran a precio de lista (sin
+    // ofertas) y el cupón los deja en $0: así el pedido muestra los precios
+    // reales y el cliente sólo paga el envío.
+    const cuponCarrito = couponCode ? await getCouponByCode(String(couponCode)) : null;
+    const precioLista = cuponCarrito?.discount_type === 'full_cart' && cuponCarrito.is_active;
+
     let calculatedSubtotal = 0;
     const validatedOrderItems = [];
 
@@ -463,7 +469,9 @@ export async function POST(request: NextRequest) {
       // que es el mismo que la vitrina puso en el carrito. Acá se cobraba
       // `sale_price` a secas, ignorando la oferta: el 14-08-2026 un pedido real
       // salió $800 por encima de lo que el cliente vio en pantalla.
-      const precioUnitario = precioEfectivo(dbProduct.sale_price, dbProduct.offer_price);
+      const precioUnitario = precioLista
+        ? precioEfectivo(dbProduct.sale_price)
+        : precioEfectivo(dbProduct.sale_price, dbProduct.offer_price);
 
       let itemName = dbProduct.name;
       if (item.selectedOptions && Array.isArray(item.selectedOptions) && item.selectedOptions.length > 0) {
@@ -527,7 +535,8 @@ export async function POST(request: NextRequest) {
         String(couponCode),
         calculatedSubtotal,
         correoCuenta || shippingInfo?.email,
-        base
+        base,
+        calculatedSubtotal
       );
       if (!validation.valid) {
         return NextResponse.json({ error: `Cupón inválido: ${validation.message}` }, { status: 400 });

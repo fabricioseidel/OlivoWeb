@@ -6,7 +6,13 @@ export type Coupon = {
   code: string;
   name: string;
   description?: string;
-  discount_type: "percentage" | "fixed_amount" | "free_shipping";
+  /**
+   * `full_cart`: cubre el carrito entero **a precio de lista** hasta
+   * `discount_value` (el tope). No se mezcla con ofertas: con este cupón los
+   * productos se cobran a su precio completo y el cupón los deja en $0. Lo único
+   * que paga el cliente es el envío (gratis si retira en tienda).
+   */
+  discount_type: "percentage" | "fixed_amount" | "free_shipping" | "full_cart";
   discount_value: number;
   min_purchase: number;
   max_discount?: number;
@@ -63,7 +69,9 @@ export async function validateCoupon(
    * distintas: la compra mínima del cupón mira el carrito completo —el cliente
    * gastó eso— y el porcentaje mira sólo lo que no está rebajado.
    */
-  baseDescontableCLP?: number
+  baseDescontableCLP?: number,
+  /** Subtotal del carrito a precio de lista (sin ofertas). Lo usa `full_cart`. */
+  subtotalListaCLP?: number
 ): Promise<CouponValidation> {
   const coupon = await getCouponByCode(code);
 
@@ -133,6 +141,14 @@ export async function validateCoupon(
     case "free_shipping":
       discount = 0; // Handled separately in checkout
       break;
+    case "full_cart": {
+      const lista =
+        typeof subtotalListaCLP === "number" && Number.isFinite(subtotalListaCLP)
+          ? Math.max(0, subtotalListaCLP)
+          : cartTotal;
+      discount = Math.min(coupon.discount_value, lista);
+      break;
+    }
   }
 
   // Un cupón que no puede descontar nada —el carrito es todo oferta— es válido
@@ -154,7 +170,9 @@ export async function validateCoupon(
       ? `${coupon.discount_value}% de descuento`
       : coupon.discount_type === "free_shipping"
         ? "Envío gratis"
-        : `$${coupon.discount_value.toLocaleString("es-CL")} de descuento`;
+        : coupon.discount_type === "full_cart"
+          ? `Carrito a $0 (hasta $${coupon.discount_value.toLocaleString("es-CL")}, a precios completos). Sólo pagas el envío`
+          : `$${coupon.discount_value.toLocaleString("es-CL")} de descuento`;
 
   return {
     valid: true,

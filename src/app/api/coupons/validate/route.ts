@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
     // pone la base.
     let subtotal = Number(cartTotal) || 0;
     let base: number | undefined;
+    let subtotalLista: number | undefined;
 
     if (Array.isArray(items) && items.length > 0 && items.length <= 200) {
       const ids = items.map((i: any) => String(i.id));
@@ -67,10 +68,18 @@ export async function POST(request: NextRequest) {
             Math.max(0, Math.floor(Number(l.cantidad) || 0)),
         0
       );
+      // Para cupones `full_cart`: el carrito a precio de lista, sin ofertas.
+      subtotalLista = lineas.reduce(
+        (s, l) =>
+          s + precioEfectivo(l.precioVenta) * Math.max(0, Math.floor(Number(l.cantidad) || 0)),
+        0
+      );
     }
 
-    const result = await validateCoupon(code, subtotal, customerEmail, base);
-    return NextResponse.json(result);
+    const result = await validateCoupon(code, subtotal, customerEmail, base, subtotalLista);
+    return NextResponse.json(
+      result.coupon?.discount_type === "full_cart" ? { ...result, subtotalLista } : result
+    );
   } catch (error: any) {
     return NextResponse.json(
       { valid: false, discount: 0, message: error.message || "Error al validar cupón" },

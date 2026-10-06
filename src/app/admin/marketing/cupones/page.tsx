@@ -29,7 +29,7 @@ type Coupon = {
   code: string;
   name: string;
   description?: string;
-  discount_type: "percentage" | "fixed_amount" | "free_shipping";
+  discount_type: "percentage" | "fixed_amount" | "free_shipping" | "full_cart";
   discount_value: number;
   min_purchase: number;
   max_discount?: number;
@@ -46,6 +46,7 @@ const DISCOUNT_TYPES = [
   { value: "percentage", label: "Porcentaje (%)" },
   { value: "fixed_amount", label: "Monto fijo ($)" },
   { value: "free_shipping", label: "Envío gratis" },
+  { value: "full_cart", label: "Carrito gratis (precios completos, sólo paga envío)" },
 ];
 
 const FILTER_OPTIONS = [
@@ -219,6 +220,7 @@ export default function CuponesPage() {
 
   const formatDiscountSubtitle = (c: Coupon) => {
     if (c.discount_type === "free_shipping") return "Sin cargo por delivery";
+    if (c.discount_type === "full_cart") return "carrito a $0, sólo paga envío";
     if (c.discount_type === "percentage") return "de descuento";
     return "de descuento fijo";
   };
