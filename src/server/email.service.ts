@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { supabaseServer } from "@/lib/supabase-server";
 import { logger } from "@/utils/logger";
 import { whatsappLink, normalizeWhatsAppPhone } from "@/utils/whatsapp";
+import { asuntoCuponGanadora, renderCuponGanadoraHtml } from "@/server/emails/cupon-ganadora";
 
 // ── Lazy-initialized Resend client ───────────────────────────────────────
 let _resend: Resend | null = null;
@@ -753,6 +754,28 @@ export async function sendWelcomeEmail(data: {
     subject: dbSubject,
     html,
     templateSlug: "welcome",
+  });
+}
+
+/** Cupón de la ganadora del concurso (carrito gratis, sólo paga el envío). */
+export async function sendCuponGanadoraEmail(data: {
+  to: string;
+  customerName: string;
+  couponCode: string;
+  amount: number;
+  validUntil?: string;
+}): Promise<EmailResult> {
+  return sendEmail({
+    to: data.to,
+    toName: data.customerName,
+    subject: asuntoCuponGanadora(data.customerName),
+    html: renderCuponGanadoraHtml({
+      nombre: data.customerName,
+      codigo: data.couponCode,
+      monto: data.amount,
+      vigencia: data.validUntil,
+    }),
+    templateSlug: "cupon-ganadora",
   });
 }
 

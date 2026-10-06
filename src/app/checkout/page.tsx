@@ -113,6 +113,7 @@ export default function CheckoutPage() {
     freeShipping?: boolean;
     fullCart?: boolean;
     subtotalLista?: number;
+    preciosLista?: Record<string, number>;
     couponId?: number;
   } | null>(null);
 
@@ -466,6 +467,7 @@ export default function CheckoutPage() {
           freeShipping: data.coupon.discount_type === 'free_shipping',
           fullCart: data.coupon.discount_type === 'full_cart',
           subtotalLista: data.subtotalLista,
+          preciosLista: data.preciosLista,
           couponId: data.coupon.id
         });
         return { valid: true, message: data.message, discount: data.discount };
@@ -550,7 +552,9 @@ export default function CheckoutPage() {
       }
       if (data.discount !== appliedCoupon.discount || data.subtotalLista !== appliedCoupon.subtotalLista) {
         setAppliedCoupon((prev) =>
-          prev ? { ...prev, discount: data.discount, subtotalLista: data.subtotalLista } : prev
+          prev
+            ? { ...prev, discount: data.discount, subtotalLista: data.subtotalLista, preciosLista: data.preciosLista }
+            : prev
         );
       }
     })();
@@ -642,7 +646,10 @@ export default function CheckoutPage() {
       }
 
       // Validación extra: MercadoPago no acepta total = 0
-      if (selectedPaymentMethod === 'mercadopago' && total <= 0) {
+      // (salvo un pedido gratis por cupón de carrito completo: el servidor lo
+      // confirma sin pasar por MercadoPago).
+      const pedidoGratis = total <= 0 && !!appliedCoupon?.fullCart;
+      if (selectedPaymentMethod === 'mercadopago' && total <= 0 && !pedidoGratis) {
         alert('❌ El total del pedido debe ser mayor a $0 para procesar el pago con MercadoPago.');
         setLoading(false);
         return;
@@ -688,6 +695,12 @@ export default function CheckoutPage() {
           throw new Error(data.error || `Error del servidor (${response.status})`);
         }
         setLoading(false);
+        return;
+      }
+
+      // Pedido gratis por cupón: ya quedó confirmado en el servidor.
+      if (data.gratis) {
+        router.push(`/checkout/confirmacion?orderId=${data.orderId}`);
         return;
       }
 
@@ -999,7 +1012,9 @@ export default function CheckoutPage() {
                       ? "Procesando…"
                       : enVitrina
                         ? "Todavía no aceptamos pedidos"
-                        : `Pagar ${clpFormat(total)}`}
+                        : total <= 0 && appliedCoupon?.fullCart
+                          ? "Confirmar pedido gratis"
+                          : `Pagar ${clpFormat(total)}`}
                   </Button>
                 )}
 

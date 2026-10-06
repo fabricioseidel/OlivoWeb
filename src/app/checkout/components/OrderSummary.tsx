@@ -10,7 +10,14 @@ interface OrderSummaryProps {
   shippingCost: number;
   total: number;
   onApplyCoupon: (code: string) => Promise<{ valid: boolean; message: string; discount: number; freeShipping?: boolean }>;
-  appliedCoupon?: { code: string; discount: number; freeShipping?: boolean } | null;
+  appliedCoupon?: {
+    code: string;
+    discount: number;
+    freeShipping?: boolean;
+    fullCart?: boolean;
+    /** Precio de lista por producto: con cupón de carrito completo se cobra sin ofertas. */
+    preciosLista?: Record<string, number>;
+  } | null;
   onRemoveCoupon: () => void;
   loyaltyPoints?: number;
   redeemedPoints?: number;
@@ -74,7 +81,10 @@ export default function OrderSummary({
 
       {/* Productos */}
       <ul className="max-h-64 space-y-3 overflow-y-auto pr-1">
-        {cartItems.map((item) => (
+        {cartItems.map((rawItem) => {
+          const precioLista = appliedCoupon?.fullCart ? appliedCoupon.preciosLista?.[String(rawItem.id)] : undefined;
+          const item = typeof precioLista === 'number' ? { ...rawItem, price: precioLista } : rawItem;
+          return (
           <li key={item.id} className="flex items-center gap-3">
             <div className="relative size-12 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
               {/* eslint-disable-next-line @next/next/no-img-element -- imagen dinámica externa, sin dimensiones conocidas */}
@@ -96,7 +106,8 @@ export default function OrderSummary({
               {clp(item.price * item.quantity)}
             </p>
           </li>
-        ))}
+          );
+        })}
       </ul>
 
       {/* Montos */}

@@ -829,6 +829,27 @@ export async function POST(request: NextRequest) {
     // MercadoPago no acepta un cobro de $0. Con un cupón o unos puntos que
     // cubran todo, la preferencia lanzaba y la orden quedaba creada, con el
     // stock ya descontado y sin ninguna forma de pagarse.
+    //
+    // Excepción: un cupón `full_cart` con retiro en tienda (o envío agendado
+    // gratis) deja el pedido en $0 a propósito. No hay nada que cobrar, así que
+    // se confirma directo, sin pasar por MercadoPago. El flash queda fuera: la
+    // entrega de Uber sólo se crea desde el webhook de pago.
+    if (serverTotal <= 0 && precioLista && shippingMethod !== 'flash') {
+      const { error: errorGratis } = await supabaseServer
+        .from('orders')
+        .update({
+          payment_status: 'paid',
+          status: 'processing',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', order.id);
+      if (errorGratis) {
+        await revertirOrden();
+        return NextResponse.json({ error: 'No pudimos confirmar tu pedido. Intenta de nuevo.' }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, orderId: order.id, initPoint: null, gratis: true });
+    }
+
     if (serverTotal <= 0) {
       await revertirOrden();
       return NextResponse.json(
