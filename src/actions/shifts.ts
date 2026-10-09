@@ -44,6 +44,15 @@ export async function openShiftAction(
     revalidateAll();
     return { ok: true, toastMessage: "Turno abierto correctamente", toastType: "success" };
   } catch (error: any) {
+    // Índice cash_shifts_un_turno_abierto_por_sucursal: ya hay un turno
+    // abierto en esta sucursal (otro teléfono, o el POS).
+    if (error?.code === "23505") {
+      return {
+        ok: false,
+        toastMessage: "Ya hay una caja abierta en esta sucursal",
+        toastType: "warning",
+      };
+    }
     console.error("openShiftAction CRASH:", error);
     return { ok: false, toastMessage: error?.message || "Error al abrir turno", toastType: "error" };
   }
