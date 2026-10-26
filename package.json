@@ -40,10 +40,11 @@
     "react": "19.1.2",
     "react-dom": "19.1.2",
     "react-hook-form": "^7.71.2",
+    "read-excel-file": "^9.3.12",
     "recharts": "^3.7.0",
     "resend": "^6.9.4",
     "svix": "^1.99.1",
-    "xlsx": "^0.18.5",
+    "write-excel-file": "^4.1.1",
     "zod": "^4.0.17"
   },
   "devDependencies": {

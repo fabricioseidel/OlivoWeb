@@ -121,7 +121,10 @@ export default function LibroTab({ periodo, onPeriodo }: { periodo: string; onPe
     if (!libro) return;
     try {
       const { documentos } = await pedir<{ documentos: DocumentoRow[] }>(`/api/admin/documentos?periodo=${periodo}`);
-      const { utils, writeFile } = await import("xlsx");
+      const [{ default: writeXlsxFile }, { hojaDesdeObjetos }] = await Promise.all([
+        import("write-excel-file/browser"),
+        import("@/lib/exportUtils"),
+      ]);
       const filas = (dir: "emitido" | "recibido") =>
         documentos
           .filter((d) => d.direccion === dir)
@@ -154,11 +157,11 @@ export default function LibroTab({ periodo, onPeriodo }: { periodo: string; onPe
         { Concepto: "Total F29 estimado", Valor: r.totalF29 },
         { Concepto: "Remanente para el mes siguiente", Valor: r.remanenteSiguiente },
       ];
-      const libroXls = utils.book_new();
-      utils.book_append_sheet(libroXls, utils.json_to_sheet(resumen), "Resumen");
-      utils.book_append_sheet(libroXls, utils.json_to_sheet(filas("emitido")), "Ventas");
-      utils.book_append_sheet(libroXls, utils.json_to_sheet(filas("recibido")), "Compras");
-      writeFile(libroXls, `libro-${periodo}-olivo-market.xlsx`);
+      await writeXlsxFile([
+        { sheet: "Resumen", data: hojaDesdeObjetos(resumen) },
+        { sheet: "Ventas", data: hojaDesdeObjetos(filas("emitido")) },
+        { sheet: "Compras", data: hojaDesdeObjetos(filas("recibido")) },
+      ]).toFile(`libro-${periodo}-olivo-market.xlsx`);
     } catch (e) {
       showToast(e instanceof Error ? e.message : "No se pudo exportar", "error");
     }

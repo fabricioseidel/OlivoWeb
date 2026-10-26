@@ -309,7 +309,14 @@ export async function saveProduct(p: Partial<SupaProduct> & { barcode: string })
   }
 }
 
-export async function saveProductsBulk(products: (Partial<SupaProduct> & { barcode: string })[]) {
+/**
+ * Devuelve `stockError` cuando los productos se guardaron pero el ajuste de
+ * stock falló: la API responde 200 en ese caso, así que sin mirar el cuerpo
+ * la pantalla anunciaba "guardado" con el stock sin cambiar.
+ */
+export async function saveProductsBulk(
+  products: (Partial<SupaProduct> & { barcode: string })[]
+): Promise<{ stockError?: string }> {
   const payloads = products.map(toProductPayload);
 
   const res = await fetch('/api/products', {
@@ -322,6 +329,9 @@ export async function saveProductsBulk(products: (Partial<SupaProduct> & { barco
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || 'Error saving products bulk');
   }
+
+  const body = await res.json().catch(() => ({}));
+  return body?.stockError ? { stockError: String(body.stockError) } : {};
 }
 
 export async function deleteProduct(barcode: string) {
