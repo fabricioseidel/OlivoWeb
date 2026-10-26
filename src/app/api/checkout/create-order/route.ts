@@ -7,7 +7,7 @@ import { recordCouponUsage, getCouponByCode, validateCoupon } from '@/server/cou
 import { redeemPoints, getLoyaltyConfig, getCustomerPoints } from '@/server/loyalty.service';
 import { createPaymentPreference } from '@/server/payments.service';
 import { quoteAgendado, FACTOR_CALLES } from '@/lib/shipping-policy';
-import { precioEfectivo, baseDescontable } from '@/lib/pricing';
+import { precioEfectivo, baseDescontable, ofertaVigente } from '@/lib/pricing';
 import { expandBundleForDeduction } from '@/lib/bundle';
 import {
   quoteFlash,
@@ -407,7 +407,7 @@ export async function POST(request: NextRequest) {
     // CartItem.id corresponde al barcode del producto (ver mapSupaToUI en services/products.ts)
     const { data: dbProducts, error: productsErr } = await supabaseServer
       .from('products')
-      .select('id, barcode, stock, name, sale_price, offer_price, is_active, features')
+      .select('id, barcode, stock, name, sale_price, offer_price, offer_ends_at, is_active, features')
       .in('barcode', items.map((i: any) => i.id));
 
     if (productsErr || !dbProducts) {
@@ -463,7 +463,10 @@ export async function POST(request: NextRequest) {
       // que es el mismo que la vitrina puso en el carrito. Acá se cobraba
       // `sale_price` a secas, ignorando la oferta: el 14-08-2026 un pedido real
       // salió $800 por encima de lo que el cliente vio en pantalla.
-      const precioUnitario = precioEfectivo(dbProduct.sale_price, dbProduct.offer_price);
+      const precioUnitario = precioEfectivo(
+        dbProduct.sale_price,
+        ofertaVigente(dbProduct.offer_price, dbProduct.offer_ends_at)
+      );
 
       let itemName = dbProduct.name;
       if (item.selectedOptions && Array.isArray(item.selectedOptions) && item.selectedOptions.length > 0) {
@@ -517,7 +520,7 @@ export async function POST(request: NextRequest) {
           const p = dbProducts.find((d: any) => String(d.barcode) === String(i.id));
           return {
             precioVenta: p?.sale_price,
-            precioOferta: p?.offer_price,
+            precioOferta: ofertaVigente(p?.offer_price, p?.offer_ends_at),
             cantidad: Number(i.quantity),
           };
         })

@@ -2056,7 +2056,12 @@ se recargó porque el costo derivado cambiaría: *Detergente Smart Price 5 L* y
 *Limpiapisos Lavanda 5 L* (Central Mayorista a $1.891 y $1.025, contra $2.200
 cargados a mano en los dos), *Galleta Costa Agua* (Central Mayorista a $807,
 contra $980) y *Galleta Soda Costa* (Taurus a $1.348; ya tiene Central
-Mayorista a $622). Conviene revisar esos costos.
+Mayorista a $622). Después se volvieron a vincular a pedido del dueño, con
+el costo y la prioridad que tenían en la ficha borrada (más su historial de
+costo): el costo derivado quedó en $1.891 (Detergente), $1.025 (Limpiapisos),
+$807 (Galleta Costa Agua) y $622 (Galleta Soda, con Taurus como segunda
+opción). El Limpiapisos sigue mereciendo una mirada: los $2.200 que tenía a
+mano son el doble del costo del proveedor.
 
 **Lo que no se unificó, a propósito:**
 
@@ -2105,6 +2110,25 @@ verificador EAN inválido; *Sal parrillera Lobos* vendida bajo costo; el "Pack 2
 Bebidas + Hielo" con opciones sin código (su margen de 91 % no es real); y
 actualizar Postgres desde el panel de Supabase (17.4 tiene parches de
 seguridad pendientes).
+
+**Arreglos de la tienda (misma fecha).**
+
+- *Ofertas con fecha de término.* `products.offer_ends_at` existe desde el
+  09-10 y el POS la guarda, pero nadie la leía: una oferta vencida se seguía
+  mostrando en la vitrina y cobrando en el checkout, en la validación del
+  carrito, en los cupones y en la caja. Ahora todos pasan por
+  `ofertaVigente()` (`src/lib/pricing.ts`) antes de `precioEfectivo`.
+- *Subida de imágenes.* `uploadImage` con una imagen base64 abría un
+  `upload_stream` que nunca se cerraba además de subir la imagen; Cloudinary lo
+  cortaba por timeout y era el único error recurrente en los logs de Vercel.
+- *`/debug`.* Las pantallas de desarrollo quedaban abiertas a cualquiera; ahora
+  pasan por el mismo middleware que `/admin`.
+- *SEO.* El sitemap sólo lista productos y categorías que la tienda muestra
+  (`isProductVisible`, sin categorías desactivadas); antes mandaba al buscador
+  fichas ocultas y categorías vacías. La ficha de producto marca `noindex` si
+  el producto no es visible, y su JSON-LD declara el precio que se cobra
+  (oferta vigente incluida) y la disponibilidad según el stock (en un pack no
+  se declara: su stock sale de los componentes).
 
 ---
 

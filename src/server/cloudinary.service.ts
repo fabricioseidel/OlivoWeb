@@ -22,55 +22,51 @@ export type CloudinaryUploadResult = {
  * @param fileContent El contenido del archivo (Buffer o string base64)
  * @param folder Carpeta de destino en Cloudinary
  */
+const UPLOAD_OPTIONS = {
+  resource_type: "auto" as const,
+  transformation: [
+    { width: 1000, height: 1000, crop: "limit" }, // Redimensionar si es muy grande
+    { quality: "auto" },                         // Compresión inteligente
+    { fetch_format: "auto" },                    // WebP/AVIF automático
+  ],
+};
+
+function toResult(res: { secure_url: string; public_id: string; width: number; height: number; format: string }): CloudinaryUploadResult {
+  return {
+    url: res.secure_url,
+    publicId: res.public_id,
+    width: res.width,
+    height: res.height,
+    format: res.format,
+  };
+}
+
 export async function uploadImage(
   fileContent: string | Buffer,
   folder: string = "olivomarket/products"
 ): Promise<CloudinaryUploadResult> {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        resource_type: "auto",
-        transformation: [
-          { width: 1000, height: 1000, crop: "limit" }, // Redimensionar si es muy grande
-          { quality: "auto" },                         // Compresión inteligente
-          { fetch_format: "auto" },                    // WebP/AVIF automático
-        ],
-      },
-      (error, result) => {
-        if (error || !result) {
-          logger.error("🔥 Error subiendo a Cloudinary:", error);
-          return reject(error);
-        }
-        resolve({
-          url: result.secure_url,
-          publicId: result.public_id,
-          width: result.width,
-          height: result.height,
-          format: result.format,
-        });
-      }
-    );
-
-    // Si es un Buffer, lo escribimos al stream. Si es string, asumimos base64 o path.
-    if (Buffer.isBuffer(fileContent)) {
-      uploadStream.end(fileContent);
-    } else {
-      cloudinary.uploader.upload(fileContent, {
-        folder,
-        transformation: [
-          { width: 1000, height: 1000, crop: "limit" },
-          { quality: "auto" },
-          { fetch_format: "auto" },
-        ]
-      }).then(res => resolve({
-        url: res.secure_url,
-        publicId: res.public_id,
-        width: res.width,
-        height: res.height,
-        format: res.format,
-      })).catch(reject);
+  // Base64 (lo que mandan el editor masivo y la pantalla de imágenes) o URL:
+  // una sola subida directa. Antes se abría además un upload_stream que nunca
+  // se cerraba: la foto subía igual, pero esa conexión quedaba colgada hasta
+  // el timeout y dejaba en los logs un "Request Timeout" por cada foto.
+  if (!Buffer.isBuffer(fileContent)) {
+    try {
+      return toResult(await cloudinary.uploader.upload(fileContent, { folder, ...UPLOAD_OPTIONS }));
+    } catch (error) {
+      logger.error("🔥 Error subiendo a Cloudinary:", error);
+      throw error;
     }
+  }
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream({ folder, ...UPLOAD_OPTIONS }, (error, result) => {
+      if (error || !result) {
+        logger.error("🔥 Error subiendo a Cloudinary:", error);
+        return reject(error);
+      }
+      resolve(toResult(result));
+    });
+    uploadStream.end(fileContent);
   });
 }
 

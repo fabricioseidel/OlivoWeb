@@ -1,6 +1,8 @@
 import type { MetadataRoute } from 'next';
 import { supabaseServer } from '@/lib/supabase-server';
 import { slugify } from '@/utils/string-utils';
+import { isProductVisible, mapSupaToUI } from '@/services/products';
+import type { SupaProduct } from '@/types';
 import { BUSINESS } from '@/lib/seo/business';
 import { RUTA_FIESTAS_PATRIAS, enTemporadaDieciochera } from '@/lib/fiestas-patrias';
 
@@ -52,46 +54,44 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/legal/devoluciones`, priority: 0.3, changeFrequency: 'yearly', lastModified: now },
   ];
 
+  // Productos y categorías salen de lo que la tienda de verdad muestra: la
+  // misma regla que la vitrina (`isProductVisible`: nombre, categoría, precio,
+  // foto y costo cargado). Antes entraba todo producto activo, también los
+  // que la tienda oculta, y el buscador recibía URLs que el cliente ve como
+  // "Producto no encontrado".
+  //
   // Categorías: cada una es una página propia con su metadata, así que vale
-  // la pena declararlas. Se incluyen SOLO las que tienen productos activos:
-  // enviar categorías vacías al buscador es contenido pobre y resta más de lo
-  // que suma.
+  // la pena declararlas, pero SOLO las que tienen productos visibles y no
+  // están desactivadas: enviar categorías vacías al buscador es contenido
+  // pobre y resta más de lo que suma.
   let categoryPages: MetadataRoute.Sitemap = [];
-
   let productPages: MetadataRoute.Sitemap = [];
   try {
-    const { data: products } = await supabaseServer
-      .from('products')
-      .select('name, updated_at')
-      .eq('is_active', true)
-      .limit(1000);
+    const [{ data: rows }, { data: inactivas }] = await Promise.all([
+      supabaseServer
+        .from('products')
+        .select('barcode, name, category, sale_price, offer_price, image_url, is_active, purchase_price, updated_at')
+        .eq('is_active', true)
+        .limit(2000),
+      supabaseServer.from('categories').select('name').eq('is_active', false),
+    ]);
 
-    productPages = (products || [])
-      .filter((p) => p.name)
-      .map((p) => ({
-        url: `${base}/productos/${slugify(p.name)}`,
-        lastModified: p.updated_at ? new Date(p.updated_at) : undefined,
-        priority: 0.7,
-        changeFrequency: 'weekly' as const,
-      }));
-  } catch {
-    // Si la BD no está disponible, devolver al menos las páginas estáticas
-  }
+    const visibles = (rows || []).filter((r) => r.name && isProductVisible(mapSupaToUI(r as SupaProduct)));
 
-  try {
-    const { data: rows } = await supabaseServer
-      .from('products')
-      .select('category')
-      .eq('is_active', true)
-      .not('category', 'is', null)
-      .limit(2000);
+    productPages = visibles.map((p) => ({
+      url: `${base}/productos/${slugify(p.name)}`,
+      lastModified: p.updated_at ? new Date(p.updated_at) : undefined,
+      priority: 0.7,
+      changeFrequency: 'weekly' as const,
+    }));
 
-    // `category` guarda las categorías separadas por coma.
+    const apagadas = new Set((inactivas || []).map((c) => slugify(String(c.name))));
     const slugs = new Set<string>();
-    for (const row of rows || []) {
-      for (const name of String(row.category).split(',')) {
+    for (const row of visibles) {
+      // `category` guarda las categorías separadas por coma.
+      for (const name of String(row.category ?? '').split(',')) {
         const slug = slugify(name.trim());
-        if (slug) slugs.add(slug);
+        if (slug && !apagadas.has(slug)) slugs.add(slug);
       }
     }
 
@@ -102,7 +102,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
     }));
   } catch {
-    // Sin BD, el sitemap igual sale con lo estático
+    // Si la BD no está disponible, devolver al menos las páginas estáticas
   }
 
   return [...staticPages, ...categoryPages, ...productPages];

@@ -3,7 +3,7 @@ import { validateCoupon } from "@/server/coupon.service";
 import { getClientIp } from "@/lib/rate-limit";
 import { limiteGlobal } from "@/server/limite-intentos";
 import { supabaseServer } from "@/lib/supabase-server";
-import { baseDescontable, precioEfectivo } from "@/lib/pricing";
+import { baseDescontable, precioEfectivo, ofertaVigente } from "@/lib/pricing";
 
 /**
  * Vista previa del cupón para el checkout.
@@ -45,14 +45,14 @@ export async function POST(request: NextRequest) {
       const ids = items.map((i: any) => String(i.id));
       const { data: productos } = await supabaseServer
         .from("products")
-        .select("barcode, sale_price, offer_price")
+        .select("barcode, sale_price, offer_price, offer_ends_at")
         .in("barcode", ids);
 
       const lineas = items.map((i: any) => {
         const p = productos?.find((d: any) => String(d.barcode) === String(i.id));
         return {
           precioVenta: p?.sale_price,
-          precioOferta: p?.offer_price,
+          precioOferta: ofertaVigente(p?.offer_price, p?.offer_ends_at),
           cantidad: Number(i.quantity),
         };
       });
