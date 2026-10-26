@@ -2038,6 +2038,26 @@ Además, *Galletas Maná Vainilla* (`6807221680592`) y *Panela campesina*
 (`8484789419604`) ya estaban marcadas como duplicado pero seguían activas: se
 apagaron. Las publicaciones de Uber Eats de las descartadas no se movieron.
 
+**Después se borraron todas las fichas `[duplicado]`** (pedido del dueño, el
+mismo día): las 22 que quedaban, de esta limpieza y de las anteriores. Todas
+tenían su titular activo y stock 0. Antes de borrar, el historial que tenía
+sentido conservar pasó al titular: las 6 líneas de venta (`sale_items`
+conserva el nombre con que se vendió) y la línea de una orden de compra
+cancelada. Se fueron con la ficha —y están en
+`respaldo_eliminacion_duplicados_20261026`, como jsonb por tabla, con la
+receta para restaurar en el comentario de la tabla— 44 movimientos de
+inventario, 8 vínculos de proveedor, 12 registros de historial de costo, 3
+publicaciones de Uber Eats y la marca de conteo de *Panela*. El catálogo queda
+en 853 productos. El script se corrió desde el SQL Editor de Supabase porque el
+conector pedía una confirmación que no llegaba a la app.
+
+Cuatro titulares perdieron un proveedor que sólo tenía la ficha borrada, y no
+se recargó porque el costo derivado cambiaría: *Detergente Smart Price 5 L* y
+*Limpiapisos Lavanda 5 L* (Central Mayorista a $1.891 y $1.025, contra $2.200
+cargados a mano en los dos), *Galleta Costa Agua* (Central Mayorista a $807,
+contra $980) y *Galleta Soda Costa* (Taurus a $1.348; ya tiene Central
+Mayorista a $622). Conviene revisar esos costos.
+
 **Lo que no se unificó, a propósito:**
 
 - *Pan Campesino*: la ficha interna es de otra panadería (proveedor Pan La
