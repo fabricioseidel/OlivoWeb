@@ -2025,6 +2025,11 @@ no tenía costo, para no pisar costos cargados:
 | `7702007080681` Chocolate Jet 25 g | `2643007080361` | — |
 | `7801620017552` Pepsi Original 3 Lt | `5708920017904` | — |
 | `070847895268` Monster Ripper 473 ml | `5016841895267` | — |
+| `7802215502026` Galleta Soda Costa 160 g | `900000000004` | — (queda $1.150; la interna estaba en $2.200) |
+| `7804606201204` Limpiapisos Lavanda Smart Price 5 L | `900000000148` | — (queda $3.000; la interna estaba en $1.880) |
+
+Los dos últimos se unificaron después, a pedido del dueño, con el precio del
+código real.
 
 Además, *Galletas Maná Vainilla* (`6807221680592`) y *Panela campesina*
 (`8484789419604`) ya estaban marcadas como duplicado pero seguían activas: se
@@ -2038,9 +2043,8 @@ apagaron. Las publicaciones de Uber Eats de las descartadas no se movieron.
   inactiva y los precios difieren ($1.600 vs $2.000).
 - *Pepsi Zero 3 Lt*: la ficha a descartar tiene una orden de compra en estado
   "enviado" por 20 unidades; unificar desviaría esa recepción.
-- *Cachito jamón* (`659976642365` / `745853642167`), *Galleta Soda Costa*
-  ($1.150 vs $2.200), *Galleta Agua Costa* vs *Agua Line*, *Limpiapisos
-  Lavanda 5 L* ($3.000 vs $1.880): falta decidir qué ficha y qué precio quedan.
+- *Cachito jamón* (`659976642365` / `745853642167`) y *Galleta Agua Costa*
+  vs *Agua Line*: falta decidir qué ficha queda.
 
 **Categorías.** 38 productos recategorizados: los que una asignación por
 palabra clave había mandado a lugares absurdos (*Atún en agua* y *Galleta Agua
