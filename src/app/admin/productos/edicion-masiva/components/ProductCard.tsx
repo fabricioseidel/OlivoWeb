@@ -12,6 +12,7 @@ import {
 import { compressImageFile } from "@/utils/image";
 import { getProductDiagnostics, getVerifiedAt, isRecentlyCounted, type ProductChanges } from "../lib";
 import CategorySelector from "./CategorySelector";
+import NumericInput from "./NumericInput";
 
 interface ProductCardProps {
   product: any;
@@ -248,11 +249,10 @@ const ProductCard = memo(function ProductCard({
             <label className="text-[7px] font-black text-gray-400 uppercase tracking-wider px-0.5">Precio</label>
             <div className="relative">
               <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-gray-400">$</span>
-              <input
-                type="number"
+              <NumericInput
                 inputMode="decimal"
-                value={price ?? ""}
-                onChange={(e) => onChange(product.id, "price", e.target.value)}
+                value={price}
+                onValueChange={(raw) => onChange(product.id, "price", raw)}
                 placeholder="0"
                 className={`w-full h-8 rounded-lg border font-black text-xs pl-4 pr-1 text-right shadow-inner ${
                   changes?.price !== undefined
@@ -267,12 +267,11 @@ const ProductCard = memo(function ProductCard({
             <label className="text-[7px] font-black text-amber-600 uppercase tracking-wider px-0.5">Oferta</label>
             <div className="relative">
               <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-gray-400">$</span>
-              <input
-                type="number"
+              <NumericInput
                 inputMode="decimal"
                 placeholder="-"
-                value={offerPrice !== undefined && offerPrice !== null ? offerPrice : ""}
-                onChange={(e) => onChange(product.id, "offerPrice", e.target.value)}
+                value={offerPrice}
+                onValueChange={(raw) => onChange(product.id, "offerPrice", raw)}
                 className={`w-full h-8 rounded-lg border font-black text-xs pl-4 pr-1 text-right shadow-inner ${
                   changes?.offerPrice !== undefined && changes?.offerPrice !== null
                     ? "bg-amber-50 border-amber-300 text-amber-800"
@@ -286,12 +285,11 @@ const ProductCard = memo(function ProductCard({
             <label className="text-[7px] font-black text-indigo-500 uppercase tracking-wider px-0.5">Costo</label>
             <div className="relative">
               <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-gray-400">$</span>
-              <input
-                type="number"
+              <NumericInput
                 inputMode="decimal"
                 placeholder="0"
-                value={purchasePrice !== undefined && purchasePrice !== null ? purchasePrice : ""}
-                onChange={(e) => onChange(product.id, "purchasePrice", e.target.value)}
+                value={purchasePrice}
+                onValueChange={(raw) => onChange(product.id, "purchasePrice", raw)}
                 className={`w-full h-8 rounded-lg border font-black text-xs pl-4 pr-1 text-right shadow-inner ${
                   changes?.purchasePrice !== undefined
                     ? "bg-indigo-50 border-indigo-300 text-indigo-800"
@@ -303,11 +301,10 @@ const ProductCard = memo(function ProductCard({
 
           <div className="space-y-0.5">
             <label className="text-[7px] font-black text-gray-400 uppercase tracking-wider px-0.5">Stock</label>
-            <input
-              type="number"
+            <NumericInput
               inputMode="numeric"
-              value={stock ?? ""}
-              onChange={(e) => onChange(product.id, "stock", e.target.value)}
+              value={stock}
+              onValueChange={(raw) => onChange(product.id, "stock", raw)}
               placeholder="0"
               className={`w-full h-8 rounded-lg border font-black text-xs px-1 text-center shadow-inner ${
                 changes?.stock !== undefined
