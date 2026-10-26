@@ -78,6 +78,27 @@ export function aBruto(neto: number, tasa: number = TASA_IVA): number | null {
 }
 
 /**
+ * La oferta sólo vale hasta `products.offer_ends_at`. Devuelve el precio de
+ * oferta mientras siga vigente y `null` cuando venció; NULL en la fecha es
+ * "sin término" y la oferta vale siempre.
+ *
+ * La columna existe desde el 09-10-2026 —el POS guarda el fin del día elegido—
+ * pero nada la leía: una oferta vencida se seguía cobrando en la tienda, en el
+ * checkout y en la caja. Se aplica antes de `precioEfectivo` en cada lugar que
+ * lee `offer_price` de la base.
+ */
+export function ofertaVigente<T>(
+  precioOferta: T,
+  ofertaHasta?: unknown,
+  ahora: number = Date.now()
+): T | null {
+  if (ofertaHasta === null || ofertaHasta === undefined || ofertaHasta === "") return precioOferta;
+  const fin = new Date(String(ofertaHasta)).getTime();
+  if (!Number.isFinite(fin)) return precioOferta;
+  return fin > ahora ? precioOferta : null;
+}
+
+/**
  * El precio que se le cobra al cliente por una unidad: la oferta si hay, el
  * precio de lista si no.
  *

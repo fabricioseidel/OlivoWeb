@@ -90,11 +90,14 @@ export async function createSaleAction(data: CreateSaleActionInput): Promise<Sal
     const barcodes = [...new Set(data.items.map((it) => String(it.product_id)))];
     const { data: filas, error: errPrecios } = await supabaseServer
       .from("products")
-      .select("barcode, sale_price, offer_price")
+      .select("barcode, sale_price, offer_price, offer_ends_at")
       .in("barcode", barcodes);
     if (errPrecios) throw errPrecios;
     const precios = new Map<string, PrecioBase>(
-      (filas ?? []).map((f) => [String(f.barcode), { sale_price: f.sale_price, offer_price: f.offer_price }]),
+      (filas ?? []).map((f) => [
+        String(f.barcode),
+        { sale_price: f.sale_price, offer_price: f.offer_price, offer_ends_at: f.offer_ends_at },
+      ]),
     );
     const calculo = calcularPreciosVenta(
       data.items.map((it) => ({ barcode: String(it.product_id), qty: Number(it.quantity), name: it.name })),

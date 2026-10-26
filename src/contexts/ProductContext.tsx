@@ -40,7 +40,15 @@ interface ProductContextType {
   addProduct: (productData: Partial<Product>) => Promise<void>;
   createProduct: (productData: Partial<Product>) => Promise<void>;
   updateProduct: (id: string, productData: Partial<Product>) => Promise<void>;
-  updateProductsBulk: (updates: Record<string, Partial<Product>>) => Promise<void>;
+  /**
+   * `base`: los productos frescos contra los que se arma cada fila. Sin él se
+   * usa la caché, y los campos que no se editaron viajan con el valor que
+   * había al cargar (pisando lo que otra persona haya guardado entre tanto).
+   */
+  updateProductsBulk: (
+    updates: Record<string, Partial<Product>>,
+    opciones?: { base?: ProductUI[] }
+  ) => Promise<{ stockError?: string }>;
   deleteProduct: (id: string) => Promise<void>;
   toggleFeatured: (id: string, value: boolean) => Promise<void>;
   toggleActive: (id: string, value: boolean) => Promise<void>;
@@ -274,13 +282,19 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     await load();
   };
 
-  const updateProductsBulk = async (updates: Record<string, Partial<Product>>) => {
+  const updateProductsBulk = async (
+    updates: Record<string, Partial<Product>>,
+    opciones: { base?: ProductUI[] } = {}
+  ): Promise<{ stockError?: string }> => {
     const ids = Object.keys(updates);
-    if (ids.length === 0) return;
+    if (ids.length === 0) return {};
+
+    const fuente = opciones.base ? normalize(opciones.base) : fullProducts;
+    const porId = new Map(fuente.map((p) => [String(p.id), p]));
 
     const productsToSave = ids.map(id => {
       const barcode = String(id).trim();
-      const existing = fullProducts.find(p => String(p.id) === barcode);
+      const existing = porId.get(barcode);
       if (!existing) return null;
 
       const upd = updates[id];
@@ -319,10 +333,12 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       };
     }).filter(Boolean) as any[];
 
+    let resultado: { stockError?: string } = {};
     if (productsToSave.length > 0) {
-      await saveProductsBulk(productsToSave);
-      await load();
+      resultado = await saveProductsBulk(productsToSave);
     }
+    await load();
+    return resultado;
   };
 
   const deleteProductFn = async (id: string) => {

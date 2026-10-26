@@ -1993,6 +1993,145 @@ escritos.
 
 ---
 
+## Limpieza del catálogo (2026-10-26)
+
+Auditoría de `products` y `categories` con `pg_trgm`, sufijos de código y reglas
+de nombre vs. categoría. Antes de tocar nada se copió **todo** `products` a
+`respaldo_limpieza_20261026` y los vínculos de proveedor movidos a
+`respaldo_limpieza_proveedores_20261026` (las dos con RLS y sin permisos para
+anon/authenticated). Todo se aplicó en una sola transacción con verificaciones:
+si una ficha a descartar hubiera tenido stock, no se aplicaba nada.
+
+**Lo que está sano.** `products.stock` cuadra con `branch_stock` en los 875;
+no hay stock negativo; las FK de inventario, sucursal y proveedor no tienen
+huérfanos; las 15 ventas cuyo total no suma sus ítems son compras del personal
+con el 25 % de descuento.
+
+**Duplicados unificados** (mismo criterio que el 27/08: sobrevive el código
+escaneable, la descartada queda inactiva y con el sufijo
+`[duplicado de <código>, unificado 26/10/2026]`, no se borra). Ninguna tenía
+stock. El proveedor —y con él el costo— sólo se movió cuando el sobreviviente
+no tenía costo, para no pisar costos cargados:
+
+| Sobrevive | Se descartó | Qué se rescató |
+|---|---|---|
+| `737186941475` Pan de Queso Dulce Pan | `900000000112` | proveedor Dulce Pan (costo $2.185), categoría |
+| `744784960265` Pan de Queso El Oasis | `900000000107` | proveedor El Oasis (costo $2.100), categoría |
+| `7802900332402` Soprole 1+1 Zucarita | `900000000042` | proveedor Central Mayorista (costo $462) |
+| `7802810006752` Jugo Watts Naranja 200 ml | `4600464006752` | — (las dos activas) |
+| `7802575531759` Master Dog adultos carne 100 g | `900000000100` | — (las dos activas) |
+| `7804606201228` Detergente líquido Smart Price 5 L | `900000000133` | — (las dos activas) |
+| `7802950006339` Leche Trencito | `4857193006762` | — (las dos activas; nombre corregido) |
+| `7702007080681` Chocolate Jet 25 g | `2643007080361` | — |
+| `7801620017552` Pepsi Original 3 Lt | `5708920017904` | — |
+| `070847895268` Monster Ripper 473 ml | `5016841895267` | — |
+| `7802215502026` Galleta Soda Costa 160 g | `900000000004` | — (queda $1.150; la interna estaba en $2.200) |
+| `7804606201204` Limpiapisos Lavanda Smart Price 5 L | `900000000148` | — (queda $3.000; la interna estaba en $1.880) |
+| `745853642167` Cachito jamón | `659976642365` | — (fichas idénticas, $2.300) |
+| `7802215501821` Galleta Costa Agua 175 g | `900000000138` "Agua Line" | — (queda $1.500; la interna estaba en $1.480) |
+
+Los cuatro últimos se unificaron después, a pedido del dueño: Galleta Soda,
+Limpiapisos y Galleta Agua con el precio del código real, y Cachito jamón con
+el código que él eligió.
+
+Además, *Galletas Maná Vainilla* (`6807221680592`) y *Panela campesina*
+(`8484789419604`) ya estaban marcadas como duplicado pero seguían activas: se
+apagaron. Las publicaciones de Uber Eats de las descartadas no se movieron.
+
+**Después se borraron todas las fichas `[duplicado]`** (pedido del dueño, el
+mismo día): las 22 que quedaban, de esta limpieza y de las anteriores. Todas
+tenían su titular activo y stock 0. Antes de borrar, el historial que tenía
+sentido conservar pasó al titular: las 6 líneas de venta (`sale_items`
+conserva el nombre con que se vendió) y la línea de una orden de compra
+cancelada. Se fueron con la ficha —y están en
+`respaldo_eliminacion_duplicados_20261026`, como jsonb por tabla, con la
+receta para restaurar en el comentario de la tabla— 44 movimientos de
+inventario, 8 vínculos de proveedor, 12 registros de historial de costo, 3
+publicaciones de Uber Eats y la marca de conteo de *Panela*. El catálogo queda
+en 853 productos. El script se corrió desde el SQL Editor de Supabase porque el
+conector pedía una confirmación que no llegaba a la app.
+
+Cuatro titulares perdieron un proveedor que sólo tenía la ficha borrada, y no
+se recargó porque el costo derivado cambiaría: *Detergente Smart Price 5 L* y
+*Limpiapisos Lavanda 5 L* (Central Mayorista a $1.891 y $1.025, contra $2.200
+cargados a mano en los dos), *Galleta Costa Agua* (Central Mayorista a $807,
+contra $980) y *Galleta Soda Costa* (Taurus a $1.348; ya tiene Central
+Mayorista a $622). Después se volvieron a vincular a pedido del dueño, con
+el costo y la prioridad que tenían en la ficha borrada (más su historial de
+costo): el costo derivado quedó en $1.891 (Detergente), $1.025 (Limpiapisos),
+$807 (Galleta Costa Agua) y $622 (Galleta Soda, con Taurus como segunda
+opción). El Limpiapisos sigue mereciendo una mirada: los $2.200 que tenía a
+mano son el doble del costo del proveedor.
+
+**Lo que no se unificó, a propósito:**
+
+- *Pan Campesino*: la ficha interna es de otra panadería (proveedor Pan La
+  Alianza, no El Oasis).
+- *Chubi 103 g*: el código que se escaneó en el inventario es el de la ficha
+  inactiva y los precios difieren ($1.600 vs $2.000).
+- *Pepsi Zero 3 Lt*: la ficha a descartar tiene una orden de compra en estado
+  "enviado" por 20 unidades; unificar desviaría esa recepción.
+
+**Categorías.** 38 productos recategorizados: los que una asignación por
+palabra clave había mandado a lugares absurdos (*Atún en agua* y *Galleta Agua
+McKay* en Agua/Bebidas, las salsas Fritz en Galletas, *Papas Barbecue* en
+Salsas, *Frac Capuchino* en Café, *Helado Bilz Pap* en Bebidas), las 5 harinas
+que estaban en Panadería (→ Abarrotes, Venezolanos) y los 13 que no tenían
+categoría (dos la heredaron de su duplicado). Ya no queda ninguno sin
+categoría.
+"Packs" no es una categoría de la tienda sino la etiqueta que pone el editor de
+packs: no se creó en `categories`.
+
+**Nombres, descripciones y medidas.** Tipeos corregidos ("Gatoeade",
+"Rocklrts", "Ligth", "ahumadada", "Champo", "conpota") y espacios dobles. Las
+descripciones públicas ya no muestran notas internas: el proveedor
+("Proveedor Taurus/San Benito"), el formato de compra ("Comprado en caja de
+20"), "Costo y stock estimados…" y las marcas "[Fusionado con …]" de las
+unificaciones de agosto. Las medidas en 0 (harinas en "ml", empanadas) se
+vaciaron.
+
+**`verified_at` nace en `now()` y está bien.** 45 productos tienen
+`verified_at` idéntico a `created_at` y nunca pasaron por un conteo. Parece
+contaminación, pero es la migración remota `products_verified_at_default`
+(29/07): un alta manual cuenta como verificación para que la purga del
+inventario no apague un producto recién creado. No se tocó. Lo que confunde es
+que el editor masivo lee `verified_at` como "inventario confirmado"; si se
+quiere distinguir "contado" de "dado de alta", hay que mirar
+`stock_count_entries`, no `verified_at`.
+
+**RLS.** `propuesta_categorias`, `respaldo_categorias_20260904` y
+`respaldo_duplicados_20260912` no tenían RLS (aunque tampoco permisos para
+anon/authenticated): `20261026000000_rls_tablas_de_respaldo.sql`.
+
+**Queda pendiente** (necesita datos o decisiones del dueño): 129 productos
+activos sin costo —no se publican—; el Powerade Uva con una URL como código
+de barras; "Plátano" con código `12355`; el Pan Francés 7 un. con dígito
+verificador EAN inválido; *Sal parrillera Lobos* vendida bajo costo; el "Pack 2
+Bebidas + Hielo" con opciones sin código (su margen de 91 % no es real); y
+actualizar Postgres desde el panel de Supabase (17.4 tiene parches de
+seguridad pendientes).
+
+**Arreglos de la tienda (misma fecha).**
+
+- *Ofertas con fecha de término.* `products.offer_ends_at` existe desde el
+  09-10 y el POS la guarda, pero nadie la leía: una oferta vencida se seguía
+  mostrando en la vitrina y cobrando en el checkout, en la validación del
+  carrito, en los cupones y en la caja. Ahora todos pasan por
+  `ofertaVigente()` (`src/lib/pricing.ts`) antes de `precioEfectivo`.
+- *Subida de imágenes.* `uploadImage` con una imagen base64 abría un
+  `upload_stream` que nunca se cerraba además de subir la imagen; Cloudinary lo
+  cortaba por timeout y era el único error recurrente en los logs de Vercel.
+- *`/debug`.* Las pantallas de desarrollo quedaban abiertas a cualquiera; ahora
+  pasan por el mismo middleware que `/admin`.
+- *SEO.* El sitemap sólo lista productos y categorías que la tienda muestra
+  (`isProductVisible`, sin categorías desactivadas); antes mandaba al buscador
+  fichas ocultas y categorías vacías. La ficha de producto marca `noindex` si
+  el producto no es visible, y su JSON-LD declara el precio que se cobra
+  (oferta vigente incluida) y la disponibilidad según el stock (en un pack no
+  se declara: su stock sale de los componentes).
+
+---
+
 ## Documentos relacionados
 
 - `docs/PLAN_PRECIOS.md` — la auditoría completa del módulo de precios, costos

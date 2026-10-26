@@ -1,4 +1,3 @@
-import { hasRealImage } from "@/services/products";
 
 export type ProductChanges = {
   price?: number;
@@ -58,15 +57,26 @@ export type SortPriority =
   | "price_asc"        // Menor precio
   | "price_desc";      // Mayor precio
 
-export type CompletenessTab = "all" | "missing_1" | "missing_2" | "missing_3_plus" | "ready";
+/**
+ * Pestañas por datos de ficha (foto, precio, categoría, SKU). El stock no
+ * cuenta acá: va en su propia fila de filtros, y se combinan.
+ */
+export type CompletenessTab = "all" | "missing_1" | "missing_2" | "missing_3_plus" | "complete";
 
-export type SpecificFilter =
+/**
+ * Los dos grupos de filtros son independientes y se combinan: "Con stock" +
+ * "Falta foto" es justamente lo que hay que fotografiar para publicar ya.
+ */
+export type StockFilter =
   | "all"
   | "with_stock"      // Stock real > 0: lo que hay de verdad en la tienda
   | "counted"         // Escaneado en un conteo físico (tenga o no stock)
   | "counted_today"   // Escaneado en el conteo más reciente (ayer / hoy)
   | "uncounted"       // Nunca pasó por un conteo: su stock no está confirmado
-  | "duplicates"      // Posibles duplicados: el mismo producto en dos filas
+  | "duplicates";     // Posibles duplicados: el mismo producto en dos filas
+
+export type MissingFilter =
+  | "all"
   | "missing_photo"
   | "missing_price"
   | "missing_stock"
@@ -78,6 +88,9 @@ export type SpecificFilter =
 export interface ProductDiagnostics {
   missing: string[];
   missingCount: number;
+  /** Lo que falta de la ficha (sin contar el stock), y cuántos son. */
+  missingData: string[];
+  missingDataCount: number;
   isReady: boolean;
   percentage: number;
   hasImage: boolean;
@@ -119,9 +132,16 @@ export function getProductDiagnostics(p: any, changes?: ProductChanges): Product
   const completedCount = 5 - missing.length;
   const percentage = Math.round((completedCount / 5) * 100);
 
+  // El stock no es un dato que se cargue escribiendo: es mercadería que falta
+  // en la góndola. Contarlo como "dato faltante" hacía que "Falta 1 dato"
+  // fuera casi todo el catálogo y dejara de servir para priorizar.
+  const missingData = missing.filter((m) => m !== "Sin stock");
+
   return {
     missing,
     missingCount: missing.length,
+    missingData,
+    missingDataCount: missingData.length,
     isReady,
     percentage,
     hasImage,
@@ -143,8 +163,33 @@ export function loadBackups(): Backup[] {
   }
 }
 
-export function saveBackups(backups: Backup[]) {
-  localStorage.setItem(BACKUP_KEY, JSON.stringify(backups));
+/**
+ * Guarda los backups y devuelve los que realmente quedaron guardados.
+ *
+ * Si el navegador no tiene espacio, se van descartando los más viejos hasta
+ * que entre; si ni el más nuevo entra, devuelve null y lo que ya estaba
+ * guardado queda intacto (un setItem que falla no toca el valor anterior).
+ * Antes un QuotaExceededError acá cortaba el guardado sin ningún aviso.
+ */
+export function saveBackups(backups: Backup[]): Backup[] | null {
+  let lista = backups;
+  while (lista.length > 0) {
+    try {
+      localStorage.setItem(BACKUP_KEY, JSON.stringify(lista));
+      return lista;
+    } catch {
+      lista = lista.slice(0, -1);
+    }
+  }
+  if (backups.length === 0) {
+    try {
+      localStorage.removeItem(BACKUP_KEY);
+      return [];
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 export function createBackup(products: any[], label: string): Backup {
@@ -230,6 +275,419 @@ export const COLUMN_MAP: Record<string, keyof ProductChanges | "barcode"> = {
   image: "image",
   fotourl: "image",
 };
+
+// ─────────────────────────────────────────────────────────────────────
+// Números, validaciones e importación
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Lee un número escrito como lo escribe una persona en Chile: "1.500" son mil
+ * quinientos (no 1,5), "$ 1.990" también vale, "2,5" es dos y medio. Devuelve
+ * null si no es un número. Los números que ya vienen como número (celdas
+ * numéricas de Excel) pasan tal cual.
+ */
+export function parseLocaleNumber(raw: unknown): number | null {
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
+  if (typeof raw !== "string") return null;
+  let s = raw.replace(/[$\s ]/g, "").replace(/clp/i, "");
+  if (!s) return null;
+  if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) {
+    s = s.replace(/,/g, "");
+  } else if (/^-?\d+,\d+$/.test(s)) {
+    s = s.replace(",", ".");
+  }
+  if (!/^-?\d+(\.\d+)?$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** "Sí", "si", "x", "1", "activo", true → true; "No", "0", "inactivo", false → false. */
+export function parseBooleanCell(raw: unknown): boolean | null {
+  if (typeof raw === "boolean") return raw;
+  if (typeof raw === "number") return raw === 1 ? true : raw === 0 ? false : null;
+  const s = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+  if (["si", "s", "x", "1", "true", "yes", "activo", "visible", "vitrina"].includes(s)) return true;
+  if (["no", "n", "0", "false", "inactivo", "oculto"].includes(s)) return false;
+  return null;
+}
+
+/**
+ * Advertencias de precio de un producto con sus cambios pendientes. No
+ * bloquean el guardado: se muestran en la fila y en el resumen antes de
+ * guardar, para que nadie publique una oferta más cara que el precio o venda
+ * bajo el costo sin darse cuenta.
+ */
+export function getPriceWarnings(p: any, changes?: ProductChanges): string[] {
+  const price = Number(changes?.price ?? p?.price ?? 0);
+  const offerRaw = changes?.offerPrice !== undefined ? changes.offerPrice : p?.offerPrice;
+  const offer = offerRaw === null || offerRaw === undefined ? 0 : Number(offerRaw);
+  const cost = Number(changes?.purchasePrice ?? p?.purchasePrice ?? 0);
+  const warnings: string[] = [];
+  if (offer > 0 && price > 0 && offer >= price) warnings.push("Oferta ≥ precio");
+  if (cost > 0 && price > 0 && price < cost) warnings.push("Precio bajo costo");
+  return warnings;
+}
+
+export interface ImportPlan {
+  /** Cambios por id de producto, sólo los que difieren del valor actual. */
+  changes: Record<string, ProductChanges>;
+  matched: number;
+  unmatched: number;
+  /** Algunos códigos sin coincidencia, para mostrarlos. */
+  unmatchedCodes: string[];
+  /** Valores que no se pudieron leer: "Fila 4, Precio: «abc»". */
+  invalid: string[];
+  /** Cuántos productos cambian en cada campo. */
+  fieldCounts: Partial<Record<keyof ProductChanges, number>>;
+  /** Columnas del archivo que se usaron y las que no se reconocieron. */
+  recognizedColumns: string[];
+  ignoredColumns: string[];
+  /** Si el archivo no se puede usar, por qué. */
+  error?: string;
+}
+
+const NUMERIC_IMPORT_FIELDS: Partial<Record<keyof ProductChanges, { integer: boolean; label: string }>> = {
+  price: { integer: false, label: "Precio" },
+  offerPrice: { integer: false, label: "Oferta" },
+  purchasePrice: { integer: false, label: "Costo" },
+  stock: { integer: true, label: "Stock" },
+  minStock: { integer: true, label: "Stock mínimo" },
+  optimumStock: { integer: true, label: "Stock óptimo" },
+};
+
+/**
+ * Arma los cambios de un XLSX (primera hoja, como filas de celdas) contra el
+ * catálogo. No aplica nada: la página muestra el resumen y pide confirmación.
+ *
+ * La fila de encabezados es la primera (de las 10 primeras) que tenga una
+ * columna de código; así un título arriba de la tabla no rompe la lectura.
+ */
+export function buildImportPlan(rows: unknown[][], products: any[]): ImportPlan {
+  const plan: ImportPlan = {
+    changes: {},
+    matched: 0,
+    unmatched: 0,
+    unmatchedCodes: [],
+    invalid: [],
+    fieldCounts: {},
+    recognizedColumns: [],
+    ignoredColumns: [],
+  };
+
+  const headerIndex = rows
+    .slice(0, 10)
+    .findIndex((r) => Array.isArray(r) && r.some((c) => COLUMN_MAP[normalizeHeader(String(c ?? ""))] === "barcode"));
+  if (headerIndex === -1) {
+    plan.error = "No se encontró una columna de código (Código, SKU o Barcode).";
+    return plan;
+  }
+
+  const header = rows[headerIndex];
+  const columns: { index: number; field: keyof ProductChanges }[] = [];
+  let barcodeCol = -1;
+  header.forEach((h, index) => {
+    const titulo = String(h ?? "").trim();
+    if (!titulo) return;
+    const field = COLUMN_MAP[normalizeHeader(titulo)];
+    if (!field) {
+      plan.ignoredColumns.push(titulo);
+      return;
+    }
+    plan.recognizedColumns.push(titulo);
+    if (field === "barcode") {
+      if (barcodeCol === -1) barcodeCol = index;
+      return;
+    }
+    columns.push({ index, field });
+  });
+
+  const byCode = new Map<string, any>();
+  for (const p of products) {
+    if (p.id) byCode.set(String(p.id).trim(), p);
+    if (p.barcode) byCode.set(String(p.barcode).trim(), p);
+  }
+
+  for (let r = headerIndex + 1; r < rows.length; r++) {
+    const row = rows[r] ?? [];
+    const fila = r + 1;
+    const rawCode = row[barcodeCol];
+    const code = typeof rawCode === "number" ? String(Math.trunc(rawCode)) : String(rawCode ?? "").trim();
+    if (!code) continue;
+
+    // Excel guarda los códigos como número y se come los ceros de adelante
+    // (047800000144 → 47800000144): se prueba también con el largo EAN.
+    const product =
+      byCode.get(code) ??
+      (typeof rawCode === "number" ? byCode.get(code.padStart(12, "0")) ?? byCode.get(code.padStart(13, "0")) : undefined);
+    if (!product) {
+      plan.unmatched++;
+      if (plan.unmatchedCodes.length < 5) plan.unmatchedCodes.push(code);
+      continue;
+    }
+
+    const changes: ProductChanges = {};
+    for (const { index, field } of columns) {
+      const raw = row[index];
+      if (raw === "" || raw === undefined || raw === null) continue;
+
+      const numeric = NUMERIC_IMPORT_FIELDS[field];
+      if (numeric) {
+        const v = parseLocaleNumber(raw);
+        if (v === null || v < 0 || (numeric.integer && !Number.isInteger(v))) {
+          plan.invalid.push(`Fila ${fila}, ${numeric.label}: «${String(raw)}»`);
+          continue;
+        }
+        if (field === "offerPrice") {
+          const actual = product.offerPrice ?? null;
+          const nuevo = v > 0 ? v : null;
+          if (nuevo !== actual) changes.offerPrice = nuevo;
+        } else if (field === "purchasePrice") {
+          if (v !== (product.purchasePrice ?? 0)) changes.purchasePrice = v;
+        } else if (v !== product[field]) {
+          (changes as any)[field] = v;
+        }
+      } else if (field === "name") {
+        const v = String(raw).trim();
+        if (v && v !== product.name) changes.name = v;
+      } else if (field === "description") {
+        const v = String(raw).trim();
+        if (v && v !== (product.description || "")) changes.description = v;
+      } else if (field === "categories") {
+        const v = String(raw).split(/[,|;]/).map((s) => s.trim()).filter(Boolean);
+        if (v.length > 0 && JSON.stringify([...v].sort()) !== JSON.stringify([...(product.categories || [])].sort())) {
+          changes.categories = v;
+        }
+      } else if (field === "isActive") {
+        const v = parseBooleanCell(raw);
+        if (v === null) {
+          plan.invalid.push(`Fila ${fila}, Activo: «${String(raw)}»`);
+          continue;
+        }
+        if (v !== (product.isActive !== false)) changes.isActive = v;
+      } else if (field === "image") {
+        const v = String(raw).trim();
+        if (!/^https?:\/\//i.test(v)) {
+          plan.invalid.push(`Fila ${fila}, Imagen: debe ser un enlace http(s)`);
+          continue;
+        }
+        if (v !== product.image) changes.image = v;
+      }
+    }
+
+    if (Object.keys(changes).length > 0) {
+      plan.changes[product.id] = { ...plan.changes[product.id], ...changes };
+    }
+  }
+
+  plan.matched = Object.keys(plan.changes).length;
+  for (const c of Object.values(plan.changes)) {
+    for (const k of Object.keys(c) as (keyof ProductChanges)[]) {
+      plan.fieldCounts[k] = (plan.fieldCounts[k] ?? 0) + 1;
+    }
+  }
+  return plan;
+}
+
+/** Encabezados del XLSX exportado: el mismo archivo se puede volver a importar. */
+export const EXPORT_COLUMNS: { header: string; width: number; value: (p: any) => string | number | null }[] = [
+  { header: "Código", width: 18, value: (p) => String(p.barcode || p.id || "") },
+  { header: "Nombre", width: 40, value: (p) => p.name ?? "" },
+  { header: "Categorías", width: 24, value: (p) => (Array.isArray(p.categories) ? p.categories.join(", ") : "") },
+  { header: "Costo", width: 10, value: (p) => (p.purchasePrice ?? null) },
+  { header: "Precio", width: 10, value: (p) => (p.price ?? null) },
+  { header: "Oferta", width: 10, value: (p) => (p.offerPrice ?? null) },
+  { header: "Stock", width: 8, value: (p) => (p.stock ?? null) },
+  { header: "Stock mínimo", width: 12, value: (p) => (p.minStock ?? null) },
+  { header: "Stock óptimo", width: 12, value: (p) => (p.optimumStock ?? null) },
+  { header: "Activo", width: 8, value: (p) => (p.isActive === false ? "No" : "Sí") },
+  { header: "Descripción", width: 40, value: (p) => p.description ?? "" },
+  { header: "Imagen", width: 40, value: (p) => (p.image && p.image !== "/file.svg" ? p.image : "") },
+];
+
+/**
+ * Las diferencias entre un backup y el estado actual, como cambios
+ * pendientes. Incluye foto, vitrina y costo: antes el backup los guardaba
+ * pero restaurar no los devolvía.
+ */
+export function diffSnapshot(snap: ProductSnapshot, current: any): ProductChanges {
+  const changes: ProductChanges = {};
+  if (snap.price !== current.price) changes.price = snap.price;
+  if (snap.offerPrice !== (current.offerPrice ?? null)) changes.offerPrice = snap.offerPrice;
+  if (snap.stock !== current.stock) changes.stock = snap.stock;
+  if (snap.minStock !== (current.minStock ?? 5)) changes.minStock = snap.minStock;
+  if (snap.optimumStock !== (current.optimumStock ?? 20)) changes.optimumStock = snap.optimumStock;
+  if (snap.name !== current.name) changes.name = snap.name;
+  if (snap.description !== (current.description || "")) changes.description = snap.description;
+  if (JSON.stringify([...(snap.categories || [])].sort()) !== JSON.stringify([...(current.categories || [])].sort())) {
+    changes.categories = snap.categories;
+  }
+  if (snap.image !== undefined && snap.image !== current.image) changes.image = snap.image;
+  if (snap.isActive !== undefined && (snap.isActive !== false) !== (current.isActive !== false)) {
+    changes.isActive = snap.isActive !== false;
+  }
+  if (snap.purchasePrice !== undefined && snap.purchasePrice !== null && snap.purchasePrice !== (current.purchasePrice ?? 0)) {
+    changes.purchasePrice = snap.purchasePrice;
+  }
+  return changes;
+}
+
+const CONFLICT_LABELS: Partial<Record<keyof ProductChanges, string>> = {
+  price: "precio",
+  offerPrice: "oferta",
+  purchasePrice: "costo",
+  stock: "stock",
+  minStock: "stock mínimo",
+  optimumStock: "stock óptimo",
+  name: "nombre",
+  categories: "categorías",
+  description: "descripción",
+  isActive: "vitrina",
+  image: "foto",
+};
+
+function comparable(field: keyof ProductChanges, p: any): string {
+  if (!p) return "";
+  if (field === "categories") return JSON.stringify([...(p.categories || [])].sort());
+  if (field === "isActive") return String(p.isActive !== false);
+  if (field === "offerPrice") return String(p.offerPrice ?? null);
+  if (field === "purchasePrice") return String(p.purchasePrice ?? 0);
+  if (field === "description") return String(p.description ?? "");
+  return String(p[field] ?? "");
+}
+
+export interface SaveConflict {
+  id: string;
+  name: string;
+  field: string;
+}
+
+/**
+ * Campos que alguien más cambió en la base mientras se editaba: el valor que
+ * había al abrir la página ya no es el que está guardado. Guardar igual pisa
+ * ese cambio, así que se avisa antes.
+ */
+export function findConflicts(
+  changes: Record<string, ProductChanges>,
+  loaded: any[],
+  fresh: any[]
+): SaveConflict[] {
+  const antes = new Map(loaded.map((p) => [String(p.id), p]));
+  const ahora = new Map(fresh.map((p) => [String(p.id), p]));
+  const conflicts: SaveConflict[] = [];
+  for (const [id, c] of Object.entries(changes)) {
+    const a = antes.get(id);
+    const b = ahora.get(id);
+    if (!a || !b) continue;
+    for (const field of Object.keys(c) as (keyof ProductChanges)[]) {
+      const label = CONFLICT_LABELS[field];
+      if (!label) continue;
+      if (comparable(field, a) !== comparable(field, b)) {
+        conflicts.push({ id, name: String(b.name ?? id), field: label });
+      }
+    }
+  }
+  return conflicts;
+}
+
+/** El valor guardado de un campo, normalizado como lo edita la página. */
+export function originalOf(p: any, field: keyof ProductChanges): any {
+  switch (field) {
+    case "offerPrice":
+      return p?.offerPrice || null;
+    case "purchasePrice":
+      return p?.purchasePrice ?? 0;
+    case "isActive":
+      return p?.isActive !== false;
+    case "barcode":
+      return p?.barcode ?? "";
+    case "categories":
+      return p?.categories ?? [];
+    case "description":
+      return p?.description ?? "";
+    default:
+      return p?.[field];
+  }
+}
+
+export function sameValue(a: any, b: any): boolean {
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return JSON.stringify([...(a || [])].sort()) === JSON.stringify([...(b || [])].sort());
+  }
+  return a === b;
+}
+
+/**
+ * Aplica `patch` a los cambios pendientes de `product` dentro de `map` (que
+ * tiene que ser una copia propia del llamador). Un campo que vuelve a su
+ * valor guardado deja de estar pendiente. Nunca muta el objeto de cambios
+ * anterior del producto: las filas están memorizadas y un objeto mutado no
+ * las volvería a dibujar.
+ *
+ * Devuelve true si algún valor efectivo cambió.
+ */
+export function applyPatch(
+  map: Record<string, ProductChanges>,
+  product: any,
+  patch: Partial<ProductChanges>
+): boolean {
+  const id = String(product.id);
+  const current: ProductChanges = { ...(map[id] ?? {}) };
+  let changed = false;
+  for (const key of Object.keys(patch) as (keyof ProductChanges)[]) {
+    const value = (patch as any)[key];
+    const before = key in current ? (current as any)[key] : originalOf(product, key);
+    if (!sameValue(value, before)) changed = true;
+    if (sameValue(value, originalOf(product, key))) delete (current as any)[key];
+    else (current as any)[key] = value;
+  }
+  if (Object.keys(current).length > 0) map[id] = current;
+  else delete map[id];
+  return changed;
+}
+
+export interface ChangesSummary {
+  /** Cuántos productos cambian en cada campo. */
+  fieldCounts: Partial<Record<keyof ProductChanges, number>>;
+  renames: { id: string; name: string; to: string }[];
+  warnings: { id: string; name: string; warnings: string[] }[];
+}
+
+/** Lo que se va a guardar, para mostrarlo antes de confirmar. */
+export function summarizeChanges(changes: Record<string, ProductChanges>, products: any[]): ChangesSummary {
+  const porId = new Map(products.map((p) => [String(p.id), p]));
+  const summary: ChangesSummary = { fieldCounts: {}, renames: [], warnings: [] };
+  for (const [id, c] of Object.entries(changes)) {
+    const p = porId.get(id);
+    const name = String(c.name ?? p?.name ?? id);
+    for (const k of Object.keys(c) as (keyof ProductChanges)[]) {
+      summary.fieldCounts[k] = (summary.fieldCounts[k] ?? 0) + 1;
+    }
+    if (c.barcode !== undefined) summary.renames.push({ id, name, to: c.barcode });
+    if (p) {
+      const w = getPriceWarnings(p, c);
+      if (w.length > 0) summary.warnings.push({ id, name, warnings: w });
+    }
+  }
+  return summary;
+}
+
+/** Corre `fn` sobre los elementos con a lo sumo `limit` en paralelo. */
+export async function mapWithConcurrency<T>(items: T[], limit: number, fn: (item: T) => Promise<void>) {
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const item = items[next++];
+      await fn(item);
+    }
+  });
+  await Promise.all(workers);
+}
 
 // ─────────────────────────────────────────────────────────────────────
 // Stock real: qué se contó y cuándo

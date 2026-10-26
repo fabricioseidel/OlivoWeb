@@ -56,7 +56,7 @@ export default function DuplicatesPanel({
         <div>
           <h2 className="text-sm font-black uppercase tracking-widest text-amber-700 flex items-center gap-2">
             <ArrowsRightLeftIcon className="w-4 h-4" />
-            Posibles duplicados ({pendientes.length})
+            Posibles duplicados ({pendientes.length} {pendientes.length === 1 ? "grupo" : "grupos"})
           </h2>
           <p className="text-xs text-gray-500 font-medium mt-1 max-w-2xl">
             El mismo producto en dos filas, con dos códigos de barra. Se conserva el que se
@@ -80,7 +80,7 @@ export default function DuplicatesPanel({
           onClick={() => onMergeAll(pendientes)}
           className="mb-3 px-4 h-10 rounded-xl bg-amber-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-amber-700 transition-colors shadow-sm"
         >
-          Unificar los {pendientes.length} grupos (pendiente guardar)
+          Unificar los {pendientes.length} grupos…
         </button>
       )}
 

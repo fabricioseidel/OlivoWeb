@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { slugify } from '@/utils/string-utils';
 import { SupaProduct, ProductUI } from '@/types';
 import { calculateBundleStock } from '@/lib/bundle';
+import { ofertaVigente } from '@/lib/pricing';
 
 // Use a repo-shipped placeholder. Files under /public/uploads may exist locally but
 // won't be present in Vercel unless committed, causing 404/next-image 400.
@@ -54,9 +55,12 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
   }
 
   const rawSalePrice = Number(p.sale_price ?? 0);
+  // Una oferta vencida (offer_ends_at pasado) no existe para la tienda ni para
+  // la caja, aunque offer_price siga cargado.
+  const oferta = ofertaVigente(p.offer_price, p.offer_ends_at);
   const rawOfferPrice =
-    p.offer_price !== null && p.offer_price !== undefined && Number(p.offer_price) > 0
-      ? Number(p.offer_price)
+    oferta !== null && oferta !== undefined && Number(oferta) > 0
+      ? Number(oferta)
       : undefined;
 
   return {
@@ -104,7 +108,7 @@ export function mapSupaToUI(p: SupaProduct): ProductUI {
  * costo cargado —requisito para publicarlo— existe `costo_cargado`.
  */
 export const COLUMNAS_PUBLICAS =
-  'barcode, name, category, sale_price, offer_price, image_url, gallery, stock, featured, is_active, by_weight, min_stock, optimum_stock, measurement_unit, measurement_value, updated_at, description, features, verified_at, costo_cargado';
+  'barcode, name, category, sale_price, offer_price, offer_ends_at, image_url, gallery, stock, featured, is_active, by_weight, min_stock, optimum_stock, measurement_unit, measurement_value, updated_at, description, features, verified_at, costo_cargado';
 
 /** Lo que ve el panel: lo público más costos y márgenes. Sólo desde el servidor. */
 export const COLUMNAS_PANEL = `${COLUMNAS_PUBLICAS}, purchase_price, suggested_price, reorder_threshold, margin_override, price_reviewed_at`;
@@ -309,7 +313,14 @@ export async function saveProduct(p: Partial<SupaProduct> & { barcode: string })
   }
 }
 
-export async function saveProductsBulk(products: (Partial<SupaProduct> & { barcode: string })[]) {
+/**
+ * Devuelve `stockError` cuando los productos se guardaron pero el ajuste de
+ * stock falló: la API responde 200 en ese caso, así que sin mirar el cuerpo
+ * la pantalla anunciaba "guardado" con el stock sin cambiar.
+ */
+export async function saveProductsBulk(
+  products: (Partial<SupaProduct> & { barcode: string })[]
+): Promise<{ stockError?: string }> {
   const payloads = products.map(toProductPayload);
 
   const res = await fetch('/api/products', {
@@ -322,6 +333,9 @@ export async function saveProductsBulk(products: (Partial<SupaProduct> & { barco
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || 'Error saving products bulk');
   }
+
+  const body = await res.json().catch(() => ({}));
+  return body?.stockError ? { stockError: String(body.stockError) } : {};
 }
 
 export async function deleteProduct(barcode: string) {

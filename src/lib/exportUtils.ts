@@ -1,16 +1,44 @@
 import { ProductUI } from '@/types';
 
-// xlsx y jspdf pesan ~500KB combinados: se cargan bajo demanda con import()
-// dinámico para que no entren en el bundle inicial del admin.
+// write-excel-file y jspdf se cargan bajo demanda con import() dinámico para
+// que no entren en el bundle inicial del admin. (Antes se usaba `xlsx` 0.18,
+// que tiene vulnerabilidades conocidas y ya no se publica en npm.)
+
+export type Fila = Record<string, string | number | null | undefined>;
+
+/** Descarga un Blob con el nombre dado. */
+function descargar(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Convierte filas-objeto en una hoja: la primera fila son los encabezados
+ * (las claves del primer objeto) en negrita.
+ */
+export function hojaDesdeObjetos(filas: Fila[]) {
+  const columnas = Object.keys(filas[0] ?? {});
+  return [
+    columnas.map((c) => ({ value: c, fontWeight: 'bold' as const })),
+    ...filas.map((fila) => columnas.map((c) => fila[c] ?? null)),
+  ];
+}
 
 /**
  * Exporta una lista de productos a un archivo Excel (.xlsx)
  */
 export const exportToExcel = async (products: ProductUI[], filename: string = 'inventario-olivo-market.xlsx') => {
-  const { utils, writeFile } = await import('xlsx');
+  const { default: writeXlsxFile } = await import('write-excel-file/browser');
 
   // Mapear los datos a un formato plano para Excel
-  const data = products.map(p => ({
+  const data: Fila[] = products.map(p => ({
     'ID/SKU': p.id,
     'Nombre': p.name,
     'Categoría(s)': Array.isArray(p.categories) ? p.categories.join(', ') : '',
@@ -30,25 +58,21 @@ export const exportToExcel = async (products: ProductUI[], filename: string = 'i
     'Fecha Creación': p.createdAt ? new Date(p.createdAt).toLocaleDateString() : ''
   }));
 
-  // Crear hoja de trabajo
-  const worksheet = utils.json_to_sheet(data);
-
-  // Crear libro de trabajo
-  const workbook = utils.book_new();
-  utils.book_append_sheet(workbook, worksheet, 'Productos');
-
-  // Guardar archivo
-  writeFile(workbook, filename);
+  await writeXlsxFile(hojaDesdeObjetos(data), { sheet: 'Productos', stickyRowsCount: 1 }).toFile(filename);
 };
+
+/** Una celda CSV: entre comillas si trae separador, comillas o saltos de línea. */
+function celdaCsv(valor: unknown): string {
+  const s = valor === null || valor === undefined ? '' : String(valor);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
 
 /**
  * Exporta una lista de productos a un archivo CSV (.csv)
  */
 export const exportToCSV = async (products: ProductUI[], filename: string = 'inventario-olivo-market.csv') => {
-  const { utils } = await import('xlsx');
-
   // Mapear los datos a un formato plano
-  const data = products.map(p => ({
+  const data: Fila[] = products.map(p => ({
     'ID_SKU': p.id,
     'Nombre': p.name,
     'Categoría': Array.isArray(p.categories) ? p.categories.join('|') : '',
@@ -61,24 +85,14 @@ export const exportToCSV = async (products: ProductUI[], filename: string = 'inv
     'Ultima_Actualizacion': p.createdAt || ''
   }));
 
-  // Crear hoja de trabajo
-  const worksheet = utils.json_to_sheet(data);
+  const columnas = Object.keys(data[0] ?? { 'ID_SKU': '' });
+  const csvOutput = [
+    columnas.map(celdaCsv).join(','),
+    ...data.map((fila) => columnas.map((c) => celdaCsv(fila[c])).join(',')),
+  ].join('\r\n');
 
-  // Generar CSV
-  const csvOutput = utils.sheet_to_csv(worksheet);
-
-  // Descargar archivo (vía Blob en navegador)
-  const blob = new Blob([csvOutput], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  if (link.download !== undefined) {
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+  // BOM para que Excel lea bien los acentos.
+  descargar(new Blob(['\ufeff' + csvOutput], { type: 'text/csv;charset=utf-8;' }), filename);
 };
 
 /**

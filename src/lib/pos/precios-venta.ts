@@ -12,8 +12,9 @@
  */
 
 import { STAFF_DISCOUNT_RATE } from "./payments";
+import { ofertaVigente } from "@/lib/pricing";
 
-export type PrecioBase = { sale_price: number | null; offer_price: number | null };
+export type PrecioBase = { sale_price: number | null; offer_price: number | null; offer_ends_at?: string | null };
 
 export type ItemPedido = { barcode: string; qty: number; name?: string };
 
@@ -27,7 +28,7 @@ export type ResultadoPrecios =
 export const TOLERANCIA_PESOS = 1;
 
 export function precioVigente(p: PrecioBase): number {
-  const oferta = Number(p.offer_price ?? 0);
+  const oferta = Number(ofertaVigente(p.offer_price, p.offer_ends_at) ?? 0);
   return Math.round(oferta > 0 ? oferta : Number(p.sale_price ?? 0));
 }
 

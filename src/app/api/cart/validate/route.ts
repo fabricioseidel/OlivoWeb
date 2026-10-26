@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
-import { precioEfectivo } from "@/lib/pricing";
+import { precioEfectivo, ofertaVigente } from "@/lib/pricing";
 import { calculateBundleStock } from "@/lib/bundle";
 
 export async function POST(req: NextRequest) {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     const { data: dbProducts, error } = await supabaseServer
       .from("products")
-      .select("id, barcode, name, sale_price, offer_price, stock, is_active, features")
+      .select("id, barcode, name, sale_price, offer_price, offer_ends_at, stock, is_active, features")
       .in("barcode", itemIds);
 
     if (error) {
@@ -158,7 +158,10 @@ export async function POST(req: NextRequest) {
        * `sale_price` con decimales en la base contra el precio ya redondeado
        * del carrito también inventaba un cambio de precio.
        */
-      const precioReal = precioEfectivo(dbProduct.sale_price, dbProduct.offer_price);
+      const precioReal = precioEfectivo(
+        dbProduct.sale_price,
+        ofertaVigente(dbProduct.offer_price, dbProduct.offer_ends_at)
+      );
       if (precioReal !== Math.round(Number(item.price))) {
         needsUpdate = true;
         updatePayload.priceChanged = true;

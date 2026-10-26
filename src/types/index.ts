@@ -19,6 +19,7 @@ export type SupaProduct = {
   measurement_value?: number | null;
   suggested_price?: number | null;
   offer_price?: number | null;
+  offer_ends_at?: string | null;
   is_active?: boolean | null;
   tax_rate?: number | null;
   min_stock?: number | null;

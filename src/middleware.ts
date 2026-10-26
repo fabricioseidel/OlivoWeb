@@ -62,6 +62,11 @@ export const config = {
     // quedaba sin protección de sesión (ver plan de remediación P0-2).
     "/uber-eats-editor/:path*",
     "/uber-eats-editor",
+    // Pantallas de desarrollo (bootstrap del primer admin, sincronizar
+    // categorías). Las APIs que llaman ya exigen token o sesión, pero las
+    // páginas en sí quedaban abiertas a cualquiera.
+    "/debug/:path*",
+    "/debug",
     "/api/admin/:path*",
   ],
 };
