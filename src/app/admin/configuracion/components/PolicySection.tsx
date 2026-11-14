@@ -79,9 +79,11 @@ export default function PolicySection({ settings, handleChange }: PolicySectionP
             onChange={(val) => handleChange(["maintenanceMode"], val)}
           />
           <p className="text-xs leading-relaxed text-red-900">
-            ⚠️ Este interruptor todavía <strong>no está conectado</strong>: se
-            guarda, pero el sitio sigue disponible igual. Para cerrar solo las
-            ventas y dejar el catálogo visible, usa el modo vitrina de arriba.
+            Con esto activado los clientes solo ven un aviso de mantenimiento
+            en todo el sitio. El panel de administración, el acceso y la app de
+            operaciones siguen funcionando. Tarda hasta 20 segundos en
+            aplicarse. Para cerrar solo las ventas y dejar el catálogo visible,
+            usa el modo vitrina de arriba.
           </p>
           {settings.maintenanceMode && (
             <TextAreaField
