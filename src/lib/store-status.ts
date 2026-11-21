@@ -55,3 +55,19 @@ export function toStoreStatus(input: {
     previewMessage: input.previewMessage?.trim() || PREVIEW_DEFAULT_MESSAGE,
   };
 }
+
+/**
+ * Vitrina forzada desde el código, sin depender de la configuración.
+ *
+ * Se usa cuando la tienda web tiene que dejar de vender YA y no se puede (o
+ * no conviene) tocar `settings`: con esto activo la web se ve completa, con el
+ * aviso, y el servidor rechaza todo pedido igual que en el modo vitrina normal.
+ *
+ * Para volver a vender: definir `NEXT_PUBLIC_VITRINA_FORZADA=0` en Vercel (o
+ * quitar esto) y publicar; después, apagar el modo vitrina del panel.
+ */
+export const VITRINA_FORZADA = process.env.NEXT_PUBLIC_VITRINA_FORZADA !== "0";
+
+export const VITRINA_FORZADA_MENSAJE =
+  "Estamos actualizando nuestra tienda online. Puedes mirar el catálogo, pero por ahora " +
+  "no tomamos pedidos por la web. Te esperamos en el local.";

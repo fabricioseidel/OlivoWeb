@@ -4,6 +4,7 @@ import { DocumentTextIcon } from "@heroicons/react/24/outline";
 import type { StoreSettings } from "@/app/api/admin/settings/route";
 import type { HandleChange } from "../lib";
 import { InputField, CheckBoxField, TextAreaField } from "./fields";
+import { VITRINA_FORZADA } from "@/lib/store-status";
 
 interface PolicySectionProps {
   settings: StoreSettings;
@@ -60,6 +61,12 @@ export default function PolicySection({ settings, handleChange }: PolicySectionP
             Con esto activado el sitio se ve completo y sale en buscadores, pero
             nadie puede pagar ni dejar un pedido: el servidor los rechaza, no es
             solo un botón escondido. <strong>Desactívalo el día que abras.</strong>
+            {VITRINA_FORZADA && (
+              <strong className="block mt-2 text-red-700">
+                Ahora está forzado desde el código: aunque lo apagues acá, la web no vende hasta
+                publicar con NEXT_PUBLIC_VITRINA_FORZADA=0.
+              </strong>
+            )}
           </p>
           {settings.previewMode !== false && (
             <TextAreaField

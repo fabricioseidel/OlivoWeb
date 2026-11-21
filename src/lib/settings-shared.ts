@@ -5,6 +5,7 @@
 import { DEFAULT_BLOCKS, type PageBlock } from "@/lib/page-blocks";
 import type { SiteCopy } from "@/lib/site-copy";
 import { RADIO_DESPACHO_KM_DEFAULT } from "@/lib/shipping-policy";
+import { VITRINA_FORZADA, VITRINA_FORZADA_MENSAJE } from "@/lib/store-status";
 
 export type { PageBlock };
 
@@ -297,8 +298,8 @@ export function mapSettingsRow(data: Record<string, any>): StoreSettings {
     faqUrl: data.faq_url,
     maintenanceMode: data.maintenance_mode,
     maintenanceMessage: data.maintenance_message,
-    previewMode: data.preview_mode !== false,
-    previewMessage: data.preview_message,
+    previewMode: VITRINA_FORZADA || data.preview_mode !== false,
+    previewMessage: VITRINA_FORZADA ? VITRINA_FORZADA_MENSAJE : data.preview_message,
     heroTitle: data.hero_title,
     heroDescription: data.hero_description,
     updatedAt: data.updated_at,
