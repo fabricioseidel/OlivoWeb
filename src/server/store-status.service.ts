@@ -2,6 +2,8 @@ import { supabaseServer } from "@/lib/supabase-server";
 import { logger } from "@/utils/logger";
 import {
   STORE_STATUS_FALLBACK,
+  VITRINA_FORZADA,
+  VITRINA_FORZADA_MENSAJE,
   toStoreStatus,
   type StoreStatus,
 } from "@/lib/store-status";
@@ -24,6 +26,7 @@ export function invalidateStoreStatusCache(): void {
 }
 
 export async function getStoreStatus(): Promise<StoreStatus> {
+  if (VITRINA_FORZADA) return { previewMode: true, previewMessage: VITRINA_FORZADA_MENSAJE };
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.value;
 
   const { data, error } = await supabaseServer

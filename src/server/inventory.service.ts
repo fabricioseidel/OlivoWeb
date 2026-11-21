@@ -5,7 +5,8 @@ import { logger } from "@/utils/logger";
  * Puerta única para mover stock.
  *
  * El modelo de datos es: `branch_stock` es la fuente de verdad y
- * `products.stock` es un valor DERIVADO — la suma de las sucursales **activas**
+ * `products.stock` es un valor DERIVADO — el stock del minimarket (sucursal
+ * por defecto, desde 20261121000000), que es lo que vende la web; antes era la suma de las sucursales **activas**
  * del producto. Escribir `products.stock` directamente rompe las dos cosas a la
  * vez: no mueve el stock de la sucursal (que es de donde realmente sale la
  * mercadería) y el número que se escribió se pierde en el siguiente recálculo,
